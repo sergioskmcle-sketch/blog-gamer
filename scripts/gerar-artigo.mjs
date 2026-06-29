@@ -205,7 +205,7 @@ function pickTopic(counts) {
 }
 
 async function main() {
-  log("INFO", "=== INICIANDO GERACAO ===");
+  log("INFO", "=== INICIANDO GERACAO (Groq) ===");
   log("INFO", `GROQ_API_KEY definida: ${!!GROQ_API_KEY}`);
   log("INFO", `TAVILY_API_KEY definida: ${!!TAVILY_API_KEY}`);
 
