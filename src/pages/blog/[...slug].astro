@@ -1,5 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import Sidebar from "../../components/Sidebar.astro";
 
 export async function getStaticPaths() {
   const artigos = Object.entries(import.meta.glob("../../content/artigos/*.md", { eager: true }));
@@ -11,7 +12,16 @@ export async function getStaticPaths() {
 }
 
 const { frontmatter, Content } = Astro.props;
-const base = Astro.site?.pathname || "/";
+const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
+
+const todosArtigos = Object.entries(import.meta.glob("../../content/artigos/*.md", { eager: true }))
+  .map(([path, mod]) => ({
+    slug: path.split("/").pop()?.replace(".md", "") || "",
+    title: mod.frontmatter.title,
+    pubDate: mod.frontmatter.pubDate,
+    category: mod.frontmatter.category,
+  }))
+  .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
 ---
 
 <Layout
@@ -22,37 +32,138 @@ const base = Astro.site?.pathname || "/";
   tags={frontmatter.tags}
   category={frontmatter.category}
 >
-  <article>
-    <header style="margin-bottom: 2rem;">
-      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
-        {frontmatter.tags?.map((tag) => <span class="tag">{tag}</span>)}
-        {frontmatter.category && <span class="tag" style="border-color: var(--accent);">{frontmatter.category}</span>}
-      </div>
-      <h1>{frontmatter.title}</h1>
-      <div style="display: flex; gap: 1rem; color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;">
-        <time>{new Date(frontmatter.pubDate).toLocaleDateString("pt-BR")}</time>
-        {frontmatter.affiliate && <span style="color: var(--warning);">🔗 Contém links de afiliado</span>}
-      </div>
-      {frontmatter.description && (
-        <p style="color: var(--text-secondary); font-size: 1.05rem; margin-top: 1rem; padding: 1rem; background: var(--accent-dim); border-radius: var(--radius); border-left: 3px solid var(--accent);">
-          {frontmatter.description}
-        </p>
-      )}
-    </header>
+  <div class="container" style="padding-top: 2rem; padding-bottom: 3rem;">
+    <div class="content-grid">
+      <article class="main-content">
+        <header class="article-header">
+          <div class="article-meta-top">
+            {frontmatter.category && (
+              <span class="category-badge accent">{frontmatter.category}</span>
+            )}
+            {frontmatter.tags?.map((tag) => (
+              <span class="tag">{tag}</span>
+            ))}
+            {frontmatter.affiliate && (
+              <span class="tag tag-warning">🔗 Contém links de afiliado</span>
+            )}
+          </div>
 
-    <div style="font-size: 1.05rem; line-height: 1.8;">
-      <Content />
-    </div>
+          <h1 class="article-title">{frontmatter.title}</h1>
 
-    <div style="margin-top: 3rem; padding: 1.5rem; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); text-align: center;">
-      <p style="color: var(--text-muted); font-size: 0.85rem;">
-            Gostou do conteúdo? Compartilhe com outros gamers!<br />
-            Links de afiliado ajudam a manter o blog.
-      </p>
-    </div>
+          <div class="article-meta">
+            <time>📅 {new Date(frontmatter.pubDate).toLocaleDateString("pt-BR")}</time>
+          </div>
 
-    <div style="margin-top: 2rem; text-align: center;">
-      <a href={base} class="btn">← Voltar para o início</a>
+          {frontmatter.description && (
+            <p class="article-description">
+              {frontmatter.description}
+            </p>
+          )}
+        </header>
+
+        <div class="article-content">
+          <Content />
+        </div>
+
+        <div class="article-footer-cta">
+          <p>Gostou do conteúdo? Compartilhe com outros gamers!</p>
+          <p>Links de afiliado ajudam a manter o blog.</p>
+          <a href={base} class="btn btn-ghost">← Voltar para o início</a>
+        </div>
+      </article>
+
+      <Sidebar artigos={todosArtigos} currentSlug={Astro.params.slug} />
     </div>
-  </article>
+  </div>
 </Layout>
+
+<style is:global>
+  .article-header {
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .article-meta-top {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .article-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 0 0 0.75rem;
+  }
+
+  .article-meta {
+    display: flex;
+    gap: 1rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .article-description {
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    padding: 1.25rem;
+    background: var(--accent-dim);
+    border-radius: var(--radius);
+    border-left: 3px solid var(--accent);
+    margin: 0;
+  }
+
+  .article-content {
+    font-size: 1.05rem;
+    line-height: 1.9;
+  }
+
+  .article-content p {
+    margin-bottom: 1.4rem;
+  }
+
+  .article-content h2 {
+    margin-top: 2.5rem;
+  }
+
+  .article-content h3 {
+    margin-top: 2rem;
+  }
+
+  .article-content img {
+    border-radius: var(--radius);
+    margin: 1.5rem 0;
+  }
+
+  .article-footer-cta {
+    margin-top: 3rem;
+    padding: 1.5rem;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+
+  .article-footer-cta p {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .article-footer-cta .btn {
+    margin-top: 1rem;
+  }
+
+  @media (max-width: 768px) {
+    .article-title {
+      font-size: 1.5rem;
+    }
+  }
+</style>

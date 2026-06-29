@@ -1,0 +1,179 @@
+---
+const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
+
+const categories = [
+  { name: "Notícias", slug: "noticia" },
+  { name: "Reviews", slug: "review" },
+  { name: "Guias", slug: "guia" },
+  { name: "Listas", slug: "lista" },
+  { name: "Promoções", slug: "promocao" },
+];
+---
+
+<header class="header glass">
+  <div class="container header-inner">
+    <a href={base} class="logo">
+      <span class="logo-icon">🎮</span>
+      <span class="logo-text">Blog <span class="text-gradient">Gamer</span></span>
+    </a>
+
+    <nav class="nav">
+      <a href={base} class="nav-link">Início</a>
+      <div class="nav-dropdown">
+        <span class="nav-link">Categorias ▾</span>
+        <div class="dropdown-menu">
+          {categories.map((cat) => (
+            <a href={`${base}?categoria=${cat.slug}`} class="dropdown-item">{cat.name}</a>
+          ))}
+        </div>
+      </div>
+      <a href={`${base}blog/`} class="nav-link">Artigos</a>
+    </nav>
+
+    <div class="header-actions">
+      <a href={`${base}rss.xml`} class="rss-link" title="RSS Feed">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 11a9 9 0 0 1 9 9" />
+          <path d="M4 4a16 16 0 0 1 16 16" />
+          <circle cx="5" cy="19" r="1" fill="currentColor" />
+        </svg>
+      </a>
+    </div>
+  </div>
+</header>
+
+<style is:global>
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.2rem;
+  }
+
+  .logo:hover {
+    text-decoration: none;
+    color: #fff;
+  }
+
+  .logo-icon {
+    font-size: 1.5rem;
+  }
+
+  .logo-text {
+    letter-spacing: -0.02em;
+  }
+
+  .nav {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .nav-link {
+    padding: 0.5rem 1rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition);
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  .nav-link:hover {
+    color: #fff;
+    background: var(--accent-dim);
+    text-decoration: none;
+  }
+
+  .nav-dropdown {
+    position: relative;
+  }
+
+  .nav-dropdown:hover .dropdown-menu {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 160px;
+    background: var(--bg-elevated);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.5rem;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: all var(--transition);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .dropdown-item {
+    display: block;
+    padding: 0.5rem 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition);
+    text-decoration: none;
+  }
+
+  .dropdown-item:hover {
+    background: var(--accent-dim);
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .rss-link {
+    display: flex;
+    align-items: center;
+    padding: 0.4rem;
+    color: var(--text-muted);
+    border-radius: var(--radius-sm);
+    transition: all var(--transition);
+  }
+
+  .rss-link:hover {
+    color: var(--warning);
+    background: rgba(255, 170, 0, 0.1);
+  }
+
+  @media (max-width: 768px) {
+    .nav-link {
+      padding: 0.4rem 0.6rem;
+      font-size: 0.8rem;
+    }
+  }
+</style>

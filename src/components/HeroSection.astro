@@ -1,0 +1,133 @@
+---
+export interface Props {
+  title: string;
+  description: string;
+  pubDate: Date | string;
+  tags?: string[];
+  category?: string;
+  affiliate?: boolean;
+  slug: string;
+}
+
+const { title, description, pubDate, tags, category, affiliate, slug } = Astro.props;
+const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
+const date = new Date(pubDate).toLocaleDateString("pt-BR");
+---
+
+<section class="hero">
+  <div class="hero-bg" />
+  <div class="container">
+    <div class="hero-content">
+      <div class="hero-badges">
+        {category && (
+          <span class="category-badge accent">{category}</span>
+        )}
+        {tags?.slice(0, 2).map((tag) => (
+          <span class="tag">{tag}</span>
+        ))}
+        {affiliate && (
+          <span class="tag tag-warning">🔗 afiliado</span>
+        )}
+      </div>
+
+      <h1 class="hero-title">{title}</h1>
+      <p class="hero-desc">{description}</p>
+
+      <div class="hero-meta">
+        <time class="hero-date">📅 {date}</time>
+      </div>
+
+      <a href={`${base}blog/${slug}/`} class="btn hero-cta">
+        Ler Artigo →
+      </a>
+    </div>
+  </div>
+</section>
+
+<style is:global>
+  .hero {
+    position: relative;
+    overflow: hidden;
+    padding: 4rem 0 3.5rem;
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    background: var(--gradient-hero);
+    z-index: 0;
+  }
+
+  .hero-bg::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(0, 255, 136, 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 50%, rgba(139, 92, 246, 0.06) 0%, transparent 50%);
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 1;
+    max-width: 760px;
+  }
+
+  .hero-badges {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+  }
+
+  .hero-title {
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin: 0 0 1rem;
+  }
+
+  .hero-desc {
+    font-size: 1.15rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin: 0 0 1.5rem;
+    max-width: 640px;
+  }
+
+  .hero-meta {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+
+  .hero-date {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .hero-cta {
+    font-size: 1rem;
+    padding: 0.8rem 2rem;
+  }
+
+  @media (max-width: 768px) {
+    .hero {
+      padding: 2.5rem 0 2rem;
+    }
+
+    .hero-title {
+      font-size: 1.8rem;
+    }
+
+    .hero-desc {
+      font-size: 1rem;
+    }
+  }
+</style>

@@ -1,0 +1,157 @@
+---
+const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
+---
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <div class="footer-logo">
+          <span class="logo-icon">🎮</span>
+          <span class="logo-text">Blog <span class="text-gradient">Gamer</span></span>
+        </div>
+        <p class="footer-desc">
+          Notícias, reviews, listas e guias sobre o universo dos games. 
+          Links podem conter afiliados — ao comprar por eles, você apoia o blog sem pagar nada a mais.
+        </p>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-title">Navegação</h4>
+        <ul class="footer-links">
+          <li><a href={base}>Início</a></li>
+          <li><a href={`${base}blog/`}>Artigos</a></li>
+          <li><a href={`${base}rss.xml`}>RSS Feed</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-title">Categorias</h4>
+        <ul class="footer-links">
+          <li><a href={`${base}?categoria=noticia`}>Notícias</a></li>
+          <li><a href={`${base}?categoria=review`}>Reviews</a></li>
+          <li><a href={`${base}?categoria=guia`}>Guias de Compra</a></li>
+          <li><a href={`${base}?categoria=lista`}>Listas</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-title">Redes Sociais</h4>
+        <ul class="footer-links">
+          <li><a href="https://github.com/sergioskmcle-sketch/blog-gamer" target="_blank" rel="noopener">GitHub</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>&copy; {new Date().getFullYear()} Blog Gamer. Todos os direitos reservados.</p>
+      <p class="footer-affiliate">
+        🔗 Links de afiliado: Mercado Livre &amp; Shopee
+      </p>
+    </div>
+  </div>
+</footer>
+
+<style is:global>
+  .footer {
+    margin-top: 4rem;
+    padding: 3rem 0 0;
+    border-top: 1px solid var(--border);
+    background: var(--bg-secondary);
+  }
+
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    gap: 2rem;
+  }
+
+  .footer-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 800;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    color: #fff;
+  }
+
+  .footer-logo .logo-icon {
+    font-size: 1.3rem;
+  }
+
+  .footer-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+
+  .footer-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .footer-links li {
+    margin-bottom: 0.5rem;
+  }
+
+  .footer-links a {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    transition: color var(--transition);
+    text-decoration: none;
+  }
+
+  .footer-links a:hover {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem 0;
+    margin-top: 2rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .footer-bottom p {
+    margin: 0;
+    color: var(--text-muted);
+  }
+
+  .footer-affiliate {
+    color: var(--warning) !important;
+  }
+
+  @media (max-width: 768px) {
+    .footer-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .footer-bottom {
+      flex-direction: column;
+      gap: 0.5rem;
+      text-align: center;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .footer-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

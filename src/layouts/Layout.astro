@@ -1,5 +1,7 @@
 ---
 import "../styles/global.css";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
 
 export interface Props {
   title: string;
@@ -11,7 +13,7 @@ export interface Props {
 }
 
 const { title, description, image, pubDate, tags, category } = Astro.props;
-const base = Astro.site?.pathname || "/";
+const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 ---
 
 <!doctype html>
@@ -47,25 +49,12 @@ const base = Astro.site?.pathname || "/";
     <title>{title} — Blog Gamer</title>
   </head>
   <body>
-    <div class="container">
-      <header style="display: flex; align-items: center; justify-content: space-between; padding: 1.5rem 0; border-bottom: 1px solid var(--border); margin-bottom: 2rem;">
-        <a href={base} style="font-size: 1.3rem; font-weight: 800; color: #fff; text-decoration: none; display: flex; align-items: center; gap: 0.5rem;">
-          <span style="font-size: 1.6rem;">🎮</span> Blog Gamer
-        </a>
-        <nav style="display: flex; gap: 1.5rem; font-size: 0.9rem;">
-          <a href={base} style="color: var(--text-secondary); text-decoration: none;">Início</a>
-          <a href={base} style="color: var(--text-secondary); text-decoration: none;">Artigos</a>
-        </nav>
-      </header>
+    <Header />
 
-      <main>
-        <slot />
-      </main>
+    <main>
+      <slot />
+    </main>
 
-      <footer style="text-align: center; padding: 3rem 0 2rem; border-top: 1px solid var(--border); margin-top: 3rem; color: var(--text-muted); font-size: 0.85rem;">
-        <p>Blog Gamer — Notícias, reviews e o melhor do mundo dos games</p>
-        <p style="margin-top: 0.3rem;">Links podem conter afiliados. Ao comprar por eles, você apoia o blog.</p>
-      </footer>
-    </div>
+    <Footer />
   </body>
 </html>
