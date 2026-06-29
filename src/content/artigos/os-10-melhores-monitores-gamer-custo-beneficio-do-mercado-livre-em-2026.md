@@ -2,7 +2,7 @@
 title: "Os 10 Melhores Monitores Gamer Custo-Beneficio do Mercado Livre em 2026"
 description: "Lista completa com os 10 melhores monitores gamers custo-beneficio para 2026. Compare precos e especificacoes no Mercado Livre."
 pubDate: 2026-06-29
-tags: [monitores, hardware, "guia de compra", "custo beneficio", 2026]
+tags: [monitores, hardware, "guia de compra", "custo beneficio", "2026"]
 category: guia
 affiliate: true
 image: "https://http2.mlstatic.com/D_NQ_NP_949541-MLA99941683289_112025-F.jpg"
