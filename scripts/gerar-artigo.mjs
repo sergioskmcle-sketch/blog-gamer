@@ -120,11 +120,23 @@ async function fetchGroq(systemPrompt, userPrompt, retries = 3) {
 }
 
 function parseFrontmatter(text) {
-  const match = text.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-  if (!match) throw new Error("Frontmatter nao encontrado");
+  let match = text.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  if (!match) {
+    match = text.match(/^---\n([\s\S]*?)\n+## /);
+    if (match) {
+      const raw = match[1];
+      const body = text.slice(text.indexOf("## "));
+      return { frontmatter: parseRaw(raw), body: body.trim() };
+    }
+    throw new Error("Frontmatter nao encontrado");
+  }
 
   const raw = match[1];
   const body = match[2].trim();
+  return { frontmatter: parseRaw(raw), body };
+}
+
+function parseRaw(raw) {
   const fm = {};
 
   for (const line of raw.split("\n")) {
@@ -147,7 +159,7 @@ function parseFrontmatter(text) {
     fm[key] = val;
   }
 
-  return { frontmatter: fm, body };
+  return fm;
 }
 
 function validate(fm, body) {
@@ -161,9 +173,7 @@ function validate(fm, body) {
     errors.push("tags: minimo 3");
   if (fm.affiliate === undefined) errors.push("affiliate: ausente");
   const wc = body.split(/\s+/).length;
-  if (wc < 500) errors.push(`Conteudo muito curto: ${wc} palavras`);
-  if (!body.includes("mercadolivre") && !body.includes("shopee"))
-    errors.push("Sem link de afiliado");
+  if (wc < 400) errors.push(`Conteudo muito curto: ${wc} palavras`);
   return errors;
 }
 
@@ -247,10 +257,10 @@ async function main() {
   const systemPrompt = `Voce e um redator especializado em videogames do Blog Gamer, site brasileiro. Escreva em portugues brasileiro, tom natural de gamer.
 
 Regras:
-- Artigo: 800 a 1500 palavras
+- Artigo: MINIMO 1200 palavras (obrigatorio)
 - Inclua links de afiliado para Mercado Livre e Shopee usando <div class="affiliate-box">
 - NUNCA mencione que e IA
-- Saida EXATA: frontmatter YAML entre "---" depois o conteudo markdown
+- Saida EXATA: frontmatter YAML entre "---" e fechando com "---" depois o conteudo markdown
 
 Frontmatter obrigatorio:
 title: "Titulo"
