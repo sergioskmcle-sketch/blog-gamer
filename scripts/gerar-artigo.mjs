@@ -21,7 +21,7 @@ const TOPIC_SEEDS = [
   { category: "promocao", hint: "promoções sazonais de games, descontos em hardware gamer" },
 ];
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 
 function log(level, msg) {
@@ -60,29 +60,30 @@ async function fetchTavily(query) {
   return res.json();
 }
 
-async function fetchClaude(systemPrompt, userPrompt) {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
-    }),
-  });
+async function fetchGemini(systemPrompt, userPrompt) {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ parts: [{ text: userPrompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 4096,
+        },
+      }),
+    }
+  );
 
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Anthropic API error ${res.status}: ${err}`);
+    throw new Error(`Gemini API error ${res.status}: ${err}`);
   }
 
   const data = await res.json();
-  return data.content[0].text;
+  return data.candidates[0].content.parts[0].text;
 }
 
 function parseFrontmatter(text) {
@@ -194,8 +195,8 @@ function generateAffiliateLink(store, product) {
 async function main() {
   log("INFO", "Iniciando geração automática de artigo");
 
-  if (!ANTHROPIC_API_KEY) {
-    log("ERROR", "ANTHROPIC_API_KEY não configurada");
+  if (!GEMINI_API_KEY) {
+    log("ERROR", "GEMINI_API_KEY não configurada");
     process.exit(1);
   }
   if (!TAVILY_API_KEY) {
@@ -278,7 +279,7 @@ Instruções:
   let article;
   log("INFO", "Gerando artigo com IA...");
   try {
-    article = await fetchClaude(systemPrompt, userPrompt);
+    article = await fetchGemini(systemPrompt, userPrompt);
     log("INFO", "Artigo gerado com sucesso");
   } catch (err) {
     log("ERROR", `Falha na geração: ${err.message}`);

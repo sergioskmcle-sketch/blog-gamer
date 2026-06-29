@@ -26,7 +26,7 @@ jobs:
       - name: Gerar artigo
         run: node scripts/gerar-artigo.mjs
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
 
       - name: Verificar alteracoes
