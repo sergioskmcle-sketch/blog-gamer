@@ -1,6 +1,8 @@
 name: Gerar Conteudo Automatico
 
 on:
+  push:
+    branches: [main]
   schedule:
     - cron: "30 9 */2 * *"
   workflow_dispatch:

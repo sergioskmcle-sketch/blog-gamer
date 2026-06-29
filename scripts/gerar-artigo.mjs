@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import { execSync } from "child_process";
 
 const ARTIGOS_DIR = path.resolve("src/content/artigos");
 const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -334,16 +333,7 @@ ${body}
   fs.writeFileSync(filePath, markdown, "utf-8");
   log("INFO", `Artigo salvo: ${filePath}`);
 
-  log("INFO", "Fazendo commit e push...");
-  try {
-    execSync('git add -A', { cwd: process.cwd(), stdio: 'pipe' });
-    execSync(`git commit -m "feat: artigo - ${fm.title}"`, { cwd: process.cwd(), stdio: 'pipe' });
-    execSync('git push', { cwd: process.cwd(), stdio: 'pipe' });
-    log("INFO", `Artigo publicado: ${fm.title}`);
-  } catch (err) {
-    log("ERROR", `Falha no git: ${err.message}`);
-    process.exit(1);
-  }
+  log("INFO", `Artigo salvo em: src/content/artigos/${slug}.md`);
 
   log("INFO", "Processo concluído com sucesso!");
 }
