@@ -1,0 +1,58 @@
+---
+import Layout from "../../layouts/Layout.astro";
+
+export async function getStaticPaths() {
+  const artigos = Object.entries(import.meta.glob("../../content/artigos/*.md", { eager: true }));
+
+  return artigos.map(([path, mod]) => ({
+    params: { slug: path.split("/").pop()?.replace(".md", "") },
+    props: { frontmatter: mod.frontmatter, Content: mod.Content },
+  }));
+}
+
+const { frontmatter, Content } = Astro.props;
+const base = Astro.site?.pathname || "/";
+---
+
+<Layout
+  title={frontmatter.title}
+  description={frontmatter.description}
+  image={frontmatter.image}
+  pubDate={frontmatter.pubDate}
+  tags={frontmatter.tags}
+  category={frontmatter.category}
+>
+  <article>
+    <header style="margin-bottom: 2rem;">
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+        {frontmatter.tags?.map((tag) => <span class="tag">{tag}</span>)}
+        {frontmatter.category && <span class="tag" style="border-color: var(--accent);">{frontmatter.category}</span>}
+      </div>
+      <h1>{frontmatter.title}</h1>
+      <div style="display: flex; gap: 1rem; color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem;">
+        <time>{new Date(frontmatter.pubDate).toLocaleDateString("pt-BR")}</time>
+        {frontmatter.affiliate && <span style="color: var(--warning);">🔗 Contém links de afiliado</span>}
+      </div>
+      {frontmatter.description && (
+        <p style="color: var(--text-secondary); font-size: 1.05rem; margin-top: 1rem; padding: 1rem; background: var(--accent-dim); border-radius: var(--radius); border-left: 3px solid var(--accent);">
+          {frontmatter.description}
+        </p>
+      )}
+    </header>
+
+    <div style="font-size: 1.05rem; line-height: 1.8;">
+      <Content />
+    </div>
+
+    <div style="margin-top: 3rem; padding: 1.5rem; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); text-align: center;">
+      <p style="color: var(--text-muted); font-size: 0.85rem;">
+            Gostou do conteúdo? Compartilhe com outros gamers!<br />
+            Links de afiliado ajudam a manter o blog.
+      </p>
+    </div>
+
+    <div style="margin-top: 2rem; text-align: center;">
+      <a href={base} class="btn">← Voltar para o início</a>
+    </div>
+  </article>
+</Layout>

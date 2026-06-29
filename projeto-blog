@@ -1,0 +1,68 @@
+# Blog Gamer (Afiliado ML + Shopee)
+
+## Squad
+`squads/marketing/conteudo-digital/blog-gamer/`
+
+### Agentes
+1. Ana Pesquisadora — busca tendências gamers
+2. Carlos Redator — escreve matérias com links de afiliado
+3. Felipe Otimizador — SEO on-page
+4. Juliana Revisora — qualidade e precisão
+5. Rafaela Publicadora — gera .md para o blog
+
+Pipeline: pesquisador → redator → seo → revisor → publicador
+
+### Para rodar a squad
+Chame o assistente e peça para executar:
+```
+/expxagents run blog-gamer
+```
+
+---
+
+## Blog Astro
+`blog-gamer/`
+
+### Estrutura
+- `src/content/artigos/` — artigos em Markdown
+- `src/pages/index.astro` — homepage
+- `src/pages/blog/[...slug].astro` — página do artigo
+- `.github/workflows/deploy.yml` — deploy automático
+
+### Para publicar no GitHub
+1. Criar repositório `blog-gamer` no GitHub
+2. Editar `astro.config.mjs`: trocar `SEU_USUARIO` pelo username do GitHub
+3. Rodar:
+   ```bash
+   cd blog-gamer
+   git init
+   git add .
+   git commit -m "init: blog gamer"
+   git remote add origin https://github.com/SEU_USUARIO/blog-gamer.git
+   git push -u origin main
+   ```
+4. No GitHub: Settings > Pages > Source: GitHub Actions
+5. Blog em: `https://SEU_USUARIO.github.io/blog-gamer`
+
+### Para adicionar artigo
+1. Criar arquivo `.md` em `src/content/artigos/`
+2. Usar o frontmatter padrão:
+   ```yaml
+   ---
+   title: "Título"
+   description: "Descrição"
+   pubDate: 2026-06-28
+   tags: ["tag1", "tag2"]
+   category: "noticia" # review, lista, guia
+   affiliate: true
+   ---
+   ```
+3. Commit e push → deploy automático
+
+---
+
+## Status do projeto
+- [ ] Blog publicado no GitHub Pages
+- [ ] Primeiro artigo gerado pela squad
+- [ ] Links de afiliado reais configurados
+- [ ] Domínio próprio (opcional)

@@ -1,0 +1,70 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const artigos = Object.entries(import.meta.glob("../content/artigos/*.md", { eager: true }))
+  .map(([path, mod]) => ({
+    slug: path.split("/").pop()?.replace(".md", "") || "",
+    ...mod.frontmatter,
+    Content: mod.Content,
+  }))
+  .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+
+const base = Astro.site?.pathname || "/";
+---
+
+<Layout title="Blog Gamer">
+  <section style="text-align: center; padding: 3rem 0;">
+    <h1 style="font-size: 2.8rem; font-weight: 800; margin-bottom: 0.5rem;">
+          Bem-vindo ao <span style="color: var(--accent);">Blog Gamer</span>
+    </h1>
+    <p style="color: var(--text-secondary); font-size: 1.1rem; max-width: 600px; margin: 0 auto 2rem;">
+          Notícias, reviews, listas e guias sobre o universo dos games — com os melhores links de afiliado pra você economizar.
+    </p>
+    <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+      <span class="tag">notícias</span>
+      <span class="tag">reviews</span>
+      <span class="tag">guias de compra</span>
+      <span class="tag">listas</span>
+      <span class="tag">promoções</span>
+    </div>
+  </section>
+
+  <section>
+    <h2 style="margin-bottom: 1.5rem;">Últimos Artigos</h2>
+
+    {artigos.length === 0 && (
+      <div style="text-align: center; padding: 4rem 0; color: var(--text-muted);">
+        <p style="font-size: 3rem; margin-bottom: 1rem;">📝</p>
+        <p>Nenhum artigo publicado ainda.</p>
+        <p style="font-size: 0.9rem; margin-top: 0.5rem;">Os primeiros artigos serão gerados pela squad em breve!</p>
+      </div>
+    )}
+
+    <div style="display: grid; gap: 1.5rem;">
+      {artigos.map((artigo) => (
+        <article style="background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; transition: border-color 0.2s;">
+          <a href={`${base}blog/${artigo.slug}/`} style="text-decoration: none; color: inherit; display: block;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+              <div style="flex: 1;">
+                <h2 style="margin: 0 0 0.5rem; font-size: 1.3rem; color: #fff;">{artigo.title}</h2>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.8rem;">
+                  {artigo.description}
+                </p>
+                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                  {artigo.tags?.map((tag) => <span class="tag">{tag}</span>)}
+                  {artigo.affiliate && <span style="font-size: 0.75rem; color: var(--warning);">🔗 afiliado</span>}
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding-top: 0.8rem; border-top: 1px solid var(--border);">
+              <time style="font-size: 0.8rem; color: var(--text-muted);">
+                {new Date(artigo.pubDate).toLocaleDateString("pt-BR")}
+              </time>
+              <span class="tag" style="font-size: 0.75rem;">{artigo.category}</span>
+            </div>
+          </a>
+        </article>
+      ))}
+    </div>
+  </section>
+</Layout>
