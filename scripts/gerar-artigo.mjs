@@ -1,7 +1,9 @@
 import fs from "fs";
 import path from "path";
+import { searchML, generateAffiliateLink } from "./ml_affiliate.mjs";
 
 const ARTIGOS_DIR = path.resolve("src/content/artigos");
+const ML_COOKIES_PATH = path.resolve("ml_cookies.json");
 
 const CATEGORIES = [
   { slug: "noticia", name: "Notícia" },
@@ -12,15 +14,18 @@ const CATEGORIES = [
 ];
 
 const TOPIC_SEEDS = [
-  { category: "noticia", hint: "lancamento de game, evento de games, anuncio de console, placa de video" },
-  { category: "review", hint: "review de jogo popular, analise de gameplay, dicas de jogo" },
-  { category: "guia", hint: "melhores headsets gamers, teclado mecanico, mouse gamer, monitor, cadeira" },
-  { category: "lista", hint: "melhores jogos para PC, jogos gratis, jogos multiplayer, jogos estilo" },
-  { category: "promocao", hint: "promocoes Steam, ofertas de games, descontos em perifericos gamers" },
+  { category: "noticia", hint: "lancamento de game, evento de games, anuncio de console, placa de video", ml_query: "lancamento games 2026" },
+  { category: "review", hint: "review de jogo popular, analise de gameplay, dicas de jogo", ml_query: "jogo popular ps5 xbox switch" },
+  { category: "guia", hint: "melhores headsets gamers, teclado mecanico, mouse gamer, monitor, cadeira", ml_query: "headset gamer teclado mecanico mouse gamer monitor" },
+  { category: "lista", hint: "melhores jogos para PC, jogos gratis, jogos multiplayer, jogos estilo", ml_query: "jogo pc mais vendido 2026" },
+  { category: "promocao", hint: "promocoes Steam, ofertas de games, descontos em perifericos gamers", ml_query: "promocao jogo pc periferico gamer" },
 ];
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
+const ML_COOKIES_B64 = process.env.ML_COOKIES_B64;
+const ML_CLIENT_ID = process.env.ML_CLIENT_ID;
+const ML_CLIENT_SECRET = process.env.ML_CLIENT_SECRET;
 
 function log(level, msg) {
   const ts = new Date().toISOString().replace(/T/, " ").replace(/\..+/, "");
@@ -40,26 +45,30 @@ function slugify(text) {
     .slice(0, 80);
 }
 
+if (ML_COOKIES_B64) {
+  try {
+    fs.writeFileSync(ML_COOKIES_PATH, Buffer.from(ML_COOKIES_B64, "base64"), "utf-8");
+    log("INFO", "Cookies ML carregados");
+  } catch (e) {
+    log("WARN", `Erro ao salvar cookies: ${e.message}`);
+  }
+}
+
 async function fetchTavily(query) {
   log("INFO", `Tavily: buscando "${query}"`);
   const res = await fetch("https://api.tavily.com/search", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      api_key: TAVILY_API_KEY,
-      query,
-      search_depth: "basic",
-      max_results: 4,
-      topic: "general",
-      include_answer: true,
+      api_key: TAVILY_API_KEY, query,
+      search_depth: "basic", max_results: 5,
+      topic: "general", include_answer: true,
     }),
   });
-
   if (!res.ok) {
     const err = await res.text();
     throw new Error(`Tavily ${res.status}: ${err.slice(0, 200)}`);
   }
-
   const data = await res.json();
   log("INFO", `Tavily: ${data.results?.length || 0} resultados`);
   return data;
@@ -67,7 +76,6 @@ async function fetchTavily(query) {
 
 async function fetchGroq(systemPrompt, userPrompt, retries = 3) {
   const url = "https://api.groq.com/openai/v1/chat/completions";
-
   const body = {
     model: "llama-3.3-70b-versatile",
     messages: [
@@ -75,41 +83,29 @@ async function fetchGroq(systemPrompt, userPrompt, retries = 3) {
       { role: "user", content: userPrompt },
     ],
     temperature: 0.7,
-    max_tokens: 4096,
+    max_tokens: 8192,
   };
-
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       log("INFO", `Groq: tentativa ${attempt}/${retries}...`);
       const res = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${GROQ_API_KEY}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${GROQ_API_KEY}` },
         body: JSON.stringify(body),
       });
-
       if (res.status === 429) {
         const wait = attempt * 30;
         log("WARN", `Groq: quota excedida, aguardando ${wait}s...`);
         await sleep(wait * 1000);
         continue;
       }
-
       if (!res.ok) {
         const err = await res.text();
         throw new Error(`Groq ${res.status}: ${err.slice(0, 300)}`);
       }
-
       const data = await res.json();
-
-      if (!data.choices?.[0]?.message?.content) {
-        throw new Error(
-          `Groq: resposta vazia: ${JSON.stringify(data).slice(0, 200)}`
-        );
-      }
-
+      if (!data.choices?.[0]?.message?.content)
+        throw new Error(`Groq: resposta vazia: ${JSON.stringify(data).slice(0, 200)}`);
       return data.choices[0].message.content;
     } catch (err) {
       if (attempt === retries) throw err;
@@ -130,7 +126,6 @@ function parseFrontmatter(text) {
     }
     throw new Error("Frontmatter nao encontrado");
   }
-
   const raw = match[1];
   const body = match[2].trim();
   return { frontmatter: parseRaw(raw), body };
@@ -138,39 +133,29 @@ function parseFrontmatter(text) {
 
 function parseRaw(raw) {
   const fm = {};
-
   for (const line of raw.split("\n")) {
     const idx = line.indexOf(": ");
     if (idx === -1) continue;
     const key = line.slice(0, idx).trim();
     let val = line.slice(idx + 2).trim();
-
     if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
     if (val.startsWith("[") && val.endsWith("]")) {
-      val = val
-        .slice(1, -1)
-        .split(",")
-        .map((s) => s.trim().replace(/^"|"$/g, ""))
-        .filter(Boolean);
+      val = val.slice(1, -1).split(",").map((s) => s.trim().replace(/^"|"$/g, "")).filter(Boolean);
     }
     if (val === "true") val = true;
     if (val === "false") val = false;
-
     fm[key] = val;
   }
-
   return fm;
 }
 
 function validate(fm, body) {
   const errors = [];
   if (!fm.title || String(fm.title).length < 10) errors.push("title: muito curto");
-  if (!fm.description || String(fm.description).length < 50)
-    errors.push("description: muito curto");
+  if (!fm.description || String(fm.description).length < 50) errors.push("description: muito curto");
   if (!fm.pubDate) errors.push("pubDate: ausente");
   if (!fm.category) errors.push("category: ausente");
-  if (!fm.tags || !Array.isArray(fm.tags) || fm.tags.length < 3)
-    errors.push("tags: minimo 3");
+  if (!fm.tags || !Array.isArray(fm.tags) || fm.tags.length < 3) errors.push("tags: minimo 3");
   if (fm.affiliate === undefined) errors.push("affiliate: ausente");
   const wc = body.split(/\s+/).length;
   if (wc < 400) errors.push(`Conteudo muito curto: ${wc} palavras`);
@@ -208,9 +193,7 @@ function getCategoryCounts() {
 }
 
 function pickTopic(counts) {
-  const sorted = [...CATEGORIES].sort(
-    (a, b) => (counts[a.slug] || 0) - (counts[b.slug] || 0)
-  );
+  const sorted = [...CATEGORIES].sort((a, b) => (counts[a.slug] || 0) - (counts[b.slug] || 0));
   return TOPIC_SEEDS.find((s) => s.category === sorted[0].slug) || TOPIC_SEEDS[0];
 }
 
@@ -218,13 +201,12 @@ async function main() {
   log("INFO", "=== INICIANDO GERACAO (Groq) ===");
   log("INFO", `GROQ_API_KEY definida: ${!!GROQ_API_KEY}`);
   log("INFO", `TAVILY_API_KEY definida: ${!!TAVILY_API_KEY}`);
+  log("INFO", `ML_CLIENT_ID definida: ${!!ML_CLIENT_ID}`);
+  log("INFO", `ML_CLIENT_SECRET definida: ${!!ML_CLIENT_SECRET}`);
 
-  if (!GROQ_API_KEY) {
-    log("ERROR", "GROQ_API_KEY nao configurada");
-    process.exit(1);
-  }
-  if (!TAVILY_API_KEY) {
-    log("ERROR", "TAVILY_API_KEY nao configurada");
+  if (!GROQ_API_KEY || !TAVILY_API_KEY) {
+    if (!GROQ_API_KEY) log("ERROR", "GROQ_API_KEY nao configurada");
+    if (!TAVILY_API_KEY) log("ERROR", "TAVILY_API_KEY nao configurada");
     process.exit(1);
   }
 
@@ -243,27 +225,63 @@ async function main() {
 
   let researchContext = "";
   try {
-    const q = `${topic.hint} Brasil 2026`;
-    const sr = await fetchTavily(q);
+    const sr = await fetchTavily(`${topic.hint} Brasil 2026`);
     researchContext = sr.results
-      .map((r, i) => `[Fonte ${i + 1}] ${r.title}\n${r.content?.slice(0, 1200)}`)
+      .map((r, i) => `[Fonte ${i + 1}] ${r.title}\nURL: ${r.url}\n${r.content?.slice(0, 1200)}`)
       .join("\n\n");
   } catch (err) {
-    log("WARN", `Pesquisa falhou: ${err.message}`);
+    log("WARN", `Tavily: ${err.message}`);
+  }
+
+  let mlProducts = [];
+  if (ML_CLIENT_ID && ML_CLIENT_SECRET) {
+    try {
+      mlProducts = await searchML(topic.ml_query, ML_CLIENT_ID, ML_CLIENT_SECRET, TAVILY_API_KEY, ML_COOKIES_PATH, 4);
+      for (const p of mlProducts) {
+        if (fs.existsSync(ML_COOKIES_PATH)) {
+          try {
+            const linkResult = await generateAffiliateLink(p.permalink, ML_COOKIES_PATH);
+            p.affiliate_link = linkResult?.short_url || linkResult?.link || linkResult?.url || p.permalink;
+            log("INFO", `Link afiliado gerado: ${p.title?.slice(0, 40)}`);
+          } catch (e) {
+            log("WARN", `Falha link afiliado: ${e.message}`);
+            p.affiliate_link = p.permalink;
+          }
+        } else {
+          p.affiliate_link = p.permalink;
+        }
+      }
+    } catch (err) {
+      log("WARN", `ML Search: ${err.message}`);
+    }
+  } else {
+    log("WARN", "ML_CLIENT_ID/ML_CLIENT_SECRET nao configurados — pulando busca de produtos ML");
   }
 
   const today = new Date().toISOString().split("T")[0];
+
+  const productBlock = mlProducts.length > 0
+    ? `\nProdutos do Mercado Livre (use imagens e links obrigatoriamente):\n${mlProducts.map((p, i) =>
+        `[Produto ${i + 1}]\n` +
+        `Nome: ${p.title}\n` +
+        `Preco: R$ ${p.price?.toFixed(2) || "N/A"}\n` +
+        `Imagem: ${p.thumbnail}\n` +
+        `Link Mercado Livre: ${p.affiliate_link || p.permalink}\n`
+      ).join("\n")}`
+    : "";
 
   const systemPrompt = `Voce e um redator especializado em videogames do Blog Gamer, site brasileiro. Escreva em portugues brasileiro, tom natural de gamer.
 
 Regras:
 - Artigo: MINIMO 1200 palavras (obrigatorio)
-- Inclua links de afiliado para Mercado Livre e Shopee usando <div class="affiliate-box">
+- Inclua imagens dos produtos usando <img src="URL_IMAGEM" alt="NOME_PRODUTO" class="product-image">
+- Inclua botoes "VER NO MERCADO LIVRE" com link de afiliado: <a href="LINK_AFILIADO" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+- Cite as fontes de pesquisa no final do artigo: "## Fontes" com links
 - NUNCA mencione que e IA
 - Saida EXATA: frontmatter YAML entre "---" e fechando com "---" depois o conteudo markdown
 
 Frontmatter obrigatorio:
-title: "Titulo"
+title: "Titulo SEO"
 description: "Descricao curta (100-160 caracteres)"
 pubDate: ${today}
 tags: [tag1, tag2, tag3, tag4, tag5]
@@ -272,17 +290,20 @@ affiliate: true
 
 category DEVE ser: noticia, review, guia, lista ou promocao`;
 
-  const userPrompt = `Escreva um artigo sobre "${topic.hint}".
+  let userPrompt = `Escreva um artigo sobre "${topic.hint}".
 
-${researchContext ? `Fontes:\n${researchContext}\n` : "Sem fontes, use seu conhecimento."}
+${researchContext ? `Fontes de pesquisa:\n${researchContext}\n` : ""}
+${productBlock}
 
 Instrucoes:
 1. Titulo SEO atraente
 2. Descricao persuasiva (100-160 chars)
 3. Artigo markdown com subtitulos ##
-4. Pelo menos 2 blocos affiliate-box com links Mercado Livre e Shopee
-5. 5 tags
-6. Dicas praticas`;
+4. Use as imagens dos produtos com <img> no artigo
+5. Para cada produto mencionado, coloque um botao "VER NO MERCADO LIVRE" com o link de afiliado
+6. No final, crie secao "## Fontes" com links das fontes pesquisadas
+7. 5 tags
+8. Dicas praticas`;
 
   log("INFO", "Gerando artigo com Groq...");
   let article;
@@ -315,10 +336,9 @@ Instrucoes:
   log("INFO", "Validacoes OK");
 
   const slug = slugify(fm.title);
-  const published =
-    fs.existsSync(ARTIGOS_DIR)
-      ? fs.readdirSync(ARTIGOS_DIR).filter((f) => f.endsWith(".md")).map((f) => f.replace(/\.md$/, ""))
-      : [];
+  const published = fs.existsSync(ARTIGOS_DIR)
+    ? fs.readdirSync(ARTIGOS_DIR).filter((f) => f.endsWith(".md")).map((f) => f.replace(/\.md$/, ""))
+    : [];
 
   if (published.includes(slug)) {
     log("ERROR", `Slug duplicado: ${slug}`);
@@ -332,6 +352,7 @@ pubDate: ${today}
 tags: [${fm.tags.map((t) => `"${t.trim()}"`).join(", ")}]
 category: "${fm.category}"
 affiliate: true
+image: "${mlProducts[0]?.thumbnail || ""}"
 ---
 
 ${body}
