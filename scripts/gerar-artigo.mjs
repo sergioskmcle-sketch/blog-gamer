@@ -19,7 +19,7 @@ const TOPIC_SEEDS = [
   { category: "promocao", hint: "promocoes Steam, ofertas de games, descontos em perifericos gamers" },
 ];
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 
 function log(level, msg) {
@@ -65,52 +65,55 @@ async function fetchTavily(query) {
   return data;
 }
 
-async function fetchGemini(systemPrompt, userPrompt, retries = 3) {
-  const url =
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+async function fetchGroq(systemPrompt, userPrompt, retries = 3) {
+  const url = "https://api.groq.com/openai/v1/chat/completions";
 
   const body = {
-    systemInstruction: { parts: [{ text: systemPrompt }] },
-    contents: [{ parts: [{ text: userPrompt }] }],
-    generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
+    model: "llama-3.3-70b-versatile",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    temperature: 0.7,
+    max_tokens: 4096,
   };
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      log("INFO", `Gemini: tentativa ${attempt}/${retries}...`);
+      log("INFO", `Groq: tentativa ${attempt}/${retries}...`);
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+        },
         body: JSON.stringify(body),
       });
 
       if (res.status === 429) {
         const wait = attempt * 30;
-        log("WARN", `Gemini: quota excedida, aguardando ${wait}s...`);
+        log("WARN", `Groq: quota excedida, aguardando ${wait}s...`);
         await sleep(wait * 1000);
         continue;
       }
 
       if (!res.ok) {
         const err = await res.text();
-        throw new Error(`Gemini ${res.status}: ${err.slice(0, 300)}`);
+        throw new Error(`Groq ${res.status}: ${err.slice(0, 300)}`);
       }
 
       const data = await res.json();
 
-      if (data.promptFeedback?.blockReason) {
-        throw new Error(`Gemini bloqueado: ${data.promptFeedback.blockReason}`);
-      }
-      if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+      if (!data.choices?.[0]?.message?.content) {
         throw new Error(
-          `Gemini: resposta vazia: ${JSON.stringify(data).slice(0, 200)}`
+          `Groq: resposta vazia: ${JSON.stringify(data).slice(0, 200)}`
         );
       }
 
-      return data.candidates[0].content.parts[0].text;
+      return data.choices[0].message.content;
     } catch (err) {
       if (attempt === retries) throw err;
-      log("WARN", `Gemini: erro na tentativa ${attempt}, retentando...`);
+      log("WARN", `Groq: erro na tentativa ${attempt}, retentando...`);
       await sleep(5000);
     }
   }
@@ -203,11 +206,11 @@ function pickTopic(counts) {
 
 async function main() {
   log("INFO", "=== INICIANDO GERACAO ===");
-  log("INFO", `GEMINI_API_KEY definida: ${!!GEMINI_API_KEY}`);
+  log("INFO", `GROQ_API_KEY definida: ${!!GROQ_API_KEY}`);
   log("INFO", `TAVILY_API_KEY definida: ${!!TAVILY_API_KEY}`);
 
-  if (!GEMINI_API_KEY) {
-    log("ERROR", "GEMINI_API_KEY nao configurada");
+  if (!GROQ_API_KEY) {
+    log("ERROR", "GROQ_API_KEY nao configurada");
     process.exit(1);
   }
   if (!TAVILY_API_KEY) {
@@ -271,10 +274,10 @@ Instrucoes:
 5. 5 tags
 6. Dicas praticas`;
 
-  log("INFO", "Gerando artigo com Gemini...");
+  log("INFO", "Gerando artigo com Groq...");
   let article;
   try {
-    article = await fetchGemini(systemPrompt, userPrompt);
+    article = await fetchGroq(systemPrompt, userPrompt);
     log("INFO", "Artigo gerado, parseando...");
   } catch (err) {
     log("ERROR", `Falha na geracao: ${err.message}`);
