@@ -1,30 +1,13 @@
 import "dotenv/config";
 import fs from "fs";
 import path from "path";
-import { searchML, generateAffiliateLink } from "./ml_affiliate.mjs";
+import { generateAffiliateLink, getMLToken } from "./ml_affiliate.mjs";
 
 const ARTIGOS_DIR = path.resolve("src/content/artigos");
 const ML_COOKIES_PATH = path.resolve("ml_cookies.json");
 
-const CATEGORIES = [
-  { slug: "noticia", name: "Notícia" },
-  { slug: "review", name: "Review" },
-  { slug: "guia", name: "Guia de Compra" },
-  { slug: "lista", name: "Lista" },
-  { slug: "promocao", name: "Promoção" },
-];
-
-const TOPIC_SEEDS = [
-  { category: "noticia", hint: "lancamento de game, evento de games, anuncio de console, placa de video", ml_query: "lancamento games 2026" },
-  { category: "review", hint: "review de jogo popular, analise de gameplay, dicas de jogo", ml_query: "jogo popular ps5 xbox switch" },
-  { category: "guia", hint: "melhores headsets gamers, teclado mecanico, mouse gamer, monitor, cadeira", ml_query: "headset gamer teclado mecanico mouse gamer monitor" },
-  { category: "lista", hint: "melhores jogos para PC, jogos gratis, jogos multiplayer, jogos estilo", ml_query: "jogo pc mais vendido 2026" },
-  { category: "promocao", hint: "promocoes Steam, ofertas de games, descontos em perifericos gamers", ml_query: "promocao jogo pc periferico gamer" },
-];
-
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
-const ML_COOKIES_B64 = process.env.ML_COOKIES_B64;
 const ML_CLIENT_ID = process.env.ML_CLIENT_ID;
 const ML_CLIENT_SECRET = process.env.ML_CLIENT_SECRET;
 
@@ -46,17 +29,11 @@ function slugify(text) {
     .slice(0, 80);
 }
 
-if (ML_COOKIES_B64) {
-  try {
-    fs.writeFileSync(ML_COOKIES_PATH, Buffer.from(ML_COOKIES_B64, "base64"), "utf-8");
-    log("INFO", "Cookies ML carregados");
-  } catch (e) {
-    log("WARN", `Erro ao salvar cookies: ${e.message}`);
-  }
-}
-
 async function fetchTavily(query) {
-  if (!TAVILY_API_KEY) { log("WARN", "TAVILY_API_KEY nao definida — pulando pesquisa de fontes"); return null; }
+  if (!TAVILY_API_KEY) {
+    log("WARN", "TAVILY_API_KEY nao definida — pulando pesquisa de fontes");
+    return null;
+  }
   log("INFO", `Tavily: buscando "${query}"`);
   const res = await fetch("https://api.tavily.com/search", {
     method: "POST",
@@ -67,10 +44,7 @@ async function fetchTavily(query) {
       topic: "general", include_answer: true,
     }),
   });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Tavily ${res.status}: ${err.slice(0, 200)}`);
-  }
+  if (!res.ok) throw new Error(`Tavily ${res.status}`);
   const data = await res.json();
   log("INFO", `Tavily: ${data.results?.length || 0} resultados`);
   return data;
@@ -101,13 +75,9 @@ async function fetchGroq(systemPrompt, userPrompt, retries = 3) {
         await sleep(wait * 1000);
         continue;
       }
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(`Groq ${res.status}: ${err.slice(0, 300)}`);
-      }
+      if (!res.ok) throw new Error(`Groq ${res.status}`);
       const data = await res.json();
-      if (!data.choices?.[0]?.message?.content)
-        throw new Error(`Groq: resposta vazia: ${JSON.stringify(data).slice(0, 200)}`);
+      if (!data.choices?.[0]?.message?.content) throw new Error("Groq: resposta vazia");
       return data.choices[0].message.content;
     } catch (err) {
       if (attempt === retries) throw err;
@@ -118,19 +88,17 @@ async function fetchGroq(systemPrompt, userPrompt, retries = 3) {
 }
 
 function parseFrontmatter(text) {
-  let match = text.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-  if (!match) {
-    match = text.match(/^---\n([\s\S]*?)\n+## /);
-    if (match) {
-      const raw = match[1];
+  let m = text.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  if (!m) {
+    m = text.match(/^---\n([\s\S]*?)\n+## /);
+    if (m) {
+      const raw = m[1];
       const body = text.slice(text.indexOf("## "));
       return { frontmatter: parseRaw(raw), body: body.trim() };
     }
     throw new Error("Frontmatter nao encontrado");
   }
-  const raw = match[1];
-  const body = match[2].trim();
-  return { frontmatter: parseRaw(raw), body };
+  return { frontmatter: parseRaw(m[1]), body: m[2].trim() };
 }
 
 function parseRaw(raw) {
@@ -164,84 +132,125 @@ function validate(fm, body) {
   return errors;
 }
 
-function getLastArticleDate() {
-  if (!fs.existsSync(ARTIGOS_DIR)) return null;
-  const files = fs.readdirSync(ARTIGOS_DIR).filter((f) => f.endsWith(".md"));
-  if (files.length === 0) return null;
-  let latest = null;
-  for (const f of files) {
-    const c = fs.readFileSync(path.join(ARTIGOS_DIR, f), "utf-8");
-    const m = c.match(/pubDate:\s*(.+)/);
-    if (m) {
-      const d = new Date(m[1].replace(/["']/g, ""));
-      if (!latest || d > latest) latest = d;
-    }
-  }
-  return latest;
-}
-
-function getCategoryCounts() {
-  const counts = {};
-  if (!fs.existsSync(ARTIGOS_DIR)) return counts;
-  for (const f of fs.readdirSync(ARTIGOS_DIR).filter((f) => f.endsWith(".md"))) {
-    const c = fs.readFileSync(path.join(ARTIGOS_DIR, f), "utf-8");
-    const m = c.match(/category:\s*(.+)/);
-    if (m) {
-      const cat = m[1].replace(/["']/g, "").trim();
-      counts[cat] = (counts[cat] || 0) + 1;
-    }
-  }
-  return counts;
-}
-
-function pickTopic(counts) {
-  const sorted = [...CATEGORIES].sort((a, b) => (counts[a.slug] || 0) - (counts[b.slug] || 0));
-  return TOPIC_SEEDS.find((s) => s.category === sorted[0].slug) || TOPIC_SEEDS[0];
-}
-
 async function main() {
-  log("INFO", "=== INICIANDO GERACAO (Groq) ===");
-  log("INFO", `GROQ_API_KEY definida: ${!!GROQ_API_KEY}`);
-  log("INFO", `TAVILY_API_KEY definida: ${!!TAVILY_API_KEY}`);
-  log("INFO", `ML_CLIENT_ID definida: ${!!ML_CLIENT_ID}`);
-  log("INFO", `ML_CLIENT_SECRET definida: ${!!ML_CLIENT_SECRET}`);
+  log("INFO", "=== GERANDO ARTIGO: PLACAS DE VIDEO ===");
 
   if (!GROQ_API_KEY) { log("ERROR", "GROQ_API_KEY nao configurada"); process.exit(1); }
   if (!TAVILY_API_KEY) log("WARN", "TAVILY_API_KEY nao definida — artigo seguira sem fontes pesquisadas");
 
-  const lastDate = getLastArticleDate();
-  if (lastDate) {
-    const hours = (Date.now() - lastDate.getTime()) / 36e5;
-    log("INFO", `Ultimo artigo: ${lastDate.toISOString().split("T")[0]} (${Math.round(hours)}h atras)`);
-    if (hours < 24) {
-      log("INFO", "Menos de 24h, pulando");
-      process.exit(0);
-    }
-  }
-
-  const topic = pickTopic(getCategoryCounts());
-  log("INFO", `Tema: ${topic.category} - ${topic.hint}`);
-
+  // 1. Research
   let researchContext = "";
   try {
-    const sr = await fetchTavily(`${topic.hint} Brasil 2026`);
-    researchContext = sr?.results
-      .map((r, i) => `[Fonte ${i + 1}] ${r.title}\nURL: ${r.url}\n${r.content?.slice(0, 1200)}`)
+    const sr = await fetchTavily("melhores placas de video 2026 Brasil custo beneficio");
+    researchContext = sr.results
+      .map((r, i) => `[Fonte ${i + 1}] ${r.title}\nURL: ${r.url}\n${r.content?.slice(0, 300)}`)
       .join("\n\n");
   } catch (err) {
     log("WARN", `Tavily: ${err.message}`);
   }
 
+  // 2. Search ML for GPU products via category API (more reliable than Tavily search)
   let mlProducts = [];
   if (ML_CLIENT_ID && ML_CLIENT_SECRET) {
     try {
-      mlProducts = await searchML(topic.ml_query, ML_CLIENT_ID, ML_CLIENT_SECRET, TAVILY_API_KEY, ML_COOKIES_PATH, 4);
+      log("INFO", "Buscando placas de video via API ML (categoria)...");
+      const token = await getMLToken(ML_CLIENT_ID, ML_CLIENT_SECRET);
+      const GPU_CATEGORY = "MLB1658"; // Placas de Vídeo
+
+      // Get highlights from Placas de Vídeo category
+      const highlightsRes = await fetch(`https://api.mercadolibre.com/highlights/MLB/category/${GPU_CATEGORY}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (highlightsRes.ok) {
+        const highlightsData = await highlightsRes.json();
+        const productIds = (highlightsData.content || [])
+          .filter((x) => x.type === "PRODUCT")
+          .map((x) => x.id);
+
+        for (const pid of productIds) {
+          // Get product details (name, image)
+          const prodRes = await fetch(`https://api.mercadolibre.com/products/${pid}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!prodRes.ok) continue;
+          const prodData = await prodRes.json();
+          const title = prodData.name || "";
+          if (!title || !title.toLowerCase().includes("plac")) continue;
+          const image = prodData.pictures?.[0]?.url || "";
+
+          // Get active items (price)
+          const itemsRes = await fetch(`https://api.mercadolibre.com/products/${pid}/items`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          let price = 0;
+          let originalPrice = 0;
+          if (itemsRes.ok) {
+            const itemsData = await itemsRes.json();
+            const firstItem = itemsData.results?.[0];
+            if (firstItem) {
+              price = firstItem.price || 0;
+              originalPrice = firstItem.original_price || 0;
+            }
+          }
+
+          if (!price) continue;
+          mlProducts.push({
+            id: pid, title, price, thumbnail: image,
+            original_price: originalPrice,
+            permalink: `https://www.mercadolivre.com.br/p/${pid}`,
+            images: [image],
+          });
+          if (mlProducts.length >= 8) break;
+        }
+      }
+
+      // Fallback hardcoded GPU product IDs if highlights returned < 5
+      if (mlProducts.length < 5) {
+        log("INFO", "Poucos produtos da highlights, usando IDs fixos...");
+        const fallbackIds = [
+          "MLB27353799", "MLB2006784640", "MLB28761680",
+          "MLB26915015", "MLB25803302", "MLB51032833",
+        ];
+        for (const pid of fallbackIds) {
+          if (mlProducts.some((p) => p.id === pid)) continue;
+          const prodRes = await fetch(`https://api.mercadolibre.com/products/${pid}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!prodRes.ok) continue;
+          const prodData = await prodRes.json();
+          const title = prodData.name || "";
+          const image = prodData.pictures?.[0]?.url || "";
+          if (!title) continue;
+          const itemsRes = await fetch(`https://api.mercadolibre.com/products/${pid}/items`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          let price = 0;
+          let originalPrice = 0;
+          if (itemsRes.ok) {
+            const itemsData = await itemsRes.json();
+            const firstItem = itemsData.results?.[0];
+            if (firstItem) {
+              price = firstItem.price || 0;
+              originalPrice = firstItem.original_price || 0;
+            }
+          }
+          if (!price) continue;
+          mlProducts.push({
+            id: pid, title, price, thumbnail: image,
+            original_price: originalPrice,
+            permalink: `https://www.mercadolivre.com.br/p/${pid}`,
+            images: [image],
+          });
+          if (mlProducts.length >= 10) break;
+        }
+      }
+
       for (const p of mlProducts) {
         if (fs.existsSync(ML_COOKIES_PATH)) {
           try {
             const linkResult = await generateAffiliateLink(p.permalink, ML_COOKIES_PATH);
             p.affiliate_link = linkResult?.short_url || linkResult?.link || linkResult?.url || p.permalink;
-            log("INFO", `Link afiliado gerado: ${p.title?.slice(0, 40)}`);
+            log("INFO", `Link afiliado: ${p.title?.slice(0, 40)} -> ${p.affiliate_link === p.permalink ? "FALLBACK" : "OK"}`);
           } catch (e) {
             log("WARN", `Falha link afiliado: ${e.message}`);
             p.affiliate_link = p.permalink;
@@ -253,14 +262,12 @@ async function main() {
     } catch (err) {
       log("WARN", `ML Search: ${err.message}`);
     }
-  } else {
-    log("WARN", "ML_CLIENT_ID/ML_CLIENT_SECRET nao configurados — pulando busca de produtos ML");
   }
 
   const today = new Date().toISOString().split("T")[0];
 
   const productBlock = mlProducts.length > 0
-    ? `\nProdutos do Mercado Livre (use imagens e links obrigatoriamente):\n${mlProducts.map((p, i) =>
+    ? `\nProdutos do Mercado Livre (use TODOS eles no artigo, com imagens e links obrigatoriamente):\n${mlProducts.map((p, i) =>
         `[Produto ${i + 1}]\n` +
         `Nome: ${p.title}\n` +
         `Preco: R$ ${p.price?.toFixed(2) || "N/A"}\n` +
@@ -269,12 +276,12 @@ async function main() {
       ).join("\n")}`
     : "";
 
-  const systemPrompt = `Voce e um redator especializado em videogames do Blog Gamer, site brasileiro. Escreva em portugues brasileiro, tom natural de gamer.
+  const systemPrompt = `Voce e um redator especializado em hardware e videogames do Blog Gamer, site brasileiro. Escreva em portugues brasileiro, tom natural de gamer.
 
 Regras:
-- Artigo: MINIMO 1200 palavras (obrigatorio)
+- Artigo: MINIMO 1500 palavras (obrigatorio)
 - Inclua imagens dos produtos usando <img src="URL_IMAGEM" alt="NOME_PRODUTO" class="product-image">
-- Inclua botoes "VER NO MERCADO LIVRE" com link de afiliado: <a href="LINK_AFILIADO" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+- Para cada produto, coloque um botao "VER NO MERCADO LIVRE" com link de afiliado: <a href="LINK_AFILIADO" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
 - Cite as fontes de pesquisa no final do artigo: "## Fontes" com links
 - NUNCA mencione que e IA
 - Saida EXATA: frontmatter YAML entre "---" e fechando com "---" depois o conteudo markdown
@@ -284,25 +291,24 @@ title: "Titulo SEO"
 description: "Descricao curta (100-160 caracteres)"
 pubDate: ${today}
 tags: [tag1, tag2, tag3, tag4, tag5]
-category: "${topic.category}"
-affiliate: true
+category: "lista"
+affiliate: true`;
 
-category DEVE ser: noticia, review, guia, lista ou promocao`;
-
-  let userPrompt = `Escreva um artigo sobre "${topic.hint}".
+  const userPrompt = `Escreva um artigo de lista sobre "as 10 melhores placas de video custo beneficio do Mercado Livre em 2026".
 
 ${researchContext ? `Fontes de pesquisa:\n${researchContext}\n` : ""}
 ${productBlock}
 
 Instrucoes:
-1. Titulo SEO atraente
+1. Titulo SEO atraente: "As 10 Melhores Placas de Video Custo-Beneficio do Mercado Livre em 2026"
 2. Descricao persuasiva (100-160 chars)
 3. Artigo markdown com subtitulos ##
-4. Use as imagens dos produtos com <img> no artigo
-5. Para cada produto mencionado, coloque um botao "VER NO MERCADO LIVRE" com o link de afiliado
-6. No final, crie secao "## Fontes" com links das fontes pesquisadas
-7. 5 tags
-8. Dicas praticas`;
+4. Use TODOS os produtos listados acima, cada um com sua imagem (<img>) e botao de afiliado
+5. Para cada produto, inclua: especificacoes tecnicas (chipset, VRAM, etc), para qual tipo de gamer e indicado, e um botao "VER NO MERCADO LIVRE"
+6. Inclua dicas de compra (ex: o que observar ao comprar placa de video, diferenca entre DLSS/FSR, etc)
+7. No final, secao "## Fontes" com links das fontes pesquisadas
+8. 5 tags
+9. Introducao contextual sobre o mercado de GPUs em 2026`;
 
   log("INFO", "Gerando artigo com Groq...");
   let article;
@@ -335,20 +341,15 @@ Instrucoes:
   log("INFO", "Validacoes OK");
 
   const slug = slugify(fm.title);
-  const published = fs.existsSync(ARTIGOS_DIR)
-    ? fs.readdirSync(ARTIGOS_DIR).filter((f) => f.endsWith(".md")).map((f) => f.replace(/\.md$/, ""))
-    : [];
 
-  if (published.includes(slug)) {
-    log("ERROR", `Slug duplicado: ${slug}`);
-    process.exit(0);
-  }
+  // Build tags ensuring all are strings
+  const tags = (fm.tags || []).map((t) => `"${String(t).trim()}"`);
 
   const markdown = `---
 title: "${fm.title}"
 description: "${fm.description}"
 pubDate: ${today}
-tags: [${fm.tags.map((t) => `"${t.trim()}"`).join(", ")}]
+tags: [${tags.join(", ")}]
 category: "${fm.category}"
 affiliate: true
 image: "${mlProducts[0]?.thumbnail || ""}"
