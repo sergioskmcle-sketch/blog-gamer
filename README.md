@@ -1,26 +1,77 @@
 # Blog Gamer
 
-Blog estático sobre o mundo gamer com links de afiliado (Mercado Livre, Shopee).
+Blog estático sobre o mundo gamer com links de afiliado do Mercado Livre.
 
-## Tecnologias
+**URL:** https://sergioskmcle-sketch.github.io/blog-gamer
 
-- [Astro](https://astro.build) — gerador de sites estáticos
-- GitHub Pages — hospedagem gratuita
+## Artigos Publicados
 
-## Como publicar um artigo
+| Artigo | Data | Status |
+|--------|------|--------|
+| [Os 10 Melhores Monitores Gamer Custo-Beneficio do Mercado Livre em 2026](https://sergioskmcle-sketch.github.io/blog-gamer/blog/os-10-melhores-monitores-gamer-custo-beneficio-do-mercado-livre-em-2026) | 2026-06-29 | ✅ Live |
+| [As 8 Melhores Placas de Video Custo-Beneficio do Mercado Livre em 2026](https://sergioskmcle-sketch.github.io/blog-gamer/blog/as-10-melhores-placas-de-video-custo-beneficio-do-mercado-livre-em-2026) | 2026-06-30 | ✅ Live |
 
-1. Crie um arquivo `.md` em `src/content/artigos/`
-2. adicione o frontmatter (título, descrição, data, tags, categoria)
-3. escreva o conteúdo em markdown
-4. Faça commit e push para o branch `main`
-5. O GitHub Actions faz o deploy automaticamente
+## Arquitetura
+
+```
+.github/workflows/
+  gerar-conteudo.yml   → Geração automática de artigos (scheduled + push)
+  deploy.yml           → Deploy GitHub Pages
+
+scripts/
+  ml_affiliate.mjs     → API ML (token OAuth, busca produtos, link afiliado)
+  gerar-artigo.mjs     → Geração automática (Tavily → ML → Groq → validação)
+  gerar-placas-video.mjs → One-off: artigo de placas de vídeo
+
+src/content/artigos/   → Artigos em markdown com frontmatter
+```
+
+## Fluxo de Geração de Artigo
+
+1. **Pesquisa** — Tavily busca fontes sobre o tema
+2. **Produtos ML** — Busca via API de categoria do ML (highlights + items) ou Tavily + ML Products API
+3. **Geração** — Groq (llama-3.3-70b) escreve o artigo com imagens e links de afiliado
+4. **Validação** — frontmatter, word count mínimo
+5. **Commit + Push** — GitHub Actions faz build e deploy
+
+## APIs Gratuitas
+
+| API | Chave | Limite |
+|-----|-------|--------|
+| Groq | `GROQ_API_KEY` | llama-3.3-70b-versatile, free |
+| Tavily | `TAVILY_API_KEY` | 1000 consultas/mês free |
+| ML OAuth | `ML_CLIENT_ID` + `ML_CLIENT_SECRET` | client_credentials, free |
+| ML Cookies | `ml_cookies.json` | Sessão do navegador para link afiliado |
+
+## Variáveis de Ambiente
+
+Copie `.env.example` para `.env` e preencha:
+
+```bash
+GROQ_API_KEY=gsk_...
+TAVILY_API_KEY=tvly-...
+ML_CLIENT_ID=...
+ML_CLIENT_SECRET=...
+```
+
+### GitHub Secrets (para CI)
+
+| Secret | Descrição |
+|--------|-----------|
+| `GROQ_API_KEY` | API key do Groq |
+| `TAVILY_API_KEY` | API key do Tavily |
+| `ML_CLIENT_ID` | Client ID do app ML |
+| `ML_CLIENT_SECRET` | Client Secret do app ML |
+| `ML_COOKIES_B64` | Cookies ML em base64 (de `ml_cookies.json`) |
 
 ## Comandos
 
 ```bash
-npm run dev     # servidor local
-npm run build   # build de produção
-npm run preview # preview do build
+npm run dev          # Servidor local
+npm run build        # Build de produção
+npm run preview      # Preview do build
+node scripts/gerar-artigo.mjs          # Geração automática
+node scripts/gerar-placas-video.mjs    # One-off: placas de vídeo
 ```
 
 ## Configurar GitHub Pages
@@ -28,4 +79,28 @@ npm run preview # preview do build
 1. Crie um repositório no GitHub chamado `blog-gamer`
 2. Habilite GitHub Pages em Settings > Pages > source: GitHub Actions
 3. Faça push do código
-4. O blog estará em `https://sergioskmcle-sketch.github.io/blog-gamer`
+
+## Problemas Conhecidos
+
+### 🔴 Links de Afiliado não funcionam nos artigos publicados
+
+**Sintoma:** Os links "VER NO MERCADO LIVRE" nos artigos apontam para URLs do ML sem o tracking de afiliado (`?tag=sergioskm`).
+
+**Causa:** A API de links do ML retorna URLs curtas que funcionam localmente, mas o cookie de sessão usado para gerar o link expira no CI (GitHub Actions). O secret `ML_COOKIES_B64` contém cookies expirados.
+
+**Solução pendente:**
+1. Exportar cookies frescos do navegador logado no ML com conta `sergioskm`
+2. Salvar em `ml_cookies.json` (já está no `.gitignore`)
+3. Codificar em base64 e atualizar o secret `ML_COOKIES_B64` no GitHub
+   ```bash
+   $env:ML_COOKIES_B64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes("ml_cookies.json"))
+   ```
+4. Opcional: o parâmetro `?tag=sergioskm` pode ser adicionado manualmente aos links como fallback
+
+### 🔴 ML Search API bloqueada
+
+A API de busca do ML (`/sites/MLB/search`) retorna 403. Solução: usar highlights da categoria + Products API + Items API para descobrir produtos.
+
+### 🟡 ML_COOKIES_B64 expirado no GitHub
+
+O secret precisa ser atualizado manualmente sempre que os cookies expirarem. Solução ideal: implementar login automatizado via API.
