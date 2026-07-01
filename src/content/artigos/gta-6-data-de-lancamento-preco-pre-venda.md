@@ -110,13 +110,13 @@ Versão totalmente digital do PS5 Slim, sem leitor de discos e com preço mais a
 O console mais potente da Microsoft, com processador AMD Ryzen Zen 2 de 8 núcleos, GPU RDNA 2 de 12 TFLOPS e SSD NVMe de 1 TB. Suporta resolução nativa 4K a 120 FPS, ray tracing, e é totalmente compatível com jogos das gerações anteriores (Xbox One, Xbox 360 e Xbox original). O Quick Resume permite alternar entre vários jogos instantaneamente.
 
 <img src="https://http2.mlstatic.com/D_NQ_NP_2X_986631-MLB76239336311_052024-F.webp" alt="Xbox Series X" class="product-image">
-<a href="https://lista.mercadolivre.com.br/xbox-series-x?tag=sergioskm" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+<a href="https://www.mercadolivre.com.br/microsoft-xbox-series-x-1tb/p/MLB16160759?tag=sergioskm" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
 
 ### Xbox Series S
 
 A opção mais acessível para entrar na nova geração. O Xbox Series S oferece resolução até 1440p (com upscale para 4K), SSD rápido e acesso a todo o catálogo de GTA 6 e ao Xbox Game Pass. Ideal para quem tem orçamento limitado ou joga em monitor 1080p/1440p. Apesar do hardware mais modesto, roda todos os jogos da nova geração.
 
-<a href="https://lista.mercadolivre.com.br/xbox-series-x?tag=sergioskm" class="btn btn-primary" target="_blank" rel="nofollow">VER XBOX NO MERCADO LIVRE</a>
+<a href="https://www.mercadolivre.com.br/microsoft-xbox-series-s-512gb-standard-cor-branco/p/MLB16650345?tag=sergioskm" class="btn btn-primary" target="_blank" rel="nofollow">VER XBOX NO MERCADO LIVRE</a>
 
 ## Conclusão
 
