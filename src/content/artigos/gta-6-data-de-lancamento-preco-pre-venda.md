@@ -96,27 +96,27 @@ GTA 6 será lançado exclusivamente para **PlayStation 5** e **Xbox Series X|S**
 O PS5 Slim é a versão mais compacta e atualizada do console da Sony. Com SSD ultrarrápido de 1 TB, suporte a ray tracing, resolução 4K e o controle DualSense com feedback tátil e gatilhos adaptáveis, é a escolha ideal para quem quer a experiência completa de GTA 6. Mesmo que a versão física do jogo venha apenas com um código, ter o leitor de disco permite jogar títulos de PS4 e PS5 em mídia física.
 
 <img src="https://http2.mlstatic.com/D_NQ_NP_2X_612859-MLB74125722744_022024-F.webp" alt="PlayStation 5 Slim" class="product-image">
-<a href="https://www.mercadolivre.com.br/console-sony-playstation-5-edico-slim-disk-1tb-branco-controle-sem-fio-dualsense-ps5-branco/p/MLB52897777?tag=sergioskm" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+<a href="https://meli.la/1grsfwV" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
 
 ### PlayStation 5 Slim Digital Edition
 
 Versão totalmente digital do PS5 Slim, sem leitor de discos e com preço mais acessível. Perfeito para quem prefere comprar jogos na PS Store. Como GTA 6 físico virá apenas com um código, o modelo digital faz ainda mais sentido — você economiza no console e não perde nada da experiência.
 
 <img src="https://http2.mlstatic.com/D_NQ_NP_2X_612859-MLB74125722744_022024-F.webp" alt="PlayStation 5 Digital Edition" class="product-image">
-<a href="https://www.mercadolivre.com.br/console-playstation-5-slim-edico-digital-825-gb-branco-sony/p/MLB29001054?tag=sergioskm" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+<a href="https://meli.la/1Bj3UZc" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
 
 ### Xbox Series X
 
 O console mais potente da Microsoft, com processador AMD Ryzen Zen 2 de 8 núcleos, GPU RDNA 2 de 12 TFLOPS e SSD NVMe de 1 TB. Suporta resolução nativa 4K a 120 FPS, ray tracing, e é totalmente compatível com jogos das gerações anteriores (Xbox One, Xbox 360 e Xbox original). O Quick Resume permite alternar entre vários jogos instantaneamente.
 
 <img src="https://http2.mlstatic.com/D_NQ_NP_2X_986631-MLB76239336311_052024-F.webp" alt="Xbox Series X" class="product-image">
-<a href="https://www.mercadolivre.com.br/microsoft-xbox-series-x-1tb/p/MLB16160759?tag=sergioskm" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+<a href="https://meli.la/1o2Auui" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
 
 ### Xbox Series S
 
 A opção mais acessível para entrar na nova geração. O Xbox Series S oferece resolução até 1440p (com upscale para 4K), SSD rápido e acesso a todo o catálogo de GTA 6 e ao Xbox Game Pass. Ideal para quem tem orçamento limitado ou joga em monitor 1080p/1440p. Apesar do hardware mais modesto, roda todos os jogos da nova geração.
 
-<a href="https://www.mercadolivre.com.br/microsoft-xbox-series-s-512gb-standard-cor-branco/p/MLB16650345?tag=sergioskm" class="btn btn-primary" target="_blank" rel="nofollow">VER XBOX NO MERCADO LIVRE</a>
+<a href="https://meli.la/1bAzcod" class="btn btn-primary" target="_blank" rel="nofollow">VER XBOX NO MERCADO LIVRE</a>
 
 ## Conclusão
 
