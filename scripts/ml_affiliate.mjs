@@ -1,4 +1,4 @@
-import fs from "fs";
+﻿import fs from "fs";
 import { CookieJar } from "tough-cookie";
 
 const ML_BASE = "https://www.mercadolivre.com.br";
@@ -257,7 +257,7 @@ export async function generateAffiliateLink(productUrl, cookiePath) {
 
     if (r2.ok) {
       const d = await r2.json();
-      const shortUrl = d.short_url || d.shortcut || d.link || d.url || affiliateUrl;
+      const shortUrl = d.urls?.[0]?.short_url || d.short_url || d.shortcut || d.link || d.url || affiliateUrl;
       log("INFO", `Link afiliado criado: ${shortUrl}`);
       return { ...d, short_url: shortUrl };
     }
@@ -271,7 +271,7 @@ export async function generateAffiliateLink(productUrl, cookiePath) {
 
     if (r3.ok) {
       const d = await r3.json();
-      const shortUrl = d.short_url || d.shortcut || d.link || d.url || affiliateUrl;
+      const shortUrl = d.data?.[0]?.short_url || d.short_url || d.shortcut || d.link || d.url || affiliateUrl;
       log("INFO", `Link afiliado criado (stripe): ${shortUrl}`);
       return { ...d, short_url: shortUrl };
     }
