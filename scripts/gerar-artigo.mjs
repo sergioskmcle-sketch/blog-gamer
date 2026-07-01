@@ -1,4 +1,4 @@
-import "dotenv/config";
+﻿import "dotenv/config";
 import fs from "fs";
 import path from "path";
 import { searchML, generateAffiliateLink } from "./ml_affiliate.mjs";
@@ -154,7 +154,7 @@ function parseRaw(raw) {
 function validate(fm, body) {
   const errors = [];
   if (!fm.title || String(fm.title).length < 10) errors.push("title: muito curto");
-  if (!fm.description || String(fm.description).length < 50) errors.push("description: muito curto");
+  if (!fm.description || String(fm.description).length < 120) errors.push("description: muito curto (min 120)");
   if (!fm.pubDate) errors.push("pubDate: ausente");
   if (!fm.category) errors.push("category: ausente");
   if (!fm.tags || !Array.isArray(fm.tags) || fm.tags.length < 3) errors.push("tags: minimo 3");
@@ -273,15 +273,16 @@ async function main() {
 
 Regras:
 - Artigo: MINIMO 1200 palavras (obrigatorio)
-- Inclua imagens dos produtos usando <img src="URL_IMAGEM" alt="NOME_PRODUTO" class="product-image">
+- Inclua imagens dos produtos usando <img src="URL_IMAGEM" alt="NOME_PRODUTO" class="product-image"> (URL deve comecar com https://)
 - Inclua botoes "VER NO MERCADO LIVRE" com link de afiliado: <a href="LINK_AFILIADO" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+- Subtitulos DEVEM usar ##, NUNCA **negrito**
 - Cite as fontes de pesquisa no final do artigo: "## Fontes" com links
 - NUNCA mencione que e IA
 - Saida EXATA: frontmatter YAML entre "---" e fechando com "---" depois o conteudo markdown
 
 Frontmatter obrigatorio:
 title: "Titulo SEO"
-description: "Descricao curta (100-160 caracteres)"
+description: "Descricao curta (120-160 caracteres)"
 pubDate: ${today}
 tags: [tag1, tag2, tag3, tag4, tag5]
 category: "${topic.category}"
@@ -296,9 +297,9 @@ ${productBlock}
 
 Instrucoes:
 1. Titulo SEO atraente
-2. Descricao persuasiva (100-160 chars)
-3. Artigo markdown com subtitulos ##
-4. Use as imagens dos produtos com <img> no artigo
+2. Descricao persuasiva (120-160 caracteres no minimo)
+3. Artigo markdown com subtitulos ## (NUNCA usar **negrito** no lugar de ## — use ## para TODOS os subtitulos)
+4. Use as imagens dos produtos com <img src="https://..." alt="NOME" class="product-image"> (sempre https://)
 5. Para cada produto mencionado, coloque um botao "VER NO MERCADO LIVRE" com o link de afiliado
 6. No final, crie secao "## Fontes" com links das fontes pesquisadas
 7. 5 tags
