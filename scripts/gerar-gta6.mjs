@@ -1,9 +1,12 @@
+import "dotenv/config";
 import fs from "fs";
 import path from "path";
+import { generateAffiliateLink } from "./ml_affiliate.mjs";
 
 const TODAY = new Date().toISOString().split("T")[0];
 const ARTIGOS_DIR = path.resolve("src/content/artigos");
-const TAG = "sergioskm";
+const ML_AFFILIATE_TAG = process.env.ML_AFFILIATE_TAG || "sergioskm";
+const COOKIES_PATH = path.resolve("ml_cookies.json");
 
 const ps5Slim = "https://www.mercadolivre.com.br/console-sony-playstation-5-edico-slim-disk-1tb-branco-controle-sem-fio-dualsense-ps5-branco/p/MLB52897777";
 const ps5Digital = "https://www.mercadolivre.com.br/console-playstation-5-slim-edico-digital-1tb-branco-sony/p/MLB29001054";
@@ -18,9 +21,17 @@ const xboxSImg = "https://xboxwire.thesourcemediaassets.com/sites/2/2020/09/Xbox
 const gtaImg1 = "https://rockstarintel.com/wp-content/uploads/2026/06/VINTAGE_VICE_CITY_PACK_EXCLUSIVE_LOOKS_03_1280.webp";
 const gtaImg2 = "https://rockstarintel.com/wp-content/uploads/2026/06/VINTAGE_VICE_CITY_PACK_VAPID_STANIER_02-0s2wun4_vzld2-1-1024x576.jpg";
 
-const slug = "gta-6-data-de-lancamento-preco-pre-venda";
+async function main() {
+  const [ps5SlimLink, ps5DigitalLink, xboxXLink, xboxSLink] = await Promise.all([
+    generateAffiliateLink(ps5Slim, COOKIES_PATH, ML_AFFILIATE_TAG),
+    generateAffiliateLink(ps5Digital, COOKIES_PATH, ML_AFFILIATE_TAG),
+    generateAffiliateLink(xboxX, COOKIES_PATH, ML_AFFILIATE_TAG),
+    generateAffiliateLink(xboxS, COOKIES_PATH, ML_AFFILIATE_TAG),
+  ]);
 
-const article = `---
+  const slug = "gta-6-data-de-lancamento-preco-pre-venda";
+
+  const article = `---
 title: "GTA 6: Data de Lançamento, Preço, Pré-venda e Tudo que Sabemos"
 description: "GTA 6 chega em 19 de novembro de 2026 para PS5 e Xbox Series. Pré-venda já aberta por R$ 449,90. Veja preços, edições e os melhores consoles para jogar com links do Mercado Livre."
 pubDate: ${TODAY}
@@ -122,28 +133,28 @@ GTA 6 será lançado exclusivamente para **PlayStation 5** e **Xbox Series X|S**
 O PS5 Slim é a versão mais compacta e atualizada do console da Sony. Com SSD ultrarrápido de 1 TB, suporte a ray tracing, resolução 4K e o controle DualSense com feedback tátil e gatilhos adaptáveis, é a escolha ideal para quem quer a experiência completa de GTA 6. Mesmo que a versão física do jogo venha apenas com um código, ter o leitor de disco permite jogar títulos de PS4 e PS5 em mídia física.
 
 <img src="${ps5SlimImg}" alt="PlayStation 5 Slim" class="product-image">
-<a href="${ps5Slim}?tag=${TAG}" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+<a href="${ps5SlimLink}" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
 
 ### PlayStation 5 Slim Digital Edition
 
 Versão totalmente digital do PS5 Slim, sem leitor de discos e com preço mais acessível. Perfeito para quem prefere comprar jogos na PS Store. Como GTA 6 físico virá apenas com um código, o modelo digital faz ainda mais sentido — você economiza no console e não perde nada da experiência.
 
 <img src="${ps5DigitalImg}" alt="PlayStation 5 Digital Edition" class="product-image">
-<a href="${ps5Digital}?tag=${TAG}" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+<a href="${ps5DigitalLink}" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
 
 ### Xbox Series X
 
 O console mais potente da Microsoft, com processador AMD Ryzen Zen 2 de 8 núcleos, GPU RDNA 2 de 12 TFLOPS e SSD NVMe de 1 TB. Suporta resolução nativa 4K a 120 FPS, ray tracing, e é totalmente compatível com jogos das gerações anteriores (Xbox One, Xbox 360 e Xbox original). O Quick Resume permite alternar entre vários jogos instantaneamente.
 
 <img src="${xboxXImg}" alt="Xbox Series X" class="product-image">
-<a href="${xboxX}?tag=${TAG}" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+<a href="${xboxXLink}" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
 
 ### Xbox Series S
 
 A opção mais acessível para entrar na nova geração. O Xbox Series S oferece resolução até 1440p (com upscale para 4K), SSD rápido e acesso a todo o catálogo de GTA 6 e ao Xbox Game Pass. Ideal para quem tem orçamento limitado ou joga em monitor 1080p/1440p. Apesar do hardware mais modesto, roda todos os jogos da nova geração.
 
 <img src="${xboxSImg}" alt="Xbox Series S" class="product-image">
-<a href="${xboxS}?tag=${TAG}" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+<a href="${xboxSLink}" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
 
 ## Conclusão
 
@@ -165,6 +176,12 @@ Prepare o bolso, chame os amigos e se prepare para voltar a Vice City — 2026 s
 - Época Negócios: https://epocanegocios.globo.com/tecnologia/noticia/2026/06/gta-vi-quanto-custa-o-jogo-no-brasil-e-ate-quando-vai-a-pre-venda.ghtml
 `;
 
-const fp = path.join(ARTIGOS_DIR, `${slug}.md`);
-fs.writeFileSync(fp, article, "utf-8");
-console.log(`[OK] Artigo salvo: ${slug}.md`);
+  const fp = path.join(ARTIGOS_DIR, `${slug}.md`);
+  fs.writeFileSync(fp, article, "utf-8");
+  console.log(`[OK] Artigo salvo: ${slug}.md`);
+}
+
+main().catch((err) => {
+  console.error(`[ERROR] ${err.message}`);
+  process.exit(1);
+});

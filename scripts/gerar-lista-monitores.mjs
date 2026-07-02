@@ -162,7 +162,7 @@ Regras:
 - NUNCA mencione IA
 - LISTA EXATAMENTE ${selected.length} monitores (um de cada vez)
 - No final: secao "## Dicas de Compra" e depois "## Fontes"
-- Frontmatter YAML entre "---"
+- Saida EXATA: frontmatter YAML entre "---" e fechando com "---" depois o conteudo markdown
 
 Frontmatter:
 title: "Os ${selected.length} Melhores Monitores Gamer Custo-Beneficio do Mercado Livre em 2026"

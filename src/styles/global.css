@@ -1,18 +1,18 @@
 :root {
-  --bg-primary: #0F1115;
-  --bg-secondary: #0a0c10;
-  --bg-card: #171A21;
-  --bg-elevated: #1E2430;
-  --bg-glass: rgba(15, 17, 21, 0.85);
-  --bg-glass-solid: #1a1d25;
+  --bg-primary: #050505;
+  --bg-secondary: #020203;
+  --bg-card: #0A0A0F;
+  --bg-elevated: #12121C;
+  --bg-glass: rgba(5, 5, 5, 0.88);
+  --bg-glass-solid: #0D0D14;
 
-  --accent: #2563EB;
-  --accent-hover: #1D4ED8;
-  --accent-dim: rgba(37, 99, 235, 0.08);
-  --accent-glow: rgba(37, 99, 235, 0.25);
+  --accent: #A855F7;
+  --accent-hover: #9333EA;
+  --accent-dim: rgba(168, 85, 247, 0.08);
+  --accent-glow: rgba(168, 85, 247, 0.25);
 
-  --success: #A3E635;
-  --success-dim: rgba(163, 230, 53, 0.08);
+  --success: #39FF14;
+  --success-dim: rgba(57, 255, 20, 0.08);
   --warning: #F97316;
   --warning-dim: rgba(249, 115, 22, 0.08);
   --yellow: #FACC15;
@@ -20,15 +20,15 @@
   --danger-dim: rgba(239, 68, 68, 0.08);
 
   --text-primary: #FFFFFF;
-  --text-secondary: #BFC6D4;
-  --text-muted: #7A8299;
+  --text-secondary: #D1D5E0;
+  --text-muted: #8088A0;
 
-  --border: #2D3748;
-  --border-hover: #4A5568;
+  --border: #1C1C2E;
+  --border-hover: #2D2D4A;
 
-  --gradient-hero: linear-gradient(135deg, #0F1115 0%, #171A21 50%, #1E2430 100%);
-  --gradient-accent: linear-gradient(135deg, #2563EB, #1D4ED8);
-  --gradient-card: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(163, 230, 53, 0.05));
+  --gradient-hero: linear-gradient(135deg, #050505 0%, #0A0A0F 50%, #12121C 100%);
+  --gradient-accent: linear-gradient(135deg, #A855F7, #7C3AED);
+  --gradient-card: linear-gradient(135deg, rgba(168, 85, 247, 0.05), rgba(57, 255, 20, 0.04));
 
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
@@ -42,10 +42,10 @@
   --radius-lg: 14px;
   --radius-xl: 20px;
 
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 20px rgba(37, 99, 235, 0.15);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.7);
+  --shadow-glow: 0 0 20px rgba(168, 85, 247, 0.2);
 
   --transition: 0.2s ease;
   --transition-slow: 0.35s ease;
@@ -69,6 +69,40 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(30deg,
+      rgba(255,255,255,0.035) 0px, rgba(255,255,255,0.035) 1.5px,
+      transparent 1.5px, transparent 17px),
+    repeating-linear-gradient(150deg,
+      rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1.2px,
+      transparent 1.2px, transparent 15px),
+    repeating-linear-gradient(60deg,
+      rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 0.8px,
+      transparent 0.8px, transparent 22px),
+    repeating-linear-gradient(120deg,
+      rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 0.6px,
+      transparent 0.6px, transparent 20px);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 15% 85%, rgba(168,85,247,0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 15%, rgba(57,255,20,0.02) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, rgba(168,85,247,0.015) 0%, transparent 60%);
 }
 
 ::selection {
@@ -249,8 +283,8 @@ tr:hover td {
 }
 
 .card:hover {
-  border-color: var(--border-hover);
-  box-shadow: var(--shadow);
+  border-color: rgba(168,85,247,0.3);
+  box-shadow: 0 0 24px rgba(168,85,247,0.12);
 }
 
 .card-image {
@@ -341,7 +375,7 @@ tr:hover td {
 .btn:hover {
   background: var(--accent-hover);
   transform: translateY(-1px);
-  box-shadow: var(--shadow-glow);
+  box-shadow: 0 0 24px rgba(168,85,247,0.3);
   text-decoration: none;
   color: #fff;
 }
@@ -379,7 +413,7 @@ tr:hover td {
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 500;
-  border: 1px solid rgba(37, 99, 235, 0.15);
+  border: 1px solid rgba(168,85,247,0.15);
   white-space: nowrap;
 }
 
@@ -392,7 +426,7 @@ tr:hover td {
 .tag-success {
   background: var(--success-dim);
   color: var(--success);
-  border-color: rgba(163, 230, 53, 0.15);
+  border-color: rgba(57, 255, 20, 0.15);
 }
 
 .tag-warning {
@@ -475,6 +509,7 @@ tr:hover td {
   height: 1.4rem;
   background: var(--accent);
   border-radius: 2px;
+  box-shadow: 0 0 8px rgba(168,85,247,0.4);
 }
 
 /* ===== Grids ===== */
@@ -572,7 +607,11 @@ tr:hover td {
 
 @media (max-width: 480px) {
   h1 { font-size: 1.5rem; }
-  :root {
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
     --content-width: 100%;
   }
 }
