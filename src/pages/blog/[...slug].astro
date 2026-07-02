@@ -1,6 +1,5 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import Sidebar from "../../components/Sidebar.astro";
 
 export async function getStaticPaths() {
   const artigos = Object.entries(import.meta.glob("../../content/artigos/*.md", { eager: true }));
@@ -20,8 +19,13 @@ const todosArtigos = Object.entries(import.meta.glob("../../content/artigos/*.md
     title: mod.frontmatter.title,
     pubDate: mod.frontmatter.pubDate,
     category: mod.frontmatter.category,
+    image: mod.frontmatter.image,
   }))
   .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+
+const relacionados = todosArtigos.filter((a) => a.slug !== Astro.params.slug).slice(0, 3);
+
+const readingTime = Math.max(1, Math.ceil((frontmatter.description || "").split(" ").length / 200));
 ---
 
 <Layout
@@ -32,142 +36,221 @@ const todosArtigos = Object.entries(import.meta.glob("../../content/artigos/*.md
   tags={frontmatter.tags}
   category={frontmatter.category}
 >
-  <div class="container" style="padding-top: 2rem; padding-bottom: 3rem;">
-    <div class="content-grid">
-      <article class="main-content">
-        <header class="article-header">
-          <div class="article-meta-top">
-            {frontmatter.category && (
-              <span class="category-badge accent">{frontmatter.category}</span>
-            )}
-            {frontmatter.tags?.map((tag) => (
-              <span class="tag">{tag}</span>
-            ))}
-            {frontmatter.affiliate && (
-              <span class="tag tag-warning">🔗 Contém links de afiliado</span>
-            )}
+  <div class="relative z-10 pt-[100px] pb-xxl px-gutter">
+    <div class="max-w-[1100px] mx-auto grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-xl">
+      <article class="max-w-max-content-width mx-auto w-full" id="articleContent">
+        {frontmatter.image && (
+          <div class="rounded-xl overflow-hidden mb-xl shadow-2xl group">
+            <img
+              src={frontmatter.image}
+              alt={frontmatter.title}
+              class="w-full aspect-video object-cover group-hover:scale-105 transition-transform duration-700"
+            />
           </div>
+        )}
 
-          <h1 class="article-title">{frontmatter.title}</h1>
+        <div class="flex flex-wrap gap-sm mb-md">
+          {frontmatter.category && (
+            <span class="px-sm py-1 bg-primary/10 text-primary border border-primary/20 rounded-full font-label text-label uppercase tracking-widest">
+              {frontmatter.category}
+            </span>
+          )}
+          {frontmatter.tags?.slice(0, 3).map((tag) => (
+            <span class="px-sm py-1 bg-primary/10 text-primary border border-primary/20 rounded-full font-label text-label uppercase tracking-widest">
+              {tag}
+            </span>
+          ))}
+          {frontmatter.affiliate && (
+            <span class="px-sm py-1 bg-warning-dim text-warning border border-warning/20 rounded-full font-label text-label uppercase tracking-widest">
+              🔗 afiliado
+            </span>
+          )}
+        </div>
 
-          <div class="article-meta">
-            <time>📅 {new Date(frontmatter.pubDate).toLocaleDateString("pt-BR")}</time>
+        <h1 class="font-h1 text-h1 text-white mb-md leading-tight">
+          {frontmatter.title}
+        </h1>
+
+        <div class="flex items-center gap-md mb-xl text-[#8088A0] font-label text-label">
+          <div class="flex items-center gap-xs">
+            <span class="material-symbols-outlined text-[18px]">person</span>
+            <span>BLOG GAMER</span>
           </div>
+          <div class="w-1 h-1 bg-outline-variant/40 rounded-full" />
+          <div class="flex items-center gap-xs">
+            <span class="material-symbols-outlined text-[18px]">calendar_today</span>
+            <span>{new Date(frontmatter.pubDate).toLocaleDateString("pt-BR")}</span>
+          </div>
+          <div class="w-1 h-1 bg-outline-variant/40 rounded-full" />
+          <span>{readingTime} MIN DE LEITURA</span>
+        </div>
 
-          {frontmatter.description && (
-            <p class="article-description">
+        {frontmatter.description && (
+          <div class="font-body text-body text-[#D1D5E0] leading-relaxed">
+            <p class="first-letter:text-5xl first-letter:font-black first-letter:text-primary first-letter:mr-3 first-letter:float-left">
               {frontmatter.description}
             </p>
-          )}
-        </header>
+          </div>
+        )}
 
-        <div class="article-content">
+        <div class="font-body text-body text-[#D1D5E0] space-y-lg leading-relaxed mt-xl" id="articleBody">
           <Content />
         </div>
 
-        <div class="article-footer-cta">
-          <p>Gostou do conteúdo? Compartilhe com outros gamers!</p>
-          <p>Links de afiliado ajudam a manter o blog.</p>
-          <a href={base} class="btn btn-ghost">← Voltar para o início</a>
+        <div class="mt-xl pt-xl border-t border-white/10">
+          <div class="flex flex-wrap gap-sm items-center">
+            <span class="text-[#8088A0] font-label text-label mr-md self-center">TAGS:</span>
+            {frontmatter.tags?.map((tag) => (
+              <a
+                href={`${base}?tag=${tag}`}
+                class="px-md py-1 rounded-full border border-primary/30 text-primary bg-primary/5 hover:bg-primary/10 transition-colors font-label text-label no-underline hover:no-underline"
+              >
+                {tag.toUpperCase()}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        <div class="mt-xl p-lg bg-surface-container rounded-xl border border-outline-variant/10 text-center">
+          <p class="text-on-surface-variant text-xs mb-sm">
+            Gostou do conteúdo? Compartilhe com outros gamers!
+          </p>
+          <p class="text-on-surface-variant/60 text-[10px] mb-md">
+            Links de afiliado ajudam a manter o blog.
+          </p>
+          <a
+            href={base}
+            class="inline-flex items-center gap-sm px-lg py-md rounded-lg border border-outline-variant/20 text-on-surface-variant hover:text-primary hover:border-primary transition-colors font-label text-label no-underline hover:no-underline"
+          >
+            <span class="material-symbols-outlined text-sm">arrow_back</span>
+            VOLTAR AO INÍCIO
+          </a>
         </div>
       </article>
 
-      <Sidebar artigos={todosArtigos} currentSlug={Astro.params.slug} />
+      <aside class="space-y-xl hidden lg:block" id="articleSidebar">
+        <section>
+          <h3 class="font-label text-label text-primary uppercase tracking-widest mb-lg flex items-center gap-sm">
+            <span class="w-8 h-[1px] bg-primary" />
+            CATEGORIAS
+          </h3>
+          <ul class="space-y-sm">
+            {[
+              { name: "Notícias", slug: "noticia" },
+              { name: "Reviews", slug: "review" },
+              { name: "Guias", slug: "guia" },
+              { name: "Listas", slug: "lista" },
+            ].map((cat) => (
+              <li>
+                <a
+                  href={`${base}?categoria=${cat.slug}`}
+                  class="flex justify-between items-center p-md bg-surface-container rounded-lg group hover:bg-primary/10 transition-all no-underline hover:no-underline"
+                >
+                  <span class="text-on-surface group-hover:text-primary transition-colors text-sm">{cat.name}</span>
+                  <span class="bg-surface-container-highest px-2 py-0.5 rounded text-xs text-on-surface-variant">
+                    {todosArtigos.filter((a) => a.category === cat.slug).length}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section>
+          <h3 class="font-label text-label text-primary uppercase tracking-widest mb-lg flex items-center gap-sm">
+            <span class="w-8 h-[1px] bg-primary" />
+            ARTIGOS RELACIONADOS
+          </h3>
+          <div class="space-y-lg">
+            {relacionados.slice(0, 3).map((artigo) => (
+              <a href={`${base}blog/${artigo.slug}/`} class="group block no-underline hover:no-underline">
+                <div class="relative rounded-lg overflow-hidden mb-sm aspect-[16/9]">
+                  {artigo.image ? (
+                    <img
+                      src={artigo.image}
+                      alt={artigo.title}
+                      class="object-cover w-full h-full group-hover:scale-110 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div class="w-full h-full bg-surface-container-high flex items-center justify-center text-2xl">
+                      🎮
+                    </div>
+                  )}
+                </div>
+                <h4 class="text-sm font-semibold text-on-surface group-hover:text-primary transition-colors line-clamp-2">
+                  {artigo.title}
+                </h4>
+              </a>
+            ))}
+          </div>
+        </section>
+
+        <section class="p-lg bg-surface-container rounded-xl border border-white/5 relative overflow-hidden">
+          <div class="absolute -top-10 -right-10 w-24 h-24 bg-primary/20 blur-3xl" />
+          <h3 class="text-lg font-bold text-white mb-sm">Newsletter</h3>
+          <p class="text-xs text-on-surface-variant mb-md">
+            Receba as últimas notícias de hardware e games no seu email.
+          </p>
+          <input
+            class="w-full bg-background border border-outline-variant/30 rounded-lg py-xs px-md text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none mb-md text-on-surface placeholder:text-on-surface-variant/50"
+            placeholder="Seu email"
+            type="email"
+          />
+          <button class="w-full bg-primary text-on-primary py-xs rounded-lg font-label uppercase hover:bg-primary-container transition-colors shadow-lg shadow-primary/20">
+            INSCREVER
+          </button>
+        </section>
+      </aside>
     </div>
-  </div>
+  </main>
+
+  <div id="cursorGlowBg" class="carbon-shine fixed top-0 left-0 w-full h-full pointer-events-none z-0" style="--x: 50%; --y: 50%;" />
+
+  <script>
+    const glowBg = document.getElementById("cursorGlowBg");
+    if (glowBg) {
+      document.addEventListener("mousemove", (e) => {
+        const x = (e.clientX / window.innerWidth) * 100;
+        const y = (e.clientY / window.innerHeight) * 100;
+        glowBg.style.setProperty("--x", `${x}%`);
+        glowBg.style.setProperty("--y", `${y}%`);
+      });
+    }
+
+    const observerOptions = { threshold: 0.1 };
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("opacity-100", "translate-y-0");
+          entry.target.classList.remove("opacity-0", "translate-y-10");
+        }
+      });
+    }, observerOptions);
+
+    document.querySelectorAll("#articleContent > *, #articleSidebar > section").forEach((el) => {
+      el.classList.add("transition-all", "duration-700", "opacity-0", "translate-y-10");
+      observer.observe(el);
+    });
+  </script>
 </Layout>
 
 <style is:global>
-  .article-header {
-    margin-bottom: 2rem;
-    padding-bottom: 2rem;
-    border-bottom: 1px solid var(--border);
+  .carbon-shine {
+    background: radial-gradient(circle at var(--x, 50%) var(--y, 50%),
+      rgba(221, 183, 255, 0.03) 0%, transparent 50%);
   }
 
-  .article-meta-top {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-bottom: 1rem;
-  }
-
-  .article-title {
-    font-size: 2rem;
-    font-weight: 800;
-    color: #fff;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
-    margin: 0 0 0.75rem;
-  }
-
-  .article-meta {
-    display: flex;
-    gap: 1rem;
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    margin-bottom: 1.25rem;
-  }
-
-  .article-description {
-    font-size: 1.05rem;
-    color: var(--text-secondary);
-    line-height: 1.7;
-    padding: 1.25rem;
-    background: var(--accent-dim);
-    border-radius: var(--radius);
-    border-left: 3px solid var(--accent);
-    margin: 0;
-  }
-
-  .article-content {
-    font-size: 1.05rem;
-    line-height: 1.9;
-  }
-
-  .article-content p {
-    margin-bottom: 1.4rem;
-  }
-
-  .article-content h2 {
-    margin-top: 2.5rem;
-  }
-
-  .article-content h3 {
-    margin-top: 2rem;
-  }
-
-  .article-content img {
-    border-radius: var(--radius);
+  blockquote {
+    border-left: 4px solid var(--accent);
+    padding: 1rem 1.5rem;
     margin: 1.5rem 0;
+    background: rgba(168, 85, 247, 0.05);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    color: var(--text-secondary);
+    font-style: italic;
   }
 
-  .article-footer-cta {
-    margin-top: 3rem;
-    padding: 1.5rem;
-    background: var(--bg-card);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
-    text-align: center;
-  }
-
-  .article-footer-cta p {
-    color: var(--text-muted);
-    font-size: 0.85rem;
-    margin-bottom: 0.3rem;
-  }
-
-  .article-footer-cta .btn {
-    margin-top: 1rem;
-  }
-
-  .article-footer-cta:hover {
-    border-color: var(--border-hover);
-  }
-
-  @media (max-width: 768px) {
-    .article-title {
-      font-size: 1.5rem;
-    }
+  .affiliate-box {
+    border-left: 3px solid #ff9800;
   }
 </style>
