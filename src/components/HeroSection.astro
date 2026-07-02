@@ -15,53 +15,37 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 const date = new Date(pubDate).toLocaleDateString("pt-BR");
 ---
 
-<section class="relative w-full aspect-[21/9] min-h-[500px] overflow-hidden">
-  <div class="absolute inset-0 z-0">
+<section class="relative rounded-xl overflow-hidden mb-xxl group">
+  <div class="h-[400px] md:h-[600px] w-full relative">
     <div
-      class="w-full h-full bg-cover bg-center"
+      class="absolute inset-0 w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
       style="background-image: url('{image || `${base}hero-default.jpg`}')"
     />
-    <div class="absolute inset-0 bg-gradient-to-t from-black-piano via-black-piano/40 to-transparent" />
+    <div class="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/40 to-transparent"></div>
   </div>
-
-  <div class="relative z-10 h-full max-w-page mx-auto px-margin-desktop flex flex-col justify-end pb-xxl">
-    <div class="max-w-2xl space-y-md">
-      <div class="flex gap-sm flex-wrap items-center">
-        {category && (
-          <span class="inline-block px-3 py-1 bg-primary/20 text-primary border border-primary/30 rounded-full font-label text-[10px] uppercase tracking-widest">
-            {category}
-          </span>
-        )}
-        {tags?.slice(0, 2).map((tag) => (
-          <span class="inline-block px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full font-label text-[10px] uppercase tracking-widest">
-            {tag}
-          </span>
-        ))}
-        {affiliate && (
-          <span class="inline-block px-3 py-1 bg-warning-dim text-warning border border-warning/30 rounded-full font-label text-[10px] uppercase tracking-widest">
-            afiliado
-          </span>
-        )}
-      </div>
-
-      <h1 class="font-h1 text-h1 text-on-surface electric-glow leading-[1.1] md:text-[3.5rem]">
-        {title}
-      </h1>
-
-      <p class="text-on-surface-variant text-lg max-w-xl font-body">
-        {description}
-      </p>
-
-      <div class="pt-md flex items-center gap-md">
-        <a
-          href={`${base}blog/${slug}/`}
-          class="neon-btn px-xl py-md rounded-full font-label text-label flex items-center gap-sm no-underline hover:no-underline"
-        >
-          LER ARTIGO
-          <span class="material-symbols-outlined text-sm">arrow_forward</span>
-        </a>
-        <time class="font-label text-label text-on-surface-variant">{date}</time>
-      </div>
+  <div class="absolute bottom-0 left-0 p-lg md:p-xxl max-w-2xl">
+    {category && (
+      <span class="inline-block bg-electric-purple text-white px-md py-xs rounded-full font-label text-[0.65rem] uppercase tracking-widest mb-md">
+        {category}
+      </span>
+    )}
+    <h1 class="font-h1 text-h1 text-white mb-md halo-glow leading-tight">
+      {title}
+    </h1>
+    <div class="flex items-center gap-md text-on-surface-variant mb-lg font-label">
+      <span class="flex items-center gap-xs">
+        <span class="material-symbols-outlined text-[18px]">person</span>
+        Blog Gamer
+      </span>
+      <span class="w-1 h-1 bg-outline rounded-full"></span>
+      <span>{date}</span>
     </div>
+    <a
+      href={`${base}blog/${slug}/`}
+      class="inline-flex items-center gap-sm bg-neon-green text-[#050505] px-xl py-md rounded-lg font-bold neon-glow transition-all active:scale-95 no-underline hover:no-underline hover:text-[#050505]"
+    >
+      Ler Matéria
+      <span class="material-symbols-outlined">arrow_forward</span>
+    </a>
   </div>
 </section>

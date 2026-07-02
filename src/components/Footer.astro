@@ -2,46 +2,43 @@
 const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 ---
 
-<footer class="w-full py-xxl bg-background border-t border-outline-variant/30 mt-xxl">
-  <div class="flex flex-col items-center justify-center gap-md px-margin-desktop max-w-page mx-auto text-center">
-    <a href={base} class="font-black text-primary italic tracking-tighter text-xl no-underline hover:no-underline hover:text-primary">
-      BLOG GAMER
+<footer class="w-full py-xxl bg-surface-container-lowest border-t border-outline-variant/30 mt-xxl">
+  <div class="flex flex-col items-center gap-lg max-w-page mx-auto px-gutter">
+    <a href={base} class="font-h2 text-h2 text-primary italic font-black tracking-tighter no-underline hover:no-underline hover:text-primary">
+      Blog Gamer
     </a>
 
-    <div class="flex gap-lg flex-wrap justify-center">
-      <a href={base} class="font-label text-label text-on-surface-variant hover:text-on-surface transition-colors no-underline hover:no-underline">
+    <div class="flex flex-wrap justify-center gap-xl font-label text-label">
+      <a href={`${base}`} class="text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
         Início
       </a>
-      <a href={`${base}blog/`} class="font-label text-label text-on-surface-variant hover:text-on-surface transition-colors no-underline hover:no-underline">
-        Artigos
+      <a href={`${base}?categoria=hardware`} class="text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
+        Hardware
       </a>
-      <a href={`${base}?categoria=noticia`} class="font-label text-label text-on-surface-variant hover:text-on-surface transition-colors no-underline hover:no-underline">
-        Notícias
+      <a href={`${base}?categoria=jogos`} class="text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
+        Jogos
       </a>
-      <a href={`${base}?categoria=review`} class="font-label text-label text-on-surface-variant hover:text-on-surface transition-colors no-underline hover:no-underline">
+      <a href={`${base}?categoria=review`} class="text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
         Reviews
       </a>
-      <a href={`${base}?categoria=guia`} class="font-label text-label text-on-surface-variant hover:text-on-surface transition-colors no-underline hover:no-underline">
+      <a href={`${base}?categoria=guia`} class="text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
         Guias
       </a>
-      <a href={`${base}rss.xml`} class="font-label text-label text-on-surface-variant hover:text-on-surface transition-colors no-underline hover:no-underline">
-        RSS
+      <a href={`${base}?categoria=esports`} class="text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
+        eSports
       </a>
     </div>
 
-    <p class="font-label text-label text-on-surface-variant/60 max-w-md">
-      &copy; {new Date().getFullYear()} Blog Gamer. Notícias, reviews e guias do universo dos games.
+    <p class="font-label text-label text-on-surface-variant/60 text-center">
+      &copy; {new Date().getFullYear()} Blog Gamer. Tecnologia, jogos e cultura gamer.
     </p>
 
     <div class="flex gap-md pt-md">
-      <a href={`${base}rss.xml`} class="text-on-surface-variant hover:text-primary transition-all no-underline hover:no-underline" title="RSS Feed">
-        <span class="material-symbols-outlined">rss_feed</span>
+      <a href={`${base}rss.xml`} class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary transition-all no-underline hover:no-underline" title="RSS">
+        <span class="material-symbols-outlined text-[20px]">rss_feed</span>
       </a>
-      <a href="https://github.com/sergioskmcle-sketch/blog-gamer" target="_blank" rel="noopener" class="text-on-surface-variant hover:text-primary transition-all no-underline hover:no-underline" title="GitHub">
-        <span class="material-symbols-outlined">code</span>
-      </a>
-      <a href={`mailto:?subject=${encodeURIComponent("Blog Gamer")}&body=${encodeURIComponent(base)}`} class="text-on-surface-variant hover:text-primary transition-all no-underline hover:no-underline" title="Compartilhar">
-        <span class="material-symbols-outlined">share</span>
+      <a href={`mailto:?subject=${encodeURIComponent("Blog Gamer")}&body=${encodeURIComponent(base)}`} class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary transition-all no-underline hover:no-underline" title="Compartilhar">
+        <span class="material-symbols-outlined text-[20px]">share</span>
       </a>
     </div>
 

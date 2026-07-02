@@ -26,6 +26,13 @@ const todosArtigos = Object.entries(import.meta.glob("../../content/artigos/*.md
 const relacionados = todosArtigos.filter((a) => a.slug !== Astro.params.slug).slice(0, 3);
 
 const readingTime = Math.max(1, Math.ceil((frontmatter.description || "").split(" ").length / 200));
+
+const categories = [
+  { name: "Hardware", slug: "hardware", icon: "memory" },
+  { name: "Jogos", slug: "jogos", icon: "sports_esports" },
+  { name: "eSports", slug: "esports", icon: "trophy" },
+  { name: "Reviews", slug: "review", icon: "rate_review" },
+];
 ---
 
 <Layout
@@ -60,11 +67,6 @@ const readingTime = Math.max(1, Math.ceil((frontmatter.description || "").split(
               {tag}
             </span>
           ))}
-          {frontmatter.affiliate && (
-            <span class="px-sm py-1 bg-warning-dim text-warning border border-warning/20 rounded-full font-label text-label uppercase tracking-widest">
-              🔗 afiliado
-            </span>
-          )}
         </div>
 
         <h1 class="font-h1 text-h1 text-white mb-md leading-tight">
@@ -85,15 +87,12 @@ const readingTime = Math.max(1, Math.ceil((frontmatter.description || "").split(
           <span>{readingTime} MIN DE LEITURA</span>
         </div>
 
-        {frontmatter.description && (
-          <div class="font-body text-body text-[#D1D5E0] leading-relaxed">
+        <div class="font-body text-body text-[#D1D5E0] space-y-lg leading-relaxed" id="articleBody">
+          {frontmatter.description && (
             <p class="first-letter:text-5xl first-letter:font-black first-letter:text-primary first-letter:mr-3 first-letter:float-left">
               {frontmatter.description}
             </p>
-          </div>
-        )}
-
-        <div class="font-body text-body text-[#D1D5E0] space-y-lg leading-relaxed mt-xl" id="articleBody">
+          )}
           <Content />
         </div>
 
@@ -135,18 +134,16 @@ const readingTime = Math.max(1, Math.ceil((frontmatter.description || "").split(
             CATEGORIAS
           </h3>
           <ul class="space-y-sm">
-            {[
-              { name: "Notícias", slug: "noticia" },
-              { name: "Reviews", slug: "review" },
-              { name: "Guias", slug: "guia" },
-              { name: "Listas", slug: "lista" },
-            ].map((cat) => (
+            {categories.map((cat) => (
               <li>
                 <a
                   href={`${base}?categoria=${cat.slug}`}
                   class="flex justify-between items-center p-md bg-surface-container rounded-lg group hover:bg-primary/10 transition-all no-underline hover:no-underline"
                 >
-                  <span class="text-on-surface group-hover:text-primary transition-colors text-sm">{cat.name}</span>
+                  <span class="flex items-center gap-sm text-on-surface group-hover:text-primary transition-colors text-sm">
+                    <span class="material-symbols-outlined text-sm">{cat.icon}</span>
+                    {cat.name}
+                  </span>
                   <span class="bg-surface-container-highest px-2 py-0.5 rounded text-xs text-on-surface-variant">
                     {todosArtigos.filter((a) => a.category === cat.slug).length}
                   </span>
@@ -191,32 +188,25 @@ const readingTime = Math.max(1, Math.ceil((frontmatter.description || "").split(
           <p class="text-xs text-on-surface-variant mb-md">
             Receba as últimas notícias de hardware e games no seu email.
           </p>
-          <input
-            class="w-full bg-background border border-outline-variant/30 rounded-lg py-xs px-md text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none mb-md text-on-surface placeholder:text-on-surface-variant/50"
-            placeholder="Seu email"
-            type="email"
-          />
-          <button class="w-full bg-primary text-on-primary py-xs rounded-lg font-label uppercase hover:bg-primary-container transition-colors shadow-lg shadow-primary/20">
-            INSCREVER
-          </button>
+          <form id="newsletterFormArticle" class="space-y-sm">
+            <input
+              class="w-full bg-background border border-outline-variant/30 rounded-lg py-xs px-md text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none text-on-surface placeholder:text-on-surface-variant/50"
+              placeholder="Seu email"
+              type="email"
+              id="newsletterInputArticle"
+              required
+            />
+            <button type="submit" class="w-full bg-primary text-on-primary py-xs rounded-lg font-label uppercase hover:bg-primary-container transition-colors shadow-lg shadow-primary/20" id="newsletterBtnArticle">
+              INSCREVER
+            </button>
+            <p id="newsletterFeedbackArticle" class="text-[10px] text-primary/70 hidden"></p>
+          </form>
         </section>
       </aside>
     </div>
-  </main>
-
-  <div id="cursorGlowBg" class="carbon-shine fixed top-0 left-0 w-full h-full pointer-events-none z-0" style="--x: 50%; --y: 50%;" />
+  </div>
 
   <script>
-    const glowBg = document.getElementById("cursorGlowBg");
-    if (glowBg) {
-      document.addEventListener("mousemove", (e) => {
-        const x = (e.clientX / window.innerWidth) * 100;
-        const y = (e.clientY / window.innerHeight) * 100;
-        glowBg.style.setProperty("--x", `${x}%`);
-        glowBg.style.setProperty("--y", `${y}%`);
-      });
-    }
-
     const observerOptions = { threshold: 0.1 };
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
@@ -231,26 +221,24 @@ const readingTime = Math.max(1, Math.ceil((frontmatter.description || "").split(
       el.classList.add("transition-all", "duration-700", "opacity-0", "translate-y-10");
       observer.observe(el);
     });
+
+    const newsletterFormArticle = document.getElementById("newsletterFormArticle");
+    const newsletterInputArticle = document.getElementById("newsletterInputArticle");
+    const newsletterBtnArticle = document.getElementById("newsletterBtnArticle");
+    const newsletterFeedbackArticle = document.getElementById("newsletterFeedbackArticle");
+
+    if (newsletterFormArticle) {
+      newsletterFormArticle.addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (newsletterInputArticle && newsletterInputArticle.value.trim()) {
+          newsletterBtnArticle.textContent = "INSCRITO!";
+          newsletterBtnArticle.disabled = true;
+          newsletterBtnArticle.style.opacity = "0.6";
+          newsletterFeedbackArticle.textContent = "Obrigado por se inscrever!";
+          newsletterFeedbackArticle.classList.remove("hidden");
+          newsletterInputArticle.value = "";
+        }
+      });
+    }
   </script>
 </Layout>
-
-<style is:global>
-  .carbon-shine {
-    background: radial-gradient(circle at var(--x, 50%) var(--y, 50%),
-      rgba(221, 183, 255, 0.03) 0%, transparent 50%);
-  }
-
-  blockquote {
-    border-left: 4px solid var(--accent);
-    padding: 1rem 1.5rem;
-    margin: 1.5rem 0;
-    background: rgba(168, 85, 247, 0.05);
-    border-radius: 0 var(--radius) var(--radius) 0;
-    color: var(--text-secondary);
-    font-style: italic;
-  }
-
-  .affiliate-box {
-    border-left: 3px solid #ff9800;
-  }
-</style>

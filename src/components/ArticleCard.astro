@@ -12,71 +12,62 @@ export interface Props {
 
 const { title, description, pubDate, tags, category, affiliate, slug, image } = Astro.props;
 const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
-const date = new Date(pubDate).toLocaleDateString("pt-BR");
 
-const readingTime = Math.max(1, Math.ceil((description || "").split(" ").length / 200));
-
-const categoryIcons: Record<string, string> = {
-  noticia: "📰",
-  review: "⭐",
-  guia: "📖",
-  lista: "📋",
-  promocao: "🏷️",
+const timeAgo = (date: Date | string) => {
+  const now = new Date();
+  const d = new Date(date);
+  const diffMs = now.getTime() - d.getTime();
+  const diffHrs = Math.floor(diffMs / 3600000);
+  if (diffHrs < 1) return "Agora mesmo";
+  if (diffHrs < 24) return `${diffHrs}h atrás`;
+  const diffDays = Math.floor(diffHrs / 24);
+  if (diffDays < 7) return `${diffDays}d atrás`;
+  return d.toLocaleDateString("pt-BR");
 };
 ---
 
-<article class="group bg-surface-container-low border border-outline-variant/10 rounded-xl overflow-hidden transition-all duration-300 card-glow flex flex-col">
+<article class="bg-[#0A0A0F] border border-[#1C1C2E] rounded-[14px] overflow-hidden hover:border-primary/50 transition-colors group cursor-pointer flex flex-col">
   <a href={`${base}blog/${slug}/`} class="no-underline hover:no-underline text-inherit flex flex-col flex-1">
-    <div class="aspect-video overflow-hidden">
+    <div class="h-48 overflow-hidden">
       {image ? (
         <img
           src={image}
           alt={title}
           loading="lazy"
-          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
         />
       ) : (
-        <div class="w-full h-full bg-surface-container-higher flex items-center justify-center text-4xl">
-          {categoryIcons[category?.toLowerCase()] || "🎮"}
+        <div class="w-full h-full bg-[#1C1C2E] flex items-center justify-center text-4xl">
+          🎮
         </div>
       )}
     </div>
 
     <div class="p-md flex flex-col flex-grow">
-      <div class="flex items-center gap-sm mb-sm">
-        {category && (
-          <span class="text-primary font-label text-[10px] uppercase">
-            {category}
-          </span>
-        )}
-        {affiliate && (
-          <span class="text-warning font-label text-[10px] uppercase">
-            🔗 afiliado
-          </span>
-        )}
-      </div>
+      <span class="text-electric-purple font-label text-[0.6rem] uppercase tracking-widest block mb-xs">
+        {category || "Artigo"}
+      </span>
 
-      <h3 class="font-h2 text-xl text-on-surface mb-sm group-hover:text-primary transition-colors">
+      <h3 class="font-bold text-white mb-sm line-clamp-2 group-hover:text-primary transition-colors">
         {title}
       </h3>
 
-      <p class="text-on-surface-variant text-sm line-clamp-3 mb-md">
+      <p class="text-on-surface-variant text-sm mb-md line-clamp-2">
         {description}
       </p>
 
       {tags && tags.length > 0 && (
-        <div class="flex gap-xs flex-wrap mb-md">
-          {tags.slice(0, 3).map((tag) => (
-            <span class="text-[10px] text-on-surface-variant font-label bg-surface-container-high px-2 py-0.5 rounded">
+        <div class="flex gap-xs flex-wrap mb-sm">
+          {tags.slice(0, 2).map((tag) => (
+            <span class="text-[10px] text-on-surface-variant font-label bg-[#1C1C2E] px-2 py-0.5 rounded">
               {tag}
             </span>
           ))}
         </div>
       )}
 
-      <div class="mt-auto flex items-center justify-between pt-md border-t border-outline-variant/10">
-        <span class="text-on-tertiary-fixed-variant text-[10px] font-label">{readingTime} MIN DE LEITURA</span>
-        <span class="material-symbols-outlined text-primary text-sm group-hover:translate-x-1 transition-transform">trending_flat</span>
+      <div class="mt-auto">
+        <span class="text-outline text-xs">{timeAgo(pubDate)}</span>
       </div>
     </div>
   </a>

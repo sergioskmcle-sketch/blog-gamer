@@ -2,49 +2,57 @@
 const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 
 const navLinks = [
-  { name: "Notícias", slug: "noticia" },
+  { name: "Hardware", slug: "hardware" },
+  { name: "Jogos", slug: "jogos" },
   { name: "Reviews", slug: "review" },
   { name: "Guias", slug: "guia" },
-  { name: "Listas", slug: "lista" },
-  { name: "Promoções", slug: "promocao" },
+  { name: "eSports", slug: "esports" },
 ];
 ---
 
-<header id="siteHeader" class="fixed top-0 w-full z-50 glass-header border-b border-outline-variant/20">
-  <nav class="flex items-center justify-between h-16 px-margin-desktop max-w-page mx-auto">
-    <div class="flex items-center gap-xl">
-      <a href={base} class="font-black text-primary italic tracking-tighter text-xl no-underline hover:no-underline hover:text-primary">
-        BLOG GAMER
+<header id="siteHeader" class="fixed top-0 w-full z-50 glass-header border-b border-outline-variant/30">
+  <nav class="flex items-center justify-between h-16 px-gutter max-w-page mx-auto">
+    <a href={base} class="font-h2 text-h2 italic font-black text-primary tracking-tighter no-underline hover:no-underline hover:text-primary">
+      Blog Gamer
+    </a>
+    <div class="hidden md:flex items-center gap-lg font-label text-label">
+      <a href={base} class="text-primary border-b-2 border-primary pb-1 no-underline hover:no-underline">
+        Início
       </a>
-      <div class="hidden md:flex items-center gap-lg">
-        <a href={base} class="font-label text-label text-secondary-fixed border-b-2 border-secondary-fixed pb-1 no-underline hover:no-underline">
-          Início
+      {navLinks.map((link) => (
+        <a
+          href={`${base}?categoria=${link.slug}`}
+          class="text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline"
+        >
+          {link.name}
         </a>
-        {navLinks.map((link) => (
-          <a
-            href={`${base}?categoria=${link.slug}`}
-            class="font-label text-label text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline"
-          >
-            {link.name}
-          </a>
-        ))}
-      </div>
+      ))}
     </div>
     <div class="flex items-center gap-md">
-      <div class="relative hidden sm:block">
-        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">search</span>
-        <input
-          class="bg-surface-container-low border-none rounded-full pl-10 pr-4 py-2 text-sm focus:ring-1 focus:ring-primary w-48 transition-all focus:w-64 text-on-surface placeholder:text-on-surface-variant/50 outline-none"
-          placeholder="Pesquisar..."
-          type="text"
-          id="searchInput"
-        />
-      </div>
-      <button class="md:hidden text-on-surface" id="menuBtn" aria-label="Menu">
-        <span class="material-symbols-outlined">menu</span>
+      <button class="text-on-surface-variant hover:text-primary transition-colors active:scale-95" id="searchBtn" aria-label="Pesquisar">
+        <span class="material-symbols-outlined">search</span>
+      </button>
+      <button class="md:hidden text-on-surface-variant hover:text-primary" id="menuBtn" aria-label="Menu">
+        <span class="material-symbols-outlined" id="menuIcon">menu</span>
       </button>
     </div>
   </nav>
+
+  <div id="mobileMenu" class="md:hidden fixed inset-x-0 top-16 bg-black-piano/95 backdrop-blur-xl border-b border-outline-variant/30 transform -translate-y-full opacity-0 invisible transition-all duration-300 ease-in-out z-40">
+    <div class="flex flex-col p-lg gap-md">
+      <a href={base} class="font-label text-label text-on-surface hover:text-primary transition-colors no-underline hover:no-underline py-sm">
+        Início
+      </a>
+      {navLinks.map((link) => (
+        <a
+          href={`${base}?categoria=${link.slug}`}
+          class="font-label text-label text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline py-sm"
+        >
+          {link.name}
+        </a>
+      ))}
+    </div>
+  </div>
 </header>
 
 <script>
@@ -53,19 +61,42 @@ const navLinks = [
     window.addEventListener("scroll", () => {
       if (window.scrollY > 20) {
         header.classList.add("shadow-xl");
-        header.style.background = "rgba(5,5,5,0.95)";
+        header.style.borderBottomColor = "rgba(221, 183, 255, 0.2)";
       } else {
         header.classList.remove("shadow-xl");
-        header.style.background = "";
+        header.style.borderBottomColor = "";
       }
     });
   }
 
-  const searchInput = document.getElementById("searchInput");
-  if (searchInput) {
-    searchInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && searchInput.value.trim()) {
-        window.location.href = `${window.location.pathname}?q=${encodeURIComponent(searchInput.value.trim())}`;
+  const searchBtn = document.getElementById("searchBtn");
+  if (searchBtn) {
+    searchBtn.addEventListener("click", () => {
+      const q = prompt("Buscar no Blog Gamer:");
+      if (q && q.trim()) {
+        window.location.href = `${window.location.pathname}?q=${encodeURIComponent(q.trim())}`;
+      }
+    });
+  }
+
+  const menuBtn = document.getElementById("menuBtn");
+  const mobileMenu = document.getElementById("mobileMenu");
+  const menuIcon = document.getElementById("menuIcon");
+  if (menuBtn && mobileMenu) {
+    menuBtn.addEventListener("click", () => {
+      const isOpen = mobileMenu.classList.contains("open");
+      if (isOpen) {
+        mobileMenu.classList.remove("open");
+        mobileMenu.style.transform = "translateY(-100%)";
+        mobileMenu.style.opacity = "0";
+        mobileMenu.style.visibility = "hidden";
+        if (menuIcon) menuIcon.textContent = "menu";
+      } else {
+        mobileMenu.classList.add("open");
+        mobileMenu.style.transform = "translateY(0)";
+        mobileMenu.style.opacity = "1";
+        mobileMenu.style.visibility = "visible";
+        if (menuIcon) menuIcon.textContent = "close";
       }
     });
   }

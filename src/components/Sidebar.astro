@@ -9,91 +9,119 @@ export interface Artigo {
 
 const { artigos, currentSlug }: { artigos: Artigo[]; currentSlug?: string } = Astro.props;
 const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
-const recentes = artigos.filter((a) => a.slug !== currentSlug).slice(0, 5);
+
+const recentes = artigos.filter((a) => a.slug !== currentSlug).slice(0, 10);
 
 const categories = [
-  { name: "Notícias", slug: "noticia", count: artigos.filter((a) => a.category === "noticia").length },
-  { name: "Reviews", slug: "review", count: artigos.filter((a) => a.category === "review").length },
-  { name: "Guias", slug: "guia", count: artigos.filter((a) => a.category === "guia" || a.category === "lista").length },
-  { name: "Promoções", slug: "promocao", count: artigos.filter((a) => a.category === "promocao").length },
+  { name: "Hardware", slug: "hardware", icon: "memory", count: artigos.filter((a) => a.category === "hardware").length },
+  { name: "Jogos", slug: "jogos", icon: "sports_esports", count: artigos.filter((a) => a.category === "jogos" || a.category === "noticia").length },
+  { name: "eSports", slug: "esports", icon: "trophy", count: artigos.filter((a) => a.category === "esports").length },
+  { name: "Reviews", slug: "review", icon: "rate_review", count: artigos.filter((a) => a.category === "review").length },
+  { name: "Guias", slug: "guia", icon: "menu_book", count: artigos.filter((a) => a.category === "guia" || a.category === "lista").length },
 ];
 ---
 
-<aside class="w-full lg:w-80 shrink-0 space-y-xl">
-  <div class="bg-surface-container-low border border-outline-variant/10 p-lg rounded-xl">
-    <h4 class="font-label text-label text-on-surface border-b border-outline-variant/20 pb-sm mb-md flex items-center gap-sm">
-      <span class="material-symbols-outlined text-sm">category</span>
-      CATEGORIAS
-    </h4>
-    <div class="flex flex-col gap-xs">
-      {categories.map((cat) => (
+<aside class="space-y-xxl">
+  <div class="bg-surface-container rounded-xl p-lg">
+    <div class="mb-lg">
+      <h3 class="text-white font-h2 text-h2">Categorias</h3>
+      <p class="text-on-surface-variant font-body text-sm">Navegue por assunto</p>
+    </div>
+    <div class="space-y-sm">
+      {categories.map((cat, idx) => (
         <a
           href={`${base}?categoria=${cat.slug}`}
-          class="flex items-center justify-between p-sm hover:bg-surface-container rounded transition-colors group no-underline hover:no-underline"
+          class={`flex items-center gap-md p-md rounded-lg transition-all no-underline hover:no-underline ${
+            idx === 0
+              ? "bg-primary-container text-on-primary-container font-bold"
+              : "text-on-surface-variant hover:bg-surface-variant"
+          }`}
         >
-          <span class="text-on-surface-variant group-hover:text-primary transition-colors text-sm">{cat.name}</span>
-          <span class="text-[10px] font-label bg-surface-container-high px-2 py-0.5 rounded text-on-surface-variant">{cat.count}</span>
+          <span class="material-symbols-outlined">{cat.icon}</span>
+          <span>{cat.name}</span>
         </a>
       ))}
     </div>
   </div>
 
-  <div class="bg-surface-container-low border border-outline-variant/10 p-lg rounded-xl">
-    <h4 class="font-label text-label text-on-surface border-b border-outline-variant/20 pb-sm mb-md flex items-center gap-sm">
-      <span class="material-symbols-outlined text-sm">bolt</span>
-      ÚLTIMOS ARTIGOS
-    </h4>
-    <div class="space-y-md">
+  <div class="space-y-xl">
+    <h3 class="text-white font-bold flex items-center gap-sm uppercase tracking-tighter text-lg">
+      <span class="w-8 h-[2px] bg-primary"></span>
+      Mais Lidos
+    </h3>
+    <div class="space-y-lg">
       {recentes.length === 0 && (
         <p class="text-on-surface-variant text-xs">Nenhum artigo publicado ainda.</p>
       )}
-      {recentes.map((artigo) => (
+      {recentes.slice(0, 4).map((artigo, idx) => (
         <a
           href={`${base}blog/${artigo.slug}/`}
           class="flex gap-md group cursor-pointer no-underline hover:no-underline"
         >
-          <div class="w-16 h-16 bg-surface-container rounded overflow-hidden shrink-0">
-            {artigo.image ? (
-              <div
-                class="w-full h-full bg-cover bg-center"
-                style="background-image: url('{artigo.image}')"
-              />
-            ) : (
-              <div class="w-full h-full flex items-center justify-center text-lg">
-                🎮
-              </div>
-            )}
-          </div>
-          <div class="flex-1 min-w-0">
-            <h5 class="text-xs font-semibold text-on-surface group-hover:text-primary transition-colors line-clamp-2">
+          <span class="font-black text-h2 text-outline-variant/40 group-hover:text-primary transition-colors">
+            {String(idx + 1).padStart(2, "0")}
+          </span>
+          <div>
+            <h4 class="font-bold text-white leading-snug group-hover:text-primary transition-colors text-sm">
               {artigo.title}
-            </h5>
-            <span class="text-[9px] text-on-surface-variant uppercase mt-1 block">
-              {new Date(artigo.pubDate).toLocaleDateString("pt-BR")}
-            </span>
+            </h4>
+            <p class="text-xs text-outline mt-1 uppercase tracking-widest">
+              {artigo.category || "Artigo"} • {new Date(artigo.pubDate).toLocaleDateString("pt-BR")}
+            </p>
           </div>
         </a>
       ))}
     </div>
   </div>
 
-  <div class="relative overflow-hidden bg-primary p-lg rounded-xl">
-    <div class="absolute -right-8 -top-8 w-32 h-32 bg-on-primary-container/20 rounded-full blur-2xl" />
-    <div class="relative z-10">
-      <h4 class="font-h2 text-lg text-on-primary mb-xs">Newsletter</h4>
-      <p class="text-on-primary/80 text-xs mb-md">
-        Receba as melhores notícias direto no seu email.
+  <div class="h-64 rounded-xl relative overflow-hidden border border-outline-variant/20 bg-gradient-to-b from-surface-container-lowest to-surface-dim">
+    <div class="absolute inset-0 bg-gradient-to-t from-surface-dim to-transparent p-lg flex flex-col justify-end">
+      <h4 class="text-primary font-bold">Comunidade</h4>
+      <p class="text-xs text-on-surface-variant">
+        Fique por dentro das últimas novidades de hardware e jogos.
       </p>
-      <div class="space-y-sm">
-        <input
-          class="w-full bg-on-primary/10 border border-on-primary/30 text-on-primary placeholder:text-on-primary/50 text-xs rounded-lg px-md py-xs outline-none focus:ring-1 focus:ring-on-primary"
-          placeholder="Seu email"
-          type="email"
-        />
-        <button class="w-full bg-on-primary text-primary py-sm rounded-lg font-label text-[10px] hover:bg-on-primary/90 transition-all uppercase tracking-widest">
-          INSCREVER
-        </button>
-      </div>
     </div>
   </div>
+
+  <div class="p-lg bg-surface-container rounded-xl border border-outline-variant/20 relative overflow-hidden">
+    <div class="absolute -top-10 -right-10 w-24 h-24 bg-primary/20 blur-3xl"></div>
+    <h3 class="text-lg font-bold text-white mb-sm">Newsletter</h3>
+    <p class="text-xs text-on-surface-variant mb-md">
+      Receba as melhores notícias direto no seu email.
+    </p>
+    <form id="newsletterFormSidebar" class="space-y-sm">
+      <input
+        class="w-full bg-background border border-outline-variant/30 rounded-lg py-xs px-md text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none text-on-surface placeholder:text-on-surface-variant/50"
+        placeholder="Seu email"
+        type="email"
+        id="newsletterInputSidebar"
+        required
+      />
+      <button type="submit" class="w-full bg-primary text-on-primary py-xs rounded-lg font-label uppercase hover:bg-primary-container transition-colors shadow-lg shadow-primary/20" id="newsletterBtnSidebar">
+        Inscrever
+      </button>
+      <p id="newsletterFeedbackSidebar" class="text-[10px] text-primary/70 hidden"></p>
+    </form>
+  </div>
 </aside>
+
+<script>
+  const newsletterForm = document.getElementById("newsletterFormSidebar");
+  const newsletterInput = document.getElementById("newsletterInputSidebar");
+  const newsletterBtn = document.getElementById("newsletterBtnSidebar");
+  const newsletterFeedback = document.getElementById("newsletterFeedbackSidebar");
+
+  if (newsletterForm) {
+    newsletterForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (newsletterInput && newsletterInput.value.trim()) {
+        newsletterBtn.textContent = "INSCRITO!";
+        newsletterBtn.disabled = true;
+        newsletterBtn.style.opacity = "0.6";
+        newsletterFeedback.textContent = "Obrigado por se inscrever!";
+        newsletterFeedback.classList.remove("hidden");
+        newsletterInput.value = "";
+      }
+    });
+  }
+</script>

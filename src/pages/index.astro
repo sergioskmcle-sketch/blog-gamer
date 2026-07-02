@@ -2,6 +2,7 @@
 import Layout from "../layouts/Layout.astro";
 import HeroSection from "../components/HeroSection.astro";
 import ArticleCard from "../components/ArticleCard.astro";
+import Sidebar from "../components/Sidebar.astro";
 
 const artigos = Object.entries(import.meta.glob("../content/artigos/*.md", { eager: true }))
   .map(([path, mod]) => ({
@@ -12,62 +13,109 @@ const artigos = Object.entries(import.meta.glob("../content/artigos/*.md", { eag
   .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
 
 const [destaque, ...restante] = artigos;
+const maisLidos = artigos.filter((a) => a.slug !== destaque?.slug);
 ---
 
 <Layout title="Blog Gamer">
-  {artigos.length === 0 && (
-    <section class="hero" style="text-align: center;">
-      <div class="hero-bg" />
-      <div class="container">
-        <div style="position: relative; z-index: 1; padding: 4rem 0;">
-          <p style="font-size: 3rem; margin-bottom: 1rem;">🎮</p>
-          <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">
-            Bem-vindo ao <span class="text-gradient">Blog Gamer</span>
-          </h1>
-          <p style="color: var(--text-secondary); font-size: 1.1rem; max-width: 600px; margin: 0 auto;">
-            Notícias, reviews, listas e guias sobre o universo dos games — com os melhores links de afiliado pra você economizar.
-          </p>
-          <div style="display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 1.5rem;">
-            <span class="tag">notícias</span>
-            <span class="tag">reviews</span>
-            <span class="tag">guias de compra</span>
-            <span class="tag">listas</span>
-            <span class="tag">promoções</span>
+  {destaque && (
+    <div class="pt-16 max-w-page mx-auto px-gutter py-xxl">
+      <HeroSection
+        title={destaque.title}
+        description={destaque.description}
+        pubDate={destaque.pubDate}
+        tags={destaque.tags}
+        category={destaque.category}
+        affiliate={destaque.affiliate}
+        slug={destaque.slug}
+        image={destaque.image}
+      />
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-xxl">
+        <div class="lg:col-span-8">
+          <h2 class="font-h2 text-h2 text-primary mb-xl flex items-center gap-sm">
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">bolt</span>
+            Últimas Notícias
+          </h2>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-lg">
+            {restante.map((artigo) => (
+              <ArticleCard
+                title={artigo.title}
+                description={artigo.description}
+                pubDate={artigo.pubDate}
+                tags={artigo.tags}
+                category={artigo.category}
+                affiliate={artigo.affiliate}
+                slug={artigo.slug}
+                image={artigo.image}
+              />
+            ))}
           </div>
+
+          {destaque && (
+            <div class="mt-xxl grid grid-cols-1 md:grid-cols-2 gap-lg">
+              <div class="bg-surface-container-low rounded-xl p-xl border border-outline-variant/20 relative overflow-hidden group">
+                <div class="absolute -right-10 -bottom-10 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <span class="material-symbols-outlined text-[160px]">videogame_asset</span>
+                </div>
+                <h3 class="text-primary font-h2 text-h2 mb-md">Editorial em Destaque</h3>
+                <p class="text-on-surface-variant mb-lg line-clamp-3">{destaque.description}</p>
+                <a
+                  href={`${import.meta.env.BASE_URL || "/"}blog/${destaque.slug}/`}
+                  class="text-secondary-fixed flex items-center gap-xs font-label hover:gap-sm transition-all no-underline hover:no-underline"
+                >
+                  LEIA A MATÉRIA <span class="material-symbols-outlined">chevron_right</span>
+                </a>
+              </div>
+              <div class="bg-gradient-to-br from-[#12121c] to-[#1f1f29] rounded-xl p-xl border border-primary/20">
+                <h3 class="text-primary font-h2 text-h2 mb-md">Últimos Artigos</h3>
+                <ul class="space-y-md">
+                  {maisLidos.slice(0, 4).map((artigo) => (
+                    <li>
+                      <a
+                        href={`${import.meta.env.BASE_URL || "/"}blog/${artigo.slug}/`}
+                        class="flex items-center gap-md p-sm bg-[#050505]/50 rounded-lg hover:bg-primary/10 transition-colors cursor-pointer no-underline hover:no-underline"
+                      >
+                        <div class="w-10 h-10 bg-primary/20 rounded flex items-center justify-center text-primary shrink-0">
+                          <span class="material-symbols-outlined">article</span>
+                        </div>
+                        <div class="min-w-0">
+                          <p class="text-sm font-bold text-white truncate">{artigo.title}</p>
+                          <p class="text-xs text-on-surface-variant">{new Date(artigo.pubDate).toLocaleDateString("pt-BR")}</p>
+                        </div>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div class="lg:col-span-4">
+          <Sidebar artigos={artigos} currentSlug={destaque?.slug} />
         </div>
       </div>
-    </section>
+    </div>
   )}
 
-  {destaque && (
-    <HeroSection
-      title={destaque.title}
-      description={destaque.description}
-      pubDate={destaque.pubDate}
-      tags={destaque.tags}
-      category={destaque.category}
-      affiliate={destaque.affiliate}
-      slug={destaque.slug}
-    />
-  )}
-
-  {restante.length > 0 && (
-    <section class="container" style="padding-bottom: 3rem;">
-      <h2 class="section-title" style="margin-top: 0;">Últimos Artigos</h2>
-      <div class="grid-3">
-        {restante.map((artigo) => (
-          <ArticleCard
-            title={artigo.title}
-            description={artigo.description}
-            pubDate={artigo.pubDate}
-            tags={artigo.tags}
-            category={artigo.category}
-            affiliate={artigo.affiliate}
-            slug={artigo.slug}
-            image={artigo.image}
-          />
-        ))}
-      </div>
-    </section>
+  {!destaque && (
+    <div class="pt-16 max-w-page mx-auto px-gutter py-xxl">
+      <section class="text-center py-xxl">
+        <p style="font-size: 3rem; margin-bottom: 1rem;">🎮</p>
+        <h1 class="font-h1 text-h1 mb-md">
+          Bem-vindo ao <span class="text-primary">Blog Gamer</span>
+        </h1>
+        <p class="text-on-surface-variant text-lg max-w-lg mx-auto mb-lg">
+          Notícias, reviews, listas e guias sobre o universo dos games.
+        </p>
+        <div class="flex gap-sm justify-center flex-wrap">
+          <span class="inline-block bg-primary/10 text-primary border border-primary/20 rounded-full px-md py-xs font-label text-[0.65rem] uppercase tracking-widest">notícias</span>
+          <span class="inline-block bg-primary/10 text-primary border border-primary/20 rounded-full px-md py-xs font-label text-[0.65rem] uppercase tracking-widest">reviews</span>
+          <span class="inline-block bg-primary/10 text-primary border border-primary/20 rounded-full px-md py-xs font-label text-[0.65rem] uppercase tracking-widest">guias</span>
+          <span class="inline-block bg-primary/10 text-primary border border-primary/20 rounded-full px-md py-xs font-label text-[0.65rem] uppercase tracking-widest">listas</span>
+        </div>
+      </section>
+    </div>
   )}
 </Layout>
