@@ -5,7 +5,7 @@ pubDate: 2026-06-30
 tags: ["placas de vídeo", "gpu", "mercado livre", "custo-benefício", "jogos"]
 category: "tecnologia"
 affiliate: true
-image: "https://http2.mlstatic.com/D_NQ_NP_901198-MLA99972929477_112025-F.jpg"
+image: "/blog-gamer/images/produtos/D_NQ_NP_901198-MLA99972929477_112025-F.jpg"
 ---
 
 ## Introdução
@@ -16,7 +16,7 @@ O mercado de GPUs em 2026 é mais competitivo do que nunca, com várias opções
 
 ### 1. Placa de Vídeo MSI GeForce RTX 5060 Shadow 2X OC 8GB GDDR7 128-bit
 
-<img src="https://http2.mlstatic.com/D_NQ_NP_901198-MLA99972929477_112025-F.jpg" alt="Placa de Vídeo MSI GeForce RTX 5060" class="product-image">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_901198-MLA99972929477_112025-F.jpg" alt="Placa de Vídeo MSI GeForce RTX 5060" class="product-image">
 Especificações técnicas: Chipset NVIDIA GeForce RTX 5060, 8GB GDDR7, 128-bit
 Indicada para: Jogadores que buscam desempenho alto em jogos em 1440p e 4K
 Preço: R$ 2499.00
@@ -24,7 +24,7 @@ Preço: R$ 2499.00
 
 ### 2. Placa de Vídeo Nvidia GTX 550 Ti 2GB DDR5 128bits Full HD PCIe
 
-<img src="https://http2.mlstatic.com/D_NQ_NP_906843-MLA99509349267_112025-F.jpg" alt="Placa de Vídeo Nvidia GTX 550 Ti" class="product-image">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_906843-MLA99509349267_112025-F.jpg" alt="Placa de Vídeo Nvidia GTX 550 Ti" class="product-image">
 Especificações técnicas: Chipset NVIDIA GeForce GTX 550 Ti, 2GB DDR5, 128-bit
 Indicada para: Jogadores que buscam desempenho básico em jogos em 1080p
 Preço: R$ 253.00
@@ -32,7 +32,7 @@ Preço: R$ 253.00
 
 ### 3. Placa De Vídeo Pcyes Radeon Rx 550 4gb Gddr5 Hdmi/dp/dvi AMD
 
-<img src="https://http2.mlstatic.com/D_NQ_NP_996554-MLA99901894229_112025-F.jpg" alt="Placa De Vídeo Pcyes Radeon Rx 550" class="product-image">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_996554-MLA99901894229_112025-F.jpg" alt="Placa De Vídeo Pcyes Radeon Rx 550" class="product-image">
 Especificações técnicas: Chipset AMD Radeon Rx 550, 4GB GDDR5, HDMI/DP/DVI
 Indicada para: Jogadores que buscam desempenho básico em jogos em 1080p
 Preço: R$ 585.00
@@ -40,7 +40,7 @@ Preço: R$ 585.00
 
 ### 4. Placa De Video Clanm Geforce Nvidia Gt730 4gb Ddr3 128bit Gt 730
 
-<img src="https://http2.mlstatic.com/D_NQ_NP_985980-MLA113630663473_062026-F.jpg" alt="Placa De Video Clanm Geforce Nvidia Gt730" class="product-image">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_985980-MLA113630663473_062026-F.jpg" alt="Placa De Video Clanm Geforce Nvidia Gt730" class="product-image">
 Especificações técnicas: Chipset NVIDIA GeForce GT 730, 4GB DDR3, 128-bit
 Indicada para: Jogadores que buscam desempenho básico em jogos em 1080p
 Preço: R$ 316.60
@@ -48,7 +48,7 @@ Preço: R$ 316.60
 
 ### 5. Placa de vídeo AMD ASRock Challenger Radeon RX 6600 Series RX 6600 8GB
 
-<img src="https://http2.mlstatic.com/D_NQ_NP_747052-MLA99593664434_122025-F.jpg" alt="Placa de vídeo AMD ASRock Challenger Radeon RX 6600" class="product-image">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_747052-MLA99593664434_122025-F.jpg" alt="Placa de vídeo AMD ASRock Challenger Radeon RX 6600" class="product-image">
 Especificações técnicas: Chipset AMD Radeon RX 6600, 8GB GDDR6, 128-bit
 Indicada para: Jogadores que buscam desempenho alto em jogos em 1440p e 4K
 Preço: R$ 1760.00
@@ -56,7 +56,7 @@ Preço: R$ 1760.00
 
 ### 6. Placa De Vídeo Nvidia Geforce Palit Rtx5060 8gb Infinity2 Oc
 
-<img src="https://http2.mlstatic.com/D_NQ_NP_840054-MLA106181591008_022026-F.jpg" alt="Placa De Vídeo Nvidia Geforce Palit Rtx5060" class="product-image">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_840054-MLA106181591008_022026-F.jpg" alt="Placa De Vídeo Nvidia Geforce Palit Rtx5060" class="product-image">
 Especificações técnicas: Chipset NVIDIA GeForce RTX 5060, 8GB GDDR6, 128-bit
 Indicada para: Jogadores que buscam desempenho alto em jogos em 1440p e 4K
 Preço: R$ 2699.90
@@ -64,7 +64,7 @@ Preço: R$ 2699.90
 
 ### 7. Placa de Vídeo Revenger Radeon RX 500 Séries G-RX580-8G 8GB GDDR5 2048 Núcleos
 
-<img src="https://http2.mlstatic.com/D_NQ_NP_879910-MLA99992559443_112025-F.jpg" alt="Placa de Vídeo Revenger Radeon RX 500" class="product-image">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_879910-MLA99992559443_112025-F.jpg" alt="Placa de Vídeo Revenger Radeon RX 500" class="product-image">
 Especificações técnicas: Chipset AMD Radeon RX 500, 8GB GDDR5, 2048 núcleos
 Indicada para: Jogadores que buscam desempenho alto em jogos em 1080p e 1440p
 Preço: R$ 1399.00
@@ -72,7 +72,7 @@ Preço: R$ 1399.00
 
 ### 8. Placa De Vídeo Nvidia Geforce Gtx 550ti 4gb Ddr5 128bits
 
-<img src="https://http2.mlstatic.com/D_NQ_NP_914931-MLA99558359028_122025-F.jpg" alt="Placa De Vídeo Nvidia Geforce Gtx 550ti" class="product-image">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_914931-MLA99558359028_122025-F.jpg" alt="Placa De Vídeo Nvidia Geforce Gtx 550ti" class="product-image">
 Especificações técnicas: Chipset NVIDIA GeForce GTX 550ti, 4GB DDR5, 128-bit
 Indicada para: Jogadores que buscam desempenho básico em jogos em 1080p
 Preço: R$ 354.00

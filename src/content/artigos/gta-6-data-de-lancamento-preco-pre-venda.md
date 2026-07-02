@@ -5,7 +5,7 @@ pubDate: 2026-07-01
 tags: ["gta 6", "grand theft auto vi", "rockstar games", "lançamento", "ps5", "xbox series x"]
 category: "noticia"
 affiliate: true
-image: "https://http2.mlstatic.com/D_NQ_NP_2X_612859-MLB74125722744_022024-F.webp"
+image: "/blog-gamer/images/produtos/D_NQ_NP_921596-MLA100042443481_122025-O.webp"
 ---
 
 O momento que todo gamer esperava finalmente chegou. Após 13 anos desde o lançamento de GTA V, a Rockstar Games confirmou que **Grand Theft Auto VI** será lançado mundialmente no dia **19 de novembro de 2026** para PlayStation 5 e Xbox Series X|S. A pré-venda já está aberta, e o jogo promete ser o maior lançamento da história do entretenimento.
@@ -95,27 +95,28 @@ GTA 6 será lançado exclusivamente para **PlayStation 5** e **Xbox Series X|S**
 
 O PS5 Slim é a versão mais compacta e atualizada do console da Sony. Com SSD ultrarrápido de 1 TB, suporte a ray tracing, resolução 4K e o controle DualSense com feedback tátil e gatilhos adaptáveis, é a escolha ideal para quem quer a experiência completa de GTA 6. Mesmo que a versão física do jogo venha apenas com um código, ter o leitor de disco permite jogar títulos de PS4 e PS5 em mídia física.
 
-<img src="https://http2.mlstatic.com/D_NQ_NP_2X_612859-MLB74125722744_022024-F.webp" alt="PlayStation 5 Slim" class="product-image">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_921596-MLA100042443481_122025-O.webp" alt="PlayStation 5 Slim" class="product-image">
 <a href="https://meli.la/1grsfwV" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
 
 ### PlayStation 5 Slim Digital Edition
 
 Versão totalmente digital do PS5 Slim, sem leitor de discos e com preço mais acessível. Perfeito para quem prefere comprar jogos na PS Store. Como GTA 6 físico virá apenas com um código, o modelo digital faz ainda mais sentido — você economiza no console e não perde nada da experiência.
 
-<img src="https://http2.mlstatic.com/D_NQ_NP_2X_612859-MLB74125722744_022024-F.webp" alt="PlayStation 5 Digital Edition" class="product-image">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_756435-MLA95500672926_102025-O.webp" alt="PlayStation 5 Digital Edition" class="product-image">
 <a href="https://meli.la/1Bj3UZc" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
 
 ### Xbox Series X
 
 O console mais potente da Microsoft, com processador AMD Ryzen Zen 2 de 8 núcleos, GPU RDNA 2 de 12 TFLOPS e SSD NVMe de 1 TB. Suporta resolução nativa 4K a 120 FPS, ray tracing, e é totalmente compatível com jogos das gerações anteriores (Xbox One, Xbox 360 e Xbox original). O Quick Resume permite alternar entre vários jogos instantaneamente.
 
-<img src="https://http2.mlstatic.com/D_NQ_NP_2X_986631-MLB76239336311_052024-F.webp" alt="Xbox Series X" class="product-image">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_988078-MLA95712886100_102025-O.webp" alt="Xbox Series X" class="product-image">
 <a href="https://meli.la/1o2Auui" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
 
 ### Xbox Series S
 
 A opção mais acessível para entrar na nova geração. O Xbox Series S oferece resolução até 1440p (com upscale para 4K), SSD rápido e acesso a todo o catálogo de GTA 6 e ao Xbox Game Pass. Ideal para quem tem orçamento limitado ou joga em monitor 1080p/1440p. Apesar do hardware mais modesto, roda todos os jogos da nova geração.
 
+<img src="/blog-gamer/images/produtos/D_NQ_NP_914498-MLA109880315129_032026-O.webp" alt="Xbox Series S" class="product-image">
 <a href="https://meli.la/1bAzcod" class="btn btn-primary" target="_blank" rel="nofollow">VER XBOX NO MERCADO LIVRE</a>
 
 ## Conclusão

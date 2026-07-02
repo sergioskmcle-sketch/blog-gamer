@@ -5,7 +5,7 @@ pubDate: 2026-06-30
 tags: [lançamentos, consoles, eventos, pc gaming show, lançamento de jogos]
 category: "noticia"
 affiliate: true
-image: "https://http2.mlstatic.com/D_NQ_NP_732963-MLB107475013237_022026-O.webp"
+image: "/blog-gamer/images/produtos/D_NQ_NP_732963-MLB107475013237_022026-O.webp"
 ---
 
 O mundo dos games está em ebulição em 2026! Com o lançamento de novos títulos aguardados, anúncios de consoles da próxima geração e eventos como o PC Gaming Show, nunca houve tantas novidades para acompanhar. Neste artigo, reunimos os principais lançamentos e anúncios que todo gamer precisa saber, com links de afiliado para você comprar pelo melhor preço.
@@ -14,7 +14,7 @@ O mundo dos games está em ebulição em 2026! Com o lançamento de novos títul
 
 Um dos destaques é o jogo de cartas **Uno Liar' S Mattel 2026**, uma versão atualizada do clássico com novas regras e desafios. Perfeito para reunir os amigos nos dias de LAN party ou encontros presenciais. O jogo já está disponível no Mercado Livre por R$ 46,15.
 
-<img src="https://http2.mlstatic.com/D_NQ_NP_732963-MLB107475013237_022026-O.webp" alt="Jogo De Cartas Uno Liar' S Mattel 2026" class="product-image">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_732963-MLB107475013237_022026-O.webp" alt="Jogo De Cartas Uno Liar' S Mattel 2026" class="product-image">
 <a href="https://meli.la/26aiZMy" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
 
 Além disso, o **PC Gaming Show 2026** trouxe dezenas de anúncios e trailers de novos games. De acordo com o PC Gamer, foram apresentados títulos de ação, aventura, estratégia e RPG, incluindo revelações surpresa que agitaram as redes sociais. Entre os destaques, novos trailers de jogos independentes e grandes franquias mostraram que 2026 será um ano memorável para os fãs de PC gaming.
