@@ -9,14 +9,10 @@ Blog estático sobre o mundo gamer com links de afiliado do Mercado Livre.
 | Artigo | Data | Status |
 |--------|------|--------|
 | [Os 10 Melhores Monitores Gamer Custo-Beneficio do Mercado Livre em 2026](https://sergioskmcle-sketch.github.io/blog-gamer/blog/os-10-melhores-monitores-gamer-custo-beneficio-do-mercado-livre-em-2026) | 2026-06-29 | ✅ Live |
-<<<<<<< Updated upstream
-| [As 8 Melhores Placas de Video Custo-Beneficio do Mercado Livre em 2026](https://sergioskmcle-sketch.github.io/blog-gamer/blog/as-10-melhores-placas-de-video-custo-beneficio-do-mercado-livre-em-2026) | 2026-06-30 | ✅ Live |
 | [Lançamento de Games e Anúncios de Consoles](https://sergioskmcle-sketch.github.io/blog-gamer/blog/lan%C3%A7amento-de-games-e-an%C3%BAncios-de-consoles-o-que-voc%C3%AA-precisa-saber) | 2026-06-30 | ✅ Live |
 | [GTA 6: Data de Lançamento, Preço, Pré-venda](https://sergioskmcle-sketch.github.io/blog-gamer/blog/gta-6-data-de-lancamento-preco-pre-venda) | 2026-07-01 | ✅ Live |
-=======
 | [As 10 Melhores Placas de Video Custo-Beneficio do Mercado Livre em 2026](https://sergioskmcle-sketch.github.io/blog-gamer/blog/as-10-melhores-placas-de-video-custo-beneficio-do-mercado-livre-em-2026) | 2026-06-30 | ✅ Live |
 | [Lançamento de Games e Anúncios de Consoles: O que Você Precisa Saber](https://sergioskmcle-sketch.github.io/blog-gamer/blog/lancamento-de-games-e-anuncios-de-consoles-o-que-voce-precisa-saber) | 2026-06-30 | ✅ Live |
->>>>>>> Stashed changes
 
 ## Arquitetura
 
