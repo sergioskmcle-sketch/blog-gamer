@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "astro": "^5.0.0",
-    "dotenv": "^17.4.2"
+    "dotenv": "^17.4.2",
+    "tough-cookie": "^6.0.1"
   }
 }

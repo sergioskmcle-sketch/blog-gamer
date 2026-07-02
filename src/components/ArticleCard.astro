@@ -63,6 +63,13 @@ const categoryIcons: Record<string, string> = {
     padding: 0;
     display: flex;
     flex-direction: column;
+    transition: all var(--transition);
+  }
+
+  .article-card:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-glow);
+    transform: translateY(-3px);
   }
 
   .article-link {
@@ -79,10 +86,10 @@ const categoryIcons: Record<string, string> = {
   }
 
   .article-card:hover .card-image {
-    transform: scale(1.02);
+    transform: scale(1.03);
   }
 
   .card-image {
-    transition: transform 0.4s ease;
+    transition: transform var(--transition-slow);
   }
 </style>

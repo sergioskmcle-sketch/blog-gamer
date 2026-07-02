@@ -1,9 +1,10 @@
 ﻿import "dotenv/config";
 import fs from "fs";
 import path from "path";
-import { searchML } from "./ml_affiliate.mjs";
+import { searchML, generateAffiliateLink } from "./ml_affiliate.mjs";
 
 const ARTIGOS_DIR = path.resolve("src/content/artigos");
+const ML_COOKIES_PATH = path.resolve("ml_cookies.json");
 
 const CATEGORIES = [
   { slug: "noticia", name: "Notícia" },
@@ -23,6 +24,7 @@ const TOPIC_SEEDS = [
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
+const ML_COOKIES_B64 = process.env.ML_COOKIES_B64;
 const ML_CLIENT_ID = process.env.ML_CLIENT_ID;
 const ML_CLIENT_SECRET = process.env.ML_CLIENT_SECRET;
 
@@ -42,6 +44,15 @@ function slugify(text) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
+}
+
+if (ML_COOKIES_B64) {
+  try {
+    fs.writeFileSync(ML_COOKIES_PATH, Buffer.from(ML_COOKIES_B64, "base64"), "utf-8");
+    log("INFO", "Cookies ML carregados");
+  } catch (e) {
+    log("WARN", `Erro ao salvar cookies: ${e.message}`);
+  }
 }
 
 async function fetchTavily(query) {
@@ -224,9 +235,20 @@ async function main() {
   let mlProducts = [];
   if (ML_CLIENT_ID && ML_CLIENT_SECRET) {
     try {
-      mlProducts = await searchML(topic.ml_query, ML_CLIENT_ID, ML_CLIENT_SECRET, TAVILY_API_KEY, 4);
+      mlProducts = await searchML(topic.ml_query, ML_CLIENT_ID, ML_CLIENT_SECRET, TAVILY_API_KEY, ML_COOKIES_PATH, 4);
       for (const p of mlProducts) {
-        p.affiliate_link = p.permalink;
+        if (fs.existsSync(ML_COOKIES_PATH)) {
+          try {
+            const linkResult = await generateAffiliateLink(p.permalink, ML_COOKIES_PATH);
+            p.affiliate_link = linkResult?.short_url || linkResult?.link || linkResult?.url || p.permalink;
+            log("INFO", `Link afiliado gerado: ${p.title?.slice(0, 40)}`);
+          } catch (e) {
+            log("WARN", `Falha link afiliado: ${e.message}`);
+            p.affiliate_link = p.permalink;
+          }
+        } else {
+          p.affiliate_link = p.permalink;
+        }
       }
     } catch (err) {
       log("WARN", `ML Search: ${err.message}`);
@@ -241,9 +263,9 @@ async function main() {
     ? `\nProdutos do Mercado Livre (use imagens e links obrigatoriamente):\n${mlProducts.map((p, i) =>
         `[Produto ${i + 1}]\n` +
         `Nome: ${p.title}\n` +
-        `Preco: ${p.price > 0 ? `R$ ${p.price?.toFixed(2)}` : "Consulte o Mercado Livre"}\n` +
-        `Imagem: ${p.thumbnail || "https://http2.mlstatic.com/storage/logos-api-admin/bb29e270-15bb-11ec-b3b7-63775c9d0a6b-m.svg"}\n` +
-        `Link Mercado Livre: ${(p.affiliate_link || p.permalink) + "?tag=sergioskm"}\n`
+        `Preco: R$ ${p.price?.toFixed(2) || "N/A"}\n` +
+        `Imagem: ${p.thumbnail}\n` +
+        `Link Mercado Livre: ${p.affiliate_link || p.permalink}\n`
       ).join("\n")}`
     : "";
 
@@ -330,7 +352,7 @@ pubDate: ${today}
 tags: [${fm.tags.map((t) => `"${t.trim()}"`).join(", ")}]
 category: "${fm.category}"
 affiliate: true
-image: "${mlProducts[0]?.thumbnail || "https://rockstarintel.com/wp-content/uploads/2026/06/VINTAGE_VICE_CITY_PACK_EXCLUSIVE_LOOKS_03_1280.webp"}"
+image: "${mlProducts[0]?.thumbnail || ""}"
 ---
 
 ${body}

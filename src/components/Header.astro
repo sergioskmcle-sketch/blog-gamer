@@ -47,9 +47,10 @@ const categories = [
     position: sticky;
     top: 0;
     z-index: 100;
-    border-bottom: 1px solid var(--border);
+    background: var(--bg-glass);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
   }
 
   .header-inner {
@@ -65,14 +66,14 @@ const categories = [
     align-items: center;
     gap: 0.5rem;
     text-decoration: none;
-    color: #fff;
+    color: var(--text-primary);
     font-weight: 800;
     font-size: 1.2rem;
   }
 
   .logo:hover {
     text-decoration: none;
-    color: #fff;
+    color: var(--text-primary);
   }
 
   .logo-icon {
@@ -101,7 +102,7 @@ const categories = [
   }
 
   .nav-link:hover {
-    color: #fff;
+    color: var(--text-primary);
     background: var(--accent-dim);
     text-decoration: none;
   }
@@ -130,7 +131,7 @@ const categories = [
     opacity: 0;
     pointer-events: none;
     transform: translateY(-4px);
-    transition: all var(--transition);
+    transition: all var(--transition-slow);
     box-shadow: var(--shadow-lg);
   }
 
@@ -167,7 +168,7 @@ const categories = [
 
   .rss-link:hover {
     color: var(--warning);
-    background: rgba(255, 170, 0, 0.1);
+    background: var(--warning-dim);
   }
 
   @media (max-width: 768px) {
