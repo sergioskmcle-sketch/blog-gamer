@@ -7,128 +7,61 @@ export interface Props {
   category?: string;
   affiliate?: boolean;
   slug: string;
+  image?: string;
 }
 
-const { title, description, pubDate, tags, category, affiliate, slug } = Astro.props;
+const { title, description, pubDate, tags, category, affiliate, slug, image } = Astro.props;
 const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 const date = new Date(pubDate).toLocaleDateString("pt-BR");
 ---
 
-<section class="hero">
-  <div class="hero-bg" />
-  <div class="container">
-    <div class="hero-content">
-      <div class="hero-badges">
+<section class="relative w-full aspect-[21/9] min-h-[500px] overflow-hidden">
+  <div class="absolute inset-0 z-0">
+    <div
+      class="w-full h-full bg-cover bg-center"
+      style="background-image: url('{image || `${base}hero-default.jpg`}')"
+    />
+    <div class="absolute inset-0 bg-gradient-to-t from-black-piano via-black-piano/40 to-transparent" />
+  </div>
+
+  <div class="relative z-10 h-full max-w-page mx-auto px-margin-desktop flex flex-col justify-end pb-xxl">
+    <div class="max-w-2xl space-y-md">
+      <div class="flex gap-sm flex-wrap items-center">
         {category && (
-          <span class="category-badge accent">{category}</span>
+          <span class="inline-block px-3 py-1 bg-primary/20 text-primary border border-primary/30 rounded-full font-label text-[10px] uppercase tracking-widest">
+            {category}
+          </span>
         )}
         {tags?.slice(0, 2).map((tag) => (
-          <span class="tag">{tag}</span>
+          <span class="inline-block px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full font-label text-[10px] uppercase tracking-widest">
+            {tag}
+          </span>
         ))}
         {affiliate && (
-          <span class="tag tag-warning">🔗 afiliado</span>
+          <span class="inline-block px-3 py-1 bg-warning-dim text-warning border border-warning/30 rounded-full font-label text-[10px] uppercase tracking-widest">
+            afiliado
+          </span>
         )}
       </div>
 
-      <h1 class="hero-title">{title}</h1>
-      <p class="hero-desc">{description}</p>
+      <h1 class="font-h1 text-h1 text-on-surface electric-glow leading-[1.1] md:text-[3.5rem]">
+        {title}
+      </h1>
 
-      <div class="hero-meta">
-        <time class="hero-date">📅 {date}</time>
+      <p class="text-on-surface-variant text-lg max-w-xl font-body">
+        {description}
+      </p>
+
+      <div class="pt-md flex items-center gap-md">
+        <a
+          href={`${base}blog/${slug}/`}
+          class="neon-btn px-xl py-md rounded-full font-label text-label flex items-center gap-sm no-underline hover:no-underline"
+        >
+          LER ARTIGO
+          <span class="material-symbols-outlined text-sm">arrow_forward</span>
+        </a>
+        <time class="font-label text-label text-on-surface-variant">{date}</time>
       </div>
-
-      <a href={`${base}blog/${slug}/`} class="btn hero-cta">
-        Ler Artigo →
-      </a>
     </div>
   </div>
 </section>
-
-<style is:global>
-  .hero {
-    position: relative;
-    overflow: hidden;
-    padding: 4rem 0 3.5rem;
-    margin-bottom: 2.5rem;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .hero-bg {
-    position: absolute;
-    inset: 0;
-    background: var(--gradient-hero);
-    z-index: 0;
-  }
-
-  .hero-bg::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(ellipse at 20% 50%, rgba(37, 99, 235, 0.08) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 50%, rgba(163, 230, 53, 0.04) 0%, transparent 50%);
-  }
-
-  .hero-content {
-    position: relative;
-    z-index: 1;
-    max-width: 760px;
-  }
-
-  .hero-badges {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-bottom: 1.25rem;
-  }
-
-  .hero-title {
-    font-size: 2.8rem;
-    font-weight: 800;
-    color: #fff;
-    line-height: 1.15;
-    letter-spacing: -0.02em;
-    margin: 0 0 1rem;
-  }
-
-  .hero-desc {
-    font-size: 1.15rem;
-    color: var(--text-secondary);
-    line-height: 1.7;
-    margin: 0 0 1.5rem;
-    max-width: 640px;
-  }
-
-  .hero-meta {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    margin-bottom: 2rem;
-  }
-
-  .hero-date {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-  }
-
-  .hero-cta {
-    font-size: 1rem;
-    padding: 0.8rem 2rem;
-    box-shadow: var(--shadow-glow);
-  }
-
-  @media (max-width: 768px) {
-    .hero {
-      padding: 2.5rem 0 2rem;
-    }
-
-    .hero-title {
-      font-size: 1.8rem;
-    }
-
-    .hero-desc {
-      font-size: 1rem;
-    }
-  }
-</style>
