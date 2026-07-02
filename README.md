@@ -1,4 +1,4 @@
-# Blog Gamer
+﻿# Blog Gamer
 
 Blog estático sobre o mundo gamer com links de afiliado do Mercado Livre.
 
@@ -9,9 +9,14 @@ Blog estático sobre o mundo gamer com links de afiliado do Mercado Livre.
 | Artigo | Data | Status |
 |--------|------|--------|
 | [Os 10 Melhores Monitores Gamer Custo-Beneficio do Mercado Livre em 2026](https://sergioskmcle-sketch.github.io/blog-gamer/blog/os-10-melhores-monitores-gamer-custo-beneficio-do-mercado-livre-em-2026) | 2026-06-29 | ✅ Live |
+<<<<<<< Updated upstream
 | [As 8 Melhores Placas de Video Custo-Beneficio do Mercado Livre em 2026](https://sergioskmcle-sketch.github.io/blog-gamer/blog/as-10-melhores-placas-de-video-custo-beneficio-do-mercado-livre-em-2026) | 2026-06-30 | ✅ Live |
 | [Lançamento de Games e Anúncios de Consoles](https://sergioskmcle-sketch.github.io/blog-gamer/blog/lan%C3%A7amento-de-games-e-an%C3%BAncios-de-consoles-o-que-voc%C3%AA-precisa-saber) | 2026-06-30 | ✅ Live |
 | [GTA 6: Data de Lançamento, Preço, Pré-venda](https://sergioskmcle-sketch.github.io/blog-gamer/blog/gta-6-data-de-lancamento-preco-pre-venda) | 2026-07-01 | ✅ Live |
+=======
+| [As 10 Melhores Placas de Video Custo-Beneficio do Mercado Livre em 2026](https://sergioskmcle-sketch.github.io/blog-gamer/blog/as-10-melhores-placas-de-video-custo-beneficio-do-mercado-livre-em-2026) | 2026-06-30 | ✅ Live |
+| [Lançamento de Games e Anúncios de Consoles: O que Você Precisa Saber](https://sergioskmcle-sketch.github.io/blog-gamer/blog/lancamento-de-games-e-anuncios-de-consoles-o-que-voce-precisa-saber) | 2026-06-30 | ✅ Live |
+>>>>>>> Stashed changes
 
 ## Arquitetura
 
@@ -44,7 +49,6 @@ src/content/artigos/   → Artigos em markdown com frontmatter
 | Groq | `GROQ_API_KEY` | llama-3.3-70b-versatile, free |
 | Tavily | `TAVILY_API_KEY` | 1000 consultas/mês free |
 | ML OAuth | `ML_CLIENT_ID` + `ML_CLIENT_SECRET` | client_credentials, free |
-| ML Cookies | `ml_cookies.json` | Sessão do navegador para link afiliado |
 
 ## Variáveis de Ambiente
 
@@ -65,7 +69,6 @@ ML_CLIENT_SECRET=...
 | `TAVILY_API_KEY` | API key do Tavily |
 | `ML_CLIENT_ID` | Client ID do app ML |
 | `ML_CLIENT_SECRET` | Client Secret do app ML |
-| `ML_COOKIES_B64` | Cookies ML em base64 (de `ml_cookies.json`) |
 
 ## Comandos
 
@@ -102,25 +105,6 @@ O script:
 
 ## Problemas Conhecidos
 
-### 🔴 Links de Afiliado não funcionam nos artigos publicados
-
-**Sintoma:** Os links "VER NO MERCADO LIVRE" nos artigos apontam para URLs do ML sem o tracking de afiliado (`?tag=sergioskm`).
-
-**Causa:** A API de links do ML retorna URLs curtas que funcionam localmente, mas o cookie de sessão usado para gerar o link expira no CI (GitHub Actions). O secret `ML_COOKIES_B64` contém cookies expirados.
-
-**Solução pendente:**
-1. Exportar cookies frescos do navegador logado no ML com conta `sergioskm`
-2. Salvar em `ml_cookies.json` (já está no `.gitignore`)
-3. Codificar em base64 e atualizar o secret `ML_COOKIES_B64` no GitHub
-   ```bash
-   $env:ML_COOKIES_B64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes("ml_cookies.json"))
-   ```
-4. Opcional: o parâmetro `?tag=sergioskm` pode ser adicionado manualmente aos links como fallback
-
 ### 🔴 ML Search API bloqueada
 
-A API de busca do ML (`/sites/MLB/search`) retorna 403. Solução: usar highlights da categoria + Products API + Items API para descobrir produtos.
-
-### 🟡 ML_COOKIES_B64 expirado no GitHub
-
-O secret precisa ser atualizado manualmente sempre que os cookies expirarem. Solução ideal: implementar login automatizado via API.
+A API de busca do ML (`/sites/MLB/search`) retorna 403. Solução: usar Tavily para buscar produtos + ML Products API para detalhes.

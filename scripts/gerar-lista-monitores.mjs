@@ -1,12 +1,12 @@
-import fs from "fs";
+﻿import fs from "fs";
 import path from "path";
-import { generateAffiliateLink, getMLToken } from "./ml_affiliate.mjs";
+import { getMLToken } from "./ml_affiliate.mjs";
 
 const GROQ_KEY = process.env.GROQ_API_KEY;
 const TAVILY_KEY = process.env.TAVILY_API_KEY;
 const ML_ID = process.env.ML_CLIENT_ID;
 const ML_SECRET = process.env.ML_CLIENT_SECRET;
-const COOKIE_PATH = path.resolve("ml_cookies.json");
+
 const ARTIGOS_DIR = path.resolve("src/content/artigos");
 
 function log(level, msg) {
@@ -130,18 +130,8 @@ if (products.length < 4) {
 // Take up to 10
 const selected = products.slice(0, 10);
 
-// Generate affiliate links
 for (const p of selected) {
-  if (fs.existsSync(COOKIE_PATH)) {
-    try {
-      const lr = await generateAffiliateLink(p.permalink, COOKIE_PATH);
-      p.affiliate_link = lr?.short_url || lr?.link || lr?.url || p.permalink;
-    } catch {
-      p.affiliate_link = p.permalink;
-    }
-  } else {
-    p.affiliate_link = p.permalink;
-  }
+  p.affiliate_link = p.permalink;
 }
 
 // Build product block

@@ -1,10 +1,9 @@
-import "dotenv/config";
+﻿import "dotenv/config";
 import fs from "fs";
 import path from "path";
-import { generateAffiliateLink, getMLToken } from "./ml_affiliate.mjs";
+import { getMLToken } from "./ml_affiliate.mjs";
 
 const ARTIGOS_DIR = path.resolve("src/content/artigos");
-const ML_COOKIES_PATH = path.resolve("ml_cookies.json");
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
@@ -246,18 +245,7 @@ async function main() {
       }
 
       for (const p of mlProducts) {
-        if (fs.existsSync(ML_COOKIES_PATH)) {
-          try {
-            const linkResult = await generateAffiliateLink(p.permalink, ML_COOKIES_PATH);
-            p.affiliate_link = linkResult?.short_url || linkResult?.link || linkResult?.url || p.permalink;
-            log("INFO", `Link afiliado: ${p.title?.slice(0, 40)} -> ${p.affiliate_link === p.permalink ? "FALLBACK" : "OK"}`);
-          } catch (e) {
-            log("WARN", `Falha link afiliado: ${e.message}`);
-            p.affiliate_link = p.permalink;
-          }
-        } else {
-          p.affiliate_link = p.permalink;
-        }
+        p.affiliate_link = p.permalink;
       }
     } catch (err) {
       log("WARN", `ML Search: ${err.message}`);
