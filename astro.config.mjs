@@ -1,4 +1,5 @@
 import { defineConfig } from "astro/config";
+import tailwind from "@astrojs/tailwind";
 
 export default defineConfig({
   site: "https://sergioskmcle-sketch.github.io",
@@ -7,4 +8,5 @@ export default defineConfig({
   build: {
     assets: "_assets",
   },
+  integrations: [tailwind()],
 });
