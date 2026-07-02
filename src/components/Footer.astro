@@ -2,47 +2,44 @@
 const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 ---
 
-<footer class="w-full py-xxl bg-surface-container-lowest border-t border-outline-variant/30 mt-xxl">
-  <div class="flex flex-col items-center gap-lg max-w-page mx-auto px-gutter">
-    <a href={base} class="font-h2 text-h2 text-primary italic font-black tracking-tighter no-underline hover:no-underline hover:text-primary">
-      Blog Gamer
+<footer class="bg-surface-container-lowest border-t border-outline-variant/20 w-full py-xl">
+  <div class="flex flex-col items-center gap-lg max-w-page mx-auto px-gutter text-center">
+    <a href={base} class="font-h2 text-h2 text-primary tracking-tight no-underline hover:no-underline hover:text-primary uppercase">
+      BLOG GAMER
     </a>
 
-    <div class="flex flex-wrap justify-center gap-xl font-label text-label">
-      <a href={`${base}`} class="text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
-        Início
+    <nav class="flex flex-wrap justify-center gap-lg font-label text-label">
+      <a href={`${base}`} class="uppercase text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
+        Sobre
       </a>
-      <a href={`${base}?categoria=hardware`} class="text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
-        Hardware
+      <a href={`${base}`} class="uppercase text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
+        Política Editorial
       </a>
-      <a href={`${base}?categoria=jogos`} class="text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
-        Jogos
+      <a href={`${base}`} class="uppercase text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
+        Ética
       </a>
-      <a href={`${base}?categoria=review`} class="text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
-        Reviews
+      <a href={`${base}`} class="uppercase text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
+        Contato
       </a>
-      <a href={`${base}?categoria=guia`} class="text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
-        Guias
+    </nav>
+
+    <div class="flex gap-xl text-outline mt-md">
+      <a href="#" class="no-underline hover:no-underline text-outline hover:text-secondary transition-colors" aria-label="Site">
+        <span class="material-symbols-outlined">public</span>
       </a>
-      <a href={`${base}?categoria=esports`} class="text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
-        eSports
+      <a href="mailto:?subject=Blog%20Gamer&body={encodeURIComponent(base)}" class="no-underline hover:no-underline text-outline hover:text-secondary transition-colors" aria-label="Email">
+        <span class="material-symbols-outlined">mail</span>
+      </a>
+      <a href={`${base}rss.xml`} class="no-underline hover:no-underline text-outline hover:text-secondary transition-colors" aria-label="RSS">
+        <span class="material-symbols-outlined">rss_feed</span>
       </a>
     </div>
 
-    <p class="font-label text-label text-on-surface-variant/60 text-center">
-      &copy; {new Date().getFullYear()} Blog Gamer. Tecnologia, jogos e cultura gamer.
+    <p class="font-label text-[10px] text-outline-variant mt-xl opacity-80 uppercase tracking-widest">
+      &copy; {new Date().getFullYear()} BLOG GAMER. ALL RIGHTS RESERVED.
     </p>
 
-    <div class="flex gap-md pt-md">
-      <a href={`${base}rss.xml`} class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary transition-all no-underline hover:no-underline" title="RSS">
-        <span class="material-symbols-outlined text-[20px]">rss_feed</span>
-      </a>
-      <a href={`mailto:?subject=${encodeURIComponent("Blog Gamer")}&body=${encodeURIComponent(base)}`} class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary transition-all no-underline hover:no-underline" title="Compartilhar">
-        <span class="material-symbols-outlined text-[20px]">share</span>
-      </a>
-    </div>
-
-    <p class="font-label text-[10px] text-on-surface-variant/40 mt-md">
+    <p class="font-label text-[9px] text-on-surface-variant/40">
       Links podem conter afiliados — ao comprar por eles, você apoia o blog sem pagar nada a mais.
     </p>
   </div>

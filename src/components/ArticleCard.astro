@@ -26,48 +26,38 @@ const timeAgo = (date: Date | string) => {
 };
 ---
 
-<article class="bg-[#0A0A0F] border border-[#1C1C2E] rounded-[14px] overflow-hidden hover:border-primary/50 transition-colors group cursor-pointer flex flex-col">
+<article class="bg-[#0A0A0F] border border-[#1C1C2E] rounded-[14px] overflow-hidden group hover:border-primary/50 transition-all duration-300 cursor-pointer flex flex-col">
   <a href={`${base}blog/${slug}/`} class="no-underline hover:no-underline text-inherit flex flex-col flex-1">
-    <div class="h-48 overflow-hidden">
+    <div class="h-40 overflow-hidden relative">
       {image ? (
         <img
           src={image}
           alt={title}
           loading="lazy"
-          class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+          class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
       ) : (
-        <div class="w-full h-full bg-[#1C1C2E] flex items-center justify-center text-4xl">
-          🎮
-        </div>
+        <div class="w-full h-full bg-[#1C1C2E] flex items-center justify-center text-4xl"></div>
+      )}
+      {category && (
+        <span class="absolute top-3 left-3 px-3 py-1 rounded-full bg-primary text-on-primary font-label text-[10px] font-bold uppercase">
+          {category}
+        </span>
       )}
     </div>
 
-    <div class="p-md flex flex-col flex-grow">
-      <span class="text-electric-purple font-label text-[0.6rem] uppercase tracking-widest block mb-xs">
-        {category || "Artigo"}
-      </span>
-
-      <h3 class="font-bold text-white mb-sm line-clamp-2 group-hover:text-primary transition-colors">
+    <div class="p-md space-y-sm flex flex-col flex-1">
+      <h3 class="font-h2 text-[1.1rem] leading-snug group-hover:text-primary transition-colors line-clamp-2">
         {title}
       </h3>
 
-      <p class="text-on-surface-variant text-sm mb-md line-clamp-2">
+      <p class="text-on-surface-variant text-sm line-clamp-3">
         {description}
       </p>
 
-      {tags && tags.length > 0 && (
-        <div class="flex gap-xs flex-wrap mb-sm">
-          {tags.slice(0, 2).map((tag) => (
-            <span class="text-[10px] text-on-surface-variant font-label bg-[#1C1C2E] px-2 py-0.5 rounded">
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      <div class="mt-auto">
-        <span class="text-outline text-xs">{timeAgo(pubDate)}</span>
+      <div class="flex items-center justify-between font-label text-[11px] text-outline pt-sm border-t border-outline-variant/20 mt-auto">
+        <span>{timeAgo(pubDate)}</span>
+        <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 0, 'wght' 300">bookmark</span>
       </div>
     </div>
   </a>

@@ -1,7 +1,38 @@
-node_modules/
+# Secrets
+PROMPT_CONEXAO.md
+automation/docs/CREDENCIAIS.md
+
+# Stitch design exports
+stitch-output/
+
+# Dev scripts
+check.mjs
+check2.mjs
+checkdeploy.mjs
+deploy.mjs
+deploy2.mjs
+deploy3.mjs
+deploy4.mjs
+fixpush2.mjs
+nojekyll.mjs
+runs.mjs
+status.mjs
+wait.mjs
+
+# Build output
 dist/
-.astro/
+
+# Dependencies
+node_modules/
+
+# Environment
 .env
+.env.*
+
+# OS
 .DS_Store
-*.local
-ml_cookies.json
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

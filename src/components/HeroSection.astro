@@ -12,40 +12,38 @@ export interface Props {
 
 const { title, description, pubDate, tags, category, affiliate, slug, image } = Astro.props;
 const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
-const date = new Date(pubDate).toLocaleDateString("pt-BR");
+const date = new Date(pubDate).toLocaleDateString("pt-BR", { timeZone: "UTC" }).toUpperCase();
 ---
 
-<section class="relative rounded-xl overflow-hidden mb-xxl group">
-  <div class="h-[400px] md:h-[600px] w-full relative">
+<section class="relative group overflow-hidden rounded-xl border border-outline-variant/20 bg-surface-container-low shadow-2xl h-[500px] flex flex-col justify-end">
+  <div class="absolute inset-0 z-0">
     <div
-      class="absolute inset-0 w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+      class="w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
       style="background-image: url('{image || `${base}hero-default.jpg`}')"
     />
-    <div class="absolute inset-0 bg-gradient-to-t from-[#050505] via-[#050505]/40 to-transparent"></div>
+    <div class="absolute inset-0 carbon-overlay"></div>
   </div>
-  <div class="absolute bottom-0 left-0 p-lg md:p-xxl max-w-2xl">
+  <div class="relative z-10 p-xl space-y-md">
+    <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 hero-glow opacity-50 pointer-events-none"></div>
     {category && (
-      <span class="inline-block bg-electric-purple text-white px-md py-xs rounded-full font-label text-[0.65rem] uppercase tracking-widest mb-md">
+      <span class="inline-block px-md py-1 rounded-full bg-primary/20 border border-primary/30 text-primary font-label text-label uppercase tracking-widest">
         {category}
       </span>
     )}
-    <h1 class="font-h1 text-h1 text-white mb-md halo-glow leading-tight">
+    <h1 class="font-h1 text-h1 text-white drop-shadow-lg max-w-2xl leading-tight">
       {title}
     </h1>
-    <div class="flex items-center gap-md text-on-surface-variant mb-lg font-label">
-      <span class="flex items-center gap-xs">
-        <span class="material-symbols-outlined text-[18px]">person</span>
-        Blog Gamer
-      </span>
-      <span class="w-1 h-1 bg-outline rounded-full"></span>
-      <span>{date}</span>
+    <div class="flex items-center gap-md font-label text-label text-outline-variant uppercase tracking-widest">
+      <span class="text-outline-variant">Blog Gamer</span>
+      <span class="w-1 h-1 bg-outline-variant rounded-full"></span>
+      <span class="text-outline-variant">{date}</span>
     </div>
     <a
       href={`${base}blog/${slug}/`}
-      class="inline-flex items-center gap-sm bg-neon-green text-[#050505] px-xl py-md rounded-lg font-bold neon-glow transition-all active:scale-95 no-underline hover:no-underline hover:text-[#050505]"
+      class="inline-flex items-center gap-xs mt-md px-xl py-md bg-secondary text-on-secondary font-label text-label uppercase tracking-widest font-bold rounded-lg transition-all hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] active:scale-95 no-underline hover:no-underline hover:text-on-secondary"
     >
       Ler Matéria
-      <span class="material-symbols-outlined">arrow_forward</span>
+      <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
     </a>
   </div>
 </section>

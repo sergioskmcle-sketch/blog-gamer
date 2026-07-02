@@ -31,7 +31,7 @@ const categories = [
   { name: "Hardware", slug: "hardware", icon: "memory" },
   { name: "Jogos", slug: "jogos", icon: "sports_esports" },
   { name: "eSports", slug: "esports", icon: "trophy" },
-  { name: "Reviews", slug: "review", icon: "rate_review" },
+  { name: "Reviews", slug: "review", icon: "grade" },
 ];
 ---
 
@@ -73,7 +73,7 @@ const categories = [
           {frontmatter.title}
         </h1>
 
-        <div class="flex items-center gap-md mb-xl text-[#8088A0] font-label text-label">
+        <div class="flex items-center gap-md mb-xl text-outline font-label text-label">
           <div class="flex items-center gap-xs">
             <span class="material-symbols-outlined text-[18px]">person</span>
             <span>BLOG GAMER</span>
@@ -87,7 +87,7 @@ const categories = [
           <span>{readingTime} MIN DE LEITURA</span>
         </div>
 
-        <div class="font-body text-body text-[#D1D5E0] space-y-lg leading-relaxed" id="articleBody">
+        <div class="font-body text-body text-on-surface-variant space-y-lg leading-relaxed" id="articleBody">
           {frontmatter.description && (
             <p class="first-letter:text-5xl first-letter:font-black first-letter:text-primary first-letter:mr-3 first-letter:float-left">
               {frontmatter.description}
@@ -98,7 +98,7 @@ const categories = [
 
         <div class="mt-xl pt-xl border-t border-white/10">
           <div class="flex flex-wrap gap-sm items-center">
-            <span class="text-[#8088A0] font-label text-label mr-md self-center">TAGS:</span>
+            <span class="text-outline font-label text-label mr-md self-center">TAGS:</span>
             {frontmatter.tags?.map((tag) => (
               <a
                 href={`${base}?tag=${tag}`}

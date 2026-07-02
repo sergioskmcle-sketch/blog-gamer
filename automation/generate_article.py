@@ -544,9 +544,24 @@ def slugify(title):
     return s[:80].rstrip('-')
 
 
-def build_groq_prompt(topic, products, sources_text, today):
+def get_best_cover_image(products):
+    if not products:
+        return ''
+    product = products[0]
+    img_url = product.get('thumbnail', '') or (product.get('images') or [''])[0]
+    if not img_url:
+        return ''
+    if 'http2.mlstatic.com' in img_url:
+        img_url = re.sub(r'-[FLOV](\.webp|\.jpg)', r'-O\1', img_url)
+    return img_url
+
+
+def build_groq_prompt(topic, products, sources_text, today, cover_image=''):
     mode = topic.get('mode', 'custo-beneficio')
     mode_pt = {'melhores': 'melhores produtos (qualidade acima de preco)', 'custo-beneficio': 'custo-beneficio', 'informativo': 'informativo'}.get(mode, 'custo-beneficio')
+
+    if not cover_image:
+        cover_image = get_best_cover_image(products)
 
     products_section = '\n'.join([
         _format_product_for_prompt(p) for p in products
@@ -573,7 +588,7 @@ pubDate: {today}
 tags: [tag1, tag2, tag3, tag4, tag5]
 category: "{topic['category']}"
 affiliate: true
-image: "{products[0]['thumbnail'] if products else ''}"
+image: "{cover_image}"
 mode: "{mode}"'''
 
     user_prompt = f'''Categoria: {topic['category']} | Modo: {mode} | Tema: {topic['hint']}
@@ -714,7 +729,9 @@ def main():
         p['affiliate_url'] = affiliate_url
         log(f'  {p["title"][:50]}... -> {affiliate_url[:60]}')
 
-    system_prompt, user_prompt = build_groq_prompt(topic, products, sources_text, today)
+    cover_image = get_best_cover_image(products)
+    log(f'Imagem de capa: {cover_image[:80]}')
+    system_prompt, user_prompt = build_groq_prompt(topic, products, sources_text, today, cover_image)
 
     log('Chamando Groq...')
     try:

@@ -6,7 +6,7 @@
   --bg-primary: #050505;
   --bg-secondary: #020203;
   --bg-card: #0A0A0F;
-  --bg-elevated: #12121C;
+  --bg-elevated: #12121D;
   --bg-glass: rgba(5, 5, 5, 0.88);
 
   --accent: #A855F7;
@@ -14,15 +14,15 @@
   --accent-dim: rgba(168, 85, 247, 0.08);
   --accent-glow: rgba(168, 85, 247, 0.25);
 
-  --success: #39FF14;
-  --success-dim: rgba(57, 255, 20, 0.08);
+  --success: #2ff801;
+  --success-dim: rgba(47, 248, 1, 0.08);
   --warning: #F97316;
   --warning-dim: rgba(249, 115, 22, 0.08);
   --danger: #EF4444;
 
-  --text-primary: #FFFFFF;
-  --text-secondary: #D1D5E0;
-  --text-muted: #8088A0;
+  --text-primary: #efecfb;
+  --text-secondary: #aca9b7;
+  --text-muted: #757481;
 
   --border: #1C1C2E;
   --border-hover: #3D3D60;
@@ -65,8 +65,9 @@ body {
     linear-gradient(45deg, rgba(255, 255, 255, 0.015) 25%, transparent 25%),
     linear-gradient(-45deg, rgba(255, 255, 255, 0.015) 25%, transparent 25%),
     linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.015) 75%),
-    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.015) 75%);
-  background-size: 4px 4px;
+    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.015) 75%),
+    radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.05) 0%, transparent 70%);
+  background-size: 4px 4px, 4px 4px, 4px 4px, 4px 4px, 100% 100%;
   color: var(--text-primary);
   line-height: 1.7;
   min-height: 100vh;
@@ -75,7 +76,7 @@ body {
 }
 
 ::selection {
-  background: rgba(221, 183, 255, 0.3);
+  background: rgba(204, 151, 255, 0.3);
   color: #fff;
 }
 
@@ -112,7 +113,7 @@ h2 {
   font-size: 1.75rem;
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: #ddb7ff;
+  color: #cc97ff;
 }
 
 h3 {
@@ -142,10 +143,10 @@ li {
 }
 
 blockquote {
-  border-left: 4px solid #ddb7ff;
+  border-left: 4px solid #cc97ff;
   padding: 1rem 1.5rem;
   margin: 1.5rem 0;
-  background: rgba(221, 183, 255, 0.05);
+  background: rgba(204, 151, 255, 0.05);
   border-radius: 0 var(--radius) var(--radius) 0;
   color: var(--text-secondary);
   font-style: italic;
