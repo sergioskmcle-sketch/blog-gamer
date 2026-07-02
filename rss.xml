@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Blog Gamer</title>
+    <description>Notícias, reviews e guias do mundo dos games</description>
+    <link>https://sergioskmcle-sketch.github.io/blog-gamer/</link>
+    <language>pt-br</language>
+    <atom:link href="https://sergioskmcle-sketch.github.io/blog-gamer/rss.xml" rel="self" type="application/rss+xml"/>
+    
+    <item>
+      <title><![CDATA[GTA 6: Data de Lançamento, Preço, Pré-venda e Tudo que Sabemos]]></title>
+      <description><![CDATA[GTA 6 chega em 19 de novembro de 2026 para PS5 e Xbox Series. Pré-venda já aberta por R$ 449,90. Veja preços, edições e os melhores consoles para jogar com links do Mercado Livre.]]></description>
+      <link>https://sergioskmcle-sketch.github.io/blog-gamer/gta-6-data-de-lancamento-preco-pre-venda/</link>
+      <guid>https://sergioskmcle-sketch.github.io/blog-gamer/gta-6-data-de-lancamento-preco-pre-venda/</guid>
+      <pubDate>Wed, 01 Jul 2026 00:00:00 GMT</pubDate>
+    </item>
+
+    <item>
+      <title><![CDATA[As 8 Melhores Placas de Video Custo-Beneficio do Mercado Livre em 2026]]></title>
+      <description><![CDATA[Descubra as 8 melhores placas de vídeo com custo-benefício no Mercado Livre em 2026]]></description>
+      <link>https://sergioskmcle-sketch.github.io/blog-gamer/as-10-melhores-placas-de-video-custo-beneficio-do-mercado-livre-em-2026/</link>
+      <guid>https://sergioskmcle-sketch.github.io/blog-gamer/as-10-melhores-placas-de-video-custo-beneficio-do-mercado-livre-em-2026/</guid>
+      <pubDate>Tue, 30 Jun 2026 00:00:00 GMT</pubDate>
+    </item>
+
+    <item>
+      <title><![CDATA[Lançamento de Games e Anúncios de Consoles: O que Você Precisa Saber]]></title>
+      <description><![CDATA[Confira os principais lançamentos de games, anúncios de consoles e eventos do mundo gamer em 2026. Novidades, preços e links de afiliado para comprar mais barato.]]></description>
+      <link>https://sergioskmcle-sketch.github.io/blog-gamer/lançamento-de-games-e-anúncios-de-consoles-o-que-você-precisa-saber/</link>
+      <guid>https://sergioskmcle-sketch.github.io/blog-gamer/lançamento-de-games-e-anúncios-de-consoles-o-que-você-precisa-saber/</guid>
+      <pubDate>Tue, 30 Jun 2026 00:00:00 GMT</pubDate>
+    </item>
+
+    <item>
+      <title><![CDATA[Os 10 Melhores Monitores Gamer Custo-Beneficio do Mercado Livre em 2026]]></title>
+      <description><![CDATA[Lista completa com os 10 melhores monitores gamers custo-beneficio para 2026. Compare precos e especificacoes no Mercado Livre.]]></description>
+      <link>https://sergioskmcle-sketch.github.io/blog-gamer/os-10-melhores-monitores-gamer-custo-beneficio-do-mercado-livre-em-2026/</link>
+      <guid>https://sergioskmcle-sketch.github.io/blog-gamer/os-10-melhores-monitores-gamer-custo-beneficio-do-mercado-livre-em-2026/</guid>
+      <pubDate>Mon, 29 Jun 2026 00:00:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>

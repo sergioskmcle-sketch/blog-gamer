@@ -1,0 +1,36 @@
+backend:
+  name: github
+  repo: sergioskmcle-sketch/blog-gamer
+  branch: main
+  base_url: https://oauth.decap-cms.dev
+  site_domain: sergioskmcle-sketch.github.io
+
+publish_mode: editorial_workflow
+media_folder: public/assets
+public_folder: /blog-gamer/assets
+
+collections:
+  - name: artigos
+    label: Artigos
+    label_singular: Artigo
+    folder: src/content/artigos
+    create: true
+    slug: "{{slug}}"
+    summary: "{{title}} — {{category}}"
+    fields:
+      - { name: title, label: Título, widget: string }
+      - { name: description, label: Descrição, widget: text, hint: "100-160 caracteres" }
+      - { name: pubDate, label: Data, widget: datetime, format: "YYYY-MM-DD" }
+      - { name: tags, label: Tags, widget: list, default: ["games"] }
+      - label: Categoria
+        name: category
+        widget: select
+        options:
+          - { label: Notícia, value: noticia }
+          - { label: Review, value: review }
+          - { label: Guia de Compra, value: guia }
+          - { label: Lista, value: lista }
+          - { label: Promoção, value: promocao }
+      - { name: image, label: Imagem, widget: image, required: false }
+      - { name: affiliate, label: Link de Afiliado, widget: boolean, default: true, required: false }
+      - { name: body, label: Conteúdo, widget: markdown }
