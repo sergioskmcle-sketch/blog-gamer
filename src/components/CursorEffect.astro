@@ -1,0 +1,82 @@
+<div class="cursor-glow" id="cursorGlow" />
+
+<script>
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  if (!prefersReducedMotion.matches) {
+    const glow = document.getElementById("cursorGlow");
+    const root = document.documentElement;
+
+    let cursorX = window.innerWidth / 2;
+    let cursorY = window.innerHeight / 2;
+
+    function updateCursor(clientX, clientY) {
+      cursorX = clientX;
+      cursorY = clientY;
+      root.style.setProperty("--cursor-x", cursorX + "px");
+      root.style.setProperty("--cursor-y", cursorY + "px");
+    }
+
+    document.addEventListener("mousemove", (e) => {
+      updateCursor(e.clientX, e.clientY);
+
+      const cards = document.querySelectorAll(".card");
+      const buttons = document.querySelectorAll(".btn");
+      const images = document.querySelectorAll(".card-image img");
+
+      for (const card of cards) {
+        const rect = card.getBoundingClientRect();
+        const dx = e.clientX - (rect.left + rect.width / 2);
+        const dy = e.clientY - (rect.top + rect.height / 2);
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const proximity = Math.max(0, 1 - dist / 150);
+
+        if (proximity > 0) {
+          card.style.borderColor = `rgba(168,85,247,${0.2 + proximity * 0.6})`;
+          card.style.boxShadow = `0 0 ${20 + proximity * 40}px rgba(168,85,247,${0.1 + proximity * 0.25})`;
+        } else {
+          card.style.borderColor = "";
+          card.style.boxShadow = "";
+        }
+      }
+
+      for (const btn of buttons) {
+        const rect = btn.getBoundingClientRect();
+        const dx = e.clientX - (rect.left + rect.width / 2);
+        const dy = e.clientY - (rect.top + rect.height / 2);
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const proximity = Math.max(0, 1 - dist / 120);
+
+        if (proximity > 0) {
+          btn.style.boxShadow = `0 0 ${15 + proximity * 35}px rgba(57,255,20,${0.15 + proximity * 0.35})`;
+        } else {
+          btn.style.boxShadow = "";
+        }
+      }
+
+      for (const img of images) {
+        const rect = img.getBoundingClientRect();
+        const dx = e.clientX - (rect.left + rect.width / 2);
+        const dy = e.clientY - (rect.top + rect.height / 2);
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const proximity = Math.max(0, 1 - dist / 100);
+
+        if (proximity > 0) {
+          const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+          img.style.filter = `brightness(1.${Math.floor(proximity * 3)}) drop-shadow(0 0 ${proximity * 8}px rgba(168,85,247,0.3))`;
+        } else {
+          img.style.filter = "";
+        }
+      }
+    });
+
+    document.addEventListener("mouseleave", () => {
+      const cards = document.querySelectorAll(".card");
+      const buttons = document.querySelectorAll(".btn");
+      const images = document.querySelectorAll(".card-image img");
+      for (const el of cards) { el.style.borderColor = ""; el.style.boxShadow = ""; }
+      for (const el of buttons) { el.style.boxShadow = ""; }
+      for (const el of images) { el.style.filter = ""; }
+    });
+  }
+</script>
