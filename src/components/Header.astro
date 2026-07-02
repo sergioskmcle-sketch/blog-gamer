@@ -1,7 +1,7 @@
 ---
 const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 
-const categories = [
+const navLinks = [
   { name: "Notícias", slug: "noticia" },
   { name: "Reviews", slug: "review" },
   { name: "Guias", slug: "guia" },
@@ -10,171 +10,63 @@ const categories = [
 ];
 ---
 
-<header class="header glass">
-  <div class="container header-inner">
-    <a href={base} class="logo">
-      <span class="logo-icon">🎮</span>
-      <span class="logo-text">Blog <span class="text-gradient">Gamer</span></span>
-    </a>
-
-    <nav class="nav">
-      <a href={base} class="nav-link">Início</a>
-      <div class="nav-dropdown">
-        <span class="nav-link">Categorias ▾</span>
-        <div class="dropdown-menu">
-          {categories.map((cat) => (
-            <a href={`${base}?categoria=${cat.slug}`} class="dropdown-item">{cat.name}</a>
-          ))}
-        </div>
-      </div>
-      <a href={`${base}blog/`} class="nav-link">Artigos</a>
-    </nav>
-
-    <div class="header-actions">
-      <a href={`${base}rss.xml`} class="rss-link" title="RSS Feed">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M4 11a9 9 0 0 1 9 9" />
-          <path d="M4 4a16 16 0 0 1 16 16" />
-          <circle cx="5" cy="19" r="1" fill="currentColor" />
-        </svg>
+<header id="siteHeader" class="fixed top-0 w-full z-50 glass-header border-b border-outline-variant/20">
+  <nav class="flex items-center justify-between h-16 px-margin-desktop max-w-page mx-auto">
+    <div class="flex items-center gap-xl">
+      <a href={base} class="font-black text-primary italic tracking-tighter text-xl no-underline hover:no-underline hover:text-primary">
+        BLOG GAMER
       </a>
+      <div class="hidden md:flex items-center gap-lg">
+        <a href={base} class="font-label text-label text-secondary-fixed border-b-2 border-secondary-fixed pb-1 no-underline hover:no-underline">
+          Início
+        </a>
+        {navLinks.map((link) => (
+          <a
+            href={`${base}?categoria=${link.slug}`}
+            class="font-label text-label text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline"
+          >
+            {link.name}
+          </a>
+        ))}
+      </div>
     </div>
-  </div>
+    <div class="flex items-center gap-md">
+      <div class="relative hidden sm:block">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">search</span>
+        <input
+          class="bg-surface-container-low border-none rounded-full pl-10 pr-4 py-2 text-sm focus:ring-1 focus:ring-primary w-48 transition-all focus:w-64 text-on-surface placeholder:text-on-surface-variant/50 outline-none"
+          placeholder="Pesquisar..."
+          type="text"
+          id="searchInput"
+        />
+      </div>
+      <button class="md:hidden text-on-surface" id="menuBtn" aria-label="Menu">
+        <span class="material-symbols-outlined">menu</span>
+      </button>
+    </div>
+  </nav>
 </header>
 
-<style is:global>
-  .header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: var(--bg-glass);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border);
+<script>
+  const header = document.getElementById("siteHeader");
+  if (header) {
+    window.addEventListener("scroll", () => {
+      if (window.scrollY > 20) {
+        header.classList.add("shadow-xl");
+        header.style.background = "rgba(5,5,5,0.95)";
+      } else {
+        header.classList.remove("shadow-xl");
+        header.style.background = "";
+      }
+    });
   }
 
-  .header-inner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 0.75rem;
-    padding-bottom: 0.75rem;
+  const searchInput = document.getElementById("searchInput");
+  if (searchInput) {
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && searchInput.value.trim()) {
+        window.location.href = `${window.location.pathname}?q=${encodeURIComponent(searchInput.value.trim())}`;
+      }
+    });
   }
-
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    text-decoration: none;
-    color: var(--text-primary);
-    font-weight: 800;
-    font-size: 1.2rem;
-  }
-
-  .logo:hover {
-    text-decoration: none;
-    color: var(--text-primary);
-  }
-
-  .logo-icon {
-    font-size: 1.5rem;
-  }
-
-  .logo-text {
-    letter-spacing: -0.02em;
-  }
-
-  .nav {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  .nav-link {
-    padding: 0.5rem 1rem;
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    font-weight: 500;
-    border-radius: var(--radius-sm);
-    transition: all var(--transition);
-    cursor: pointer;
-    text-decoration: none;
-  }
-
-  .nav-link:hover {
-    color: var(--text-primary);
-    background: var(--accent-dim);
-    text-decoration: none;
-  }
-
-  .nav-dropdown {
-    position: relative;
-  }
-
-  .nav-dropdown:hover .dropdown-menu {
-    opacity: 1;
-    pointer-events: auto;
-    transform: translateY(0);
-  }
-
-  .dropdown-menu {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    min-width: 160px;
-    background: var(--bg-elevated);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 0.5rem;
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(-4px);
-    transition: all var(--transition-slow);
-    box-shadow: var(--shadow-lg);
-  }
-
-  .dropdown-item {
-    display: block;
-    padding: 0.5rem 0.75rem;
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    border-radius: var(--radius-sm);
-    transition: all var(--transition);
-    text-decoration: none;
-  }
-
-  .dropdown-item:hover {
-    background: var(--accent-dim);
-    color: var(--accent);
-    text-decoration: none;
-  }
-
-  .header-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .rss-link {
-    display: flex;
-    align-items: center;
-    padding: 0.4rem;
-    color: var(--text-muted);
-    border-radius: var(--radius-sm);
-    transition: all var(--transition);
-  }
-
-  .rss-link:hover {
-    color: var(--warning);
-    background: var(--warning-dim);
-  }
-
-  @media (max-width: 768px) {
-    .nav-link {
-      padding: 0.4rem 0.6rem;
-      font-size: 0.8rem;
-    }
-  }
-</style>
+</script>
