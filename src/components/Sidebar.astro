@@ -4,176 +4,96 @@ export interface Artigo {
   slug: string;
   pubDate: Date | string;
   category?: string;
+  image?: string;
 }
 
 const { artigos, currentSlug }: { artigos: Artigo[]; currentSlug?: string } = Astro.props;
 const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 const recentes = artigos.filter((a) => a.slug !== currentSlug).slice(0, 5);
+
+const categories = [
+  { name: "Notícias", slug: "noticia", count: artigos.filter((a) => a.category === "noticia").length },
+  { name: "Reviews", slug: "review", count: artigos.filter((a) => a.category === "review").length },
+  { name: "Guias", slug: "guia", count: artigos.filter((a) => a.category === "guia" || a.category === "lista").length },
+  { name: "Promoções", slug: "promocao", count: artigos.filter((a) => a.category === "promocao").length },
+];
 ---
 
-<aside class="sidebar-content">
-  <div class="sidebar-section card">
-    <h3 class="sidebar-title">📌 Em Destaque</h3>
-    <div class="affiliate-spotlight">
-      <p>Melhores ofertas em games e periféricos.</p>
-      <div class="affiliate-links">
-        <a href="https://mercadolivre.com.br" target="_blank" rel="noopener" class="affiliate-btn">
-          🛒 Mercado Livre
+<aside class="w-full lg:w-80 shrink-0 space-y-xl">
+  <div class="bg-surface-container-low border border-outline-variant/10 p-lg rounded-xl">
+    <h4 class="font-label text-label text-on-surface border-b border-outline-variant/20 pb-sm mb-md flex items-center gap-sm">
+      <span class="material-symbols-outlined text-sm">category</span>
+      CATEGORIAS
+    </h4>
+    <div class="flex flex-col gap-xs">
+      {categories.map((cat) => (
+        <a
+          href={`${base}?categoria=${cat.slug}`}
+          class="flex items-center justify-between p-sm hover:bg-surface-container rounded transition-colors group no-underline hover:no-underline"
+        >
+          <span class="text-on-surface-variant group-hover:text-primary transition-colors text-sm">{cat.name}</span>
+          <span class="text-[10px] font-label bg-surface-container-high px-2 py-0.5 rounded text-on-surface-variant">{cat.count}</span>
         </a>
-        <a href="https://shopee.com.br" target="_blank" rel="noopener" class="affiliate-btn">
-          🛒 Shopee
-        </a>
-      </div>
-      <p class="affiliate-note">Links de afiliado ajudam o blog</p>
+      ))}
     </div>
   </div>
 
-  <div class="sidebar-section card">
-    <h3 class="sidebar-title">⚡ Últimos Artigos</h3>
-    <ul class="recent-list">
+  <div class="bg-surface-container-low border border-outline-variant/10 p-lg rounded-xl">
+    <h4 class="font-label text-label text-on-surface border-b border-outline-variant/20 pb-sm mb-md flex items-center gap-sm">
+      <span class="material-symbols-outlined text-sm">bolt</span>
+      ÚLTIMOS ARTIGOS
+    </h4>
+    <div class="space-y-md">
       {recentes.length === 0 && (
-        <li class="recent-empty">Nenhum artigo publicado ainda.</li>
+        <p class="text-on-surface-variant text-xs">Nenhum artigo publicado ainda.</p>
       )}
       {recentes.map((artigo) => (
-        <li>
-          <a href={`${base}blog/${artigo.slug}/`} class="recent-item">
-            <span class="recent-category">{artigo.category || "artigo"}</span>
-            <span class="recent-title">{artigo.title}</span>
-            <time class="recent-date">{new Date(artigo.pubDate).toLocaleDateString("pt-BR")}</time>
-          </a>
-        </li>
+        <a
+          href={`${base}blog/${artigo.slug}/`}
+          class="flex gap-md group cursor-pointer no-underline hover:no-underline"
+        >
+          <div class="w-16 h-16 bg-surface-container rounded overflow-hidden shrink-0">
+            {artigo.image ? (
+              <div
+                class="w-full h-full bg-cover bg-center"
+                style="background-image: url('{artigo.image}')"
+              />
+            ) : (
+              <div class="w-full h-full flex items-center justify-center text-lg">
+                🎮
+              </div>
+            )}
+          </div>
+          <div class="flex-1 min-w-0">
+            <h5 class="text-xs font-semibold text-on-surface group-hover:text-primary transition-colors line-clamp-2">
+              {artigo.title}
+            </h5>
+            <span class="text-[9px] text-on-surface-variant uppercase mt-1 block">
+              {new Date(artigo.pubDate).toLocaleDateString("pt-BR")}
+            </span>
+          </div>
+        </a>
       ))}
-    </ul>
+    </div>
+  </div>
+
+  <div class="relative overflow-hidden bg-primary p-lg rounded-xl">
+    <div class="absolute -right-8 -top-8 w-32 h-32 bg-on-primary-container/20 rounded-full blur-2xl" />
+    <div class="relative z-10">
+      <h4 class="font-h2 text-lg text-on-primary mb-xs">Newsletter</h4>
+      <p class="text-on-primary/80 text-xs mb-md">
+        Receba as melhores notícias direto no seu email.
+      </p>
+      <div class="space-y-sm">
+        <input
+          class="w-full bg-on-primary/10 border border-on-primary/30 text-on-primary placeholder:text-on-primary/50 text-xs rounded-lg px-md py-xs outline-none focus:ring-1 focus:ring-on-primary"
+          placeholder="Seu email"
+          type="email"
+        />
+        <button class="w-full bg-on-primary text-primary py-sm rounded-lg font-label text-[10px] hover:bg-on-primary/90 transition-all uppercase tracking-widest">
+          INSCREVER
+        </button>
+      </div>
+    </div>
   </div>
 </aside>
-
-<style is:global>
-  .sidebar-content {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  .sidebar-section {
-    padding: 1.25rem;
-  }
-
-  .sidebar-title {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #fff;
-    margin: 0 0 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .sidebar-title::after {
-    content: "";
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
-
-  .affiliate-spotlight p {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    margin-bottom: 0.75rem;
-  }
-
-  .affiliate-links {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .affiliate-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.6rem 1rem;
-    background: var(--accent-dim);
-    border: 1px solid rgba(37, 99, 235, 0.15);
-    border-radius: var(--radius-sm);
-    color: var(--accent);
-    font-size: 0.85rem;
-    font-weight: 600;
-    transition: all var(--transition);
-    text-decoration: none;
-  }
-
-  .affiliate-btn:hover {
-    background: rgba(37, 99, 235, 0.15);
-    box-shadow: var(--shadow-glow);
-    text-decoration: none;
-  }
-
-  .affiliate-note {
-    font-size: 0.7rem !important;
-    color: var(--text-muted) !important;
-    margin: 0.75rem 0 0 !important;
-    text-align: center;
-  }
-
-  .recent-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .recent-list li {
-    margin: 0;
-  }
-
-  .recent-empty {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    padding: 0.5rem 0;
-  }
-
-  .recent-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-    padding: 0.6rem 0.75rem;
-    border-radius: var(--radius-sm);
-    transition: all var(--transition);
-    text-decoration: none;
-  }
-
-  .recent-item:hover {
-    background: var(--accent-dim);
-    text-decoration: none;
-  }
-
-  .recent-category {
-    font-size: 0.7rem;
-    color: var(--accent);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .recent-item:hover {
-    background: var(--accent-dim);
-  }
-
-  .recent-title {
-    font-size: 0.85rem;
-    color: var(--text-primary);
-    font-weight: 500;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .recent-date {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-  }
-</style>
