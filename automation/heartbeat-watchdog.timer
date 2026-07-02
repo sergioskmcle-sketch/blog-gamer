@@ -1,0 +1,10 @@
+[Unit]
+Description=Blog Gamer - Heartbeat Watchdog Timer (a cada 5 minutos)
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+Unit=heartbeat-watchdog.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,9 @@
+[Unit]
+Description=Blog Gamer - Heartbeat Watchdog
+After=network.target
+Requires=blog-gamer.service
+
+[Service]
+Type=oneshot
+ExecStart=/home/sergioskm_cle/blog-gamer-automation/venv/bin/python3 /home/sergioskm_cle/blog-gamer-automation/heartbeat_watchdog.py
+User=sergioskm_cle
