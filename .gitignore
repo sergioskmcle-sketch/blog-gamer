@@ -22,6 +22,12 @@ wait.mjs
 # Build output
 dist/
 
+# Astro generated
+.astro/
+
+# Cookies
+ml_cookies.json
+
 # Dependencies
 node_modules/
 
