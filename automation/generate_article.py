@@ -114,6 +114,9 @@ TOPIC_SEEDS = [
     {'category': 'tutorial',    'mode': 'informativo', 'hint': 'como montar setup gamer, dicas de configuracao, melhores ajustes para jogos',                   'ml_query': 'setup gamer periferico rgb teclado mouse headset monitor'},
     {'category': 'comparativo', 'mode': 'melhores',    'hint': 'comparativo entre consoles, placas de video x vs y, melhor processador para jogos',             'ml_query': 'console playstation xbox nintendo placa video rtx'},
     {'category': 'lancamento',  'mode': 'melhores',    'hint': 'lancamento de console, novo jogo aguardado, placa de video nova geracao, perifericos',           'ml_query': 'lancamento jogo ps5 xbox pc midia fisica 2026'},
+    {'category': 'noticia',     'mode': 'misto',       'hint': 'tudo sobre jogo novo, analise completa de lancamento, o que esperar do novo console/game',         'ml_query': 'console ps5 xbox nintendo placa video rtx'},
+    {'category': 'review',      'mode': 'misto',       'hint': 'review completo de jogo, vale a pena comprar, analise de gameplay, graficos e desempenho',          'ml_query': 'jogo original ps5 xbox midia fisica 2026'},
+    {'category': 'guia',        'mode': 'misto',       'hint': 'guia completo sobre console ou jogo, o que comprar para jogar, setup recomendado para game x',     'ml_query': 'console video game ps5 xbox nintendo acessorio'},
 ]
 
 STATE_FILE = Path('state.json')
@@ -622,6 +625,61 @@ def get_best_cover_image(products, topic=None):
     return img_url
 
 
+GAME_IMAGE_CACHE = {}
+
+def extract_game_names(body):
+    found = re.findall(r'\*\*([^*]+)\*\*', body)
+    seen = set()
+    result = []
+    for g in found:
+        clean = g.strip()
+        if clean and len(clean) > 3 and not clean.startswith(('http', 'R$', '#', '✅', '❌', '🎮')):
+            if clean not in seen:
+                seen.add(clean)
+                result.append(clean)
+    return result
+
+def fetch_game_images(game_names):
+    if not RAWG_API_KEY:
+        return {}
+    results = {}
+    for name in game_names:
+        if name in GAME_IMAGE_CACHE:
+            results[name] = GAME_IMAGE_CACHE[name]
+            continue
+        clean = re.sub(r'[^a-zA-Z0-9 àáâãäéèêëíìîïóòôõöúùûüç]', '', name).strip()
+        if not clean or len(clean) < 3:
+            continue
+        try:
+            r = requests.get(
+                f'https://api.rawg.io/api/games?key={RAWG_API_KEY}&search={quote(clean)}&page_size=1',
+                timeout=10
+            )
+            if r.ok:
+                data = r.json().get('results', [])
+                if data:
+                    img = data[0].get('background_image', '')
+                    if img:
+                        results[name] = img
+                        GAME_IMAGE_CACHE[name] = img
+                        log(f'  RAWG imagem para "{name[:40]}": {img[:60]}...')
+        except Exception as e:
+            log(f'  RAWG erro para "{name[:40]}": {e}')
+    return results
+
+def inject_game_images(body, game_images):
+    for name, img_url in game_images.items():
+        if not img_url:
+            continue
+        body = re.sub(
+            rf'\*\*{re.escape(name)}\*\*',
+            f'**{name}**\n<img src="{img_url}" alt="{name}" class="article-game-img">',
+            body,
+            count=1
+        )
+    return body
+
+
 def build_groq_prompt(topic, products, sources_text, today, cover_image=''):
     mode = topic.get('mode', 'custo-beneficio')
 
@@ -643,6 +701,8 @@ Estrutura obrigatoria:
 
 Regras: MINIMO 1200 palavras. NUNCA mencione IA. Nao invente dados - use APENAS informacoes das Fontes fornecidas. Nao inclua produtos, precos, nem links de compra/afiliado.
 
+IMPORTANTE para geracao de imagens: sempre que citar um jogo pela primeira vez, use **Nome Do Jogo** em negrito. Exemplo: "**Fortnite** e um dos jogos mais populares." Isso e OBRIGATORIO para o sistema inserir imagens automaticamente.
+
 Frontmatter YAML entre "---" (ABRIR e FECHAR com "---" em linha propria, SEMPRE):
 title: "Titulo SEO"
 description: "Descricao (100-160 caracteres)"
@@ -657,6 +717,59 @@ mode: "{mode}"'''
 
 Fontes para pesquisa:
 {sources_text}'''
+
+        return system_prompt, user_prompt
+
+    if mode == 'misto':
+        mode_pt = 'informativo com recomendacoes de produtos'
+        product_lines = '\n'.join([_format_product_for_prompt(p) for p in products])
+
+        system_prompt = f'''Editor-Chefe de portal gamer. Escreva em portugues brasileiro, tom natural de gamer experiente, conversacional, sem parecer robo.
+
+Modo: {mode_pt} — gere conteudo informativo primeiro, DEPOIS uma secao "## Produtos Recomendados" ao final com os produtos fornecidos.
+
+Estrutura obrigatoria:
+1. INTRODUCAO: desperte curiosidade, mostre a relevancia do tema. NUNCA comee com "Neste artigo...", "Hoje vamos falar..."
+2. CORPO INFORMATIVO: divida em 4-6 secoes com subtitulos (##). Cada secao deve ter dados, curiosidades e informacoes relevantes. Use **NomeDoJogo** em negrito na primeira mencao de cada jogo.
+3. FAQ (3-5 perguntas)
+4. CONCLUSAO
+5. ## Produtos Recomendados — use EXATAMENTE este template HTML para CADA produto:
+
+<div class="product-card">
+<img src="URL_IMAGEM" alt="NOME_PRODUTO" class="product-card-img">
+<div class="product-card-body">
+<h3>NOME DO PRODUTO</h3>
+<p class="product-price"><strong>Preco:</strong> R$XX,XX</p>
+<p class="product-desc">Descricao exclusiva do produto, destacando PUBLICO IDEAL e CARACTERISTICAS principais.</p>
+<div class="product-pros"><strong>✅ Pros:</strong><br>• Beneficio 1<br>• Beneficio 2<br>• Beneficio 3</div>
+<div class="product-cons"><strong>❌ Contras:</strong><br>• Ponto negativo 1<br>• Ponto negativo 2</div>
+<a href="LINK_AFILIADO" class="product-btn">VER NO MERCADO LIVRE</a>
+</div>
+</div>
+
+IMPORTANTE: Nao omita nenhum campo do template. Nao use formatacao Markdown dentro do card. Cada card e HTML puro.
+
+6. ## Fontes
+
+Regras: MINIMO 1200 palavras no total. NUNCA mencione IA. LINK_AFILIADO exato (nao modificar). Nao misture produtos no corpo informativo — produtos vao APENAS na secao final.
+
+Frontmatter YAML entre "---" (ABRIR e FECHAR com "---" em linha propria, SEMPRE):
+title: "Titulo SEO"
+description: "Descricao (100-160 caracteres)"
+pubDate: {today}
+tags: [tag1, tag2, tag3, tag4, tag5]
+category: "{topic['category']}"
+affiliate: true
+image: "{cover_image}"
+mode: "{mode}"'''
+
+        user_prompt = f'''Categoria: {topic['category']} | Modo: {mode} | Tema: {topic['hint']}
+
+Parte informativa — fontes:
+{sources_text}
+
+Produtos para secao "Produtos Recomendados" (use TODOS):
+{product_lines}'''
 
         return system_prompt, user_prompt
 
@@ -824,6 +937,30 @@ def main():
             cover_image = ''
         log(f'Imagem de capa: {cover_image[:80] if cover_image else "(default)"}')
         system_prompt, user_prompt = build_groq_prompt(topic, products, sources_text, today, cover_image)
+    elif mode == 'misto':
+        products = scrape_ml_products(topic['ml_query'], limit=6)
+        log(f'ML products para secao recomendada: {len(products)}')
+        if not products:
+            log('Nenhum produto encontrado, caindo para modo informativo puro')
+            products = []
+            cover_image = try_fetch_game_wallpaper(topic.get('hint', ''))
+            if not cover_image:
+                cover_image = ''
+            log(f'Imagem de capa: {cover_image[:80] if cover_image else "(default)"}')
+            system_prompt, user_prompt = build_groq_prompt(
+                {**topic, 'mode': 'informativo'}, [], sources_text, today, cover_image
+            )
+        else:
+            products = filter_by_brand_gaming(products, topic)
+            if topic.get('category') in GAME_CATEGORIES:
+                products = filter_non_game_products(products)
+            log('Gerando links de afiliado...')
+            for p in products:
+                affiliate_url = generate_affiliate_link(p['permalink'], ML_COOKIES_PATH, ML_AFFILIATE_TAG)
+                p['affiliate_url'] = affiliate_url
+            cover_image = get_best_cover_image(products, topic) or try_fetch_game_wallpaper(topic.get('hint', '')) or ''
+            log(f'Imagem de capa: {cover_image[:80]}')
+            system_prompt, user_prompt = build_groq_prompt(topic, products, sources_text, today, cover_image)
     else:
         limit = 8
         products = scrape_ml_products(topic['ml_query'], limit=limit)
@@ -883,6 +1020,11 @@ def main():
         sys.exit(1)
 
     body = fix_affiliate_urls_in_body(body, products)
+    game_names = extract_game_names(body)
+    if game_names:
+        log(f'Injetando imagens RAWG para {len(game_names)} jogos: {game_names[:5]}...')
+        game_images = fetch_game_images(game_names)
+        body = inject_game_images(body, game_images)
     raw = f'---\n{yaml.dump(fm, allow_unicode=True, sort_keys=False).strip()}\n---\n{body}\n'
 
     title = fm.get('title', 'Artigo sem titulo')
