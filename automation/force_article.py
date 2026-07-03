@@ -7,12 +7,12 @@ from generate_article import *
 
 BATTLE_ROYALE_TOPIC = {
     'category': 'lista',
-    'mode': 'melhores',
-    'hint': 'battle royale mais jogados 2026, fortnite, free fire, pubg, apex legends, call of duty warzone, valorant',
-    'ml_query': 'jogo battle royale ps5 xbox midia fisica original',
+    'mode': 'informativo',
+    'hint': 'jogos battle royale mais jogados 2026, quais sao os battle royale mais populares, ranking fortnite free fire pubg apex legends warzone',
+    'ml_query': '',
 }
 
-log('=== FORCING BATTLE ROYALE ARTICLE ===')
+log('=== FORCING BATTLE ROYALE ARTICLE (INFORMATIVO) ===')
 
 state = load_state()
 old_state = dict(state)
@@ -23,15 +23,15 @@ state['last_category_index'] = -1
 save_state(state)
 
 topic = BATTLE_ROYALE_TOPIC
-log(f'Tema forçado: {topic["category"]} - {topic["hint"]}')
+log(f'Tema forçado: {topic["category"]} - {topic["mode"]} - {topic["hint"]}')
 
 tavily_results = []
 try:
     r = requests.post('https://api.tavily.com/search', json={
         'api_key': TAVILY_API_KEY,
         'query': topic['hint'],
-        'search_depth': 'basic',
-        'max_results': 5,
+        'search_depth': 'advanced',
+        'max_results': 8,
     }, timeout=15)
     if r.ok:
         tavily_results = r.json().get('results') or []
@@ -44,35 +44,19 @@ sources_text = '\n'.join([
     for res in tavily_results
 ])
 
-limit = 8
-products = scrape_ml_products(topic['ml_query'], limit=limit)
-log(f'ML products encontrados: {len(products)}')
+mode = topic.get('mode', 'custo-beneficio')
 
-if not products:
-    log('Nenhum produto encontrado, abortando')
-    save_state(old_state)
+if mode == 'informativo':
+    products = []
+    log('Modo informativo: sem produtos, apenas conteudo')
+    cover_image = try_fetch_game_wallpaper(topic.get('hint', ''))
+    if not cover_image:
+        cover_image = ''
+    log(f'Imagem de capa: {cover_image[:80] if cover_image else "(default)"}')
+    system_prompt, user_prompt = build_groq_prompt(topic, products, sources_text, datetime.now(timezone.utc).date().isoformat(), cover_image)
+else:
+    log('ERRO: Esperava modo informativo')
     sys.exit(1)
-
-products = filter_by_brand_gaming(products, topic)
-if not products:
-    log('Nenhum produto apos filtro de marca')
-    save_state(old_state)
-    sys.exit(1)
-
-products.sort(key=lambda p: p['price'], reverse=True)
-log(f'Ordenados por preco (decrescente): melhores primeiro')
-
-log('Gerando links de afiliado...')
-for p in products:
-    affiliate_url = generate_affiliate_link(
-        p['permalink'], ML_COOKIES_PATH, ML_AFFILIATE_TAG
-    )
-    p['affiliate_url'] = affiliate_url
-    log(f'  {p["title"][:50]}... -> {affiliate_url[:60]}')
-
-cover_image = get_best_cover_image(products, topic)
-log(f'Imagem de capa: {cover_image[:80]}')
-system_prompt, user_prompt = build_groq_prompt(topic, products, sources_text, datetime.now(timezone.utc).date().isoformat(), cover_image)
 
 log('Chamando Groq...')
 try:
@@ -90,10 +74,8 @@ if not fm:
     save_state(old_state)
     sys.exit(1)
 
-# Override image to ensure we use validated RAW or ML fallback
-cover_image = get_best_cover_image(products, topic)
-if cover_image:
-    fm['image'] = cover_image
+if not cover_image and fm.get('image'):
+    cover_image = fm['image']
 
 errors = validate_article(fm, body, products)
 if errors:

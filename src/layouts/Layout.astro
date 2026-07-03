@@ -50,6 +50,25 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
     )}
 
     <title>{title} — Blog Gamer</title>
+
+    <script>
+      (function(){
+        const page = window.location.pathname;
+        const ref = document.referrer || '';
+        const host = window.location.hostname;
+        const api = host === '35.237.81.192' ? '' : 'http://35.237.81.192';
+        if (api || host === '35.237.81.192') {
+          try {
+            fetch((api || '') + '/api/track', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ page, referrer: ref, userAgent: navigator.userAgent }),
+              keepalive: true,
+            }).catch(function(){});
+          } catch(e){}
+        }
+      })();
+    </script>
   </head>
   <body class="font-body selection:bg-primary selection:text-on-primary">
     <CursorEffect />

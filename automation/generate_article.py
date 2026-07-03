@@ -108,6 +108,7 @@ TOPIC_SEEDS = [
     {'category': 'review',   'mode': 'melhores',     'hint': 'review de jogo popular, analise de gameplay, dicas de jogo',                                      'ml_query': 'jogo original ps5 xbox midia fisica lancamento'},
     {'category': 'guia',     'mode': 'custo-beneficio', 'hint': 'melhores headsets gamers, teclado mecanico, mouse gamer, monitor, cadeira',                    'ml_query': 'headset gamer teclado mecanico mouse gamer monitor'},
     {'category': 'lista',    'mode': 'custo-beneficio', 'hint': 'melhores jogos para console, jogos populares, lancamentos, jogos estilo',                        'ml_query': 'jogo original ps4 ps5 xbox midia fisica list'},
+    {'category': 'lista',    'mode': 'informativo',    'hint': 'jogos mais populares, rankings, jogos mais jogados 2026, lista de melhores jogos, ranking games', 'ml_query': ''},
     {'category': 'promocao', 'mode': 'custo-beneficio', 'hint': 'promocoes Steam, ofertas de games, descontos em perifericos gamers',                           'ml_query': 'jogo promocao ps5 xbox pc midia fisica original'},
     {'category': 'curiosidade', 'mode': 'informativo', 'hint': 'curiosidades sobre consoles clasicos, história dos games, erros de jogos famosos, easter eggs',  'ml_query': 'console retro game boy playstation nintendo clasico'},
     {'category': 'tutorial',    'mode': 'informativo', 'hint': 'como montar setup gamer, dicas de configuracao, melhores ajustes para jogos',                   'ml_query': 'setup gamer periferico rgb teclado mouse headset monitor'},
@@ -432,7 +433,7 @@ def scrape_ml_products(query, limit=8):
     return products[:limit]
 
 
-def call_groq(system_prompt, user_prompt, retries=3):
+def call_groq(system_prompt, user_prompt, retries=5):
     body = {
         'model': GROQ_MODEL,
         'messages': [
@@ -450,7 +451,7 @@ def call_groq(system_prompt, user_prompt, retries=3):
                 'Authorization': f'Bearer {GROQ_API_KEY}',
             }, json=body, timeout=120)
             if r.status_code == 429:
-                wait = attempt * 30
+                wait = 30 * (2 ** (attempt - 1))
                 log(f'Groq quota excedida, aguardando {wait}s...')
                 time.sleep(wait)
                 continue
@@ -623,10 +624,43 @@ def get_best_cover_image(products, topic=None):
 
 def build_groq_prompt(topic, products, sources_text, today, cover_image=''):
     mode = topic.get('mode', 'custo-beneficio')
-    mode_pt = {'melhores': 'melhores produtos (qualidade acima de preco)', 'custo-beneficio': 'custo-beneficio', 'informativo': 'informativo'}.get(mode, 'custo-beneficio')
 
     if not cover_image:
         cover_image = get_best_cover_image(products, topic)
+
+    if mode == 'informativo':
+        system_prompt = f'''Editor-Chefe de portal gamer. Escreva em portugues brasileiro, tom natural de gamer experiente, conversacional, sem parecer robo.
+
+Modo: informativo (conteudo puro, sem produtos nem links de compra).
+
+Estrutura obrigatoria:
+1. INTRODUCAO: desperte curiosidade, mostre a relevancia do tema. NUNCA comee com "Neste artigo...", "Hoje vamos falar..."
+2. CORPO DO CONTEUDO: divida em 5-7 secoes com subtitulos (##). Cada secao deve ter dados, curiosidades e informacoes relevantes extraidas das Fontes abaixo.
+3. LISTA ou TABELA comparativa com dados (se aplicavel ao tema)
+4. FAQ (3-5 perguntas)
+5. CONCLUSAO
+6. ## Fontes
+
+Regras: MINIMO 1200 palavras. NUNCA mencione IA. Nao invente dados - use APENAS informacoes das Fontes fornecidas. Nao inclua produtos, precos, nem links de compra/afiliado.
+
+Frontmatter YAML entre "---" (ABRIR e FECHAR com "---" em linha propria, SEMPRE):
+title: "Titulo SEO"
+description: "Descricao (100-160 caracteres)"
+pubDate: {today}
+tags: [tag1, tag2, tag3, tag4, tag5]
+category: "{topic['category']}"
+affiliate: false
+image: "{cover_image}"
+mode: "{mode}"'''
+
+        user_prompt = f'''Categoria: {topic['category']} | Modo: {mode} | Tema principal: {topic['hint']}
+
+Fontes para pesquisa:
+{sources_text}'''
+
+        return system_prompt, user_prompt
+
+    mode_pt = {'melhores': 'melhores produtos (qualidade acima de preco)', 'custo-beneficio': 'custo-beneficio'}.get(mode, 'custo-beneficio')
 
     products_section = '\n'.join([
         _format_product_for_prompt(p) for p in products
@@ -780,44 +814,54 @@ def main():
         for res in tavily_results
     ])
 
-    limit = 6 if topic.get('mode') == 'informativo' else 8
-    products = scrape_ml_products(topic['ml_query'], limit=limit)
-    log(f'ML products encontrados: {len(products)}')
+    mode = topic.get('mode', 'custo-beneficio')
 
-    if not products:
-        log('Nenhum produto encontrado, abortando')
-        sys.exit(1)
+    if mode == 'informativo':
+        products = []
+        log('Modo informativo: sem produtos, apenas conteudo')
+        cover_image = try_fetch_game_wallpaper(topic.get('hint', ''))
+        if not cover_image:
+            cover_image = ''
+        log(f'Imagem de capa: {cover_image[:80] if cover_image else "(default)"}')
+        system_prompt, user_prompt = build_groq_prompt(topic, products, sources_text, today, cover_image)
+    else:
+        limit = 8
+        products = scrape_ml_products(topic['ml_query'], limit=limit)
+        log(f'ML products encontrados: {len(products)}')
 
-    products = filter_by_brand_gaming(products, topic)
-    if not products:
-        log('Nenhum produto apos filtro de marca, abortando')
-        sys.exit(1)
-
-    if topic.get('category') in GAME_CATEGORIES:
-        products = filter_non_game_products(products)
         if not products:
-            log('Nenhum produto apos filtro de nao-jogos, abortando')
+            log('Nenhum produto encontrado, abortando')
             sys.exit(1)
 
-    mode = topic.get('mode', 'custo-beneficio')
-    if mode == 'melhores':
-        products.sort(key=lambda p: p['price'], reverse=True)
-        log(f'  Ordenados por preco (decrescente): melhores primeiro')
-    else:
-        products.sort(key=lambda p: p['price'])
-        log(f'  Ordenados por preco (crescente): mais baratos primeiro')
+        products = filter_by_brand_gaming(products, topic)
+        if not products:
+            log('Nenhum produto apos filtro de marca, abortando')
+            sys.exit(1)
 
-    log('Gerando links de afiliado...')
-    for p in products:
-        affiliate_url = generate_affiliate_link(
-            p['permalink'], ML_COOKIES_PATH, ML_AFFILIATE_TAG
-        )
-        p['affiliate_url'] = affiliate_url
-        log(f'  {p["title"][:50]}... -> {affiliate_url[:60]}')
+        if topic.get('category') in GAME_CATEGORIES:
+            products = filter_non_game_products(products)
+            if not products:
+                log('Nenhum produto apos filtro de nao-jogos, abortando')
+                sys.exit(1)
 
-    cover_image = get_best_cover_image(products, topic)
-    log(f'Imagem de capa: {cover_image[:80]}')
-    system_prompt, user_prompt = build_groq_prompt(topic, products, sources_text, today, cover_image)
+        if mode == 'melhores':
+            products.sort(key=lambda p: p['price'], reverse=True)
+            log(f'  Ordenados por preco (decrescente): melhores primeiro')
+        else:
+            products.sort(key=lambda p: p['price'])
+            log(f'  Ordenados por preco (crescente): mais baratos primeiro')
+
+        log('Gerando links de afiliado...')
+        for p in products:
+            affiliate_url = generate_affiliate_link(
+                p['permalink'], ML_COOKIES_PATH, ML_AFFILIATE_TAG
+            )
+            p['affiliate_url'] = affiliate_url
+            log(f'  {p["title"][:50]}... -> {affiliate_url[:60]}')
+
+        cover_image = get_best_cover_image(products, topic)
+        log(f'Imagem de capa: {cover_image[:80]}')
+        system_prompt, user_prompt = build_groq_prompt(topic, products, sources_text, today, cover_image)
 
     log('Chamando Groq...')
     try:
