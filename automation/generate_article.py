@@ -9,6 +9,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from dotenv import load_dotenv
+from urllib.parse import quote
 import requests
 import yaml
 
@@ -21,6 +22,7 @@ TAVILY_API_KEY = os.environ.get('TAVILY_API_KEY', '')
 ML_AFFILIATE_TAG = os.environ.get('ML_AFFILIATE_TAG', 'sergioskm')
 GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN', '')
 ML_COOKIES_PATH = os.environ.get('ML_COOKIES_PATH', 'ml_cookies.json')
+RAWG_API_KEY = os.environ.get('RAWG_API_KEY', '')
 BLOG_REPO_PATH = os.environ.get('BLOG_REPO_PATH', '')
 
 GROQ_MODEL = 'llama-3.3-70b-versatile'
@@ -544,10 +546,49 @@ def slugify(title):
     return s[:80].rstrip('-')
 
 
-def get_best_cover_image(products):
+def try_fetch_game_wallpaper(title):
+    if not RAWG_API_KEY:
+        return ''
+    clean = re.sub(r'^(jogo\s+|console\s+|cartas?\s+)', '', title, flags=re.I)
+    clean = re.sub(r'\b(ps4|ps5|xbox|nintendo|switch|pc|m.dia.f.sica|midia.fisica|edi..o|edition|standard|ss|cor\s+\w+|box)\b', '', clean, flags=re.I)
+    clean = re.sub(r'\s+', ' ', clean).strip()
+    if not clean or len(clean) < 3:
+        return ''
+    try:
+        r = requests.get(
+            f'https://api.rawg.io/api/games?key={RAWG_API_KEY}&search={quote(clean)}&page_size=1&search_precise=true',
+            timeout=10
+        )
+        if r.ok:
+            data = r.json()
+            results = data.get('results', [])
+            if results:
+                bg = results[0].get('background_image')
+                if bg:
+                    log(f'  RAWG wallpaper: {bg}')
+                    return bg
+        log(f'  RAWG sem resultados para: {clean}')
+    except Exception as e:
+        log(f'  RAWG erro: {e}')
+    return ''
+
+
+def get_best_cover_image(products, topic=None):
     if not products:
         return ''
-    product = products[0]
+
+    if topic and topic.get('category') in GAME_CATEGORIES:
+        wallpaper = try_fetch_game_wallpaper(products[0].get('title', ''))
+        if wallpaper:
+            return wallpaper
+
+    for product in reversed(products):
+        title_lower = product.get('title', '').lower()
+        if not any(w in title_lower for w in ['jogo', 'cartas ', 'carta ', 'card', 'pokémon', 'pokemon']):
+            break
+    else:
+        product = products[0]
+
     img_url = product.get('thumbnail', '') or (product.get('images') or [''])[0]
     if not img_url:
         return ''
@@ -561,7 +602,7 @@ def build_groq_prompt(topic, products, sources_text, today, cover_image=''):
     mode_pt = {'melhores': 'melhores produtos (qualidade acima de preco)', 'custo-beneficio': 'custo-beneficio', 'informativo': 'informativo'}.get(mode, 'custo-beneficio')
 
     if not cover_image:
-        cover_image = get_best_cover_image(products)
+        cover_image = get_best_cover_image(products, topic)
 
     products_section = '\n'.join([
         _format_product_for_prompt(p) for p in products
@@ -729,7 +770,7 @@ def main():
         p['affiliate_url'] = affiliate_url
         log(f'  {p["title"][:50]}... -> {affiliate_url[:60]}')
 
-    cover_image = get_best_cover_image(products)
+    cover_image = get_best_cover_image(products, topic)
     log(f'Imagem de capa: {cover_image[:80]}')
     system_prompt, user_prompt = build_groq_prompt(topic, products, sources_text, today, cover_image)
 
