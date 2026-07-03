@@ -154,8 +154,15 @@ def get_articles_github():
                         'body': body,
                         'sha': content['sha'],
                     })
-        articles.sort(key=lambda a: a['frontmatter'].get('pubDate', ''), reverse=True)
+        for a in articles:
+            d = a['frontmatter'].get('pubDate', '')
+            if hasattr(d, 'isoformat'):
+                d = d.isoformat()
+            a['_sort_date'] = str(d) if d else ''
+        articles.sort(key=lambda a: a['_sort_date'], reverse=True)
         return articles
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(500, str(e))
 
@@ -174,7 +181,12 @@ def get_articles_local():
                 'body': body,
                 'sha': '',
             })
-    articles.sort(key=lambda a: a['frontmatter'].get('pubDate', ''), reverse=True)
+    for a in articles:
+        d = a['frontmatter'].get('pubDate', '')
+        if hasattr(d, 'isoformat'):
+            d = d.isoformat()
+        a['_sort_date'] = str(d) if d else ''
+    articles.sort(key=lambda a: a['_sort_date'], reverse=True)
     return articles
 
 def parse_frontmatter(text):
