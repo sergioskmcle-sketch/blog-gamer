@@ -582,8 +582,15 @@ def try_fetch_game_wallpaper(title):
             if results:
                 bg = results[0].get('background_image')
                 if bg:
-                    log(f'  RAWG wallpaper: {bg}')
-                    return bg
+                    log(f'  RAWG wallpaper encontrado: {bg}')
+                    try:
+                        v = requests.head(bg, timeout=5)
+                        if v.ok:
+                            log(f'  RAWG wallpaper validado (HTTP {v.status_code})')
+                            return bg
+                        log(f'  RAWG wallpaper retornou HTTP {v.status_code}, ignorando')
+                    except Exception as e:
+                        log(f'  RAWG wallpaper inacessivel ({e}), ignorando')
         log(f'  RAWG sem resultados para: {clean}')
     except Exception as e:
         log(f'  RAWG erro: {e}')

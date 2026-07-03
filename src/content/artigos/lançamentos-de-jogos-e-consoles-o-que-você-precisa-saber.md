@@ -10,7 +10,7 @@ tags:
 - tecnologia
 category: lancamento
 affiliate: true
-image: https://media.rawg.io/media/screenshots/a7a/a7aed08ad87bacbc7b6b6bec1aba4094.jpg
+image: https://http2.mlstatic.com/D_NQ_NP_701706-MLA111284581655_052026-O.webp
 mode: melhores
 ---
 Você é um gamer experiente ou um iniciante no mundo dos jogos? De qualquer forma, é importante estar por dentro das novidades e lançamentos mais recentes do mercado. Com a nova geração de consoles e jogos, é hora de se atualizar e aproveitar ao máximo sua experiência de jogo. Neste artigo, vamos explorar os melhores lançamentos de jogos e consoles do momento, destacando suas características, benefícios e pontos negativos.
