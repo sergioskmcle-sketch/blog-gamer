@@ -35,6 +35,10 @@ node_modules/
 .env
 .env.*
 
+# Automation state
+automation/state.json
+automation/admin_data.sqlite
+
 # OS
 .DS_Store
 Thumbs.db
