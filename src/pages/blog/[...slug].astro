@@ -243,6 +243,17 @@ const categories = [
   </script>
 
   <style is:global>
+    /* === Article Game Images === */
+    #articleBody .article-game-img {
+      width: 100%;
+      max-width: 400px;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-radius: var(--radius-md, 10px);
+      border: 1px solid var(--border, #1C1C2E);
+      display: block;
+      margin: 0.5rem 0 0.75rem 0;
+    }
     /* === Product Cards === */
     #articleBody .product-card {
       background: var(--bg-card, #0A0A0F);
