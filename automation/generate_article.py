@@ -71,6 +71,23 @@ GAMING_BRANDS = [
 
 GAME_CATEGORIES = {'noticia', 'lista', 'curiosidade', 'tutorial', 'lancamento', 'promocao'}
 
+NON_GAME_PATTERNS = [
+    r'jogo\s+de\s+(lençol|lencol|cama|mesa|banho|jantar|panelas?|sofá|sofa|tapete|cortina|toalha|ferramenta|chave|cozinha|quarto|sala|escritório|escritorio|ferramentas?|jardim|pratos?|copos?|taças?|travesseir|edredom|colcha|almofada)',
+    r'jogo\s+(tabuleiro|de\s+tabuleiro|velho|xadrez|dama|damas|cartas?|baralho|monopoly|dominó|domino)',
+    r'aparelho\s+de\s+jantar',
+    r'de\s+lençol',
+]
+
+def filter_non_game_products(products):
+    filtered = []
+    for p in products:
+        title = p.get('title', '').lower()
+        if any(re.search(pat, title, re.I) for pat in NON_GAME_PATTERNS):
+            log(f'  Filtrando nao-jogo: {title[:60]}')
+            continue
+        filtered.append(p)
+    return filtered
+
 def filter_by_brand_gaming(products, topic=None):
     if topic and topic.get('category') in GAME_CATEGORIES:
         log(f'  Whitelist: pulando filtro para categoria "{topic["category"]}"')
@@ -87,15 +104,15 @@ def filter_by_brand_gaming(products, topic=None):
     return filtered
 
 TOPIC_SEEDS = [
-    {'category': 'noticia',  'mode': 'informativo',  'hint': 'lancamento de game, evento de games, anuncio de console, placa de video',                       'ml_query': 'lancamento games 2026'},
-    {'category': 'review',   'mode': 'melhores',     'hint': 'review de jogo popular, analise de gameplay, dicas de jogo',                                      'ml_query': 'jogo popular ps5 xbox switch'},
+    {'category': 'noticia',  'mode': 'informativo',  'hint': 'lancamento de game, evento de games, anuncio de console, placa de video',                       'ml_query': 'lancamento jogo ps5 xbox midia fisica original'},
+    {'category': 'review',   'mode': 'melhores',     'hint': 'review de jogo popular, analise de gameplay, dicas de jogo',                                      'ml_query': 'jogo original ps5 xbox midia fisica lancamento'},
     {'category': 'guia',     'mode': 'custo-beneficio', 'hint': 'melhores headsets gamers, teclado mecanico, mouse gamer, monitor, cadeira',                    'ml_query': 'headset gamer teclado mecanico mouse gamer monitor'},
-    {'category': 'lista',    'mode': 'custo-beneficio', 'hint': 'melhores jogos para PC, jogos gratis, jogos multiplayer, jogos estilo',                        'ml_query': 'jogo pc mais vendido 2026'},
-    {'category': 'promocao', 'mode': 'custo-beneficio', 'hint': 'promocoes Steam, ofertas de games, descontos em perifericos gamers',                           'ml_query': 'promocao jogo pc periferico gamer'},
-    {'category': 'curiosidade', 'mode': 'informativo', 'hint': 'curiosidades sobre consoles clasicos, história dos games, erros de jogos famosos, easter eggs',  'ml_query': 'console retro clasico game boy playstation nintendo'},
-    {'category': 'tutorial',    'mode': 'informativo', 'hint': 'como montar setup gamer, dicas de configuracao, melhores ajustes para jogos',                   'ml_query': 'setup gamer periferico rgb teclado mouse headset'},
+    {'category': 'lista',    'mode': 'custo-beneficio', 'hint': 'melhores jogos para PC, jogos gratis, jogos multiplayer, jogos estilo',                        'ml_query': 'jogo original ps4 ps5 xbox midia fisica list'},
+    {'category': 'promocao', 'mode': 'custo-beneficio', 'hint': 'promocoes Steam, ofertas de games, descontos em perifericos gamers',                           'ml_query': 'jogo promocao ps5 xbox pc midia fisica original'},
+    {'category': 'curiosidade', 'mode': 'informativo', 'hint': 'curiosidades sobre consoles clasicos, história dos games, erros de jogos famosos, easter eggs',  'ml_query': 'console retro game boy playstation nintendo clasico'},
+    {'category': 'tutorial',    'mode': 'informativo', 'hint': 'como montar setup gamer, dicas de configuracao, melhores ajustes para jogos',                   'ml_query': 'setup gamer periferico rgb teclado mouse headset monitor'},
     {'category': 'comparativo', 'mode': 'melhores',    'hint': 'comparativo entre consoles, placas de video x vs y, melhor processador para jogos',             'ml_query': 'console playstation xbox nintendo placa video rtx'},
-    {'category': 'lancamento',  'mode': 'melhores',    'hint': 'lancamento de console, novo jogo aguardado, placa de video nova geracao, perifericos',           'ml_query': 'lancamento 2026 console jogo rtx ps6 xbox'},
+    {'category': 'lancamento',  'mode': 'melhores',    'hint': 'lancamento de console, novo jogo aguardado, placa de video nova geracao, perifericos',           'ml_query': 'lancamento jogo ps5 xbox pc midia fisica 2026'},
 ]
 
 STATE_FILE = Path('state.json')
@@ -753,6 +770,12 @@ def main():
     if not products:
         log('Nenhum produto apos filtro de marca, abortando')
         sys.exit(1)
+
+    if topic.get('category') in GAME_CATEGORIES:
+        products = filter_non_game_products(products)
+        if not products:
+            log('Nenhum produto apos filtro de nao-jogos, abortando')
+            sys.exit(1)
 
     mode = topic.get('mode', 'custo-beneficio')
     if mode == 'melhores':
