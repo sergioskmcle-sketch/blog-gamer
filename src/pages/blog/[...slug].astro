@@ -207,7 +207,7 @@ const categories = [
   </div>
 
   <script>
-    const observerOptions = { threshold: 0.1 };
+    const observerOptions = { threshold: 0, rootMargin: "0px 0px 200px 0px" };
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
@@ -217,9 +217,15 @@ const categories = [
       });
     }, observerOptions);
 
+    const viewportHeight = window.innerHeight;
     document.querySelectorAll("#articleContent > *, #articleSidebar > section").forEach((el) => {
-      el.classList.add("transition-all", "duration-700", "opacity-0", "translate-y-10");
-      observer.observe(el);
+      const rect = el.getBoundingClientRect();
+      if (rect.top < viewportHeight + 100) {
+        el.classList.add("opacity-100", "translate-y-0");
+      } else {
+        el.classList.add("transition-all", "duration-700", "opacity-0", "translate-y-10");
+        observer.observe(el);
+      }
     });
 
     const newsletterFormArticle = document.getElementById("newsletterFormArticle");
