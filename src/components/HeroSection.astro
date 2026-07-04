@@ -16,7 +16,7 @@ const date = new Date(pubDate).toLocaleDateString("pt-BR", { timeZone: "UTC" }).
 const bgImage = image || `${base}hero-default.jpg`;
 ---
 
-<section class="relative group overflow-hidden rounded-xl border border-outline-variant/20 bg-surface-container-low shadow-2xl h-[500px] flex flex-col justify-end">
+<section class="relative group overflow-hidden rounded-xl bg-surface-container-low h-[500px] flex flex-col justify-end shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_4px_24px_rgba(0,0,0,0.6)]">
   <div class="absolute inset-0 z-0">
     <div
       class="w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
@@ -25,13 +25,12 @@ const bgImage = image || `${base}hero-default.jpg`;
     <div class="absolute inset-0 carbon-overlay"></div>
   </div>
   <div class="relative z-10 p-xl space-y-md">
-    <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 hero-glow opacity-50 pointer-events-none"></div>
     {category && (
-      <span class="inline-block px-md py-1 rounded-full bg-primary/20 border border-primary/30 text-primary font-label text-label uppercase tracking-widest">
+      <span class="inline-block px-md py-1 rounded-full bg-surface-container-high/80 border border-white/10 text-primary font-label text-label uppercase tracking-widest shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_1px_3px_rgba(0,0,0,0.5)]">
         {category}
       </span>
     )}
-    <h1 class="font-h1 text-h1 text-white drop-shadow-lg max-w-2xl leading-tight">
+    <h1 class="font-h1 text-h1 text-white max-w-2xl leading-tight text-emboss">
       {title}
     </h1>
     <div class="flex items-center gap-md font-label text-label text-outline-variant uppercase tracking-widest">
@@ -41,7 +40,7 @@ const bgImage = image || `${base}hero-default.jpg`;
     </div>
     <a
       href={`${base}blog/${slug}/`}
-      class="inline-flex items-center gap-xs mt-md px-xl py-md bg-secondary text-on-secondary font-label text-label uppercase tracking-widest font-bold rounded-lg transition-all hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] active:scale-95 no-underline hover:no-underline hover:text-on-secondary"
+      class="btn-depth inline-flex items-center gap-xs mt-md px-xl py-md text-primary font-label text-label uppercase tracking-widest font-bold no-underline hover:no-underline hover:text-primary active:scale-95"
     >
       Ler Matéria
       <span class="material-symbols-outlined text-[18px]">arrow_forward</span>

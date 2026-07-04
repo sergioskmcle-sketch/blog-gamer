@@ -22,7 +22,7 @@ const categories = [
 ---
 
 <aside class="space-y-xxl">
-  <div class="bg-surface-container rounded-xl p-md border border-outline-variant/20 sticky top-24">
+  <div class="card-depth p-md sticky top-24">
     <div class="mb-lg">
       <h3 class="font-h2 text-[1.25rem] text-primary flex items-center gap-sm">
         <span class="material-symbols-outlined">trending_up</span>
@@ -60,7 +60,7 @@ const categories = [
         {categories.map((cat) => (
           <a
             href={`${base}?categoria=${cat.slug}`}
-            class="flex items-center justify-between p-sm rounded-lg bg-surface-container-high border border-outline-variant/10 hover:border-secondary/30 hover:bg-surface-variant/50 transition-all group no-underline hover:no-underline"
+            class="flex items-center justify-between p-sm rounded-lg btn-depth hover:border-primary/30 hover:text-primary transition-all group no-underline hover:no-underline"
           >
             <span class="flex items-center gap-xs font-body text-on-surface">
               <span class="material-symbols-outlined text-secondary">{cat.icon}</span>
@@ -72,7 +72,7 @@ const categories = [
       </div>
     </div>
 
-    <div class="mt-xl p-md bg-primary-container/10 border border-primary/20 rounded-lg">
+    <div class="mt-xl p-md rounded-lg card-depth">
       <p class="font-label text-[10px] uppercase text-primary mb-sm tracking-widest">Conteúdo Exclusivo</p>
       <h4 class="font-h2 text-sm mb-md text-on-background">Inscreva-se na nossa newsletter editorial para análises toda semana.</h4>
       <form id="newsletterForm">
