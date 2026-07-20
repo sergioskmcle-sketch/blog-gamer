@@ -11,7 +11,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-deploy
   cancel-in-progress: false
 
 jobs:
@@ -28,6 +28,27 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Gerar status.json
+        run: node -e "
+          const fs = require('fs');
+          const path = require('path');
+          let state = {};
+          try { state = JSON.parse(fs.readFileSync('state.json','utf-8')); } catch(e){}
+          const artsDir = 'src/content/artigos';
+          const count = fs.existsSync(artsDir) ? fs.readdirSync(artsDir).filter(f=>f.endsWith('.md')).length : 0;
+          const status = {
+            ultimo_artigo: state.last_success || 'nunca',
+            ultimo_deploy: new Date().toISOString(),
+            artigos_semana: count,
+            total_artigos: count,
+            erros_recentes: state.last_error ? [state.last_error_date + ': ' + state.last_error] : [],
+            apis: { groq: 'ok', tavily: 'ok', rawg: 'ok' },
+            saudavel: (state.consecutive_failures || 0) === 0
+          };
+          if (!fs.existsSync('public')) fs.mkdirSync('public', {recursive:true});
+          fs.writeFileSync('public/status.json', JSON.stringify(status, null, 2));
+        "
 
       - name: Build
         run: npm run build

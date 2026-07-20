@@ -38,6 +38,7 @@ node_modules/
 # Automation state
 automation/state.json
 automation/admin_data.sqlite
+public/status.json
 
 # OS
 .DS_Store

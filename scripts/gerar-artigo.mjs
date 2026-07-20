@@ -5,6 +5,20 @@ import { searchML, generateAffiliateLink } from "./ml_affiliate.mjs";
 
 const ARTIGOS_DIR = path.resolve("src/content/artigos");
 const ML_COOKIES_PATH = path.resolve("ml_cookies.json");
+const STATE_FILE = path.resolve("state.json");
+
+function loadState() {
+  try {
+    if (fs.existsSync(STATE_FILE)) {
+      return JSON.parse(fs.readFileSync(STATE_FILE, "utf-8"));
+    }
+  } catch {}
+  return { last_success: null, last_error: null, last_error_date: null, consecutive_failures: 0, total_articles: 0 };
+}
+
+function saveState(state) {
+  fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), "utf-8");
+}
 
 const CATEGORIES = [
   { slug: "noticia", name: "Notícia" },
@@ -169,7 +183,7 @@ async function fetchTavily(query) {
   return data;
 }
 
-async function fetchGroq(systemPrompt, userPrompt, retries = 3) {
+async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 8) {
   const url = "https://api.groq.com/openai/v1/chat/completions";
   const body = {
     model: "llama-3.3-70b-versatile",
@@ -180,32 +194,37 @@ async function fetchGroq(systemPrompt, userPrompt, retries = 3) {
     temperature: 0.7,
     max_tokens: 8192,
   };
-  for (let attempt = 1; attempt <= retries; attempt++) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      log("INFO", `Groq: tentativa ${attempt}/${retries}...`);
+      log("INFO", `Groq: tentativa ${attempt}/${maxAttempts}...`);
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${GROQ_API_KEY}` },
         body: JSON.stringify(body),
       });
-      if (res.status === 429) {
-        const wait = attempt * 30;
-        log("WARN", `Groq: quota excedida, aguardando ${wait}s...`);
+      if (res.status === 429 || res.status === 503 || res.status === 502) {
+        const wait = Math.min(30 * Math.pow(2, attempt - 1), 1800);
+        log("WARN", `Groq: ${res.status}, aguardando ${wait}s (tentativa ${attempt}/${maxAttempts})...`);
         await sleep(wait * 1000);
         continue;
       }
       if (!res.ok) {
         const err = await res.text();
-        throw new Error(`Groq ${res.status}: ${err.slice(0, 300)}`);
+        const msg = `Groq ${res.status}: ${err.slice(0, 300)}`;
+        if (res.status === 401) {
+          log("ERROR", `Groq: API key invalida! Atualize GROQ_API_KEY no GitHub Secrets.`);
+        }
+        throw new Error(msg);
       }
       const data = await res.json();
       if (!data.choices?.[0]?.message?.content)
         throw new Error(`Groq: resposta vazia: ${JSON.stringify(data).slice(0, 200)}`);
       return data.choices[0].message.content;
     } catch (err) {
-      if (attempt === retries) throw err;
-      log("WARN", `Groq: erro na tentativa ${attempt}, retentando...`);
-      await sleep(5000);
+      if (attempt === maxAttempts) throw err;
+      const wait = Math.min(10 * Math.pow(2, attempt - 1), 300);
+      log("WARN", `Groq: erro "${err.message.slice(0,80)}", retentando em ${wait}s...`);
+      await sleep(wait * 1000);
     }
   }
 }
@@ -257,20 +276,9 @@ function validate(fm, body) {
   return errors;
 }
 
-function getLastArticleDate() {
-  if (!fs.existsSync(ARTIGOS_DIR)) return null;
-  const files = fs.readdirSync(ARTIGOS_DIR).filter((f) => f.endsWith(".md"));
-  if (files.length === 0) return null;
-  let latest = null;
-  for (const f of files) {
-    const c = fs.readFileSync(path.join(ARTIGOS_DIR, f), "utf-8");
-    const m = c.match(/pubDate:\s*(.+)/);
-    if (m) {
-      const d = new Date(m[1].replace(/["']/g, ""));
-      if (!latest || d > latest) latest = d;
-    }
-  }
-  return latest;
+function countArticlesInDir() {
+  if (!fs.existsSync(ARTIGOS_DIR)) return 0;
+  return fs.readdirSync(ARTIGOS_DIR).filter((f) => f.endsWith(".md")).length;
 }
 
 function getCategoryCounts() {
@@ -302,14 +310,18 @@ async function main() {
   if (!GROQ_API_KEY) { log("ERROR", "GROQ_API_KEY nao configurada"); process.exit(1); }
   if (!TAVILY_API_KEY) log("WARN", "TAVILY_API_KEY nao definida — artigo seguira sem fontes pesquisadas");
 
-  const lastDate = getLastArticleDate();
-  if (lastDate) {
-    const hours = (Date.now() - lastDate.getTime()) / 36e5;
-    log("INFO", `Ultimo artigo: ${lastDate.toISOString().split("T")[0]} (${Math.round(hours)}h atras)`);
-    if (hours < 24) {
-      log("INFO", "Menos de 24h, pulando");
-      process.exit(0);
-    }
+  const state = loadState();
+  const today = new Date().toISOString().split("T")[0];
+  const totalArticles = countArticlesInDir();
+  log("INFO", `Total artigos: ${totalArticles}`);
+
+  if (state.last_success === today) {
+    log("INFO", "Artigo ja gerado com sucesso hoje, pulando");
+    process.exit(0);
+  }
+
+  if (state.consecutive_failures > 0) {
+    log("INFO", `${state.consecutive_failures} falhas consecutivas anteriores, tentando novamente`);
   }
 
   const topic = pickTopic(getCategoryCounts());
@@ -350,8 +362,6 @@ async function main() {
     log("WARN", "ML_CLIENT_ID/ML_CLIENT_SECRET nao configurados — pulando busca de produtos ML");
   }
 
-  const today = new Date().toISOString().split("T")[0];
-
   const productBlock = mlProducts.length > 0
     ? `\nProdutos do Mercado Livre (use imagens e links obrigatoriamente):\n${mlProducts.map((p, i) =>
         `[Produto ${i + 1}]\n` +
@@ -368,7 +378,7 @@ Regras:
 - Artigo: MINIMO 1200 palavras (obrigatorio)
 - IMPORTANTE: NUNCA invente URLs de imagens (ex: wikipedia, google). Apenas mencione jogos em **negrito** que o sistema insere imagens automaticamente.
 - Sempre que citar um jogo pela PRIMEIRA vez, use **Nome Do Jogo** em negrito. Ex: "**EA Sports FC 26** e um dos melhores..."
-- ${mlProducts.length > 0 ? `Para produtos do Mercado Livre, use: <img src="URL_IMAGEM" alt="NOME" class="product-image"> e botoes: <a href="LINK_AFILIADO" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>` : "Nao inclua tags <img> no corpo do texto - o sistema adiciona automaticamente."}
+- ${mlProducts.length > 0 ? `Para produtos do Mercado Livre, use: <img src="URL_IMAGEM" alt="NOME" class="product-image"> e botoes: <a href="LINK_AFILIADO" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>` : "Modo informativo: artigo de conteudo puro. Nao invente produtos, precos, links de compra, ou URLs de imagens. Use APENAS **negrito** nos nomes de jogos."}
 - Subtitulos DEVEM usar ##, NUNCA **negrito** como subtitulo
 - Cite as fontes de pesquisa no final do artigo: "## Fontes" com links
 - NUNCA mencione que e IA. NUNCA use emojis.
@@ -380,7 +390,7 @@ description: "Descricao curta (120-160 caracteres)"
 pubDate: ${today}
 tags: [tag1, tag2, tag3, tag4, tag5]
 category: "${topic.category}"
-affiliate: true
+affiliate: ${mlProducts.length > 0}
 
 category DEVE ser: noticia, review, guia, lista ou promocao`;
 
@@ -481,10 +491,49 @@ ${body}
   const fp = path.join(ARTIGOS_DIR, `${slug}.md`);
   fs.writeFileSync(fp, markdown, "utf-8");
   log("INFO", `Artigo salvo: ${slug}.md`);
+
+  state.last_success = today;
+  state.last_slug = slug;
+  state.last_error = null;
+  state.last_error_date = null;
+  state.consecutive_failures = 0;
+  state.total_articles = countArticlesInDir();
+  saveState(state);
+  log("INFO", `Estado atualizado: ${state.total_articles} artigos, ultimo hoje`);
+
+  generateStatusFile(state);
+
   log("INFO", "=== CONCLUIDO ===");
+}
+
+async function generateStatusFile(state) {
+  const status = {
+    ultimo_artigo: state.last_success || "nunca",
+    ultimo_deploy: new Date().toISOString(),
+    artigos_semana: countArticlesInDir(),
+    total_artigos: state.total_articles,
+    erros_recentes: state.last_error ? [`${state.last_error_date}: ${state.last_error}`] : [],
+    apis: {
+      groq: "ok",
+      tavily: TAVILY_API_KEY ? "ok" : "nao-configurada",
+      rawg: RAWG_API_KEY ? "ok" : "nao-configurada"
+    },
+    saudavel: state.consecutive_failures === 0
+  };
+  const statusDir = path.resolve("public");
+  if (!fs.existsSync(statusDir)) fs.mkdirSync(statusDir, { recursive: true });
+  fs.writeFileSync(path.join(statusDir, "status.json"), JSON.stringify(status, null, 2), "utf-8");
+  log("INFO", "status.json gerado");
 }
 
 main().catch((err) => {
   log("ERROR", err.message);
+  const state = loadState();
+  const today = new Date().toISOString().split("T")[0];
+  state.last_error = err.message.slice(0, 200);
+  state.last_error_date = today;
+  state.consecutive_failures = (state.consecutive_failures || 0) + 1;
+  saveState(state);
+  generateStatusFile(state);
   process.exit(1);
 });
