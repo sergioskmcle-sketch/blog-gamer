@@ -1,26 +1,55 @@
 # Credenciais e URLs
 
-## APIs
+## GitHub Secrets (CI)
 
-| Chave | Serviço | Onde está |
-|-------|---------|-----------|
-| `GROQ_API_KEY` | Groq (geração de artigos) | `.env` na VM + local |
-| `TAVILY_API_KEY` | Tavily (busca fallback) | `.env` na VM + local |
-| `GITHUB_TOKEN` | GitHub (push automático) | `.env` na VM |
-| `ML_AFFILIATE_TAG` | Tag de afiliado ML | `.env` (`sergioskm`) |
+| Secret | Serviço | Observação |
+|--------|---------|------------|
+| `GROQ_API_KEY` | Groq (llama-3.3-70b-versatile) | Não expira, pode ser recriada no console |
+| `TAVILY_API_KEY` | Tavily (busca de fontes) | 1000 consultas/mês free |
+| `ML_CLIENT_ID` | Mercado Livre OAuth | client_credentials |
+| `ML_CLIENT_SECRET` | Mercado Livre OAuth | client_credentials |
+| `ML_COOKIES_B64` | Cookies ML (link afiliado) | Base64 de `ml_cookies.json`, expira periodicamente |
+| `RAWG_API_KEY` | RAWG.io (imagens de jogos) | Free tier |
+
+## GitHub Actions
+
+| Workflow | Arquivo | Gatilho |
+|----------|---------|---------|
+| Gerar artigo | `.github/workflows/gerar-conteudo.yml` | Schedule (cron: `30 9 */2 * *`) + manual |
+| Deploy | `.github/workflows/deploy.yml` | Push + manual |
 
 ## URLs
 
 | Recurso | URL |
 |---------|-----|
-| Repositório GitHub | `https://github.com/sergioskmcle-sketch/blog-gamer.git` |
+| Repositório | `https://github.com/sergioskmcle-sketch/blog-gamer.git` |
 | Blog (GitHub Pages) | `https://sergioskmcle-sketch.github.io/blog-gamer/` |
+| Status / Saúde | `https://sergioskmcle-sketch.github.io/blog-gamer/status.json` |
 | Groq API | `https://api.groq.com/openai/v1/chat/completions` |
 | Tavily API | `https://api.tavily.com/search` |
+| RAWG API | `https://api.rawg.io/api/` |
 | ML listing | `https://lista.mercadolivre.com.br/{query}` |
 | ML produto | `https://www.mercadolivre.com.br/p/{MLB_ID}` |
 
-## VM (Google Cloud)
+## APIs Gratuitas
+
+| API | Chave | Limite |
+|-----|-------|--------|
+| Groq | `GROQ_API_KEY` | llama-3.3-70b-versatile, free tier |
+| Tavily | `TAVILY_API_KEY` | 1000 consultas/mês free |
+| ML OAuth | `ML_CLIENT_ID` + `ML_CLIENT_SECRET` | client_credentials, free |
+| RAWG | `RAWG_API_KEY` | Free tier |
+
+## ML Cookies
+
+| Item | Descrição |
+|------|-----------|
+| Arquivo | `ml_cookies.json` na raiz do projeto |
+| Função | Contém cookies de sessão para gerar link de afiliado |
+| Renovação | Acessar ML via navegador logado como `sergioskm`, exportar cookies (JSON), codificar em base64 e atualizar o secret `ML_COOKIES_B64` |
+| Comando | `gh secret set ML_COOKIES_B64 --body ([Convert]::ToBase64String([IO.File]::ReadAllBytes("ml_cookies.json"))) --repo sergioskmcle-sketch/blog-gamer` |
+
+## VM (Google Cloud) — Legado
 
 | Item | Valor |
 |------|-------|
@@ -31,26 +60,21 @@
 | Path automação | `/home/sergioskm_cle/blog-gamer-automation/` |
 | Path blog | `/home/sergioskm_cle/blog-gamer/` |
 | Service | `blog-gamer.service` |
-| Python | `venv/bin/python3` |
 
-## ML Cookies
-
-| Item | Descrição |
-|------|-----------|
-| Arquivo | `ml_cookies.json` na raiz da automação |
-| Função | Contém `_csrf` token para API de afiliados |
-| Renovação | Acessar ML no navegador → exportar cookies (JSON) → copiar para VM via SCP |
+> A pipeline Python na VM está separada e não integrada ao CI do GitHub Actions.
 
 ## Paths Locais (PC)
 
 | Path | Descrição |
 |------|-----------|
-| `C:\Users\Sérgio PC\Documents\Expxagents\blog-gamer` | Projeto principal |
-| `C:\Users\Sérgio PC\Documents\afiliados-monitor` | Projeto referência (scraping) |
+| `C:\Users\sismais\Documents\Projetos Pessoais\blog-gamer` | Projeto principal |
 
 ## Observações
 
-- `GROQ_API_KEY` e `TAVILY_API_KEY` estão no `.env` (local + VM)
-- `GITHUB_TOKEN` só está no `.env` da VM (não versionado)
-- `ML_AFFILIATE_TAG` = `sergioskm` (fixo)
-- Cookies do ML precisam ser renovados manualmente se expirarem
+- `GROQ_API_KEY` e `TAVILY_API_KEY` estão no `.env` local e como GitHub Secrets
+- `RAWG_API_KEY` está apenas como GitHub Secret (não precisa localmente para build)
+- `ML_AFFILIATE_TAG` = `sergioskm` (fixo no código)
+- Cookies do ML (`ML_COOKIES_B64`) precisam ser renovados manualmente quando expirarem
+- Se `status.json` mostrar `"saudavel": false`, verifique os secrets no GitHub primeiro
+- Erro `401` nos `erros_recentes` do `status.json` indica `GROQ_API_KEY` inválida (recriada e não atualizada)
+- `GITHUB_TOKEN` da VM está expirado — a automação Python não está funcional
