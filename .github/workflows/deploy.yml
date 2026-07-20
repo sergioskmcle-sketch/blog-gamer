@@ -30,7 +30,7 @@ jobs:
         run: npm ci
 
       - name: Gerar status.json
-        run: node scripts/gerar-status.mjs
+        run: node scripts/gerar-status.cjs
 
       - name: Build
         run: npm run build
