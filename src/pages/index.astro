@@ -34,20 +34,6 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
           />
         )}
 
-        <a
-          href="https://t.me/+TRWZ67WHuk85Y2Nh"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="block my-xl rounded-lg overflow-hidden card-depth no-underline hover:no-underline"
-        >
-          <img
-            src={`${base}images/banner-grupo.png`}
-            alt="Grupo VIP Telegram - Ofertas Gamer Diárias"
-            class="w-full h-auto"
-            loading="lazy"
-          />
-        </a>
-
         <div class="space-y-lg">
           <div class="flex items-center justify-between border-b border-outline-variant/30 pb-md">
             <h2 class="font-h2 text-h2 text-primary flex items-center gap-sm">
@@ -80,6 +66,20 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
         <Sidebar artigos={artigos} currentSlug={destaque?.slug} />
       </aside>
     </div>
+
+    <a
+      href="https://t.me/+TRWZ67WHuk85Y2Nh"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="block max-w-page mx-auto px-gutter pb-xl rounded-lg overflow-hidden no-underline hover:no-underline"
+    >
+      <img
+        src={`${base}images/banner-grupo.png`}
+        alt="Grupo VIP Telegram - Ofertas Gamer Diárias"
+        class="w-full h-auto rounded-lg"
+        loading="lazy"
+      />
+    </a>
   </div>
 
   {!destaque && (
