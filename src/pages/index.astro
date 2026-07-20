@@ -14,6 +14,7 @@ const artigos = Object.entries(import.meta.glob("../content/artigos/*.md", { eag
 
 const [destaque, ...restante] = artigos;
 const maisLidos = artigos.filter((a) => a.slug !== destaque?.slug);
+const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 ---
 
 <Layout title="Blog Gamer">
@@ -32,6 +33,20 @@ const maisLidos = artigos.filter((a) => a.slug !== destaque?.slug);
             image={destaque.image}
           />
         )}
+
+        <a
+          href="https://t.me/+TRWZ67WHuk85Y2Nh"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="block my-xl rounded-lg overflow-hidden card-depth no-underline hover:no-underline"
+        >
+          <img
+            src={`${base}images/banner-grupo.png`}
+            alt="Grupo VIP Telegram - Ofertas Gamer Diárias"
+            class="w-full h-auto max-h-[200px] object-cover"
+            loading="lazy"
+          />
+        </a>
 
         <div class="space-y-lg">
           <div class="flex items-center justify-between border-b border-outline-variant/30 pb-md">
