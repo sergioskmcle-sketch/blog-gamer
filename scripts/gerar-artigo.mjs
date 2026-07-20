@@ -1,7 +1,13 @@
 ﻿import "dotenv/config";
 import fs from "fs";
 import path from "path";
+import Parser from "rss-parser";
 import { searchML, generateAffiliateLink } from "./ml_affiliate.mjs";
+
+const rssParser = new Parser({
+  timeout: 15000,
+  headers: { "User-Agent": "Mozilla/5.0 (compatible; BlogGamer/1.0)" },
+});
 
 const ARTIGOS_DIR = path.resolve("src/content/artigos");
 const ML_COOKIES_PATH = path.resolve("ml_cookies.json");
@@ -35,6 +41,166 @@ const TOPIC_SEEDS = [
   { category: "lista", hint: "melhores jogos para PC, jogos gratis, jogos multiplayer, jogos estilo", ml_query: "jogo pc mais vendido 2026" },
   { category: "promocao", hint: "promocoes Steam, ofertas de games, descontos em perifericos gamers", ml_query: "promocao jogo pc periferico gamer" },
 ];
+
+const RSS_FEEDS = [
+  { name: "MeuPlayStation", url: "https://meups.com.br/feed/" },
+  { name: "GameVicio", url: "https://www.gamevicio.com/feed/" },
+  { name: "IGN Brasil", url: "https://br.ign.com/feed.xml" },
+  { name: "TecMundo Games", url: "https://rss.tecmundo.com.br/games" },
+];
+
+const REDDIT_SUBS = [
+  { name: "r/gaming", url: "https://old.reddit.com/r/gaming/hot.json?limit=15" },
+  { name: "r/gamesEcultura", url: "https://old.reddit.com/r/gamesEcultura/hot.json?limit=10" },
+];
+
+const GAME_KEYWORDS = [
+  "gta", "gta 6", "gta vi", "fortnite", "minecraft", "roblox", "valorant",
+  "league of legends", "counter strike", "call of duty", "fifa", "ea fc",
+  "elden ring", "zelda", "god of war", "resident evil", "final fantasy",
+  "assassin's creed", "cyberpunk", "pokemon", "mario", "the last of us",
+  "spider man", "baldur's gate", "diablo", "starfield", "hades",
+  "hollow knight", "silksong", "red dead", "overwatch", "apex legends",
+  "rocket league", "destiny", "warzone", "battlefield", "street fighter",
+  "mortal kombat", "tekken", "persona", "metroid", "doom", "fallout",
+  "the witcher", "skyrim", "dark souls", "bloodborne", "ghost of",
+  "horizon zero", "horizon forbidden", "uncharted", "god of war",
+  "death stranding", "kingdom hearts", "monster hunter",
+];
+
+const CONSOLE_KEYWORDS = [
+  "playstation", "playstation 5", "xbox", "xbox series", "nintendo switch",
+  "switch 2", "steam deck", "pc gamer", "ps5", "ps4",
+];
+
+const HARDWARE_KEYWORDS = [
+  "monitor", "headset", "teclado", "mouse", "cadeira", "placa de video",
+  "processador", "ssd", "memoria", "rtx", "nvidia", "geforce", "radeon",
+  "amd", "intel", "fonte", "water cooler", "gabinete",
+];
+
+const EVENT_KEYWORDS = ["e3", "game awards", "gamescom", "brasil game show", "bgs", "lançamento", "lancamento"];
+
+const PROMO_KEYWORDS = ["promocao", "promoção", "oferta", "gratis", "grátis", "desconto", "steam sale"];
+
+const KEYWORD_CATEGORY_MAP = {};
+
+function initKeywordMap() {
+  for (const kw of HARDWARE_KEYWORDS) KEYWORD_CATEGORY_MAP[kw] = "guia";
+  for (const kw of PROMO_KEYWORDS) KEYWORD_CATEGORY_MAP[kw] = "promocao";
+  for (const kw of EVENT_KEYWORDS) KEYWORD_CATEGORY_MAP[kw] = "noticia";
+}
+
+initKeywordMap();
+
+function extractTrendingTopics(headlines) {
+  const allKeywords = [...GAME_KEYWORDS, ...CONSOLE_KEYWORDS, ...HARDWARE_KEYWORDS, ...EVENT_KEYWORDS, ...PROMO_KEYWORDS];
+  const scores = {};
+  for (const text of headlines) {
+    const lower = text.toLowerCase();
+    for (const kw of allKeywords) {
+      if (lower.includes(kw)) {
+        scores[kw] = (scores[kw] || 0) + 1;
+      }
+    }
+  }
+  return Object.entries(scores).sort((a, b) => b[1] - a[1]);
+}
+
+function buildTopicFromKeyword(topKeyword, topKeywords, existingTopics = []) {
+  const kw = topKeyword.toLowerCase();
+  const top3 = topKeywords.map(([k]) => k);
+  const ctx = top3.slice(0, 3).join(", ");
+
+  let category = KEYWORD_CATEGORY_MAP[kw] || "noticia";
+  let hint = "";
+  let ml_query = "";
+
+  if (GAME_KEYWORDS.some((g) => kw.includes(g) || g.includes(kw))) {
+    category = "noticia";
+    hint = `lancamentos, novidades e guia sobre ${kw} — topicos em alta: ${ctx}`;
+    ml_query = `${kw} jogo ps5 xbox pc`;
+  } else if (CONSOLE_KEYWORDS.some((c) => kw.includes(c) || c.includes(kw))) {
+    category = "noticia";
+    hint = `novidades, jogos e acessorios para ${kw} — topicos em alta: ${ctx}`;
+    ml_query = `${kw} jogo acessorio`;
+  } else if (HARDWARE_KEYWORDS.some((h) => kw.includes(h) || h.includes(kw))) {
+    category = "guia";
+    hint = `melhores ${kw}s gamer em 2026 — topicos em alta: ${ctx}`;
+    ml_query = `${kw} gamer 2026`;
+  } else if (EVENT_KEYWORDS.some((e) => kw.includes(e) || e.includes(kw))) {
+    category = "noticia";
+    hint = `${kw}: anuncios, novidades e expectativas — topicos em alta: ${ctx}`;
+    ml_query = `games lancamento 2026`;
+  } else if (PROMO_KEYWORDS.some((p) => kw.includes(p) || p.includes(kw))) {
+    category = "promocao";
+    hint = `melhores ${kw} de games e perifericos em 2026 — topicos em alta: ${ctx}`;
+    ml_query = `promocao gamer oferta`;
+  } else {
+    category = "noticia";
+    hint = `novidades sobre ${kw} no mundo gamer — topicos em alta: ${ctx}`;
+    ml_query = `${kw} gamer 2026`;
+  }
+
+  return { category, hint, ml_query, trending_score: topKeywords[0]?.[1] || 0, trending_keywords: top3 };
+}
+
+async function discoverTrendingTopic(existingTopics = []) {
+  log("INFO", "Buscando topicos trending (RSS + Reddit)...");
+
+  const headlines = [];
+
+  for (const feed of RSS_FEEDS) {
+    try {
+      const data = await rssParser.parseURL(feed.url);
+      const items = (data.items || []).slice(0, 15);
+      for (const item of items) {
+        if (item.title) headlines.push(item.title);
+      }
+      log("INFO", `RSS ${feed.name}: ${items.length} headlines`);
+    } catch (e) {
+      log("WARN", `RSS ${feed.name}: ${e.message}`);
+    }
+  }
+
+  for (const sub of REDDIT_SUBS) {
+    try {
+      const res = await fetch(sub.url, {
+        headers: { "User-Agent": "BlogGamer/1.0 (trending-discovery)" },
+        timeout: 15000,
+      });
+      if (!res.ok) { log("WARN", `Reddit ${sub.name}: ${res.status}`); continue; }
+      const data = await res.json();
+      const posts = (data.data?.children || []).slice(0, 15);
+      for (const post of posts) {
+        if (post.data?.title) headlines.push(post.data.title);
+      }
+      log("INFO", `Reddit ${sub.name}: ${posts.length} posts`);
+    } catch (e) {
+      log("WARN", `Reddit ${sub.name}: ${e.message}`);
+    }
+  }
+
+  if (headlines.length < 5) {
+    log("INFO", `Poucas headlines (${headlines.length}), usando fallback estatico`);
+    return null;
+  }
+
+  log("INFO", `Total headlines: ${headlines.length}`);
+
+  const trending = extractTrendingTopics(headlines);
+  if (trending.length === 0) {
+    log("INFO", "Nenhum topico identificado, usando fallback estatico");
+    return null;
+  }
+
+  log("INFO", `Top trending: ${trending.slice(0, 5).map(([k, v]) => `${k} (${v}x)`).join(", ")}`);
+
+  const topic = buildTopicFromKeyword(trending[0][0], trending.slice(0, 3), existingTopics);
+  log("INFO", `Tema escolhido: [${topic.category}] ${topic.hint}`);
+
+  return topic;
+}
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
@@ -170,8 +336,8 @@ async function fetchTavily(query) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       api_key: TAVILY_API_KEY, query,
-      search_depth: "basic", max_results: 5,
-      topic: "general", include_answer: true,
+      search_depth: "advanced", max_results: 6,
+      topic: "news", include_answer: true, time_range: "month",
     }),
   });
   if (!res.ok) {
@@ -324,12 +490,33 @@ async function main() {
     log("INFO", `${state.consecutive_failures} falhas consecutivas anteriores, tentando novamente`);
   }
 
-  const topic = pickTopic(getCategoryCounts());
-  log("INFO", `Tema: ${topic.category} - ${topic.hint}`);
+  let topic = null;
+  let trendingSource = "estatico";
+  const existingTopics = state.recent_topics || [];
+
+  try {
+    const trending = await discoverTrendingTopic(existingTopics);
+    if (trending && trending.trending_score >= 2) {
+      topic = trending;
+      trendingSource = "trending";
+    }
+  } catch (e) {
+    log("WARN", `Trending discovery falhou, usando fallback: ${e.message}`);
+  }
+
+  if (!topic) {
+    topic = pickTopic(getCategoryCounts());
+    log("INFO", `Tema estatico: ${topic.category} - ${topic.hint}`);
+  } else {
+    log("INFO", `Tema trending (${trendingSource}): [${topic.category}] ${topic.hint}`);
+  }
 
   let researchContext = "";
   try {
-    const sr = await fetchTavily(`${topic.hint} Brasil 2026`);
+    const query = topic.category === "noticia"
+      ? `${topic.hint} Brasil 2026`
+      : `melhores ${topic.hint} Brasil 2026`;
+    const sr = await fetchTavily(query);
     researchContext = sr?.results
       .map((r, i) => `[Fonte ${i + 1}] ${r.title}\nURL: ${r.url}\n${r.content?.slice(0, 1200)}`)
       .join("\n\n");
@@ -372,7 +559,11 @@ async function main() {
       ).join("\n")}`
     : "";
 
-  const systemPrompt = `Voce e um redator especializado em videogames do Blog Gamer, site brasileiro. Escreva em portugues brasileiro, tom natural de gamer.
+  const trendingNote = topic.trending_keywords
+    ? `\nCONTEXTO: Este topico esta em alta agora em sites de games e redes sociais. Palavras-chave trending: ${topic.trending_keywords.join(", ")}. Escreva um artigo relevante e atual conectando esses temas.`
+    : "";
+
+  const systemPrompt = `Voce e um redator especializado em videogames do Blog Gamer, site brasileiro. Escreva em portugues brasileiro, tom natural de gamer.${trendingNote}
 
 Regras:
 - Artigo: MINIMO 1200 palavras (obrigatorio)
@@ -481,7 +672,7 @@ description: "${fm.description.replace(/"/g, '\\"')}"
 pubDate: ${today}
 tags: [${fm.tags.map((t) => `"${t.trim().replace(/"/g, '\\"')}"`).join(", ")}]
 category: "${fm.category}"
-affiliate: true
+affiliate: ${fm.affiliate || mlProducts.length > 0}
 image: "${cover}"
 ---
 
@@ -498,6 +689,10 @@ ${body}
   state.last_error_date = null;
   state.consecutive_failures = 0;
   state.total_articles = countArticlesInDir();
+  state.last_topic = topic.hint;
+  state.trending_source = trendingSource;
+  state.recent_keywords = topic.trending_keywords || [];
+  state.recent_topics = [...((state.recent_topics || []).slice(-9)), topic.hint.slice(0, 60)];
   saveState(state);
   log("INFO", `Estado atualizado: ${state.total_articles} artigos, ultimo hoje`);
 

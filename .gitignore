@@ -27,6 +27,7 @@ dist/
 
 # Cookies
 ml_cookies.json
+ml_cookies_base64.txt
 
 # Dependencies
 node_modules/
