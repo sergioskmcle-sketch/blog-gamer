@@ -35,18 +35,29 @@ Se `saudavel: false` ou `ultimo_artigo` está muito antigo, verifique os secrets
   deploy.yml           → Deploy GitHub Pages (push + manual)
 
 scripts/
-  gerar-artigo.mjs        → Pipeline principal (Tavily → ML → Groq → RAWG → validação → state.json)
+  gerar-artigo.mjs        → Pipeline principal (trending → Tavily → ML → Groq → RAWG → validação → state.json)
   ml_affiliate.mjs        → API ML (token OAuth, busca produtos, link afiliado)
   gerar-status.cjs        → Gera status.json a cada deploy
   download-images.mjs     → Baixa imagens dos produtos para o repo
-  gerar-placas-video.mjs  → One-off: artigo de placas de vídeo
-  gerar-lista-monitores.mjs → One-off: monitores
-  gerar-gta6.mjs          → One-off: GTA 6
 
 src/content/artigos/   → Artigos em markdown com frontmatter
-state.json             → Estado da geração (cooldown, falhas consecutivas)
+state.json             → Estado da geração (cooldown, falhas, tópicos recentes)
 public/status.json     → Status público gerado a cada deploy
+public/images/         → Banners do Telegram (banner-grupo.png, banner-grupo-9x16-2.png)
 ```
+
+---
+
+## Escolha Inteligente de Tema (Trending Topics)
+
+O sistema não usa mais uma lista fixa de temas. Antes de cada artigo, ele consulta **RSS feeds** de sites BR (MeuPlayStation, GameVicio, IGN Brasil, TecMundo) e **Reddit** (r/gaming, r/gamesEcultura) para descobrir o que está em alta:
+
+1. Coleta headlines dos feeds RSS e posts do Reddit
+2. Extrai palavras-chave (jogos, consoles, hardware, eventos) e ranqueia por frequência
+3. Tema vencedor vira o artigo do dia, com categoria e hint montados automaticamente
+4. O contexto trending é injetado no prompt do Groq (ex: "PS5, Call of Duty e GTA estão em alta agora")
+5. Se nenhum trending for encontrado (score < 2), cai pro fallback estático
+6. Últimos 10 tópicos são salvos no `state.json` para evitar repetição
 
 ---
 
@@ -63,6 +74,7 @@ Se a geração falhar (erro no Groq, frontmatter inválido, etc.), o sistema ten
 - **Tavily offline** → artigo sem fontes de pesquisa (ainda gera conteúdo)
 - **RAWG offline** → artigo sem imagens de jogos (fallback: sem imagens)
 - **Cookies ML expirados** → links diretos do ML (sem tracking de afiliado)
+- **RSS/Reddit offline** → fallback para lista estática de temas
 
 ### Imagens automáticas de jogos
 Integração com RAWG.io — nomes de jogos em **negrito** no artigo recebem imagens automaticamente dos servidores da RAWG. Capa do artigo também vem da RAWG quando não há produto do ML.
@@ -75,13 +87,27 @@ Integração com RAWG.io — nomes de jogos em **negrito** no artigo recebem ima
 ## Fluxo de Geração
 
 1. **Agendamento** — CI dispara a cada 2 dias (cron) ou manualmente
-2. **Estado** — Verifica `state.json` para decidir se deve gerar
-3. **Pesquisa** — Tavily busca fontes sobre o tema
-4. **Produtos ML** — Busca via ML Products API (OAuth) com fallback para Tavily
-5. **Geração** — Groq (llama-3.3-70b-versatile) escreve o artigo
-6. **Imagens** — RAWG.io busca wallpapers dos jogos mencionados
-7. **Validação** — frontmatter, word count mínimo (400 palavras)
-8. **Commit + Push** — dispara o deploy automaticamente
+2. **Trending** — Consulta RSS + Reddit para descobrir tema em alta
+3. **Estado** — Verifica `state.json` para decidir se deve gerar
+4. **Pesquisa** — Tavily (`search_depth: advanced`, `time_range: month`) busca fontes
+5. **Produtos ML** — Busca via ML Products API (OAuth) com fallback para Tavily
+6. **Geração** — Groq (llama-3.3-70b-versatile) escreve o artigo com contexto trending
+7. **Imagens** — RAWG.io busca wallpapers dos jogos mencionados
+8. **Validação** — frontmatter, word count mínimo (400 palavras)
+9. **Commit + Push** — dispara o deploy automaticamente
+
+---
+
+## Banners do Telegram
+
+Dois banners promovendo o grupo VIP de ofertas no Telegram (`https://t.me/+TRWZ67WHuk85Y2Nh`):
+
+| Banner | Formato | Posição |
+|--------|---------|---------|
+| `banner-grupo-9x16-2.png` | 9:16 vertical | Topo da sidebar em **todas** as páginas |
+| `banner-grupo.png` | 16:9 horizontal | Final da home (full-width) + final de cada artigo |
+
+Arquivos em `public/images/`.
 
 ---
 
@@ -100,12 +126,14 @@ Integração com RAWG.io — nomes de jogos em **negrito** no artigo recebem ima
 
 ## APIs Gratuitas
 
-| API | Limite |
-|-----|--------|
-| Groq | llama-3.3-70b-versatile, free tier |
-| Tavily | 1000 consultas/mês free |
-| ML OAuth | client_credentials, free |
-| RAWG | Free tier, sem limite conhecido |
+| API | Função | Limite |
+|-----|--------|--------|
+| Groq | Geração de texto (llama-3.3-70b) | Free tier |
+| Tavily | Busca de fontes | 1000 consultas/mês free |
+| ML OAuth | Busca de produtos + links afiliados | client_credentials, free |
+| RAWG | Imagens de jogos | Free tier |
+| Reddit | Trending topics (r/gaming, r/gamesEcultura) | Grátis, sem API key |
+| RSS Feeds | Trending topics (MeuPlayStation, GameVicio, etc.) | Grátis, sem API key |
 
 ---
 
