@@ -39,6 +39,7 @@ jobs:
           ML_CLIENT_ID: ${{ secrets.ML_CLIENT_ID }}
           ML_CLIENT_SECRET: ${{ secrets.ML_CLIENT_SECRET }}
           ML_COOKIES_B64: ${{ secrets.ML_COOKIES_B64 }}
+          RAWG_API_KEY: ${{ secrets.RAWG_API_KEY }}
 
       - name: Verificar alteracoes
         id: check

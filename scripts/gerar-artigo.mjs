@@ -27,6 +27,9 @@ const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 const ML_COOKIES_B64 = process.env.ML_COOKIES_B64;
 const ML_CLIENT_ID = process.env.ML_CLIENT_ID;
 const ML_CLIENT_SECRET = process.env.ML_CLIENT_SECRET;
+const RAWG_API_KEY = process.env.RAWG_API_KEY;
+
+const GAME_IMAGE_CACHE = {};
 
 function log(level, msg) {
   const ts = new Date().toISOString().replace(/T/, " ").replace(/\..+/, "");
@@ -44,6 +47,96 @@ function slugify(text) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
+}
+
+async function fetchRAWGImage(gameName) {
+  if (!RAWG_API_KEY) return null;
+  if (GAME_IMAGE_CACHE[gameName]) return GAME_IMAGE_CACHE[gameName];
+
+  const clean = gameName
+    .replace(/[^a-zA-Z0-9 àáâãéêíóôõúç:]/g, "")
+    .replace(/\b(ps4|ps5|xbox|nintendo|switch|pc|midia fisica|edicao|edition|standard)\b/gi, "")
+    .replace(/\s+/g, " ").trim();
+
+  if (!clean || clean.length < 3) return null;
+
+  try {
+    const r = await fetch(
+      `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(clean)}&page_size=1`,
+      { timeout: 10000 }
+    );
+    if (!r.ok) return null;
+    const data = await r.json();
+    const bg = data.results?.[0]?.background_image;
+    if (bg) {
+      try {
+        const headRes = await fetch(bg, { method: "HEAD", timeout: 5000 });
+        if (headRes.ok) {
+          GAME_IMAGE_CACHE[gameName] = bg;
+          log("INFO", `RAWG imagem "${gameName.slice(0, 40)}": ${bg.slice(0, 60)}...`);
+          return bg;
+        }
+      } catch {}
+    }
+  } catch (e) {
+    log("WARN", `RAWG erro "${gameName.slice(0, 40)}": ${e.message}`);
+  }
+  return null;
+}
+
+function extractGameNames(body) {
+  const found = body.match(/\*\*([^*]+)\*\*/g);
+  if (!found) return [];
+  const seen = new Set();
+  const result = [];
+  for (const match of found) {
+    const name = match.replace(/^\*\*|\*\*$/g, "").trim();
+    if (name && name.length > 3 && !name.startsWith("http") && !name.startsWith("R$")) {
+      if (!seen.has(name)) {
+        seen.add(name);
+        result.push(name);
+      }
+    }
+  }
+  return result;
+}
+
+function injectGameImages(body, gameImages) {
+  let result = body;
+  for (const [name, imgUrl] of Object.entries(gameImages)) {
+    if (!imgUrl) continue;
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`\\*\\*${escaped}\\*\\*`, "g");
+    if (re.test(result)) {
+      result = result.replace(
+        new RegExp(`\\*\\*${escaped}\\*\\*`),
+        `**${name}**\n<img src="${imgUrl}" alt="${name}" class="article-game-img">`
+      );
+    }
+  }
+  return result;
+}
+
+function cleanFakeImages(body) {
+  return body
+    .replace(/<img[^>]*src="https?:\/\/upload\.wikimedia\.org[^"]*"[^>]*>/gi, "")
+    .replace(/\n\s*\n\s*\n/g, "\n\n");
+}
+
+async function getBestCoverImage(products, articleBody) {
+  if (products.length > 0) {
+    for (const p of products) {
+      if (p.thumbnail && p.thumbnail.startsWith("http")) {
+        return p.thumbnail;
+      }
+    }
+  }
+  const gameNames = extractGameNames(articleBody);
+  if (gameNames.length > 0) {
+    const img = await fetchRAWGImage(gameNames[0]);
+    if (img) return img;
+  }
+  return "";
 }
 
 if (ML_COOKIES_B64) {
@@ -273,11 +366,12 @@ async function main() {
 
 Regras:
 - Artigo: MINIMO 1200 palavras (obrigatorio)
-- Inclua imagens dos produtos usando <img src="URL_IMAGEM" alt="NOME_PRODUTO" class="product-image"> (URL deve comecar com https://)
-- Inclua botoes "VER NO MERCADO LIVRE" com link de afiliado: <a href="LINK_AFILIADO" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
-- Subtitulos DEVEM usar ##, NUNCA **negrito**
+- IMPORTANTE: NUNCA invente URLs de imagens (ex: wikipedia, google). Apenas mencione jogos em **negrito** que o sistema insere imagens automaticamente.
+- Sempre que citar um jogo pela PRIMEIRA vez, use **Nome Do Jogo** em negrito. Ex: "**EA Sports FC 26** e um dos melhores..."
+- ${mlProducts.length > 0 ? `Para produtos do Mercado Livre, use: <img src="URL_IMAGEM" alt="NOME" class="product-image"> e botoes: <a href="LINK_AFILIADO" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>` : "Nao inclua tags <img> no corpo do texto - o sistema adiciona automaticamente."}
+- Subtitulos DEVEM usar ##, NUNCA **negrito** como subtitulo
 - Cite as fontes de pesquisa no final do artigo: "## Fontes" com links
-- NUNCA mencione que e IA
+- NUNCA mencione que e IA. NUNCA use emojis.
 - Saida EXATA: frontmatter YAML entre "---" e fechando com "---" depois o conteudo markdown
 
 Frontmatter obrigatorio:
@@ -299,8 +393,7 @@ Instrucoes:
 1. Titulo SEO atraente
 2. Descricao persuasiva (120-160 caracteres no minimo)
 3. Artigo markdown com subtitulos ## (NUNCA usar **negrito** no lugar de ## — use ## para TODOS os subtitulos)
-4. Use as imagens dos produtos com <img src="https://..." alt="NOME" class="product-image"> (sempre https://)
-5. Para cada produto mencionado, coloque um botao "VER NO MERCADO LIVRE" com o link de afiliado
+${mlProducts.length > 0 ? "4. Use as imagens dos produtos com <img src=\"https://...\" alt=\"NOME\" class=\"product-image\"> (sempre https://)\n5. Para cada produto mencionado, coloque um botao \"VER NO MERCADO LIVRE\" com o link de afiliado" : "4. USE **NEGRITO** nos nomes de jogos na primeira mencao. NAO invente tags <img> — o sistema insere imagens automaticamente.\n5. NAO invente links de compra nem URLs de imagens (wikipedia, google, etc)"}
 6. No final, crie secao "## Fontes" com links das fontes pesquisadas
 7. 5 tags
 8. Dicas praticas`;
@@ -335,6 +428,32 @@ Instrucoes:
 
   log("INFO", "Validacoes OK");
 
+  log("INFO", "Buscando imagens de jogos via RAWG...");
+  body = cleanFakeImages(body);
+  const gameNames = extractGameNames(body);
+  if (gameNames.length > 0) {
+    log("INFO", `${gameNames.length} jogos detectados: ${gameNames.slice(0, 8).join(", ")}`);
+    const gameImages = {};
+    for (const name of gameNames.slice(0, 8)) {
+      const img = await fetchRAWGImage(name);
+      if (img) gameImages[name] = img;
+    }
+    if (Object.keys(gameImages).length > 0) {
+      body = injectGameImages(body, gameImages);
+      log("INFO", `${Object.keys(gameImages).length} imagens RAWG injetadas`);
+    } else {
+      log("WARN", "Nenhuma imagem RAWG encontrada");
+    }
+  } else {
+    log("WARN", "Nenhum nome de jogo detectado no artigo");
+  }
+
+  const coverImage = await getBestCoverImage(mlProducts, body);
+  if (coverImage) {
+    fm.image = coverImage;
+    log("INFO", `Imagem de capa: ${coverImage.slice(0, 80)}`);
+  }
+
   const slug = slugify(fm.title);
   const published = fs.existsSync(ARTIGOS_DIR)
     ? fs.readdirSync(ARTIGOS_DIR).filter((f) => f.endsWith(".md")).map((f) => f.replace(/\.md$/, ""))
@@ -345,14 +464,15 @@ Instrucoes:
     process.exit(0);
   }
 
+  const cover = fm.image || mlProducts[0]?.thumbnail || "";
   const markdown = `---
-title: "${fm.title}"
-description: "${fm.description}"
+title: "${fm.title.replace(/"/g, '\\"')}"
+description: "${fm.description.replace(/"/g, '\\"')}"
 pubDate: ${today}
-tags: [${fm.tags.map((t) => `"${t.trim()}"`).join(", ")}]
+tags: [${fm.tags.map((t) => `"${t.trim().replace(/"/g, '\\"')}"`).join(", ")}]
 category: "${fm.category}"
 affiliate: true
-image: "${mlProducts[0]?.thumbnail || ""}"
+image: "${cover}"
 ---
 
 ${body}
