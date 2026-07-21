@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "30 9 */2 * *"
   workflow_dispatch:
+    inputs:
+      force:
+        description: "Ignorar cooldown e gerar agora"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -37,6 +43,7 @@ jobs:
           ML_CLIENT_SECRET: ${{ secrets.ML_CLIENT_SECRET }}
           ML_COOKIES_B64: ${{ secrets.ML_COOKIES_B64 }}
           RAWG_API_KEY: ${{ secrets.RAWG_API_KEY }}
+          FORCE_GENERATE: ${{ github.event.inputs.force == 'true' && 'true' || '' }}
 
       - name: Verificar alteracoes
         id: check

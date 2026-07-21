@@ -477,13 +477,18 @@ async function main() {
   if (!TAVILY_API_KEY) log("WARN", "TAVILY_API_KEY nao definida — artigo seguira sem fontes pesquisadas");
 
   const state = loadState();
-  const today = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const today = now.toISOString().split("T")[0];
   const totalArticles = countArticlesInDir();
   log("INFO", `Total artigos: ${totalArticles}`);
 
-  if (state.last_success === today) {
-    log("INFO", "Artigo ja gerado com sucesso hoje, pulando");
-    process.exit(0);
+  if (state.last_success && !process.env.FORCE_GENERATE) {
+    const lastDate = new Date(state.last_success + "T00:00:00Z");
+    const hoursSinceLast = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60);
+    if (hoursSinceLast < 20) {
+      log("INFO", `Artigo gerado ha ${hoursSinceLast.toFixed(1)}h, cooldown de 20h nao atingido — pulando`);
+      process.exit(0);
+    }
   }
 
   if (state.consecutive_failures > 0) {
