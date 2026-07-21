@@ -1,0 +1,80 @@
+<div id="searchOverlay" class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-start justify-center pt-24 px-gutter opacity-0 invisible transition-all duration-300">
+  <div class="w-full max-w-xl bg-surface-container-low border border-outline-variant/30 rounded-xl shadow-2xl overflow-hidden">
+    <div class="flex items-center gap-sm p-md border-b border-outline-variant/20">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" class="text-on-surface-variant shrink-0"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="currentColor"/></svg>
+      <input type="text" id="searchInput" placeholder="Buscar artigos..." class="w-full bg-transparent border-none outline-none text-on-surface text-lg placeholder:text-on-surface-variant/50" autofocus />
+      <button id="searchClose" class="text-on-surface-variant hover:text-primary p-1 shrink-0" aria-label="Fechar">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="currentColor"/></svg>
+      </button>
+    </div>
+    <div id="searchResults" class="max-h-[50vh] overflow-y-auto p-sm space-y-1 empty:hidden"></div>
+    <div id="searchEmpty" class="p-lg text-center text-on-surface-variant/60 text-sm hidden">
+      Nenhum artigo encontrado.
+    </div>
+  </div>
+</div>
+
+<script>
+  const ARTICLES = JSON.parse(document.getElementById("searchData")?.textContent || "[]");
+
+  const overlay = document.getElementById("searchOverlay");
+  const input = document.getElementById("searchInput");
+  const results = document.getElementById("searchResults");
+  const emptyMsg = document.getElementById("searchEmpty");
+  const closeBtn = document.getElementById("searchClose");
+  const searchBtn = document.getElementById("searchBtn");
+
+  function openSearch() {
+    overlay.classList.remove("opacity-0", "invisible");
+    overlay.classList.add("opacity-100", "visible");
+    input.focus();
+    input.value = "";
+    results.innerHTML = "";
+    emptyMsg.classList.add("hidden");
+  }
+
+  function closeSearch() {
+    overlay.classList.add("opacity-0", "invisible");
+    overlay.classList.remove("opacity-100", "visible");
+  }
+
+  searchBtn?.addEventListener("click", openSearch);
+  closeBtn?.addEventListener("click", closeSearch);
+  overlay?.addEventListener("click", (e) => { if (e.target === overlay) closeSearch(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeSearch();
+    if ((e.ctrlKey || e.metaKey) && e.key === "k") { e.preventDefault(); openSearch(); }
+  });
+
+  input?.addEventListener("input", () => {
+    const q = input.value.toLowerCase().trim();
+    results.innerHTML = "";
+    emptyMsg.classList.add("hidden");
+
+    if (!q) return;
+
+    const matches = ARTICLES.filter((a) =>
+      a.title.toLowerCase().includes(q) ||
+      (a.category && a.category.toLowerCase().includes(q)) ||
+      (a.tags && a.tags.some((t) => t.toLowerCase().includes(q)))
+    ).slice(0, 8);
+
+    if (matches.length === 0) {
+      emptyMsg.classList.remove("hidden");
+      return;
+    }
+
+    matches.forEach((a) => {
+      const el = document.createElement("a");
+      el.href = a.url;
+      el.className = "block p-md rounded-lg hover:bg-surface-container transition-colors no-underline";
+      el.innerHTML = `
+        <div class="text-sm font-semibold text-on-surface">${a.title}</div>
+        <div class="flex items-center gap-sm mt-1">
+          <span class="text-[10px] text-primary uppercase tracking-widest">${a.category || ""}</span>
+          <span class="text-[10px] text-on-surface-variant/60">${a.date || ""}</span>
+        </div>`;
+      results.appendChild(el);
+    });
+  });
+</script>

@@ -82,6 +82,22 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.015;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='52'%3E%3Cpath d='M30 0L60 15v22L30 52 0 37V15z' fill='none' stroke='%23A855F7' stroke-width='1'/%3E%3C/svg%3E");
+  background-size: 60px 52px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html::before { display: none; }
+}
+
 ::selection {
   background: rgba(204, 151, 255, 0.3);
   color: #fff;

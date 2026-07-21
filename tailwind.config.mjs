@@ -83,6 +83,7 @@ export default {
         h1: ["Inter", ...defaultTheme.fontFamily.sans],
         h2: ["Inter", ...defaultTheme.fontFamily.sans],
         label: ['"Public Sans"', ...defaultTheme.fontFamily.sans],
+        display: ['"Orbitron"', ...defaultTheme.fontFamily.sans],
         code: ['"Public Sans"', "monospace", ...defaultTheme.fontFamily.sans],
       },
       fontSize: {
