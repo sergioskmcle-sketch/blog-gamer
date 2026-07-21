@@ -17,8 +17,29 @@ const maisLidos = artigos.filter((a) => a.slug !== destaque?.slug);
 const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 ---
 
-<Layout title="Blog Gamer">
+<Layout title="Blog Gamer" image={`${base}images/banner-grupo.png`}>
   <div class="pt-16 max-w-page mx-auto px-gutter">
+    <script>
+      (function() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has("categoria") || params.has("tag")) {
+          const meta = document.createElement("meta");
+          meta.name = "robots";
+          meta.content = "noindex, follow";
+          document.head.appendChild(meta);
+          const clean = window.location.origin + window.location.pathname;
+          let canonical = document.querySelector('link[rel="canonical"]');
+          if (canonical) {
+            canonical.href = clean;
+          } else {
+            canonical = document.createElement("link");
+            canonical.rel = "canonical";
+            canonical.href = clean;
+            document.head.appendChild(canonical);
+          }
+        }
+      })();
+    </script>
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-xl my-xl">
       <section class="lg:col-span-8 space-y-xl">
         {destaque && (
@@ -38,10 +59,10 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
           <div class="flex items-center justify-between border-b border-outline-variant/30 pb-md">
             <h2 class="font-h2 text-h2 text-primary flex items-center gap-sm">
               <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">bolt</span>
-              Latest News
+              Últimas Notícias
             </h2>
-            <a href={`${import.meta.env.BASE_URL || "/"}?categoria=hardware`} class="font-label text-label text-on-surface-variant hover:text-secondary transition-colors uppercase no-underline hover:no-underline">
-              View All
+            <a href={`${import.meta.env.BASE_URL || "/"}categoria/noticia/`} class="font-label text-label text-on-surface-variant hover:text-secondary transition-colors uppercase no-underline hover:no-underline">
+              Ver Todas
             </a>
           </div>
 
@@ -78,6 +99,7 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
         alt="Grupo VIP Telegram - Ofertas Gamer Diárias"
         class="w-full h-auto rounded-lg"
         loading="lazy"
+        decoding="async"
       />
     </a>
   </div>

@@ -1,0 +1,25 @@
+---
+import Layout from "../layouts/Layout.astro";
+const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
+---
+
+<Layout title="Página não encontrada">
+  <div class="pt-32 pb-xxl px-gutter min-h-[60vh] flex items-center justify-center">
+    <div class="text-center">
+      <p class="text-8xl mb-md">🎮</p>
+      <h1 class="font-h1 text-h1 text-primary mb-sm">404</h1>
+      <h2 class="font-h2 text-h2 text-on-surface mb-lg">Fase não encontrada</h2>
+      <p class="text-on-surface-variant text-lg max-w-md mx-auto mb-xl">
+        A página que você procura foi de F. Tente voltar ao checkpoint ou usar o mapa.
+      </p>
+      <div class="flex gap-md justify-center">
+        <a href={base} class="inline-flex items-center gap-sm px-lg py-md bg-[#2ff801] text-black font-label text-label uppercase tracking-widest font-bold rounded-lg hover:shadow-[0_0_20px_rgba(47,248,1,0.4)] hover:scale-[1.02] active:scale-95 transition-all no-underline">
+          Voltar ao Início
+        </a>
+        <a href={`${base}categoria/noticia/`} class="inline-flex items-center gap-sm px-lg py-md rounded-lg border border-primary/30 text-primary hover:bg-primary/10 transition-colors font-label text-label no-underline">
+          Últimas Notícias
+        </a>
+      </div>
+    </div>
+  </div>
+</Layout>

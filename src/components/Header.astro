@@ -3,23 +3,24 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 
 const navLinks = [
   { name: "Início", slug: "" },
-  { name: "Hardware", slug: "hardware" },
-  { name: "Games", slug: "jogos" },
+  { name: "Notícias", slug: "noticia" },
   { name: "Reviews", slug: "review" },
   { name: "Guias", slug: "guia" },
-  { name: "eSports", slug: "esports" },
+  { name: "Promoções", slug: "promocao" },
+  { name: "Listas", slug: "lista" },
 ];
 ---
 
 <header id="siteHeader" class="fixed top-0 w-full z-50 glass-nav border-b border-outline-variant/30 shadow-[0_4px_20px_-2px_rgba(168,85,247,0.15)]">
   <nav class="flex items-center justify-between h-16 px-gutter max-w-page mx-auto">
-    <a href={base} class="font-h1 text-h2 font-black text-primary tracking-tight drop-shadow-[0_0_8px_rgba(204,151,255,0.6)] no-underline hover:no-underline hover:text-primary uppercase">
+    <a href={base} class="font-h1 text-h2 font-black text-primary tracking-tight drop-shadow-[0_0_8px_rgba(204,151,255,0.6)] no-underline hover:no-underline hover:text-primary uppercase flex items-center gap-sm">
+      <img src={`${base}logo.svg`} alt="" width="28" height="28" class="inline-block" />
       BLOG GAMER
     </a>
     <div class="hidden md:flex items-center gap-lg font-label text-label">
       {navLinks.map((link, i) => (
         <a
-          href={link.slug ? `${base}?categoria=${link.slug}` : base}
+          href={link.slug ? `${base}categoria/${link.slug}/` : base}
           class="text-on-surface-variant hover:text-primary transition-colors uppercase tracking-widest no-underline hover:no-underline"
         >
           {link.name}
@@ -40,7 +41,7 @@ const navLinks = [
     <div class="flex flex-col p-lg gap-md">
       {navLinks.map((link) => (
         <a
-          href={link.slug ? `${base}?categoria=${link.slug}` : base}
+          href={link.slug ? `${base}categoria/${link.slug}/` : base}
           class="font-label text-label text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline py-sm uppercase tracking-widest"
         >
           {link.name}
@@ -53,15 +54,22 @@ const navLinks = [
 <script>
   const header = document.getElementById("siteHeader");
   if (header) {
+    let ticking = false;
     window.addEventListener("scroll", () => {
-      if (window.scrollY > 20) {
-        header.classList.add("shadow-xl");
-        header.classList.add("bg-black/90");
-      } else {
-        header.classList.remove("shadow-xl");
-        header.classList.remove("bg-black/90");
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          if (window.scrollY > 20) {
+            header.classList.add("shadow-xl");
+            header.classList.add("bg-black/90");
+          } else {
+            header.classList.remove("shadow-xl");
+            header.classList.remove("bg-black/90");
+          }
+          ticking = false;
+        });
+        ticking = true;
       }
-    });
+    }, { passive: true });
   }
 
   const searchBtn = document.getElementById("searchBtn");

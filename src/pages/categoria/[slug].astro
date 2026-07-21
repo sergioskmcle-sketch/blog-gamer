@@ -1,0 +1,91 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import ArticleCard from "../../components/ArticleCard.astro";
+import Sidebar from "../../components/Sidebar.astro";
+
+export async function getStaticPaths() {
+  const artigos = Object.values(import.meta.glob("../../content/artigos/*.md", { eager: true }));
+  const categorias = [...new Set(artigos.map((a) => a.frontmatter.category).filter(Boolean))];
+  return categorias.map((cat) => ({ params: { slug: cat } }));
+}
+
+const { slug } = Astro.params;
+const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
+
+const todosArtigos = Object.entries(import.meta.glob("../../content/artigos/*.md", { eager: true }))
+  .map(([path, mod]) => ({
+    slug: path.split("/").pop()?.replace(".md", "") || "",
+    ...mod.frontmatter,
+  }))
+  .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+
+const artigosCategoria = todosArtigos.filter((a) => a.category === slug);
+
+const nomesCategoria = {
+  noticia: "Notícias",
+  review: "Reviews",
+  guia: "Guias de Compra",
+  lista: "Listas",
+  promocao: "Promoções",
+  curiosidade: "Curiosidades",
+  lancamento: "Lançamentos",
+  tecnologia: "Tecnologia",
+  comparativo: "Comparativos",
+};
+
+const nomeCategoria = nomesCategoria[slug] || slug;
+const descricaoCategoria = `Artigos sobre ${nomeCategoria.toLowerCase()} no mundo dos games — análises, notícias e guias para gamers.`;
+---
+
+<Layout
+  title={`${nomeCategoria} — Blog Gamer`}
+  description={descricaoCategoria}
+>
+  <div class="pt-16 max-w-page mx-auto px-gutter">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-xl my-xl">
+      <section class="lg:col-span-8 space-y-xl">
+        <div class="border-b border-outline-variant/30 pb-lg">
+          <a href={base} class="text-on-surface-variant hover:text-primary text-sm no-underline mb-sm inline-block">
+            &larr; Início
+          </a>
+          <h1 class="font-h1 text-h1 text-primary">
+            {nomeCategoria}
+          </h1>
+          <p class="text-on-surface-variant mt-sm">
+            {artigosCategoria.length} {artigosCategoria.length === 1 ? "artigo" : "artigos"} encontrados
+          </p>
+        </div>
+
+        {artigosCategoria.length > 0 ? (
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
+            {artigosCategoria.map((artigo) => (
+              <ArticleCard
+                title={artigo.title}
+                description={artigo.description}
+                pubDate={artigo.pubDate}
+                tags={artigo.tags}
+                category={artigo.category}
+                affiliate={artigo.affiliate}
+                slug={artigo.slug}
+                image={artigo.image}
+              />
+            ))}
+          </div>
+        ) : (
+          <div class="text-center py-xxl">
+            <p class="text-6xl mb-md">🎮</p>
+            <h2 class="font-h2 text-h2 text-on-surface mb-sm">Nenhum artigo encontrado</h2>
+            <p class="text-on-surface-variant mb-lg">Ainda não há artigos nesta categoria.</p>
+            <a href={base} class="inline-flex items-center gap-sm px-lg py-md rounded-lg border border-primary/30 text-primary hover:bg-primary/10 transition-colors font-label text-label no-underline">
+              Voltar ao início
+            </a>
+          </div>
+        )}
+      </section>
+
+      <aside class="lg:col-span-4">
+        <Sidebar artigos={todosArtigos} currentSlug={undefined} />
+      </aside>
+    </div>
+  </div>
+</Layout>

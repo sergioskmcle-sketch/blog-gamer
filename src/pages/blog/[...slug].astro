@@ -25,13 +25,14 @@ const todosArtigos = Object.entries(import.meta.glob("../../content/artigos/*.md
 
 const relacionados = todosArtigos.filter((a) => a.slug !== Astro.params.slug).slice(0, 3);
 
-const readingTime = Math.max(1, Math.ceil((frontmatter.description || "").split(" ").length / 200));
+  const readingTime = Math.max(1, Math.ceil(Content ? 1 : (frontmatter.description || "").split(" ").length / 200));
 
 const categories = [
-  { name: "Hardware", slug: "hardware", icon: "memory" },
-  { name: "Jogos", slug: "jogos", icon: "sports_esports" },
-  { name: "eSports", slug: "esports", icon: "trophy" },
+  { name: "Notícias", slug: "noticia", icon: "sports_esports" },
   { name: "Reviews", slug: "review", icon: "grade" },
+  { name: "Guias", slug: "guia", icon: "memory" },
+  { name: "Promoções", slug: "promocao", icon: "trophy" },
+  { name: "Listas", slug: "lista", icon: "menu_book" },
 ];
 ---
 
@@ -43,6 +44,10 @@ const categories = [
   tags={frontmatter.tags}
   category={frontmatter.category}
 >
+  <div class="fixed top-0 left-0 w-full h-[3px] z-50" id="readingProgress">
+    <div id="readingProgressBar" class="h-full bg-[#2ff801] shadow-[0_0_8px_rgba(47,248,1,0.5)] w-0 transition-[width] duration-150 ease-out"></div>
+  </div>
+
   <div class="relative z-10 pt-[100px] pb-xxl px-gutter">
     <div class="max-w-[1100px] mx-auto grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-xl">
       <article class="max-w-max-content-width mx-auto w-full" id="articleContent">
@@ -52,6 +57,8 @@ const categories = [
               src={frontmatter.image}
               alt={frontmatter.title}
               class="w-full aspect-video object-cover group-hover:scale-105 transition-transform duration-700"
+              fetchpriority="high"
+              decoding="async"
             />
           </div>
         )}
@@ -121,6 +128,7 @@ const categories = [
             alt="Grupo VIP Telegram - Ofertas Gamer Diárias"
             class="w-full h-auto"
             loading="lazy"
+            decoding="async"
           />
         </a>
 
@@ -153,6 +161,7 @@ const categories = [
             alt="Grupo VIP Telegram - Ofertas Gamer Diárias"
             class="w-full h-auto"
             loading="lazy"
+            decoding="async"
           />
         </a>
 
@@ -165,7 +174,7 @@ const categories = [
             {categories.map((cat) => (
               <li>
                 <a
-                  href={`${base}?categoria=${cat.slug}`}
+                  href={`${base}categoria/${cat.slug}/`}
                   class="btn-depth flex justify-between items-center p-md group no-underline hover:no-underline"
                 >
                   <span class="flex items-center gap-sm text-on-surface group-hover:text-primary transition-colors text-sm">
@@ -195,6 +204,8 @@ const categories = [
                       src={artigo.image}
                       alt={artigo.title}
                       class="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
+                      decoding="async"
                     />
                   ) : (
                     <div class="w-full h-full bg-surface-container-high flex items-center justify-center text-2xl">
@@ -212,30 +223,35 @@ const categories = [
           </div>
         </section>
 
-        <section class="p-lg card-depth relative overflow-hidden">
-          <h3 class="text-lg font-bold text-white mb-sm">Newsletter</h3>
+        <section class="p-lg card-depth relative overflow-hidden text-center">
+          <h3 class="text-lg font-bold text-[#2ff801] mb-sm">Ofertas Gamer</h3>
           <p class="text-xs text-on-surface-variant mb-md">
-            Receba as últimas notícias de hardware e games no seu email.
+            Entre no grupo VIP do Telegram e receba ofertas diárias.
           </p>
-          <form id="newsletterFormArticle" class="space-y-sm">
-            <input
-              class="w-full bg-background border border-outline-variant/30 rounded-lg py-xs px-md text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none text-on-surface placeholder:text-on-surface-variant/50"
-              placeholder="Seu email"
-              type="email"
-              id="newsletterInputArticle"
-              required
-            />
-            <button type="submit" class="btn-depth w-full text-primary font-label uppercase tracking-widest font-bold py-xs rounded-lg" id="newsletterBtnArticle">
-              INSCREVER
-            </button>
-            <p id="newsletterFeedbackArticle" class="text-[10px] text-primary/70 hidden"></p>
-          </form>
+          <a
+            href="https://t.me/+TRWZ67WHuk85Y2Nh"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-xs px-lg py-sm bg-[#2ff801] text-black font-label text-[10px] uppercase font-bold rounded-md hover:shadow-[0_0_12px_rgba(47,248,1,0.4)] transition-all no-underline"
+          >
+            Entrar no Grupo
+          </a>
         </section>
       </aside>
     </div>
   </div>
 
   <script>
+    const progressBar = document.getElementById("readingProgressBar");
+    if (progressBar) {
+      window.addEventListener("scroll", () => {
+        const scrollTop = window.scrollY;
+        const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const progress = docHeight > 0 ? Math.min((scrollTop / docHeight) * 100, 100) : 0;
+        progressBar.style.width = progress + "%";
+      }, { passive: true });
+    }
+
     const observerOptions = { threshold: 0, rootMargin: "0px 0px 200px 0px" };
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
@@ -257,24 +273,7 @@ const categories = [
       }
     });
 
-    const newsletterFormArticle = document.getElementById("newsletterFormArticle");
-    const newsletterInputArticle = document.getElementById("newsletterInputArticle");
-    const newsletterBtnArticle = document.getElementById("newsletterBtnArticle");
-    const newsletterFeedbackArticle = document.getElementById("newsletterFeedbackArticle");
 
-    if (newsletterFormArticle) {
-      newsletterFormArticle.addEventListener("submit", (e) => {
-        e.preventDefault();
-        if (newsletterInputArticle && newsletterInputArticle.value.trim()) {
-          newsletterBtnArticle.textContent = "INSCRITO!";
-          newsletterBtnArticle.disabled = true;
-          newsletterBtnArticle.style.opacity = "0.6";
-          newsletterFeedbackArticle.textContent = "Obrigado por se inscrever!";
-          newsletterFeedbackArticle.classList.remove("hidden");
-          newsletterInputArticle.value = "";
-        }
-      });
-    }
   </script>
 
   <style is:global>

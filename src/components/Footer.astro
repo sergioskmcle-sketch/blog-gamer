@@ -10,16 +10,16 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 
     <nav class="flex flex-wrap justify-center gap-lg font-label text-label">
       <a href={`${base}`} class="uppercase text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
-        Sobre
+        Início
       </a>
-      <a href={`${base}`} class="uppercase text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
-        Política Editorial
+      <a href={`${base}categoria/noticia/`} class="uppercase text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
+        Notícias
       </a>
-      <a href={`${base}`} class="uppercase text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
-        Ética
+      <a href={`${base}categoria/review/`} class="uppercase text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
+        Reviews
       </a>
-      <a href={`${base}`} class="uppercase text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
-        Contato
+      <a href={`${base}categoria/guia/`} class="uppercase text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
+        Guias
       </a>
     </nav>
 

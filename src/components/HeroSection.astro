@@ -13,14 +13,15 @@ export interface Props {
 const { title, description, pubDate, tags, category, affiliate, slug, image } = Astro.props;
 const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 const date = new Date(pubDate).toLocaleDateString("pt-BR", { timeZone: "UTC" }).toUpperCase();
-const bgImage = image || `${base}hero-default.jpg`;
+const bgImage = image || `${base}images/banner-grupo.png`;
 ---
 
-<section class="relative group overflow-hidden rounded-xl bg-surface-container-low h-[500px] flex flex-col justify-end shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_4px_24px_rgba(0,0,0,0.6)]">
+<section class="relative group overflow-hidden rounded-xl bg-surface-container-low h-[300px] sm:h-[400px] lg:h-[500px] flex flex-col justify-end shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_4px_24px_rgba(0,0,0,0.6)]">
   <div class="absolute inset-0 z-0">
     <div
       class="w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-      style={{ backgroundImage: `url('${bgImage}')` }}
+      style={`background-image: url('${bgImage}')`}
+      fetchpriority="high"
     />
     <div class="absolute inset-0 carbon-overlay"></div>
   </div>
@@ -40,7 +41,7 @@ const bgImage = image || `${base}hero-default.jpg`;
     </div>
     <a
       href={`${base}blog/${slug}/`}
-      class="btn-depth inline-flex items-center gap-xs mt-md px-xl py-md text-primary font-label text-label uppercase tracking-widest font-bold no-underline hover:no-underline hover:text-primary active:scale-95"
+      class="inline-flex items-center gap-xs mt-md px-xl py-md bg-[#2ff801] text-black font-label text-label uppercase tracking-widest font-bold no-underline hover:no-underline rounded-lg hover:shadow-[0_0_20px_rgba(47,248,1,0.4)] hover:scale-[1.02] active:scale-95 transition-all"
     >
       Ler Matéria
       <span class="material-symbols-outlined text-[18px]">arrow_forward</span>

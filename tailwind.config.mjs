@@ -45,7 +45,7 @@ export default {
         outline: "#757481",
         "tertiary-container": "#fe7e8e",
         "on-secondary-fixed-variant": "#0d6200",
-        "on-primary": "#47007c",
+        "on-primary": "#ffffff",
         "surface-container-lowest": "#000000",
         "on-tertiary-fixed-variant": "#711227",
         "secondary-container": "#106e00",

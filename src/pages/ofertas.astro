@@ -1,0 +1,76 @@
+---
+import Layout from "../layouts/Layout.astro";
+import ArticleCard from "../components/ArticleCard.astro";
+
+const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
+
+const artigos = Object.entries(import.meta.glob("../content/artigos/*.md", { eager: true }))
+  .map(([path, mod]) => ({
+    slug: path.split("/").pop()?.replace(".md", "") || "",
+    ...mod.frontmatter,
+  }))
+  .filter((a) => a.affiliate === true)
+  .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
+  .slice(0, 12);
+---
+
+<Layout
+  title="Ofertas Gamer — Blog Gamer"
+  description="As melhores ofertas de produtos gamer no Mercado Livre — consoles, periféricos, hardware e games com links de afiliado."
+  image={`${base}images/banner-grupo.png`}
+>
+  <div class="pt-16 max-w-page mx-auto px-gutter">
+    <div class="py-xl">
+      <div class="border-b border-outline-variant/30 pb-lg mb-xl">
+        <a href={base} class="text-on-surface-variant hover:text-primary text-sm no-underline mb-sm inline-block">
+          &larr; Início
+        </a>
+        <h1 class="font-h1 text-h1 text-primary">
+          Ofertas Gamer
+        </h1>
+        <p class="text-on-surface-variant mt-sm max-w-2xl">
+          Os melhores produtos para gamers com links de afiliado do Mercado Livre. 
+          Comprando por aqui você apoia o blog sem pagar nada a mais.
+        </p>
+      </div>
+
+      {artigos.length > 0 ? (
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
+          {artigos.map((artigo) => (
+            <ArticleCard
+              title={artigo.title}
+              description={artigo.description}
+              pubDate={artigo.pubDate}
+              tags={artigo.tags}
+              category={artigo.category}
+              affiliate={artigo.affiliate}
+              slug={artigo.slug}
+              image={artigo.image}
+            />
+          ))}
+        </div>
+      ) : (
+        <div class="text-center py-xxl">
+          <p class="text-6xl mb-md">🛒</p>
+          <h2 class="font-h2 text-h2 text-on-surface mb-sm">Nenhuma oferta no momento</h2>
+          <p class="text-on-surface-variant">Volte em breve para conferir as melhores ofertas gamers.</p>
+        </div>
+      )}
+
+      <div class="mt-xxl p-xl rounded-xl border border-[#2ff801]/20 bg-[#2ff801]/[0.02] text-center">
+        <h2 class="font-h2 text-h2 text-[#2ff801] mb-sm">Quer ofertas em primeira mão?</h2>
+        <p class="text-on-surface-variant mb-lg max-w-lg mx-auto">
+          Entre no nosso grupo VIP do Telegram e receba ofertas diárias de games, consoles e periféricos.
+        </p>
+        <a
+          href="https://t.me/+TRWZ67WHuk85Y2Nh"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-sm px-xl py-md bg-[#2ff801] text-black font-label text-label uppercase tracking-widest font-bold rounded-lg hover:shadow-[0_0_20px_rgba(47,248,1,0.4)] hover:scale-[1.02] active:scale-95 transition-all no-underline"
+        >
+          Entrar no Grupo VIP
+        </a>
+      </div>
+    </div>
+  </div>
+</Layout>

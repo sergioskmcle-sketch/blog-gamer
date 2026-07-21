@@ -13,11 +13,11 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 const recentes = artigos.filter((a) => a.slug !== currentSlug).slice(0, 10);
 
 const categories = [
-  { name: "Hardware", slug: "hardware", icon: "memory", count: artigos.filter((a) => a.category === "hardware").length },
-  { name: "Games", slug: "jogos", icon: "sports_esports", count: artigos.filter((a) => a.category === "jogos" || a.category === "noticia").length },
-  { name: "eSports", slug: "esports", icon: "trophy", count: artigos.filter((a) => a.category === "esports").length },
+  { name: "Notícias", slug: "noticia", icon: "sports_esports", count: artigos.filter((a) => a.category === "noticia").length },
   { name: "Reviews", slug: "review", icon: "grade", count: artigos.filter((a) => a.category === "review").length },
-  { name: "Guias", slug: "guia", icon: "menu_book", count: artigos.filter((a) => a.category === "guia" || a.category === "lista").length },
+  { name: "Guias", slug: "guia", icon: "memory", count: artigos.filter((a) => a.category === "guia").length },
+  { name: "Promoções", slug: "promocao", icon: "trophy", count: artigos.filter((a) => a.category === "promocao").length },
+  { name: "Listas", slug: "lista", icon: "menu_book", count: artigos.filter((a) => a.category === "lista").length },
 ];
 ---
 
@@ -35,13 +35,14 @@ const categories = [
         alt="Grupo VIP Telegram - Ofertas Gamer Diárias"
         class="w-full h-auto"
         loading="lazy"
+        decoding="async"
       />
     </a>
 
     <div class="mb-lg">
       <h3 class="font-h2 text-[1.25rem] text-primary flex items-center gap-sm">
         <span class="material-symbols-outlined">trending_up</span>
-        Popular This Week
+        Populares da Semana
       </h3>
       <p class="font-body text-sm text-on-surface-variant mt-xs">Blog Gamer</p>
     </div>
@@ -74,7 +75,7 @@ const categories = [
       <div class="grid grid-cols-1 gap-sm">
         {categories.map((cat) => (
           <a
-            href={`${base}?categoria=${cat.slug}`}
+            href={`${base}categoria/${cat.slug}/`}
             class="flex items-center justify-between p-sm rounded-lg btn-depth hover:border-primary/30 hover:text-primary transition-all group no-underline hover:no-underline"
           >
             <span class="flex items-center gap-xs font-body text-on-surface">
@@ -87,43 +88,17 @@ const categories = [
       </div>
     </div>
 
-    <div class="mt-xl p-md rounded-lg card-depth">
-      <p class="font-label text-[10px] uppercase text-primary mb-sm tracking-widest">Conteúdo Exclusivo</p>
-      <h4 class="font-h2 text-sm mb-md text-on-background">Inscreva-se na nossa newsletter editorial para análises toda semana.</h4>
-      <form id="newsletterForm">
-        <input
-          id="newsletterInput"
-          type="email"
-          required
-          placeholder="Seu email"
-          class="w-full py-sm px-md rounded-md bg-surface-container-low border border-outline-variant/30 text-on-surface text-sm placeholder:text-outline/50 mb-sm focus:outline-none focus:border-primary"
-        />
-        <button type="submit" id="newsletterBtn" class="w-full py-sm bg-primary text-on-primary font-label text-[10px] uppercase font-bold rounded-md hover:opacity-90 transition-opacity">
-          Inscrever
-        </button>
-        <p id="newsletterFeedback" class="text-[10px] text-primary/70 mt-xs hidden"></p>
-      </form>
+    <div class="mt-xl p-md rounded-lg card-depth text-center">
+      <p class="font-label text-[10px] uppercase text-primary mb-sm tracking-widest">Comunidade</p>
+      <p class="text-xs text-on-surface-variant mb-md">Junte-se ao grupo VIP e receba ofertas diárias de games.</p>
+      <a
+        href="https://t.me/+TRWZ67WHuk85Y2Nh"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-flex items-center gap-xs px-lg py-sm bg-[#2ff801] text-black font-label text-[10px] uppercase font-bold rounded-md hover:shadow-[0_0_12px_rgba(47,248,1,0.4)] transition-all no-underline"
+      >
+        Entrar no Telegram
+      </a>
     </div>
   </div>
 </aside>
-
-<script>
-  const form = document.getElementById("newsletterForm");
-  const input = document.getElementById("newsletterInput");
-  const btn = document.getElementById("newsletterBtn");
-  const feedback = document.getElementById("newsletterFeedback");
-
-  if (form) {
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      if (input && input.value.trim()) {
-        btn.textContent = "INSCRITO!";
-        btn.disabled = true;
-        btn.style.opacity = "0.6";
-        feedback.textContent = "Obrigado por se inscrever!";
-        feedback.classList.remove("hidden");
-        input.value = "";
-      }
-    });
-  }
-</script>
