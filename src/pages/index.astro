@@ -3,6 +3,7 @@ import Layout from "../layouts/Layout.astro";
 import HeroSection from "../components/HeroSection.astro";
 import ArticleCard from "../components/ArticleCard.astro";
 import Sidebar from "../components/Sidebar.astro";
+import Icon from "../components/Icon.astro";
 
 const artigos = Object.entries(import.meta.glob("../content/artigos/*.md", { eager: true }))
   .map(([path, mod]) => ({
@@ -58,7 +59,7 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
         <div class="space-y-lg">
           <div class="flex items-center justify-between border-b border-outline-variant/30 pb-md">
             <h2 class="font-h2 text-h2 text-primary flex items-center gap-sm">
-              <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">bolt</span>
+              <Icon name="bolt" class="text-secondary" />
               Últimas Notícias
             </h2>
             <a href={`${import.meta.env.BASE_URL || "/"}categoria/noticia/`} class="font-label text-label text-on-surface-variant hover:text-secondary transition-colors uppercase no-underline hover:no-underline">

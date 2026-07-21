@@ -1,4 +1,6 @@
 ---
+import Icon from "./Icon.astro";
+
 export interface Artigo {
   title: string;
   slug: string;
@@ -41,7 +43,7 @@ const categories = [
 
     <div class="mb-lg">
       <h3 class="font-h2 text-[1.25rem] text-primary flex items-center gap-sm">
-        <span class="material-symbols-outlined">trending_up</span>
+        <Icon name="trending_up" />
         Populares da Semana
       </h3>
       <p class="font-body text-sm text-on-surface-variant mt-xs">Blog Gamer</p>
@@ -79,10 +81,10 @@ const categories = [
             class="flex items-center justify-between p-sm rounded-lg btn-depth hover:border-primary/30 hover:text-primary transition-all group no-underline hover:no-underline"
           >
             <span class="flex items-center gap-xs font-body text-on-surface">
-              <span class="material-symbols-outlined text-secondary">{cat.icon}</span>
+              <Icon name={cat.icon} class="text-secondary" />
               {cat.name}
             </span>
-            <span class="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+            <Icon name="chevron_right" size={16} class="opacity-0 group-hover:opacity-100 transition-opacity" />
           </a>
         ))}
       </div>

@@ -1,4 +1,6 @@
 ---
+import Icon from "./Icon.astro";
+
 const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 ---
 
@@ -25,13 +27,13 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 
     <div class="flex gap-xl text-outline mt-md">
       <a href="#" class="no-underline hover:no-underline text-outline hover:text-secondary transition-colors" aria-label="Site">
-        <span class="material-symbols-outlined">public</span>
+        <Icon name="public" />
       </a>
       <a href="mailto:?subject=Blog%20Gamer&body={encodeURIComponent(base)}" class="no-underline hover:no-underline text-outline hover:text-secondary transition-colors" aria-label="Email">
-        <span class="material-symbols-outlined">mail</span>
+        <Icon name="mail" />
       </a>
       <a href={`${base}rss.xml`} class="no-underline hover:no-underline text-outline hover:text-secondary transition-colors" aria-label="RSS">
-        <span class="material-symbols-outlined">rss_feed</span>
+        <Icon name="rss_feed" />
       </a>
     </div>
 

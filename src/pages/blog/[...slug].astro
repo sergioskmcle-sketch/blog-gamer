@@ -1,5 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import Icon from "../../components/Icon.astro";
 
 export async function getStaticPaths() {
   const artigos = Object.entries(import.meta.glob("../../content/artigos/*.md", { eager: true }));
@@ -82,12 +83,12 @@ const categories = [
 
         <div class="flex items-center gap-md mb-xl text-outline font-label text-label">
           <div class="flex items-center gap-xs">
-            <span class="material-symbols-outlined text-[18px]">person</span>
+              <Icon name="person" size={18} />
             <span>BLOG GAMER</span>
           </div>
           <div class="w-1 h-1 bg-outline-variant/40 rounded-full" />
           <div class="flex items-center gap-xs">
-            <span class="material-symbols-outlined text-[18px]">calendar_today</span>
+              <Icon name="calendar_today" size={18} />
             <span>{new Date(frontmatter.pubDate).toLocaleDateString("pt-BR")}</span>
           </div>
           <div class="w-1 h-1 bg-outline-variant/40 rounded-full" />
@@ -143,7 +144,7 @@ const categories = [
             href={base}
             class="inline-flex items-center gap-sm px-lg py-md rounded-lg border border-outline-variant/20 text-on-surface-variant hover:text-primary hover:border-primary transition-colors font-label text-label no-underline hover:no-underline"
           >
-            <span class="material-symbols-outlined text-sm">arrow_back</span>
+              <Icon name="arrow_back" size={14} />
             VOLTAR AO INÍCIO
           </a>
         </div>
@@ -178,7 +179,7 @@ const categories = [
                   class="btn-depth flex justify-between items-center p-md group no-underline hover:no-underline"
                 >
                   <span class="flex items-center gap-sm text-on-surface group-hover:text-primary transition-colors text-sm">
-                    <span class="material-symbols-outlined text-sm">{cat.icon}</span>
+                    <Icon name={cat.icon} size={14} />
                     {cat.name}
                   </span>
                   <span class="bg-surface-container-highest px-2 py-0.5 rounded text-xs text-on-surface-variant">

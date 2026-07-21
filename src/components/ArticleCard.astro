@@ -1,4 +1,6 @@
 ---
+import Icon from "./Icon.astro";
+
 export interface Props {
   title: string;
   description: string;
@@ -58,7 +60,7 @@ const timeAgo = (date: Date | string) => {
 
       <div class="flex items-center justify-between font-label text-[11px] text-outline pt-sm border-t border-outline-variant/20 mt-auto">
         <span>{timeAgo(pubDate)}</span>
-        <span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 0, 'wght' 300">bookmark</span>
+        <Icon name="bookmark" size={14} class="text-outline-variant/50" />
       </div>
     </div>
   </a>
