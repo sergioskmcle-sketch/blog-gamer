@@ -28,7 +28,7 @@ Aqui estão alguns produtos que podem interessar aos fãs de consoles clássicos
     ❌ Durabilidade: a construção pode não ser tão resistente quanto outros dispositivos.
   * Perfil indicado: Fãs de jogos clássicos e pessoas que buscam um console portátil acessível.
   * Faixa de preço: R$19.00
-  <img src="https://http2.mlstatic.com/D_NQ_NP_943065-MLA110012331594_042026-O.webp" alt="Console Portátil Brick Game">
+  <img src="/blog-gamer/images/produtos/D_NQ_NP_943065-MLA110012331594_042026-O.webp" alt="Console Portátil Brick Game">
   <a href="https://meli.la/1vubxeD" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 - **Suporte para 2 Controles de Vídeo Game Ibox Preto**: Se você é um fã de jogos multiplayer, este suporte para controles é uma ótima opção. Com espaço para dois controles, é perfeito para jogar com amigos e familiares.
@@ -41,7 +41,7 @@ Aqui estão alguns produtos que podem interessar aos fãs de consoles clássicos
     ❌ Estabilidade: pode não ser tão estável quanto outros suportes.
   * Perfil indicado: Jogadores que valorizam a organização e a conveniência.
   * Faixa de preço: R$19.73
-  <img src="https://http2.mlstatic.com/D_NQ_NP_918859-MLA91608492434_092025-O.webp" alt="Suporte para 2 Controles de Vídeo Game">
+  <img src="/blog-gamer/images/produtos/D_NQ_NP_918859-MLA91608492434_092025-O.webp" alt="Suporte para 2 Controles de Vídeo Game">
   <a href="https://meli.la/2YspPZ9" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 - **Fonte Carregador Bivolt 110-220v P/ Nintendo Ds Lite**: Se você ainda é um fã do Nintendo DS Lite, este carregador bivolt é uma ótima opção. Compatível com a voltagem de 110v e 220v, é perfeito para usar em diferentes regiões.
@@ -54,7 +54,7 @@ Aqui estão alguns produtos que podem interessar aos fãs de consoles clássicos
     ❌ Tamanho: pode ser um pouco grande para alguns bolsos ou bolsas.
   * Perfil indicado: Proprietários de Nintendo DS Lite que viajam frequentemente.
   * Faixa de preço: R$21.90
-  <img src="https://http2.mlstatic.com/D_NQ_NP_666595-MLA100085123923_122025-O.webp" alt="Fonte Carregador Bivolt 110-220v P/ Nintendo Ds Lite">
+  <img src="/blog-gamer/images/produtos/D_NQ_NP_666595-MLA100085123923_122025-O.webp" alt="Fonte Carregador Bivolt 110-220v P/ Nintendo Ds Lite">
   <a href="https://meli.la/1nQRHn6" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 - **Case Nintendo Switch 6 Jogos Games Cartucho Game Card Zelda**: Para os fãs do Nintendo Switch, este case é uma ótima opção para armazenar seus jogos. Com espaço para seis cartuchos, é perfeito para manter seus jogos favoritos organizados.
@@ -67,7 +67,7 @@ Aqui estão alguns produtos que podem interessar aos fãs de consoles clássicos
     ❌ Material: pode não ser tão durável quanto outros casos.
   * Perfil indicado: Proprietários de Nintendo Switch que desejam proteger e organizar seus jogos.
   * Faixa de preço: R$99.90
-  <img src="https://http2.mlstatic.com/D_NQ_NP_869642-MLA99512697840_112025-O.webp" alt="Case Nintendo Switch 6 Jogos Games Cartucho Game Card Zelda">
+  <img src="/blog-gamer/images/produtos/D_NQ_NP_869642-MLA99512697840_112025-O.webp" alt="Case Nintendo Switch 6 Jogos Games Cartucho Game Card Zelda">
   <a href="https://meli.la/2jfmC31" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 - **Case Magnético Jogo Nintendo Switch Pokedex Pokémon 24 Cards**: Outra ótima opção para os fãs do Nintendo Switch e do Pokémon, este case magnético é perfeito para armazenar suas cartas de Pokémon.
@@ -80,7 +80,7 @@ Aqui estão alguns produtos que podem interessar aos fãs de consoles clássicos
     ❌ Preço: pode ser um pouco caro para alguns compradores.
   * Perfil indicado: Fãs de Pokémon e colecionadores de cartas.
   * Faixa de preço: R$110.51
-  <img src="https://http2.mlstatic.com/D_NQ_NP_955990-MLA91957834183_092025-O.webp" alt="Case Magnético Jogo Nintendo Switch Pokedex Pokémon 24 Cards">
+  <img src="/blog-gamer/images/produtos/D_NQ_NP_955990-MLA91957834183_092025-O.webp" alt="Case Magnético Jogo Nintendo Switch Pokedex Pokémon 24 Cards">
   <a href="https://meli.la/2NBtMHb" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 - **Mini console portátil para jogadores de jogos**: Este mini console portátil é uma ótima opção para jogadores que buscam uma experiência de jogo portátil e acessível.
@@ -93,7 +93,7 @@ Aqui estão alguns produtos que podem interessar aos fãs de consoles clássicos
     ❌ Durabilidade: a construção pode não ser tão resistente quanto outros dispositivos.
   * Perfil indicado: Jogadores que buscam uma opção portátil e acessível.
   * Faixa de preço: R$289.99
-  <img src="https://http2.mlstatic.com/D_NQ_NP_616421-MLA105918998186_022026-O.webp" alt="Mini console portátil para jogadores de jogos">
+  <img src="/blog-gamer/images/produtos/D_NQ_NP_616421-MLA105918998186_022026-O.webp" alt="Mini console portátil para jogadores de jogos">
   <a href="https://meli.la/1FKQ6xn" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 ### Tabela Comparativa

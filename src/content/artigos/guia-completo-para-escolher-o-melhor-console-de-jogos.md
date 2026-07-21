@@ -10,7 +10,7 @@ tags:
 - pc
 category: guia
 affiliate: true
-image: https://http2.mlstatic.com/D_NQ_NP_987107-MLA91558794736_092025-O.webp
+image: /blog-gamer/images/produtos/D_NQ_NP_987107-MLA91558794736_092025-O.webp
 mode: misto
 ---
 O mundo dos jogos é mais vibrante do que nunca, com uma variedade de opções para todos os gostos e bolsos. Se você está procurando mergulhar no universo dos jogos, mas não sabe por onde começar, este guia é para você. Vamos explorar as principais opções de consoles e PCs para jogos, destacando os pontos fortes e fracos de cada uma, para que você possa tomar a decisão certa.
@@ -50,7 +50,7 @@ Escolher o console ou PC para jogos certo pode parecer uma tarefa complexa, mas 
 
 ## Produtos Recomendados
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_756435-MLA95500672926_102025-O.webp" alt="Console PlayStation 5 Slim Edição Digital 825 GB Branco - Sony" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_756435-MLA95500672926_102025-O.webp" alt="Console PlayStation 5 Slim Edição Digital 825 GB Branco - Sony" class="product-card-img">
 <div class="product-card-body">
 <h3>Console PlayStation 5 Slim Edição Digital 825 GB Branco - Sony</h3>
 <p class="product-price"><strong>Preco:</strong> R$4099.00</p>
@@ -62,7 +62,7 @@ Escolher o console ou PC para jogos certo pode parecer uma tarefa complexa, mas 
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_816962-MLA99529727794_122025-O.webp" alt="Microsoft Xbox Series S 512gb Standard Cor Branco" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_816962-MLA99529727794_122025-O.webp" alt="Microsoft Xbox Series S 512gb Standard Cor Branco" class="product-card-img">
 <div class="product-card-body">
 <h3>Microsoft Xbox Series S 512gb Standard Cor Branco</h3>
 <p class="product-price"><strong>Preco:</strong> R$4288.00</p>
@@ -74,7 +74,7 @@ Escolher o console ou PC para jogos certo pode parecer uma tarefa complexa, mas 
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_945456-MLA99456386724_112025-O.webp" alt="Console Playstation 5 Slim Disk - Pacote Astro Bot E Gran Turismo 7 Branco" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_945456-MLA99456386724_112025-O.webp" alt="Console Playstation 5 Slim Disk - Pacote Astro Bot E Gran Turismo 7 Branco" class="product-card-img">
 <div class="product-card-body">
 <h3>Console Playstation 5 Slim Disk - Pacote Astro Bot E Gran Turismo 7 Branco</h3>
 <p class="product-price"><strong>Preco:</strong> R$5150.00</p>

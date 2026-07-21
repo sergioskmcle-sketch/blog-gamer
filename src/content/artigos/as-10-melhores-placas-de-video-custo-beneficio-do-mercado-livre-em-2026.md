@@ -1,6 +1,6 @@
 ﻿---
-title: "As 8 Melhores Placas de Video Custo-Beneficio do Mercado Livre em 2026"
-description: "Descubra as 8 melhores placas de vídeo com custo-benefício no Mercado Livre em 2026"
+title: "As 10 Melhores Placas de Video Custo-Beneficio do Mercado Livre em 2026"
+description: "Descubra as 10 melhores placas de vídeo com custo-benefício no Mercado Livre em 2026"
 pubDate: 2026-06-30
 tags: ["placas de vídeo", "gpu", "mercado livre", "custo-benefício", "jogos"]
 category: "tecnologia"

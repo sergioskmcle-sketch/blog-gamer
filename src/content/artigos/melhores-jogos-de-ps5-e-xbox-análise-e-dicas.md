@@ -11,7 +11,7 @@ tags:
 - dicas
 category: review
 affiliate: true
-image: https://http2.mlstatic.com/D_NQ_NP_864795-MLA99523446774_122025-O.webp
+image: /blog-gamer/images/produtos/D_NQ_NP_864795-MLA99523446774_122025-O.webp
 mode: melhores
 ---
 Se você é um gamer como eu, provavelmente já passou horas procurando por jogos que sejam dignos do seu tempo e do seu dinheiro. Com tantas opções disponíveis no mercado, pode ser difícil escolher o que jogar em seguida. Neste artigo, vamos explorar alguns dos melhores jogos de Ps5 e Xbox, com análise de gameplay e dicas de jogo para ajudá-lo a aproveitar ao máximo a sua experiência de jogo.
@@ -33,7 +33,7 @@ Vamos começar com o jogo mais barato da lista, o "Like A Dragon Infinite Wealth
 Em seguida, temos o "No Man's Sky PS5 Edição Standard Disco Jogo Aventura Sci-fi Multiplayer", que custa R$169,99. 
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_614809-MLA99512925290_112025-O.webp" alt="No Man's Sky PS5 Edição Standard Disco Jogo Aventura Sci-fi Multiplayer" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_614809-MLA99512925290_112025-O.webp" alt="No Man's Sky PS5 Edição Standard Disco Jogo Aventura Sci-fi Multiplayer" class="product-card-img">
 <div class="product-card-body">
 <h3>No Man's Sky PS5 Edição Standard Disco Jogo Aventura Sci-fi Multiplayer</h3>
 <p class="product-price"><strong>Preço:</strong> R$169,99</p>
@@ -47,7 +47,7 @@ Em seguida, temos o "No Man's Sky PS5 Edição Standard Disco Jogo Aventura Sci-
 O "Jogo Front Mission 1st Ps5" também custa R$169,99. 
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_705388-MLA108491231312_032026-O.webp" alt="Jogo Front Mission 1st Ps5" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_705388-MLA108491231312_032026-O.webp" alt="Jogo Front Mission 1st Ps5" class="product-card-img">
 <div class="product-card-body">
 <h3>Jogo Front Mission 1st Ps5</h3>
 <p class="product-price"><strong>Preço:</strong> R$169,99</p>
@@ -61,7 +61,7 @@ O "Jogo Front Mission 1st Ps5" também custa R$169,99.
 O "Little Nightmares 3 Ps5 Midia Fisica" custa R$184,27. 
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_632620-MLA99984578001_112025-O.webp" alt="Little Nightmares 3 Ps5 Midia Fisica" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_632620-MLA99984578001_112025-O.webp" alt="Little Nightmares 3 Ps5 Midia Fisica" class="product-card-img">
 <div class="product-card-body">
 <h3>Little Nightmares 3 Ps5 Midia Fisica</h3>
 <p class="product-price"><strong>Preço:</strong> R$184,27</p>
@@ -75,7 +75,7 @@ O "Little Nightmares 3 Ps5 Midia Fisica" custa R$184,27.
 O "Call of Duty Modern Warfare Standard Edition Activision Xbox One Mídia Fisica" custa R$198,88. 
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_925875-MLA99989829259_112025-O.webp" alt="Call of Duty Modern Warfare Standard Edition Activision Xbox One Mídia Fisica" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_925875-MLA99989829259_112025-O.webp" alt="Call of Duty Modern Warfare Standard Edition Activision Xbox One Mídia Fisica" class="product-card-img">
 <div class="product-card-body">
 <h3>Call of Duty Modern Warfare Standard Edition Activision Xbox One Mídia Fisica</h3>
 <p class="product-price"><strong>Preço:</strong> R$198,88</p>
@@ -89,7 +89,7 @@ O "Call of Duty Modern Warfare Standard Edition Activision Xbox One Mídia Fisic
 O "Invincible Vs Ps5 Midia Fisica" e o "Jogo eletrônico Skybound Games Invincible Vs Playstation 5" custam R$284,88 cada. 
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_758708-MLA107984310536_032026-O.webp" alt="Invincible Vs Ps5 Midia Fisica" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_758708-MLA107984310536_032026-O.webp" alt="Invincible Vs Ps5 Midia Fisica" class="product-card-img">
 <div class="product-card-body">
 <h3>Invincible Vs Ps5 Midia Fisica</h3>
 <p class="product-price"><strong>Preço:</strong> R$284,88</p>
@@ -101,7 +101,7 @@ O "Invincible Vs Ps5 Midia Fisica" e o "Jogo eletrônico Skybound Games Invincib
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_909315-MLA108486201356_032026-O.webp" alt="Jogo eletrônico Skybound Games Invincible Vs Playstation 5" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_909315-MLA108486201356_032026-O.webp" alt="Jogo eletrônico Skybound Games Invincible Vs Playstation 5" class="product-card-img">
 <div class="product-card-body">
 <h3>Jogo eletrônico Skybound Games Invincible Vs Playstation 5</h3>
 <p class="product-price"><strong>Preço:</strong> R$284,88</p>
@@ -115,7 +115,7 @@ O "Invincible Vs Ps5 Midia Fisica" e o "Jogo eletrônico Skybound Games Invincib
 Finalmente, o "The Adventures Of Elliot The Millennium Tales - Ps5" é o mais caro da lista, custando R$339,90. 
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_701706-MLA111284581655_052026-O.webp" alt="The Adventures Of Elliot The Millennium Tales - Ps5" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_701706-MLA111284581655_052026-O.webp" alt="The Adventures Of Elliot The Millennium Tales - Ps5" class="product-card-img">
 <div class="product-card-body">
 <h3>The Adventures Of Elliot The Millennium Tales - Ps5</h3>
 <p class="product-price"><strong>Preço:</strong> R$339,90</p>

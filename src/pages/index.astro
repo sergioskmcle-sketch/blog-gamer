@@ -17,7 +17,7 @@ const maisLidos = artigos.filter((a) => a.slug !== destaque?.slug);
 const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 ---
 
-<Layout title="Blog Gamer" image={`${base}images/banner-grupo.png`}>
+<Layout title="Blog Gamer" image={`${base}images/banner-grupo.webp`}>
   <div class="pt-16 max-w-page mx-auto px-gutter">
     <script>
       (function() {
@@ -95,7 +95,7 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
       class="block max-w-page mx-auto px-gutter pb-xl rounded-lg overflow-hidden no-underline hover:no-underline"
     >
       <img
-        src={`${base}images/banner-grupo.png`}
+        src={`${base}images/banner-grupo.webp`}
         alt="Grupo VIP Telegram - Ofertas Gamer Diárias"
         class="w-full h-auto rounded-lg"
         loading="lazy"

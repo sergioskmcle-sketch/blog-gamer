@@ -124,7 +124,7 @@ h2 {
   font-size: 1.75rem;
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: #cc97ff;
+  color: #A855F7;
   text-shadow:
     0 1px 0 var(--emboss-high),
     0 1px 3px var(--emboss-mid);
@@ -160,7 +160,7 @@ li {
 }
 
 blockquote {
-  border-left: 4px solid #cc97ff;
+  border-left: 4px solid #A855F7;
   padding: 1rem 1.5rem;
   margin: 1.5rem 0;
   background: rgba(204, 151, 255, 0.05);

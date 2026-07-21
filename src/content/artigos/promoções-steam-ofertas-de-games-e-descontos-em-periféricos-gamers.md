@@ -20,7 +20,7 @@ Se você é um gamer, sabe que as promoções e descontos são uma ótima oportu
 Começamos com as opções mais acessíveis, que podem ser uma ótima escolha para quem está procurando por jogos de qualidade sem gastar muito. Vamos conferir as opções abaixo:
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_916962-MLA100071992997_122025-O.webp" alt="Godfall Ps5 Mídia Física" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_916962-MLA100071992997_122025-O.webp" alt="Godfall Ps5 Mídia Física" class="product-card-img">
 <div class="product-card-body">
 <h3>Godfall Ps5 Mídia Física</h3>
 <p class="product-price"><strong>Preço:</strong> R$49,99</p>
@@ -32,7 +32,7 @@ Começamos com as opções mais acessíveis, que podem ser uma ótima escolha pa
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_850237-MLA99928211427_112025-O.webp" alt="Jogo Wwe 2k24 - Ps5 Midia Fisica" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_850237-MLA99928211427_112025-O.webp" alt="Jogo Wwe 2k24 - Ps5 Midia Fisica" class="product-card-img">
 <div class="product-card-body">
 <h3>Jogo Wwe 2k24 - Ps5 Midia Fisica</h3>
 <p class="product-price"><strong>Preço:</strong> R$175,00</p>
@@ -44,7 +44,7 @@ Começamos com as opções mais acessíveis, que podem ser uma ótima escolha pa
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_974061-MLA108204479809_032026-O.webp" alt="Monster Hunter Stories 3 Twisted Reflection -ps5" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_974061-MLA108204479809_032026-O.webp" alt="Monster Hunter Stories 3 Twisted Reflection -ps5" class="product-card-img">
 <div class="product-card-body">
 <h3>Monster Hunter Stories 3 Twisted Reflection -ps5</h3>
 <p class="product-price"><strong>Preço:</strong> R$239,34</p>
@@ -56,7 +56,7 @@ Começamos com as opções mais acessíveis, que podem ser uma ótima escolha pa
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_842162-MLA107468969838_032026-O.webp" alt="Jogo De Aventura Espionagem 007 First Light PS5 Sony" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_842162-MLA107468969838_032026-O.webp" alt="Jogo De Aventura Espionagem 007 First Light PS5 Sony" class="product-card-img">
 <div class="product-card-body">
 <h3>Jogo De Aventura Espionagem 007 First Light PS5 Sony</h3>
 <p class="product-price"><strong>Preço:</strong> R$299,00</p>
@@ -68,7 +68,7 @@ Começamos com as opções mais acessíveis, que podem ser uma ótima escolha pa
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_626890-MLA110008226933_042026-O.webp" alt="Crimson Desert Ps5 Midia Fisica" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_626890-MLA110008226933_042026-O.webp" alt="Crimson Desert Ps5 Midia Fisica" class="product-card-img">
 <div class="product-card-body">
 <h3>Crimson Desert Ps5 Midia Fisica</h3>
 <p class="product-price"><strong>Preço:</strong> R$349,88</p>
@@ -82,7 +82,7 @@ Começamos com as opções mais acessíveis, que podem ser uma ótima escolha pa
 Agora, vamos para as opções mais caras, que podem ser uma ótima escolha para quem está procurando por um console ou um pacote completo.
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_756435-MLA95500672926_102025-O.webp" alt="Console PlayStation 5 Slim Edição Digital 825 GB Branco - Sony" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_756435-MLA95500672926_102025-O.webp" alt="Console PlayStation 5 Slim Edição Digital 825 GB Branco - Sony" class="product-card-img">
 <div class="product-card-body">
 <h3>Console PlayStation 5 Slim Edição Digital 825 GB Branco - Sony</h3>
 <p class="product-price"><strong>Preço:</strong> R$3910,87</p>
@@ -94,7 +94,7 @@ Agora, vamos para as opções mais caras, que podem ser uma ótima escolha para 
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_843463-MLA99484635420_112025-O.webp" alt="Pacote Astro Bot da versão digital Slim para Sony Playstation 5, cor branca" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_843463-MLA99484635420_112025-O.webp" alt="Pacote Astro Bot da versão digital Slim para Sony Playstation 5, cor branca" class="product-card-img">
 <div class="product-card-body">
 <h3>Pacote Astro Bot da versão digital Slim para Sony Playstation 5, cor branca</h3>
 <p class="product-price"><strong>Preço:</strong> R$4011,96</p>
@@ -106,7 +106,7 @@ Agora, vamos para as opções mais caras, que podem ser uma ótima escolha para 
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_928545-MLA81684366738_012025-O.webp" alt="Consola Sony Ps5 - Slim - Pacote Nba 2k25 - Edição digital" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_928545-MLA81684366738_012025-O.webp" alt="Consola Sony Ps5 - Slim - Pacote Nba 2k25 - Edição digital" class="product-card-img">
 <div class="product-card-body">
 <h3>Consola Sony Ps5 - Slim - Pacote Nba 2k25 - Edição digital</h3>
 <p class="product-price"><strong>Preço:</strong> R$4012,06</p>

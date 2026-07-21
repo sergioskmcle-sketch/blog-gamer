@@ -10,7 +10,7 @@ tags:
 - tecnologia
 category: lancamento
 affiliate: true
-image: https://http2.mlstatic.com/D_NQ_NP_701706-MLA111284581655_052026-O.webp
+image: /blog-gamer/images/produtos/D_NQ_NP_701706-MLA111284581655_052026-O.webp
 mode: melhores
 ---
 Você é um gamer experiente ou um iniciante no mundo dos jogos? De qualquer forma, é importante estar por dentro das novidades e lançamentos mais recentes do mercado. Com a nova geração de consoles e jogos, é hora de se atualizar e aproveitar ao máximo sua experiência de jogo. Neste artigo, vamos explorar os melhores lançamentos de jogos e consoles do momento, destacando suas características, benefícios e pontos negativos.
@@ -26,7 +26,7 @@ Este jogo é uma ótima opção para quem busca uma experiência de RPG de alta 
 ❌ Não há uma grande variedade de opções de personalização
 Perfil indicado: Fãs de RPG e aventuras
 Faixa de preço: R$45,99
-<img src="https://http2.mlstatic.com/D_NQ_NP_828987-MLA95975271766_102025-O.webp" alt="Jogo Tales Of Arise Xbox One / Series Mídia Física">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_828987-MLA95975271766_102025-O.webp" alt="Jogo Tales Of Arise Xbox One / Series Mídia Física">
 <a href="https://meli.la/2Gqqz83" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 **Jogo Suicide Squad Mate Liga Da Justiça Ps5 Fisica**
@@ -38,7 +38,7 @@ Este jogo é uma ótima opção para quem busca uma experiência de ação e ave
 ❌ Não há uma grande variedade de opções de personalização
 Perfil indicado: Fãs de ação e aventura
 Faixa de preço: R$99,99
-<img src="https://http2.mlstatic.com/D_NQ_NP_753437-MLA99459109284_112025-O.webp" alt="Jogo Suicide Squad Mate Liga Da Justiça Ps5 Fisica">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_753437-MLA99459109284_112025-O.webp" alt="Jogo Suicide Squad Mate Liga Da Justiça Ps5 Fisica">
 <a href="https://meli.la/2xMSiqJ" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 **Jogo Físico NBA 2K26 para Xbox Series X**
@@ -50,7 +50,7 @@ Este jogo é uma ótima opção para quem busca uma experiência de esporte de a
 ❌ Não há uma grande variedade de opções de personalização
 Perfil indicado: Fãs de esportes e basquete
 Faixa de preço: R$129,99
-<img src="https://http2.mlstatic.com/D_NQ_NP_862586-MLA99965164661_112025-O.webp" alt="Jogo Físico NBA 2K26 para Xbox Series X">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_862586-MLA99965164661_112025-O.webp" alt="Jogo Físico NBA 2K26 para Xbox Series X">
 <a href="https://meli.la/19nhvzw" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 **Jogo Ps5 Horizon Zero Dawn Remastered Edition Mídia Física Português**
@@ -62,7 +62,7 @@ Este jogo é uma ótima opção para quem busca uma experiência de ação e ave
 ❌ Não há uma grande variedade de opções de personalização
 Perfil indicado: Fãs de ação e aventura
 Faixa de preço: R$144,00
-<img src="https://http2.mlstatic.com/D_NQ_NP_831231-MLA100070185069_122025-O.webp" alt="Jogo Ps5 Horizon Zero Dawn Remastered Edition Mídia Física Português">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_831231-MLA100070185069_122025-O.webp" alt="Jogo Ps5 Horizon Zero Dawn Remastered Edition Mídia Física Português">
 <a href="https://meli.la/31Fu1GK" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 **Little Nightmares 3 Ps5 Midia Fisica**
@@ -74,7 +74,7 @@ Este jogo é uma ótima opção para quem busca uma experiência de terror e ave
 ❌ Não há uma grande variedade de opções de personalização
 Perfil indicado: Fãs de terror e aventura
 Faixa de preço: R$184,27
-<img src="https://http2.mlstatic.com/D_NQ_NP_632620-MLA99984578001_112025-O.webp" alt="Little Nightmares 3 Ps5 Midia Fisica">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_632620-MLA99984578001_112025-O.webp" alt="Little Nightmares 3 Ps5 Midia Fisica">
 <a href="https://meli.la/2zJtLkG" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 **Jogo Hogwarts Legacy Ps5 Midia Fisica Wb Games Avalanche**
@@ -86,7 +86,7 @@ Este jogo é uma ótima opção para quem busca uma experiência de aventura e m
 ❌ Não há uma grande variedade de opções de personalização
 Perfil indicado: Fãs de aventura e magia
 Faixa de preço: R$194,90
-<img src="https://http2.mlstatic.com/D_NQ_NP_693120-MLA99865656187_112025-O.webp" alt="Jogo Hogwarts Legacy Ps5 Midia Fisica Wb Games Avalanche">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_693120-MLA99865656187_112025-O.webp" alt="Jogo Hogwarts Legacy Ps5 Midia Fisica Wb Games Avalanche">
 <a href="https://meli.la/1C1u6fX" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 **Jogo Ps5 Metaphor Refantazio Rpg Mídia Física E**
@@ -98,7 +98,7 @@ Este jogo é uma ótima opção para quem busca uma experiência de RPG de alta 
 ❌ Não há uma grande variedade de opções de personalização
 Perfil indicado: Fãs de RPG e aventuras
 Faixa de preço: R$249,97
-<img src="https://http2.mlstatic.com/D_NQ_NP_769559-MLA99504369284_112025-O.webp" alt="Jogo Ps5 Metaphor Refantazio Rpg Mídia Física E">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_769559-MLA99504369284_112025-O.webp" alt="Jogo Ps5 Metaphor Refantazio Rpg Mídia Física E">
 <a href="https://meli.la/2WHFrGU" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 **The Adventures Of Elliot The Millennium Tales - Ps5**

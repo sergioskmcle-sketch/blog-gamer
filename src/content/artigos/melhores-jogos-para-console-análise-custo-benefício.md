@@ -18,7 +18,7 @@ Você é um jogador apaixonado por console e está procurando pelos melhores jog
 Vamos começar com os jogos mais baratos e ir até os mais caros, analisando as características e benefícios de cada um.
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_878694-MLA99397836074_112025-O.webp" alt="Terra Média Sombras De Mordor Port Playstation 4 Ps4" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_878694-MLA99397836074_112025-O.webp" alt="Terra Média Sombras De Mordor Port Playstation 4 Ps4" class="product-card-img">
 <div class="product-card-body">
 <h3>Terra Média Sombras De Mordor Port Playstation 4 Ps4</h3>
 <p class="product-price"><strong>Preço:</strong> R$64,99</p>
@@ -30,7 +30,7 @@ Vamos começar com os jogos mais baratos e ir até os mais caros, analisando as 
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_747954-MLA99490164008_112025-O.webp" alt="The Callisto Protocol Standard Edition PS4 PS5 Jogo Físico Sony" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_747954-MLA99490164008_112025-O.webp" alt="The Callisto Protocol Standard Edition PS4 PS5 Jogo Físico Sony" class="product-card-img">
 <div class="product-card-body">
 <h3>The Callisto Protocol Standard Edition PS4 PS5 Jogo Físico Sony</h3>
 <p class="product-price"><strong>Preço:</strong> R$122,99</p>
@@ -42,7 +42,7 @@ Vamos começar com os jogos mais baratos e ir até os mais caros, analisando as 
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_848079-MLA99558489674_122025-O.webp" alt="Jogo God Of War Ragnarok Standard Edition PS4 Mídia Física" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_848079-MLA99558489674_122025-O.webp" alt="Jogo God Of War Ragnarok Standard Edition PS4 Mídia Física" class="product-card-img">
 <div class="product-card-body">
 <h3>Jogo God Of War Ragnarok Standard Edition PS4 Mídia Física</h3>
 <p class="product-price"><strong>Preço:</strong> R$129,90</p>
@@ -54,7 +54,7 @@ Vamos começar com os jogos mais baratos e ir até os mais caros, analisando as 
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_913450-MLA99501195642_112025-O.webp" alt="Hogwarts Legacy Standard Edition (Físico) PS4" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_913450-MLA99501195642_112025-O.webp" alt="Hogwarts Legacy Standard Edition (Físico) PS4" class="product-card-img">
 <div class="product-card-body">
 <h3>Hogwarts Legacy Standard Edition (Físico) PS4</h3>
 <p class="product-price"><strong>Preço:</strong> R$129,90</p>
@@ -66,7 +66,7 @@ Vamos começar com os jogos mais baratos e ir até os mais caros, analisando as 
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_640219-MLA99465165022_112025-O.webp" alt="Jogo Ghost Of Tsushima Director's Cut Mídia Física Ps4 Sony" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_640219-MLA99465165022_112025-O.webp" alt="Jogo Ghost Of Tsushima Director's Cut Mídia Física Ps4 Sony" class="product-card-img">
 <div class="product-card-body">
 <h3>Jogo Ghost Of Tsushima Director's Cut Mídia Física Ps4 Sony</h3>
 <p class="product-price"><strong>Preço:</strong> R$165,00</p>
@@ -78,7 +78,7 @@ Vamos começar com os jogos mais baratos e ir até os mais caros, analisando as 
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_910215-MLA99482156704_112025-O.webp" alt="Assassins Creed Valhalla Ps4 Midia Fisica" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_910215-MLA99482156704_112025-O.webp" alt="Assassins Creed Valhalla Ps4 Midia Fisica" class="product-card-img">
 <div class="product-card-body">
 <h3>Assassins Creed Valhalla Ps4 Midia Fisica</h3>
 <p class="product-price"><strong>Preço:</strong> R$169,00</p>
@@ -90,7 +90,7 @@ Vamos começar com os jogos mais baratos e ir até os mais caros, analisando as 
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_611787-MLA99956183027_112025-O.webp" alt="Jogo Resident Evil 4 Standard Edition (Físico) Ps4" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_611787-MLA99956183027_112025-O.webp" alt="Jogo Resident Evil 4 Standard Edition (Físico) Ps4" class="product-card-img">
 <div class="product-card-body">
 <h3>Jogo Resident Evil 4 Standard Edition (Físico) Ps4</h3>
 <p class="product-price"><strong>Preço:</strong> R$171,00</p>
@@ -102,7 +102,7 @@ Vamos começar com os jogos mais baratos e ir até os mais caros, analisando as 
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_612504-MLA100085630419_122025-O.webp" alt="Jogo Ps4 Call Of Duty Black Ops 4 Playstation 4 Midia Fisica" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_612504-MLA100085630419_122025-O.webp" alt="Jogo Ps4 Call Of Duty Black Ops 4 Playstation 4 Midia Fisica" class="product-card-img">
 <div class="product-card-body">
 <h3>Jogo Ps4 Call Of Duty Black Ops 4 Playstation 4 Midia Fisica</h3>
 <p class="product-price"><strong>Preço:</strong> R$239,83</p>

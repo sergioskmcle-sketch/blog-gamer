@@ -46,7 +46,7 @@ O futuro dos jogos é emocionante e promissor. Com o lançamento de novos consol
 
 ## Produtos Recomendados
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_692438-MLA110224640296_052026-O.webp" alt="Case Capa Bolsa Estojo de Controle Joystick" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_692438-MLA110224640296_052026-O.webp" alt="Case Capa Bolsa Estojo de Controle Joystick" class="product-card-img">
 <div class="product-card-body">
 <h3>Case Capa Bolsa Estojo de Controle Joystick</h3>
 <p class="product-price"><strong>Preco:</strong> R$59,42</p>
@@ -58,7 +58,7 @@ O futuro dos jogos é emocionante e promissor. Com o lançamento de novos consol
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_628093-MLA111645257513_052026-O.webp" alt="Placa Captura Vídeo HDMI" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_628093-MLA111645257513_052026-O.webp" alt="Placa Captura Vídeo HDMI" class="product-card-img">
 <div class="product-card-body">
 <h3>Placa Captura Vídeo HDMI</h3>
 <p class="product-price"><strong>Preco:</strong> R$88,00</p>
@@ -70,7 +70,7 @@ O futuro dos jogos é emocionante e promissor. Com o lançamento de novos consol
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_723362-MLA100493402087_122025-O.webp" alt="Fone De Ouvido Bluetooth" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_723362-MLA100493402087_122025-O.webp" alt="Fone De Ouvido Bluetooth" class="product-card-img">
 <div class="product-card-body">
 <h3>Fone De Ouvido Bluetooth</h3>
 <p class="product-price"><strong>Preco:</strong> R$268,55</p>
@@ -82,7 +82,7 @@ O futuro dos jogos é emocionante e promissor. Com o lançamento de novos consol
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_832305-MLA99497029952_112025-O.webp" alt="Adaptador Xim Matrix" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_832305-MLA99497029952_112025-O.webp" alt="Adaptador Xim Matrix" class="product-card-img">
 <div class="product-card-body">
 <h3>Adaptador Xim Matrix</h3>
 <p class="product-price"><strong>Preco:</strong> R$1369,00</p>
@@ -94,7 +94,7 @@ O futuro dos jogos é emocionante e promissor. Com o lançamento de novos consol
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_914498-MLA109880315129_032026-O.webp" alt="Microsoft Xbox Series S" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_914498-MLA109880315129_032026-O.webp" alt="Microsoft Xbox Series S" class="product-card-img">
 <div class="product-card-body">
 <h3>Microsoft Xbox Series S</h3>
 <p class="product-price"><strong>Preco:</strong> R$4366,00</p>
@@ -106,7 +106,7 @@ O futuro dos jogos é emocionante e promissor. Com o lançamento de novos consol
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_988078-MLA95712886100_102025-O.webp" alt="Microsoft Xbox Series X" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_988078-MLA95712886100_102025-O.webp" alt="Microsoft Xbox Series X" class="product-card-img">
 <div class="product-card-body">
 <h3>Microsoft Xbox Series X</h3>
 <p class="product-price"><strong>Preco:</strong> R$4402,24</p>

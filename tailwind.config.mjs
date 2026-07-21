@@ -16,7 +16,7 @@ export default {
         "surface-container-highest": "#242433",
         "on-primary-fixed": "#000000",
         "surface-container-high": "#1e1e2c",
-        primary: "#cc97ff",
+        primary: "#A855F7",
         "on-error-container": "#ffb2b9",
         "on-primary-fixed-variant": "#430076",
         "outline-variant": "#474752",

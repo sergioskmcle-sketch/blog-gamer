@@ -27,7 +27,7 @@ O Mini Microfone TNE é um acessório essencial para qualquer gamer que queira s
 ❌ Não vem com um suporte para fixar no console
 Perfil indicado: Gamers que desejam um microfone básico e barato para se comunicar com amigos durante os jogos.
 Faixa de preço: R$28.40
-<img src="https://http2.mlstatic.com/D_NQ_NP_893947-MLA96057042572_102025-O.webp" alt="Mini Microfone TNE">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_893947-MLA96057042572_102025-O.webp" alt="Mini Microfone TNE">
 <a href="https://meli.la/1MBqYPr" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 ### Dreamgear Charge & Play Preto Duo Xbox One
@@ -39,7 +39,7 @@ O Dreamgear Charge & Play é um acessório útil para os donos de Xbox One, perm
 ❌ Pode não ser tão durável quanto outros produtos
 Perfil indicado: Donos de Xbox One que desejam carregar e jogar ao mesmo tempo.
 Faixa de preço: R$44.00
-<img src="https://http2.mlstatic.com/D_NQ_NP_780750-MLU76126634684_052024-O.webp" alt="Dreamgear Charge & Play">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_780750-MLU76126634684_052024-O.webp" alt="Dreamgear Charge & Play">
 <a href="https://meli.la/27fc2B6" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 ### Headset Gamer 7.1 EJ-007 Preto RGB USB com Microfone PC PS5 Xbox
@@ -51,7 +51,7 @@ O Headset Gamer 7.1 EJ-007 é um headset de alta qualidade que oferece uma exper
 ❌ O microfone pode não ser tão sensível quanto outros headsets
 Perfil indicado: Gamers que desejam uma experiência de áudio imersiva e alta qualidade.
 Faixa de preço: R$55.94
-<img src="https://http2.mlstatic.com/D_NQ_NP_980984-MLA97744231643_112025-O.webp" alt="Headset Gamer 7.1 EJ-007">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_980984-MLA97744231643_112025-O.webp" alt="Headset Gamer 7.1 EJ-007">
 <a href="https://meli.la/1xrrWee" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 ### Placa De Vídeo Nvidia Pcyes Gt210 1gb 64bits Hdmi Dvi Vga
@@ -63,7 +63,7 @@ A Placa De Vídeo Nvidia Pcyes Gt210 é uma opção acessível para os gamers qu
 ❌ Pode não ser compatível com todos os sistemas operacionais
 Perfil indicado: Gamers que desejam melhorar a performance gráfica do seu PC sem gastar muito.
 Faixa de preço: R$231.64
-<img src="https://http2.mlstatic.com/D_NQ_NP_787976-MLA99943612373_112025-O.webp" alt="Placa De Vídeo Nvidia Pcyes Gt210">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_787976-MLA99943612373_112025-O.webp" alt="Placa De Vídeo Nvidia Pcyes Gt210">
 <a href="https://meli.la/2ta4JTq" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 ### Headset Gamer Redragon H510-Pro Zeus Rgb Wireless 7.1 53mm Preto
@@ -75,7 +75,7 @@ O Headset Gamer Redragon H510-Pro Zeus é um headset de alta qualidade que ofere
 ❌ A bateria pode não durar tanto quanto outros headsets
 Perfil indicado: Gamers que desejam uma experiência de áudio imersiva e sem fio.
 Faixa de preço: R$333.14
-<img src="https://http2.mlstatic.com/D_NQ_NP_797324-MLA95633278998_102025-O.webp" alt="Headset Gamer Redragon H510-Pro Zeus">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_797324-MLA95633278998_102025-O.webp" alt="Headset Gamer Redragon H510-Pro Zeus">
 <a href="https://meli.la/29NrD5R" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 ### Controle Joystick Sem Fio Sony PlayStation 5 DualSense Midnight Black
@@ -87,7 +87,7 @@ O Controle Joystick Sem Fio Sony PlayStation 5 DualSense é um controle de alta 
 ❌ A bateria pode não durar tanto quanto outros controles
 Perfil indicado: Donos de PS5 que desejam um controle de alta qualidade e sem fio.
 Faixa de preço: R$417.57
-<img src="https://http2.mlstatic.com/D_NQ_NP_886577-MLA84549540358_052025-O.webp" alt="Controle Joystick Sem Fio Sony PlayStation 5 DualSense">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_886577-MLA84549540358_052025-O.webp" alt="Controle Joystick Sem Fio Sony PlayStation 5 DualSense">
 <a href="https://meli.la/11FJKFH" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 ### Volante Pedal Câmbio Vídeo Game Compatível Ps3 Ps4 Ps5 Nintendo Switch Xbox One Series Computador Notebook Digital Informática
@@ -99,7 +99,7 @@ O Volante Pedal Câmbio é um acessório essencial para os gamers que desejam um
 ❌ Pode não ser compatível com todos os jogos
 Perfil indicado: Gamers que desejam uma experiência de jogo mais realista e compatível com várias plataformas.
 Faixa de preço: R$1099.00
-<img src="https://http2.mlstatic.com/D_NQ_NP_896094-MLA112707134675_062026-O.webp" alt="Volante Pedal Câmbio">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_896094-MLA112707134675_062026-O.webp" alt="Volante Pedal Câmbio">
 <a href="https://meli.la/2gsGRE4" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 ### Headset Gamer Pro X 2 Lightspeed Sem Fio Preto Logitech G
@@ -111,7 +111,7 @@ O Headset Gamer Pro X 2 Lightspeed é um headset de alta qualidade que oferece u
 ❌ A bateria pode não durar tanto quanto outros headsets
 Perfil indicado: Gamers que desejam uma experiência de áudio imersiva e sem fio.
 Faixa de preço: R$1490.00
-<img src="https://http2.mlstatic.com/D_NQ_NP_962051-MLU73341892974_122023-O.webp" alt="Headset Gamer Pro X 2 Lightspeed">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_962051-MLU73341892974_122023-O.webp" alt="Headset Gamer Pro X 2 Lightspeed">
 <a href="https://meli.la/2wAPUqU" class="btn btn-primary">VER NO MERCADO LIVRE</a>
 
 ### Tabela Comparativa

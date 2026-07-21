@@ -20,7 +20,7 @@ Você é um gamer que busca os melhores jogos e periféricos sem gastar uma fort
 Vamos começar com os jogos mais baratos e ir até os mais caros, destacando as características e benefícios de cada um.
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_716875-MLA99994003363_112025-O.webp" alt="Sonic Frontiers Xbox One / Series X Midia Fisica" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_716875-MLA99994003363_112025-O.webp" alt="Sonic Frontiers Xbox One / Series X Midia Fisica" class="product-card-img">
 <div class="product-card-body">
 <h3>Sonic Frontiers Xbox One / Series X Midia Fisica</h3>
 <p class="product-price"><strong>Preço:</strong> R$139.99</p>
@@ -32,7 +32,7 @@ Vamos começar com os jogos mais baratos e ir até os mais caros, destacando as 
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_872352-MLA99938780187_112025-O.webp" alt="Jogo God Of War Ragnarok Edição Física Playstation 5 Sony" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_872352-MLA99938780187_112025-O.webp" alt="Jogo God Of War Ragnarok Edição Física Playstation 5 Sony" class="product-card-img">
 <div class="product-card-body">
 <h3>Jogo God Of War Ragnarok Edição Física Playstation 5 Sony</h3>
 <p class="product-price"><strong>Preço:</strong> R$170.00</p>
@@ -44,7 +44,7 @@ Vamos começar com os jogos mais baratos e ir até os mais caros, destacando as 
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_937371-MLA79285424466_092024-O.webp" alt="Quantum Error Sony Ps5 Midia Fisica" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_937371-MLA79285424466_092024-O.webp" alt="Quantum Error Sony Ps5 Midia Fisica" class="product-card-img">
 <div class="product-card-body">
 <h3>Quantum Error Sony Ps5 Midia Fisica</h3>
 <p class="product-price"><strong>Preço:</strong> R$212.00</p>
@@ -56,7 +56,7 @@ Vamos começar com os jogos mais baratos e ir até os mais caros, destacando as 
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_854563-MLA99464232874_112025-O.webp" alt="Jogo Death Stranding 2: On The Beach Playstation 5 Físico" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_854563-MLA99464232874_112025-O.webp" alt="Jogo Death Stranding 2: On The Beach Playstation 5 Físico" class="product-card-img">
 <div class="product-card-body">
 <h3>Jogo Death Stranding 2: On The Beach Playstation 5 Físico</h3>
 <p class="product-price"><strong>Preço:</strong> R$229.90</p>
@@ -68,7 +68,7 @@ Vamos começar com os jogos mais baratos e ir até os mais caros, destacando as 
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_903954-MLA99468021918_112025-O.webp" alt="Jogo Cat Quest 3 Ps5 Midia Fisica" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_903954-MLA99468021918_112025-O.webp" alt="Jogo Cat Quest 3 Ps5 Midia Fisica" class="product-card-img">
 <div class="product-card-body">
 <h3>Jogo Cat Quest 3 Ps5 Midia Fisica</h3>
 <p class="product-price"><strong>Preço:</strong> R$229.99</p>
@@ -80,7 +80,7 @@ Vamos começar com os jogos mais baratos e ir até os mais caros, destacando as 
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_701294-MLA108093338038_032026-O.webp" alt="Pragmata - Ps5" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_701294-MLA108093338038_032026-O.webp" alt="Pragmata - Ps5" class="product-card-img">
 <div class="product-card-body">
 <h3>Pragmata - Ps5</h3>
 <p class="product-price"><strong>Preço:</strong> R$241.71</p>
@@ -92,7 +92,7 @@ Vamos começar com os jogos mais baratos e ir até os mais caros, destacando as 
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_720386-MLA109268918936_042026-O.webp" alt="Lego Batman O Legado Cavaleiro Trevas Edição Deluxe Ps5" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_720386-MLA109268918936_042026-O.webp" alt="Lego Batman O Legado Cavaleiro Trevas Edição Deluxe Ps5" class="product-card-img">
 <div class="product-card-body">
 <h3>Lego Batman O Legado Cavaleiro Trevas Edição Deluxe Ps5</h3>
 <p class="product-price"><strong>Preço:</strong> R$359.99</p>
@@ -104,7 +104,7 @@ Vamos começar com os jogos mais baratos e ir até os mais caros, destacando as 
 </div>
 
 <div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_804107-MLA99531106678_122025-O.webp" alt="Jogo Sonic Racing Crossworlds Launch Edition Ps5 Fisico" class="product-card-img">
+<img src="/blog-gamer/images/produtos/D_NQ_NP_804107-MLA99531106678_122025-O.webp" alt="Jogo Sonic Racing Crossworlds Launch Edition Ps5 Fisico" class="product-card-img">
 <div class="product-card-body">
 <h3>Jogo Sonic Racing Crossworlds Launch Edition Ps5 Fisico</h3>
 <p class="product-price"><strong>Preço:</strong> R$449.86</p>
