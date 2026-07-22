@@ -336,7 +336,7 @@ async function fetchTavily(query) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       api_key: TAVILY_API_KEY, query,
-      search_depth: "advanced", max_results: 6,
+      search_depth: "advanced", max_results: 4,
       topic: "news", include_answer: true, time_range: "month",
     }),
   });
@@ -358,7 +358,7 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 8) {
       { role: "user", content: userPrompt },
     ],
     temperature: 0.7,
-    max_tokens: 8192,
+    max_tokens: 4096,
   };
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -523,7 +523,7 @@ async function main() {
       : `melhores ${topic.hint} Brasil 2026`;
     const sr = await fetchTavily(query);
     researchContext = sr?.results
-      .map((r, i) => `[Fonte ${i + 1}] ${r.title}\nURL: ${r.url}\n${r.content?.slice(0, 1200)}`)
+      .map((r, i) => `[Fonte ${i + 1}] ${r.title}\nURL: ${r.url}\n${r.content?.slice(0, 600)}`)
       .join("\n\n");
   } catch (err) {
     log("WARN", `Tavily: ${err.message}`);
