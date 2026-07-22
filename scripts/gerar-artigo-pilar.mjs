@@ -14,7 +14,7 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function fetchGroq(systemPrompt, userPrompt, maxTokens = 8192) {
+async function fetchGroq(systemPrompt, userPrompt, maxTokens = 4096) {
   const url = "https://api.groq.com/openai/v1/chat/completions";
   const body = {
     model: "openai/gpt-oss-120b",
@@ -64,7 +64,7 @@ async function fetchTavily(query) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       api_key: TAVILY_API_KEY, query,
-      search_depth: "advanced", max_results: 8,
+      search_depth: "advanced", max_results: 3,
       topic: "news", include_answer: true, time_range: "year",
     }),
   });
@@ -137,7 +137,7 @@ async function main() {
       const sr = await fetchTavily(secao.pesquisa);
       if (sr?.results) {
         pesquisaCompleta += `\n\n=== ${secao.titulo} ===\n${sr.results
-          .map((r, i) => `[Fonte ${i + 1}] ${r.title}\nURL: ${r.url}\n${r.content?.slice(0, 800)}`)
+          .map((r, i) => `[Fonte ${i + 1}] ${r.title}\nURL: ${r.url}\n${r.content?.slice(0, 300)}`)
           .join("\n\n")}`;
       }
     } catch (e) {
@@ -177,7 +177,7 @@ affiliate: false`;
   const userDraft = `Escreva o GUIA DEFINITIVO DO SETUP GAMER 2026.
 
 Dados de pesquisa:
-${pesquisaCompleta.slice(0, 15000)}
+${pesquisaCompleta.slice(0, 8000)}
 
 Estrutura obrigatoria:
 ${instrucoesSecoes}
@@ -193,7 +193,7 @@ No final, secao ## Fontes com links pesquisados.`;
 
   let draft;
   try {
-    draft = await fetchGroq(systemDraft, userDraft, 8192);
+    draft = await fetchGroq(systemDraft, userDraft, 4096);
     log("INFO", `Draft gerado: ${draft.length} caracteres`);
   } catch (err) {
     log("ERROR", `Falha no draft: ${err.message}`);
@@ -219,7 +219,7 @@ REG RAS:
 
   let finalArticle;
   try {
-    finalArticle = await fetchGroq(systemRefine, `Revise e melhore este artigo:\n\n${draft}`, 8192);
+    finalArticle = await fetchGroq(systemRefine, `Revise e melhore este artigo:\n\n${draft}`, 2048);
     log("INFO", `Artigo refinado: ${finalArticle.length} caracteres`);
   } catch (err) {
     log("ERROR", `Falha no refino: ${err.message}`);
