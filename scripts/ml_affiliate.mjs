@@ -179,6 +179,123 @@ export async function searchML(query, clientId, clientSecret, tavilyKey, cookieP
   return products.slice(0, limit);
 }
 
+function extractMLProductData(html, url) {
+  const title = (html.match(/<title>([^<]+)/)?.[1] || "")
+    .replace(/\s*\|\s*Mercado\s*Livre.*$/i, "")
+    .replace(/\s*\|\s*Mercado\s*L(i|í)vre.*$/i, "")
+    .trim();
+
+  const ogImg = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)?.[1] || "";
+  const canonical = html.match(/<link[^>]+rel="canonical"[^>]+href="([^"]+)"/)?.[1] || url;
+
+  let price = 0;
+  const priceMeta = html.match(/<meta[^>]+itemprop="price"[^>]+content="([^"]+)"/);
+  if (priceMeta) price = parseFloat(priceMeta[1]) || 0;
+  if (!price) {
+    const jsonScript = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/);
+    if (jsonScript) {
+      try {
+        const ld = JSON.parse(jsonScript[1]);
+        const offers = ld.offers || ld.mainEntity?.offers || {};
+        const p = offers.price || offers.lowPrice || ld.price;
+        if (p) price = parseFloat(p) || 0;
+      } catch {}
+    }
+  }
+  if (!price) {
+    const priceTag = html.match(/R\$\s*([\d.]+,\d{2})/);
+    if (priceTag) price = parseFloat(priceTag[1].replace(".", "").replace(",", ".")) || 0;
+  }
+
+  let permalink = canonical;
+  if (!permalink.startsWith("http")) permalink = ML_BASE + permalink;
+  const pidMatch = permalink.match(/(MLB\d+)/);
+  const pid = pidMatch ? pidMatch[1] : "";
+
+  return { title, price, thumbnail: ogImg, permalink, id: pid };
+}
+
+export async function searchMLviaGoogle(query, cookiePath, tavilyKey, limit = 4) {
+  log("INFO", `Buscando produtos ML via Google para "${query}"`);
+
+  if (!tavilyKey) {
+    log("WARN", "TAVILY_API_KEY nao definida — pulando busca");
+    return [];
+  }
+
+  const allResults = [];
+
+  for (const tavilyQuery of [
+    `${query} Mercado Livre preço`,
+    `${query} site:mercadolivre.com.br`,
+  ]) {
+    if (allResults.length >= limit) break;
+    try {
+      const res = await fetch("https://api.tavily.com/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          api_key: tavilyKey,
+          query: tavilyQuery,
+          search_depth: "basic",
+          max_results: 6,
+          country: "br",
+        }),
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      for (const r of data.results || []) {
+        if (!r.url.includes("mercadolivre.com.br")) continue;
+        if (allResults.find((a) => a.url === r.url)) continue;
+        allResults.push(r);
+      }
+    } catch (e) {
+      log("WARN", `Tavily Google "${tavilyQuery.slice(0, 50)}": ${e.message}`);
+    }
+  }
+
+  log("INFO", `ML via Google: ${allResults.length} URLs encontrados`);
+
+  const products = [];
+  const seen = new Set();
+
+  for (const result of allResults) {
+    if (products.length >= limit) break;
+    if (seen.has(result.url)) continue;
+    seen.add(result.url);
+
+    try {
+      log("INFO", `Visitando: ${result.url.slice(0, 80)}`);
+      const pageRes = await fetch(result.url, {
+        headers: SESSION_HEADERS,
+        redirect: "follow",
+      });
+      if (!pageRes.ok) continue;
+      const html = await pageRes.text();
+
+      const productData = extractMLProductData(html, result.url);
+      if (!productData.title) continue;
+
+      products.push({
+        id: productData.id,
+        title: productData.title,
+        price: productData.price,
+        thumbnail: productData.thumbnail,
+        permalink: productData.permalink,
+        original_price: 0,
+        images: [productData.thumbnail],
+      });
+
+      log("INFO", `  → ${productData.title.slice(0, 50)} — R$ ${productData.price.toFixed(2)}`);
+    } catch (e) {
+      log("WARN", `Erro scraping ${result.url.slice(0, 60)}: ${e.message}`);
+    }
+  }
+
+  log("INFO", `ML via Google: ${products.length} produtos extraídos`);
+  return products;
+}
+
 export async function generateAffiliateLink(productUrl, cookiePath) {
   if (!cookiePath || !fs.existsSync(cookiePath)) {
     return { short_url: productUrl };

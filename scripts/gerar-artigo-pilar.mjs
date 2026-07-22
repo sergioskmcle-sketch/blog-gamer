@@ -1,7 +1,7 @@
 import "dotenv/config";
 import fs from "fs";
 import path from "path";
-import { searchML, generateAffiliateLink } from "./ml_affiliate.mjs";
+import { searchMLviaGoogle, generateAffiliateLink } from "./ml_affiliate.mjs";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
@@ -83,59 +83,65 @@ async function fetchTavily(query) {
 
 const SEÇÕES = [
   {
-    titulo: "PC vs Console em 2026: Qual Vale Mais a Pena?",
-    pesquisa: "PC vs console gaming 2026 custo benefício Brasil",
-    ml_query: "playstation 5",
-    foco: "Comparar PC gamer, PS5, Xbox Series X e Nintendo Switch 2 em custo-benefício, performance, exclusivos e facilidade de uso. Dar um veredito claro por perfil de jogador."
+    titulo: "Por Que Montar um PC Gamer em 2026?",
+    pesquisa: "vantagens PC gamer vs console 2026 custo benefício Brasil",
+    ml_query: null,
+    foco: "Explicar as vantagens de montar um PC: upgrades, personalização, biblioteca de jogos maior, mods, produtividade. Comparar brevemente com consoles. Quem deve montar um PC vs comprar console."
   },
   {
-    titulo: "Processadores (CPU): O Cérebro do Seu Setup",
-    pesquisa: "melhores CPUs para jogos 2026 custo benefício Brasil Intel AMD",
-    ml_query: "processador Intel i5 i7 AMD Ryzen",
-    foco: "Comparar Intel vs AMD. Explicar clock, núcleos, cache, socket. Recomendar por faixa de preço."
+    titulo: "Processador (CPU): O Cérebro do Computador",
+    pesquisa: "melhor processador para jogos 2026 Intel AMD custo benefício",
+    ml_query: "processador Intel Core i5 i7 gamer",
+    foco: "Explicar o que é CPU, como escolher (núcleos, clock, cache, socket). Comparar Intel vs AMD. Recomendar 2-3 modelos com links de afiliado."
   },
   {
-    titulo: "Placas de Vídeo (GPU): O Coração Gamer",
-    pesquisa: "melhores placas de vídeo 2026 custo benefício Brasil NVIDIA AMD",
-    ml_query: "placa de video RTX 4060",
-    foco: "Comparar RTX vs RX. Explicar VRAM, DLSS, FSR, ray tracing. Recomendar por resolução."
+    titulo: "Placa de Vídeo (GPU): O Coração dos Gráficos",
+    pesquisa: "melhor placa de vídeo gamer 2026 NVIDIA RTX AMD RX custo benefício",
+    ml_query: "placa de video RTX 4060 4070 gamer",
+    foco: "Explicar o que faz uma GPU, VRAM, DLSS, FSR, ray tracing. Recomendar GPUs por resolução (1080p, 1440p, 4K) com links de afiliado."
   },
   {
-    titulo: "Memória RAM e Armazenamento: Velocidade que Faz Diferença",
-    pesquisa: "melhor RAM DDR5 gaming 2026 NVMe SSD Brasil",
-    ml_query: "memoria DDR5 16GB",
-    foco: "16GB vs 32GB, DDR4 vs DDR5, NVMe vs SATA. Marcas: Kingston, Corsair, Samsung, WD."
+    titulo: "Placa-Mãe, Memória RAM e Armazenamento",
+    pesquisa: "placa mãe memória RAM DDR5 SSD NVMe para PC gamer 2026",
+    ml_query: "memoria RAM DDR5 16GB gamer SSD NVMe",
+    foco: "Explicar compatibilidade placa-mãe/CPU, DDR4 vs DDR5, 16GB vs 32GB, NVMe vs SATA. Recomendações com links."
   },
   {
-    titulo: "Monitores Gamer: Taxa de Atualização, Resolução e Painel",
-    pesquisa: "melhores monitores gamer 2026 144Hz 240Hz custo benefício Brasil",
-    ml_query: "monitor gamer 144hz",
-    foco: "IPS vs VA vs OLED. 1080p@144Hz, 1440p@165Hz, 4K@144Hz. Recomendações por faixa de preço."
+    titulo: "Fonte, Gabinete e Refrigeração",
+    pesquisa: "fonte 650W 750W gabinete gamer water cooler 2026 Brasil",
+    ml_query: "fonte 650W gamer gabinete",
+    foco: "Dimensionar fonte (potência, certificação 80 Plus), escolher gabinete (airflow, tamanho), refrigeração (air cooler vs water cooler)."
   },
   {
-    titulo: "Periféricos: Teclado, Mouse, Headset e Cadeira",
-    pesquisa: "melhores periféricos gamer 2026 teclado mouse headset Brasil",
-    ml_query: "teclado mecanico gamer",
-    foco: "Teclados mecânicos, mouses, headsets, cadeiras. Marcas: Redragon, Logitech, HyperX, Corsair."
+    titulo: "Monitor, Teclado, Mouse e Som",
+    pesquisa: "monitor gamer 144Hz teclado mecânico mouse headset 2026",
+    ml_query: "monitor gamer 144hz teclado mecanico",
+    foco: "Monitor (resolução, Hz, painel), teclado mecânico (switches), mouse (DPI, sensor), headset. Recomendações com links."
+  },
+  {
+    titulo: "Passo a Passo: Como Montar Seu PC",
+    pesquisa: "como montar PC gamer passo a passo 2026",
+    ml_query: null,
+    foco: "Guia prático: preparar bancada, instalar CPU/RAM na placa-mãe, fixar placa-mãe no gabinete, instalar fonte, GPU, conectar cabos (24 pinos, EPS, PCIe), primeiro boot, instalar Windows. Dicas de ouro: pulseira anti-estática, aplicar pasta térmica, gerenciar cabos."
   },
   {
     titulo: "Orçamentos: Setup Gamer para Cada Bolso",
-    pesquisa: null,
-    ml_query: null,
-    foco: "Montar 3 builds: Setup Econômico (~R$3.000), Intermediário (~R$5.000), High-End (~R$10.000). Listar peças com preço."
+    pesquisa: "quanto custa montar PC gamer 2026 Brasil preço peças",
+    ml_query: "PC gamer montado completo",
+    foco: "Três builds completas com preços: Setup Econômico (~R$3.000), Intermediário (~R$5.000), High-End (~R$10.000). Listar cada peça, preço e total."
   },
   {
-    titulo: "Conclusão: O Setup Ideal Para Você em 2026",
+    titulo: "Conclusão: Seu PC Gamer Começa Aqui",
     pesquisa: null,
     ml_query: null,
-    foco: "Resumo executivo. Melhores custo-benefício. Dicas finais. Call-to-action Telegram."
+    foco: "Resumo com melhores escolhas de cada categoria. Call-to-action para o grupo Telegram de ofertas. Incentivo: montar PC é mais fácil do que parece."
   },
 ];
 
 async function buscarProdutosML(secao) {
   if (!secao.ml_query || !ML_CLIENT_ID || !ML_CLIENT_SECRET) return [];
   try {
-    const produtos = await searchML(secao.ml_query, ML_CLIENT_ID, ML_CLIENT_SECRET, TAVILY_API_KEY, ML_COOKIES_PATH, 2);
+    const produtos = await searchMLviaGoogle(secao.ml_query, ML_COOKIES_PATH, TAVILY_API_KEY, 2);
     for (const p of produtos) {
       if (fs.existsSync(ML_COOKIES_PATH)) {
         try {

@@ -2,7 +2,7 @@
 import fs from "fs";
 import path from "path";
 import Parser from "rss-parser";
-import { searchML, generateAffiliateLink } from "./ml_affiliate.mjs";
+import { searchML, generateAffiliateLink, searchMLviaGoogle } from "./ml_affiliate.mjs";
 
 const rssParser = new Parser({
   timeout: 15000,
@@ -532,7 +532,11 @@ async function main() {
   let mlProducts = [];
   if (ML_CLIENT_ID && ML_CLIENT_SECRET) {
     try {
-      mlProducts = await searchML(topic.ml_query, ML_CLIENT_ID, ML_CLIENT_SECRET, TAVILY_API_KEY, ML_COOKIES_PATH, 4);
+      mlProducts = await searchMLviaGoogle(topic.ml_query, ML_COOKIES_PATH, TAVILY_API_KEY, 4);
+      if (mlProducts.length === 0) {
+        log("INFO", "Google nao encontrou produtos, tentando API ML como fallback...");
+        mlProducts = await searchML(topic.ml_query, ML_CLIENT_ID, ML_CLIENT_SECRET, TAVILY_API_KEY, ML_COOKIES_PATH, 4);
+      }
       for (const p of mlProducts) {
         if (fs.existsSync(ML_COOKIES_PATH)) {
           try {
