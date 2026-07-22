@@ -10,163 +10,185 @@ image: ""
 
 ## Por Que Montar um PC Gamer em 2026?
 
-Em 2026 o cenário de jogos está mais diversificado do que nunca. Consoles como o Xbox Series X+ e o PlayStation 5 ainda são potentes, mas um PC oferece liberdade que nenhum console consegue igualar: **upgrades** de componentes a cada geração, **personalização** de iluminação, refrigeração e layout, além de acesso a uma biblioteca de jogos que inclui títulos de Steam, Epic, GOG e emulação de gerações passadas.  
+Montar um PC ainda é a escolha mais inteligente para quem leva jogos a sério. Ao contrário dos consoles, um desktop permite **upgrade** de componentes a cada avanço tecnológico, garantindo que seu investimento continue relevante por vários anos. Em 2026, a diferença entre o custo‑benefício de um PC bem configurado e o de um console de última geração (como o Xbox Series X ou o PlayStation 6) é ainda mais evidente:
 
-A tendência de **ray tracing** em tempo real e **DLSS 4.0**/FSR 3 exigem hardware que evolui rapidamente – algo que o PC permite sem precisar trocar a máquina inteira. Também vale o ponto de produtividade: a mesma estação serve para edição de vídeo, streaming e até trabalho remoto, reduzindo a necessidade de múltiplos dispositivos.  
+| Característica | PC Gamer | Console |
+|----------------|----------|---------|
+| **Biblioteca** | Milhares de títulos, retrocompatibilidade, mods e jogos de PC exclusivos | Catálogo fechado, dependente de lançamentos da Sony/Microsoft |
+| **Performance** | Escalável: de 1080p a 4K/8K, taxas de quadro acima de 200 fps | Limitado ao hardware fixo do console |
+| **Customização** | Escolha de periféricos, iluminação, overclock | Apenas skins e ajustes de software |
+| **Produtividade** | Ferramentas de edição, programação, streaming integrados | Uso restrito a jogos e mídia |
+| **Custo a longo prazo** | Investimento inicial maior, mas upgrades pontuais reduzem a necessidade de troca completa | Troca completa a cada nova geração (cerca de 5‑7 anos) |
 
-Para quem busca **modding**, o PC é a única plataforma que aceita alterações de BIOS, overclock e instalação de softwares de captura avançados. Se você ainda tem dúvidas, compare a experiência: consoles oferecem “plug‑and‑play” simples, mas limitam a resolução a 4K/60 fps e cobram taxas de assinatura para multiplayer. Já um PC bem configurado entrega 144 fps em 1440p ou 4K com ray tracing, e ainda permite trocar a placa‑mãe ou o SSD quando o preço cair.  
+Quem deve montar um PC? Jogadores que desejam **taxas de quadros ultra‑altas**, suporte a **ray tracing** avançado, **mods** e a possibilidade de transformar a máquina em uma estação de trabalho (renderização, edição de vídeo, programação). Já os usuários que preferem **conveniência**, não se importam com performance máxima e jogam apenas títulos exclusivos de console podem optar por um console.  
 
-**Quem deve montar um PC?** Jogadores competitivos que precisam de taxas de atualização altas, criadores de conteúdo que desejam gravar em 4K sem sobrecarga, e entusiastas de hardware que gostam de montar e otimizar. Para quem só quer jogar casualmente e não se importa com performance extrema, um console ainda pode ser a escolha mais econômica.
-
----
+Para quem decide montar, o próximo passo é entender cada bloco de hardware. Vamos às recomendações.
 
 ## Processador (CPU): O Cérebro do Computador
 
-A CPU determina a capacidade de lidar com lógica de jogo, IA, física e multitarefa. Em 2026, a disputa está entre **AMD Ryzen 7 9850X3D** e **Intel Core i9‑14900K**. O Ryzen traz a tecnologia 3D V‑Cache, oferecendo 2 % a mais de frames em títulos que dependem de cache, porém consome 43 % mais energia. O Intel, com 24 núcleos (8 Performance + 16 Efficient) e frequência de boost de 5,8 GHz, entrega latência menor em jogos que utilizam muitos núcleos.
+A CPU determina a velocidade com que o sistema processa lógica de jogo, IA e física. Em 2026, os principais concorrentes são a linha **AMD Ryzen 7 9850X3D** e o **Intel Core i7‑14700K**. A escolha depende de três fatores: número de núcleos/threads, frequência base/boost e arquitetura de cache.
 
-### Como escolher a CPU
+### Como escolher
 
-| Modelo | Núcleos / Threads | Clock Base / Boost | Cache L3 | TDP | Preço (R$) |
-|--------|-------------------|--------------------|----------|-----|------------|
-| **AMD Ryzen 7 9850X3D** | 8 / 16 | 3,5 GHz / 5,0 GHz | 96 MB (3D) | 150 W | 2.350 |
-| **Intel Core i9‑14900K** | 24 / 32 | 3,0 GHz / 5,8 GHz | 36 MB | 125 W | 2.700 |
-| **AMD Ryzen 5 7700** | 6 / 12 | 3,8 GHz / 5,1 GHz | 32 MB | 105 W | 1.200 |
-| **Intel Core i5‑14600K** | 14 / 20 | 3,4 GHz / 5,2 GHz | 24 MB | 125 W | 1.350 |
+| Métrica | Por que importa |
+|---------|-----------------|
+| **Núcleos / Threads** | Jogos modernos utilizam entre 6‑12 threads; mais núcleos beneficiam multitarefa (streaming, gravação). |
+| **Frequência (GHz)** | Frequência alta melhora latência em títulos que dependem de single‑core. |
+| **Cache L3** | Maior cache reduz “misses” de memória, aumentando FPS em jogos CPU‑intensivos. |
+| **Socket** | Determina compatibilidade com placa‑mãe (AM5 para AMD, LGA 1700 para Intel). |
 
-Para quem joga em 1080p ou 1440p, a **Ryzen 5 7700** já entrega mais de 120 fps na maioria dos títulos atuais, sendo a escolha mais econômica. Se o objetivo é 4K ou streaming simultâneo, o **i9‑14900K** garante folga de CPU.
+### Recomendações
 
----
+| Modelo | Núcleos/Threads | Frequência Base / Boost | Cache L3 | Preço (R$) |
+|--------|-----------------|------------------------|----------|------------|
+| **AMD Ryzen 7 9850X3D** | 16 / 32 | 3.5 GHz / 5.2 GHz | 96 MB | R$ 2.399 |
+| **Intel Core i7‑14700K** | 20 / 28 | 3.3 GHz / 5.4 GHz | 30 MB | R$ 2.199 |
+| **AMD Ryzen 5 7650** (opção budget) | 12 / 24 | 3.2 GHz / 4.8 GHz | 48 MB | R$ 1.099 |
+
+**AMD Ryzen 7 9850X3D** lidera em desempenho bruto para jogos graças ao 3D‑V-Cache, entregando até 2 % a mais de FPS em títulos como *Cyberpunk 2077* e *Starfield*. Já o **Intel Core i7‑14700K** oferece frequência ligeiramente superior e melhor desempenho em tarefas multithread, sendo a escolha ideal para quem pretende fazer streaming simultâneo.
+
+> **Dica:** Se o seu orçamento permite, combine o 9850X3D com uma placa‑mãe B650‑E para aproveitar DDR5‑6000 e PCIe 5.0.
 
 ## Placa de Vídeo (GPU): O Coração dos Gráficos
 
-A GPU é responsável por renderizar imagens, aplicar ray tracing e executar algoritmos de upscaling como DLSS 4.0 e FSR 3. Em 2026, a linha de produtos mais relevante inclui **Nvidia RTX 5070 Ti**, **RTX 4060**, e a concorrente **AMD Radeon RX 9070 XT**.
+A GPU decide a qualidade visual e a taxa de quadros. Em 2026, a disputa está entre a **NVIDIA GeForce RTX 5070 Ti** e a **AMD Radeon RX 9070 XT**. Ambas trazem suporte a ray tracing, DLSS 3 (NVIDIA) e FSR 3 (AMD), além de memórias GDDR6X/6.
 
-### O que observar
+### Como escolher
 
-* **VRAM** – 12 GB é o mínimo recomendado para 4K com texturas altas.  
-* **CUDA Cores / Stream Processors** – maior número traz mais paralelismo.  
-* **Ray Tracing** – núcleos dedicados (RT) e suporte a DLSS/FSR.  
-* **Consumo** – GPUs de alta performance exigem fontes acima de 750 W.
+| Aspecto | Impacto no jogo |
+|---------|-----------------|
+| **CUDA Cores / Stream Processors** | Determinam o poder de cálculo bruto. |
+| **VRAM** | 8 GB é suficiente para 1080p/1440p; 12‑16 GB recomendado para 4K e texturas ultra‑high. |
+| **Ray Tracing** | Influencia iluminação e reflexos; requer hardware dedicado. |
+| **Tecnologias de upscaling** | DLSS ou FSR aumentam FPS mantendo qualidade visual. |
+| **TDP** | Define a necessidade de energia e refrigeração. |
 
-### Comparativo de GPUs
+### Recomendações por Resolução
 
-| Modelo | VRAM | CUDA / Stream | RT Cores | DLSS / FSR | TDP | Preço (R$) |
-|--------|------|---------------|----------|-----------|-----|------------|
-| **Nvidia RTX 5070 Ti** | 12 GB GDDR6X | 10 000 | 120 | DLSS 4.0 | 300 W | 4.800 |
-| **Nvidia RTX 4060** | 8 GB GDDR6 | 3 840 | 48 | DLSS 3.0 | 150 W | 2.300 |
-| **AMD Radeon RX 9070 XT** | 12 GB GDDR6 | 9 600 | — | FSR 3 | 280 W | 4.200 |
-| **Nvidia RTX 5050** | 6 GB GDDR6 | 2 560 | 36 | DLSS 2.5 | 120 W | 1.600 |
+| Resolução | GPU Recomendada | VRAM | Preço (R$) |
+|-----------|----------------|------|------------|
+| **1080p (60‑120 fps)** | **NVIDIA GeForce RTX 5060 Ti** | 8 GB | R$ 1.699 |
+| **1440p (120‑144 fps)** | **AMD Radeon RX 9070 XT** | 12 GB | R$ 2.099 |
+| **4K (60‑90 fps)** | **NVIDIA GeForce RTX 5070 Ti** | 16 GB | R$ 3.499 |
+| **Ultra‑high (8K/144 fps)** | **AMD Radeon RX 9080 XT** | 24 GB | R$ 5.299 |
 
-Para 1080p ultra‑high, a **RTX 5050** já entrega >120 fps; para 1440p, a **RTX 4060** é a escolha de melhor custo‑benefício; para 4K com ray tracing, a **RTX 5070 Ti** ou a **RX 9070 XT** são as únicas capazes de manter 60 fps estáveis.
+A **RTX 5070 Ti** se destaca em ray tracing graças ao novo núcleo RT 4.0 e ao suporte ao DLSS 3, garantindo 4K estável. A **RX 9070 XT**, por sua vez, oferece excelente custo‑benefício para 1440p, com desempenho comparável ao RTX 5060 Ti mas a um preço mais baixo.
 
-> **Dica:** Consulte nossa lista de [as 10 melhores placas de vídeo custo‑benefício do Mercado Livre em 2026](/blog-gamer/blog/as-10-melhores-placas-de-video-custo-beneficio-do-mercado-livre-em-2026/) para encontrar ofertas.
-
----
+> **Nota:** Consulte nossa lista completa de placas de vídeo em [as 10 melhores placas de vídeo custo‑benefício do Mercado Livre em 2026](/blog-gamer/blog/as-10-melhores-placas-de-video-custo-beneficio-do-mercado-livre-em-2026/).
 
 ## Placa‑Mãe, Memória RAM e Armazenamento
 
-A placa‑mãe conecta tudo. Em 2026, os padrões predominantes são **PCIe 5.0**, **DDR5‑6000** e **M.2 NVMe 4.0/5.0**. Escolher a socket correta (AM5 para AMD, LGA 1700/1800 para Intel) garante compatibilidade futura.
+### Placa‑Mãe
 
-### Recomendações de placa‑mãe
+A escolha da placa‑mãe deve seguir o socket da CPU e oferecer recursos como PCIe 5.0, USB 4.0 e suporte a DDR5. As opções mais equilibradas são:
 
-| Modelo | Chipset | Socket | Slots DDR5 | PCIe 5.0 Slots | USB | Preço (R$) |
-|--------|---------|--------|------------|----------------|-----|------------|
-| **ASUS ROG Strix Z790‑E** | Z790 | LGA 1700 | 4x (max 6400 MT/s) | 2x x16 | 12 (incl. USB‑C) | 2.200 |
-| **MSI MPG B650 Tomahawk** | B650 | AM5 | 4x (max 6600 MT/s) | 1x x16, 1x x4 | 8 | 1.500 |
-| **Gigabyte X670E AORUS Elite** | X670E | AM5 | 4x (max 7200 MT/s) | 2x x16 | 10 | 2.000 |
+| Modelo | Chipset | Formato | Slots M.2 | PCIe Slots | Preço (R$) |
+|--------|---------|---------|-----------|------------|------------|
+| **ASUS ROG Strix B650‑E Gaming WiFi** | B650‑E | ATX | 3× M.2 (PCIe 5.0) | 2× PCIe 5.0 x16 | R$ 1.199 |
+| **MSI MAG Z790 Tomahawk WiFi** | Z790 | ATX | 2× M.2 (PCIe 5.0) | 2× PCIe 5.0 x16 | R$ 1.349 |
+| **Gigabyte B660M DS3H** (budget) | B660 | Micro‑ATX | 1× M.2 (PCIe 4.0) | 1× PCIe 4.0 x16 | R$ 699 |
 
 ### Memória RAM
 
-| Kit | Capacidade | Frequência | Latência | Preço (R$) |
-|-----|------------|------------|----------|------------|
-| **Corsair Vengeance DDR5‑6000** | 16 GB (2×8) | 6000 MHz | CL36 | 720 |
-| **G.Skill Trident Z5 DDR5‑6600** | 32 GB (2×16) | 6600 MHz | CL38 | 1.350 |
-| **Kingston Fury Beast DDR5‑7200** | 32 GB (2×16) | 7200 MHz | CL40 | 1.600 |
+DDR5 já domina o mercado, oferecendo latências menores e maiores taxas de transferência (5600‑7200 MT/s). Para jogos, 16 GB é o mínimo; 32 GB garante folga para streaming e edição.
 
-Para jogos, 16 GB já são suficientes; porém 32 GB garante folga para streaming e edição.
+| Kit | Frequência | Capacidade | Preço (R$) |
+|-----|------------|------------|------------|
+| **Corsair Vengeance DDR5‑6000 16 GB (2×8 GB)** | 6000 MT/s | 16 GB | R$ 799 |
+| **G.Skill Trident Z5 DDR5‑7200 32 GB (2×16 GB)** | 7200 MT/s | 32 GB | R$ 1.399 |
+| **Kingston Fury Beast DDR5‑5600 16 GB (2×8 GB)** (budget) | 5600 MT/s | 16 GB | R$ 649 |
 
 ### Armazenamento
 
-| Modelo | Tipo | Capacidade | Leitura | Escrita | Preço (R$) |
-|--------|------|------------|---------|---------|------------|
-| **Samsung 990 Pro** | NVMe 4.0 | 2 TB | 7 400 MB/s | 6 900 MB/s | 1.400 |
-| **WD Black SN850X** | NVMe 4.0 | 1 TB | 7 000 MB/s | 6 500 MB/s | 950 |
-| **Crucial P5 Plus** | NVMe 4.0 | 2 TB | 6 600 MB/s | 5 800 MB/s | 1.200 |
+NVMe PCIe 4.0/5.0 oferece velocidades de leitura acima de 7 GB/s, reduzindo tempos de carregamento. Recomenda‑se ao menos um SSD de 1 TB para o sistema e jogos, complementado por um HDD de 2 TB para arquivos grandes.
 
-Um SSD NVMe de 1 TB já cobre o SO e alguns jogos; para bibliotecas maiores, o **Samsung 990 Pro** de 2 TB é o ideal.
+| Modelo | Interface | Capacidade | Velocidade Leitura | Preço (R$) |
+|--------|-----------|------------|--------------------|------------|
+| **Samsung 990 Pro PCIe 5.0** | PCIe 5.0 x4 | 1 TB | 13 GB/s | R$ 1.299 |
+| **Western Digital Black SN850X PCIe 4.0** | PCIe 4.0 x4 | 2 TB | 7 GB/s | R$ 1.599 |
+| **Seagate Barracuda 2 TB 7200 RPM** | SATA III | 2 TB | 210 MB/s | R$ 399 |
 
----
+> **Dica:** Se o orçamento for apertado, um SSD SATA de 1 TB (ex.: **Crucial MX500**) ainda entrega boa performance por cerca de R$ 549.
 
 ## Fonte, Gabinete e Refrigeração
 
-A fonte de alimentação (PSU) deve suprir energia suficiente com margem de 20 % para overclock. Certificações **80 Plus Platinum** ou **Titanium** garantem eficiência e menor calor.
+### Fonte de Alimentação
 
-### PSUs recomendadas
+A potência deve cobrir o TDP total + margem de 20 %. Certificação 80 Plus Gold ou Platinum garante eficiência e menor calor.
 
-| Modelo | Potência | Certificação | Modular | Preço (R$) |
-|--------|----------|--------------|---------|------------|
-| **Corsair AX1600i SHIFT** | 1600 W | 80 Plus Titanium | Totalmente modular | 4.500 |
-| **Corsair HX1000i SHIFT CRYSTAL** | 1000 W | 80 Plus Platinum | Totalmente modular | 2.800 |
-| **EVGA SuperNOVA 850 G5** | 850 W | 80 Plus Gold | Totalmente modular | 1.600 |
+| Modelo | Potência | Certificação | Modularidade | Preço (R$) |
+|--------|----------|--------------|--------------|------------|
+| **Corsair RM850x (2026)** | 850 W | 80 Plus Gold | Totalmente modular | R$ 799 |
+| **Seasonic PRIME TX‑1000** | 1000 W | 80 Plus Titanium | Totalmente modular | R$ 1.199 |
+| **EVGA 600 BQ** (budget) | 600 W | 80 Plus Bronze | Semi‑modular | R$ 449 |
 
 ### Gabinete
 
-| Modelo | Formato | Ventilação | Suporte Radiador | Preço (R$) |
-|--------|---------|------------|------------------|------------|
-| **Phanteks Eclipse P500A** | ATX Mid‑Tower | Mesh frontal 3×120 mm | Até 360 mm (frente) | 1.100 |
-| **NZXT H710i** | ATX Mid‑Tower | Painel de vidro + 2×140 mm | Até 280 mm (frente) | 1.300 |
-| **Lian Li O11 Dynamic XL** | ATX Full‑Tower | Vidro + 3×120 mm | Até 360 mm (topo) | 1.500 |
+Priorize fluxo de ar, compatibilidade com radiadores de 240 mm ou 360 mm e espaço para placas‑mãe ATX. Algumas opções populares:
+
+| Modelo | Tipo | Suporte de Radiador | Espaço para GPU | Preço (R$) |
+|--------|------|---------------------|-----------------|------------|
+| **Fractal Design Meshify C** | Mid‑tower | Frontal 240 mm, Top 120 mm | Até 320 mm | R$ 799 |
+| **NZXT H710i** | Mid‑tower | Frontal 360 mm, Top 240 mm | Até 370 mm | R$ 999 |
+| **Cooler Master MasterBox NR600** (budget) | Mid‑tower | Frontal 240 mm | Até 350 mm | R$ 549 |
 
 ### Refrigeração
 
-| Modelo | Tipo | Radiador | Fluxo de ar | Preço (R$) |
-|--------|------|----------|-------------|------------|
-| **NZXT Kraken X73** | Water‑cool (AIO) | 360 mm | 300 L/h | 1.800 |
-| **Noctua NH-D15 chromax.black** | Air‑cool | — | 220 L/h | 1.200 |
-| **Corsair iCUE H150i ELITE** | Water‑cool (AIO) | 360 mm | 320 L/h | 1.700 |
+Para CPUs de alto desempenho, um cooler a ar de alta qualidade (ex.: **Noctua NH‑D15**) ou um AIO de 240 mm (ex.: **Corsair iCUE H115i**) são adequados.
 
-Para builds high‑end, combine a **AX1600i** com o **Kraken X73** e o **Phanteks P500A** para fluxo de ar ideal.
-
-> **Dica:** Veja a análise das fontes SHIFT no nosso artigo sobre [os 10 melhores monitores gamer custo‑benefício do Mercado Livre em 2026](/blog-gamer/blog/os-10-melhores-monitores-gamer-custo-beneficio-do-mercado-livre-em-2026/) – boas combinações de energia e estética.
-
----
+| Modelo | Tipo | Radiador | TDP Suportado | Preço (R$) |
+|--------|------|----------|---------------|------------|
+| **Noctua NH‑D15** | Ar | N/A | Até 220 W | R$ 749 |
+| **Corsair iCUE H115i RGB** | AIO 240 mm | 240 mm | Até 250 W | R$ 899 |
+| **Cooler Master Hyper 212 Evo** (budget) | Ar | N/A | Até 150 W | R$ 299 |
 
 ## Monitor, Teclado, Mouse e Som
 
 ### Monitor
 
-| Modelo | Tamanho | Resolução | Taxa de Atualização | Tipo de Painel | Preço (R$) |
-|--------|---------|-----------|---------------------|----------------|------------|
-| **LG UltraGear 27GN950** | 27" | 4K (3840×2160) | 144 Hz | IPS | 3.200 |
-| **Samsung Odyssey G7** | 32" | 1440p (2560×1440) | 240 Hz | VA | 2.800 |
-| **ASUS ROG Swift PG259QN** | 24.5" | 1080p (1920×1080) | 360 Hz | IPS | 2.600 |
-| **AOC 34" Curvo QD‑OLED** | 34" | 1440p (3440×1440) | 175 Hz | OLED | 4.500 |
+A escolha do monitor deve alinhar resolução, taxa de atualização e tipo de painel ao GPU escolhida. Confira as três recomendações principais:
 
-Para 4K, o **LG UltraGear 27GN950** oferece cores precisas e 144 Hz, ideal para RTX 5070 Ti. Em 1440p competitivo, o **Samsung Odyssey G7** com 240 Hz garante resposta rápida.
+| Modelo | Resolução | Taxa de Atualização | Tipo de Painel | Preço (R$) |
+|--------|-----------|---------------------|----------------|------------|
+| **LG UltraGear 27GN950-B** | 4K (3840×2160) | 144 Hz | Nano‑IPS | R$ 3.299 |
+| **Samsung Odyssey G7 32"** | 1440p (2560×1440) | 240 Hz | QLED | R$ 2.699 |
+| **AOC 24G2** | 1080p (1920×1080) | 144 Hz | IPS | R$ 999 |
 
-### Teclado
+> **Veja também:** nossa lista completa de monitores em [os 10 melhores monitores gamer custo‑benefício do Mercado Livre em 2026](/blog-gamer/blog/os-10-melhores-monitores-gamer-custo-beneficio-do-mercado-livre-em-2026/).
 
-| Modelo | Switch | Iluminação | Conectividade | Preço (R$) |
-|--------|--------|------------|----------------|------------|
-| **ASUS ROG Strix S** | Cherry MX Red | RGB per‑key | Wired USB | 850 |
-| **Corsair K100 RGB** | OPX Optical | RGB per‑key | Wired USB | 1.200 |
-| **Keychron Q2** | Gateron Brown | RGB | Wired USB‑C | 700 |
+### Teclado Mecânico
 
-Para quem prioriza rapidez, o **ASUS ROG Strix S** com switches lineares é a escolha mais equilibrada entre preço e performance.
+| Modelo | Switch | Iluminação | Layout | Preço (R$) |
+|--------|--------|------------|--------|------------|
+| **Corsair K95 RGB Platinum XT** | Cherry MX Speed | RGB per‑key | Full‑size | R$ 1.199 |
+| **Razer BlackWidow V4 Pro** | Razer Optical | RGB per‑key | Full‑size | R$ 1.099 |
+| **Redragon K552** (budget) | Outemu Red | Single‑color | Tenkeyless | R$ 399 |
 
-### Mouse
+### Mouse Gamer
 
-| Modelo | Sensor | DPI Máx | Peso | Preço (R$) |
-|--------|--------|---------|------|------------|
-| **Logitech G Pro X Superlight** | HERO 25K | 25.600 | 63 g | 650 |
-| **Razer DeathAdder V3 Pro** | Focus+ | 26.000 | 88 g | 500 |
-| **SteelSeries Rival 600** | TrueMove3+ | 12.000 | 96 g | 450 |
-
-O **Logitech G Pro X Superlight** domina o cenário competitivo graças ao sensor HERO 25K e peso mínimo.
+| Modelo | Sensor | DPI Máximo | Botões | Preço (R$) |
+|--------|--------|------------|--------|------------|
+| **Logitech G Pro X Superlight** | HERO 25K | 25 000 | 5 | R$ 799 |
+| **Razer DeathAdder V2 Pro** | Focus+ | 20 000 | 8 | R$ 649 |
+| **Redragon M711** (budget) | Pixart 3327 | 10 000 | 6 | R$ 199 |
 
 ### Headset
 
 | Modelo | Tipo | Frequência | Microfone | Preço (R$) |
 |--------|------|------------|-----------|------------|
-| **Razer BlackShark V3** | Over‑ear | 20 Hz‑20 kHz | Cardioid | 550 |
-| **HyperX Cloud II** | Over‑ear | 15 Hz‑25 kHz | Bidirecional | 
+| **Razer BlackShark V3** | Over‑ear | 20‑20000 Hz | Boom, cancelamento | R$ 699 |
+| **SteelSeries Arctis 7 X** | Over‑ear | 20‑20000 Hz | ClearCast | R$ 749 |
+| **HyperX Cloud Stinger** (budget) | Over‑ear | 15‑20000 Hz | Condensador | R$ 299 |
+
+## Passo a Passo: Como Montar Seu PC
+
+1. **Prepare a bancada** – Use uma superfície plana, bem iluminada e livre de estática. Uma pulseira anti‑estática é opcional, mas recomendada.  
+2. **Instale o processador** – Abra o soquete da placa‑mãe, alinhe a seta do **AMD Ryzen 7 9850X3D** (ou Intel) com a marca no socket e fixe.  
+3. **Aplique a pasta térmica** – Se o cooler não vier com pasta pré‑aplicada, espalhe uma fina camada (do tamanho de uma ervilha) sobre o IHS.  
+4. **Monte o cooler** – Posicione o **Noctua NH‑D15** (ou AIO) e fixe os parafusos conforme o manual. Conecte o cabo PWM ao header da placa‑mãe.  
+5. **Instale a memória RAM** – Abra as travas dos slots DDR5, alinhe o entalhe do módulo e pressione até ouvir o clique.  
+6. **Prepare o gabinete** – Instale os standoffs correspondentes ao formato da placa‑mãe (ATX, Micro‑ATX).  
+7. **Fixe a placa‑mãe** – Alinhe os furos e parafuse delicadamente.  
+8. **Instale a fonte** – Posicione a **Corsair RM850x** na parte inferior (ou superior, conforme o gabinete) e fixe com os parafusos. Conecte o cabo 24‑pinos à placa‑mãe e o EPS 8‑pinos à CPU.  
+9. **Monte o SSD NVMe** – Insira o **Samsung 990 Pro** no slot M.2 livre, fixe com o parafuso.  
+10.
