@@ -297,6 +297,36 @@ function injectGameImages(body, gameImages) {
   return result;
 }
 
+function injectProductCards(body, mlProducts) {
+  if (!mlProducts || mlProducts.length === 0) return body;
+
+  const productCards = mlProducts.map((p) => {
+    const img = p.thumbnail && p.thumbnail.startsWith("http") ? p.thumbnail : "";
+    const link = p.affiliate_link || p.permalink || "";
+    const preco = p.price ? `R$ ${p.price.toFixed(2)}` : "";
+    return `<div class="product-card">
+  ${img ? `<img src="${img}" alt="${p.title}" class="product-card-img" loading="lazy" decoding="async">` : ""}
+  <div class="product-card-body">
+    <h3>${p.title}</h3>
+    ${preco ? `<div class="product-price">${preco}</div>` : ""}
+    <p class="product-desc">Adquira no Mercado Livre com o melhor preço e frete rápido.</p>
+    <div class="product-pros"><strong>Destaque:</strong> Excelente custo-benefício para esta categoria.</div>
+    ${link ? `<a href="${link}" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>` : ""}
+  </div>
+</div>`;
+  }).join("\n\n");
+
+  const allProductsBlock = `\n\n${productCards}\n`;
+
+  const headingMatch = body.match(/## (?!Fontes|Quer mais ofertas\?|Conclus[aã]o\b)([^\n]+)/i);
+  if (headingMatch) {
+    const headingText = headingMatch[0];
+    return body.replace(headingText, `${headingText}\n${allProductsBlock}`);
+  }
+
+  return body + allProductsBlock;
+}
+
 function cleanFakeImages(body) {
   return body
     .replace(/<img[^>]*src="https?:\/\/upload\.wikimedia\.org[^"]*"[^>]*>/gi, "")
@@ -643,6 +673,10 @@ Instrucoes:
 
   log("INFO", "Validacoes OK");
 
+  log("INFO", "Injetando produtos do Mercado Livre no artigo...");
+  body = injectProductCards(body, mlProducts);
+  log("INFO", `${mlProducts.length} produtos injetados no corpo do artigo`);
+
   log("INFO", "Buscando imagens de jogos via RAWG...");
   body = cleanFakeImages(body);
   const gameNames = extractGameNames(body);
@@ -664,9 +698,21 @@ Instrucoes:
   }
 
   const coverImage = await getBestCoverImage(mlProducts, body);
-  if (coverImage) {
+  if (!coverImage) {
+    const trendingKw = topic.trending_keywords?.[0] || topic.ml_query?.split(" ").slice(0, 2).join(" ") || "";
+    if (trendingKw) {
+      const fallbackImg = await fetchRAWGImage(trendingKw);
+      if (fallbackImg) {
+        fm.image = fallbackImg;
+        log("INFO", `Imagem de capa via RAWG (fallback): ${fallbackImg.slice(0, 80)}`);
+      }
+    }
+  } else {
     fm.image = coverImage;
     log("INFO", `Imagem de capa: ${coverImage.slice(0, 80)}`);
+  }
+  if (!fm.image) {
+    log("WARN", "Nenhuma imagem de capa encontrada — artigo ficara sem imagem principal");
   }
 
   const slug = slugify(fm.title);
