@@ -307,6 +307,19 @@ function extractGameNames(body) {
     "versão digital", "versao digital", "mídia física", "midia fisica",
     "excelente", "recondicionado", "recondicionada",
     "acessórios", "acessorios", "periféricos", "perifericos",
+    "o que é?", "o que é", "por que vale a pena?", "por que vale a pena",
+    "expectativa da comunidade:", "expectativa da comunidade",
+    "diferenciais:", "diferenciais", "polêmica:", "polemica:",
+    "impacto no mercado:", "impacto no mercado",
+    "cultura gamer:", "cultura gamer",
+    "controle preciso:", "controle preciso",
+    "proteção total:", "protecao total:",
+    "case resistente:", "case resistente",
+    "passos pra montar", "passos para montar",
+    "instala o controle", "protege o console", "organiza o espaço",
+    "instale o jogo", "ajuste as configurações",
+    "explore o modo", "aproveite o dualsense",
+    "gerencie o tempo", "modo performance", "modo gráfico",
   ]);
   const found = body.match(/\*\*([^*]+)\*\*/g);
   if (!found) return [];
@@ -377,13 +390,21 @@ function injectProductCards(body, mlProducts) {
     const img = p.thumbnail && p.thumbnail.startsWith("http") ? p.thumbnail : "";
     const link = p.affiliate_link || p.permalink || "";
     const preco = p.price ? `R$ ${p.price.toFixed(2)}` : "";
+    const highlights = [
+      "Custo-beneficio que nao pesa no bolso",
+      "Setup gamer raiz sem vender o rim",
+      "Qualidade que vale cada centavo",
+      "Desempenho de elite sem preco de scalper",
+      "Ideal pra quem quer jogar sem lag no orcamento",
+    ];
+    const highlight = highlights[Math.floor(Math.random() * highlights.length)];
     return `<div class="product-card">
   ${img ? `<img src="${img}" alt="${p.title}" class="product-card-img" loading="lazy" decoding="async">` : ""}
   <div class="product-card-body">
     <h3>${p.title}</h3>
     ${preco ? `<div class="product-price">${preco}</div>` : ""}
-    <p class="product-desc">Adquira no Mercado Livre com o melhor preço e frete rápido.</p>
-    <div class="product-pros"><strong>Destaque:</strong> Excelente custo-benefício para esta categoria.</div>
+    <p class="product-desc">Garante o teu no Mercado Livre antes que o estoque acabe.</p>
+    <div class="product-pros"><strong>Destaque:</strong> ${highlight}</div>
     ${link ? `<a href="${link}" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>` : ""}
   </div>
 </div>`;
