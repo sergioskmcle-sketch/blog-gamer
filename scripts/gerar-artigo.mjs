@@ -126,6 +126,7 @@ function buildTopicFromKeyword(topKeyword, topKeywords, existingTopics = []) {
   const kw = topKeyword.toLowerCase();
   const top3 = topKeywords.map(([k]) => k);
   const ctx = top3.slice(0, 3).join(", ");
+  const top2names = top3.slice(0, 2).join(" ");
 
   let category = KEYWORD_CATEGORY_MAP[kw] || "noticia";
   let hint = "";
@@ -134,27 +135,27 @@ function buildTopicFromKeyword(topKeyword, topKeywords, existingTopics = []) {
   if (GAME_KEYWORDS.some((g) => kw.includes(g) || g.includes(kw))) {
     category = "noticia";
     hint = `lancamentos, novidades e guia sobre ${kw} — topicos em alta: ${ctx}`;
-    ml_query = `${kw} jogo ps5 xbox pc`;
+    ml_query = `${top2names} jogo ps5 xbox pc`;
   } else if (CONSOLE_KEYWORDS.some((c) => kw.includes(c) || c.includes(kw))) {
     category = "noticia";
     hint = `novidades, jogos e acessorios para ${kw} — topicos em alta: ${ctx}`;
-    ml_query = `${kw} jogo acessorio`;
+    ml_query = `${kw} ${top3.filter(k => k !== kw).slice(0, 2).join(" ")} jogo`;
   } else if (HARDWARE_KEYWORDS.some((h) => kw.includes(h) || h.includes(kw))) {
     category = "guia";
     hint = `melhores ${kw}s gamer em 2026 — topicos em alta: ${ctx}`;
-    ml_query = `${kw} gamer 2026`;
+    ml_query = `${kw} gamer ${top3.filter(k => k !== kw).slice(0, 1).join(" ")} 2026`;
   } else if (EVENT_KEYWORDS.some((e) => kw.includes(e) || e.includes(kw))) {
     category = "noticia";
     hint = `${kw}: anuncios, novidades e expectativas — topicos em alta: ${ctx}`;
-    ml_query = `games lancamento 2026`;
+    ml_query = `${top2names} jogo ps5 pc`;
   } else if (PROMO_KEYWORDS.some((p) => kw.includes(p) || p.includes(kw))) {
     category = "promocao";
     hint = `melhores ${kw} de games e perifericos em 2026 — topicos em alta: ${ctx}`;
-    ml_query = `promocao gamer oferta`;
+    ml_query = `${top2names} promocao oferta`;
   } else {
     category = "noticia";
     hint = `novidades sobre ${kw} no mundo gamer — topicos em alta: ${ctx}`;
-    ml_query = `${kw} gamer 2026`;
+    ml_query = `${top2names} gamer 2026`;
   }
 
   return { category, hint, ml_query, trending_score: topKeywords[0]?.[1] || 0, trending_keywords: top3 };
@@ -429,7 +430,11 @@ function cleanFakeImages(body) {
     .replace(/\n\s*\n\s*\n/g, "\n\n");
 }
 
-async function getBestCoverImage(products, articleBody) {
+async function getBestCoverImage(products, articleBody, trendingKeyword) {
+  if (trendingKeyword) {
+    const img = await fetchRAWGImage(trendingKeyword);
+    if (img) return img;
+  }
   if (products.length > 0) {
     for (const p of products) {
       if (p.thumbnail && p.thumbnail.startsWith("http")) {
@@ -682,9 +687,9 @@ async function main() {
     try {
       const trendingKws = topic.trending_keywords || [];
       const searchQueries = [
+        ...trendingKws.slice(0, 2).map((kw) => `${kw} jogo ps5 xbox pc`),
         topic.ml_query,
-        ...trendingKws.slice(0, 2).map((kw) => `${kw} jogo acessorio console`),
-      ].slice(0, 3);
+      ].slice(0, 4);
 
       const seen = new Set();
       for (const query of searchQueries) {
@@ -882,11 +887,12 @@ Instrucoes:
     log("WARN", "Nenhum nome de jogo detectado no artigo");
   }
 
-  const coverImage = await getBestCoverImage(mlProducts, body);
+  const trendingKeywordForCover = topic.trending_keywords?.[0] || "";
+  const coverImage = await getBestCoverImage(mlProducts, body, trendingKeywordForCover);
   if (!coverImage) {
-    const trendingKw = topic.trending_keywords?.[0] || topic.ml_query?.split(" ").slice(0, 2).join(" ") || "";
-    if (trendingKw) {
-      const fallbackImg = await fetchRAWGImage(trendingKw);
+    const fallbackKw = trendingKeywordForCover || topic.ml_query?.split(" ").slice(0, 2).join(" ") || "";
+    if (fallbackKw) {
+      const fallbackImg = await fetchRAWGImage(fallbackKw);
       if (fallbackImg) {
         fm.image = fallbackImg;
         log("INFO", `Imagem de capa via RAWG (fallback): ${fallbackImg.slice(0, 80)}`);
