@@ -107,6 +107,21 @@ function extractTrendingTopics(headlines) {
   return Object.entries(scores).sort((a, b) => b[1] - a[1]);
 }
 
+function isTopicDuplicate(keyword, existingTopics) {
+  if (!existingTopics || existingTopics.length === 0) return false;
+  const kw = keyword.toLowerCase();
+  const kwWords = kw.split(/\s+/).filter((w) => w.length > 3);
+  for (const topic of existingTopics) {
+    const topicLower = topic.toLowerCase();
+    let matches = 0;
+    for (const word of kwWords) {
+      if (topicLower.includes(word)) matches++;
+    }
+    if (matches >= 2) return true;
+  }
+  return false;
+}
+
 function buildTopicFromKeyword(topKeyword, topKeywords, existingTopics = []) {
   const kw = topKeyword.toLowerCase();
   const top3 = topKeywords.map(([k]) => k);
@@ -196,8 +211,18 @@ async function discoverTrendingTopic(existingTopics = []) {
 
   log("INFO", `Top trending: ${trending.slice(0, 5).map(([k, v]) => `${k} (${v}x)`).join(", ")}`);
 
+  for (const [kw, score] of trending) {
+    if (isTopicDuplicate(kw, existingTopics)) {
+      log("INFO", `Topico "${kw}" ja usado recentemente, tentando proximo...`);
+      continue;
+    }
+    const topic = buildTopicFromKeyword(kw, trending.slice(0, 3), existingTopics);
+    log("INFO", `Tema escolhido: [${topic.category}] ${topic.hint}`);
+    return topic;
+  }
+
   const topic = buildTopicFromKeyword(trending[0][0], trending.slice(0, 3), existingTopics);
-  log("INFO", `Tema escolhido: [${topic.category}] ${topic.hint}`);
+  log("INFO", `Tema escolhido (todos repetidos, usando top): [${topic.category}] ${topic.hint}`);
 
   return topic;
 }
@@ -290,11 +315,32 @@ function injectGameImages(body, gameImages) {
     if (re.test(result)) {
       result = result.replace(
         new RegExp(`\\*\\*${escaped}\\*\\*`),
-        `**${name}**\n<img src="${imgUrl}" alt="${name}" class="article-game-img">`
+        `\n<img src="${imgUrl}" alt="${name}" class="article-game-img">\n\n**${name}**`
       );
     }
   }
   return result;
+}
+
+function isGamerProduct(title) {
+  if (!title) return false;
+  const lower = title.toLowerCase();
+  const nonGamer = [
+    "whey", "protein", "suplemento", "parafusadeira", "furadeira",
+    "relogio", "relógio", "roupa", "camiseta", "camisa", "bermuda",
+    "cosmetico", "cosmético", "cozinha", "decoracao", "decoração",
+    "perfume", "maquiagem", "bicicleta", "livro didatico", "livro escolar",
+    "sapato", "tenis", "tênis", "chinelo", "bolsa", "mochila escolar",
+    "fone de ouvido infantil", "brinquedo bebe", "brinquedo bebê",
+    "panelas", "frigideira", "aspirador", "liquidificador", "ventilador",
+    "cafeteira", "sanduicheira", "varal", "tapete", "cortina",
+    "produto de limpeza", "detergente", "shampoo", "condicionador",
+    "suporte para celular carro", "cabo usb generico",
+  ];
+  for (const kw of nonGamer) {
+    if (lower.includes(kw)) return false;
+  }
+  return true;
 }
 
 function injectProductCards(body, mlProducts) {
@@ -318,10 +364,12 @@ function injectProductCards(body, mlProducts) {
 
   const allProductsBlock = `\n\n${productCards}\n`;
 
-  const headingMatch = body.match(/## (?!Fontes|Quer mais ofertas\?|Conclus[aã]o\b)([^\n]+)/i);
-  if (headingMatch) {
-    const headingText = headingMatch[0];
-    return body.replace(headingText, `${headingText}\n${allProductsBlock}`);
+  const headingRegex = /## (?!Fontes|Quer mais ofertas\?|Conclus[aã]o\b)[^\n]+/gi;
+  const headings = [...body.matchAll(headingRegex)];
+
+  if (headings.length >= 2) {
+    const insertAt = headings[1].index;
+    return body.slice(0, insertAt) + allProductsBlock + "\n" + body.slice(insertAt);
   }
 
   return body + allProductsBlock;
@@ -366,7 +414,7 @@ async function fetchTavily(query) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       api_key: TAVILY_API_KEY, query,
-      search_depth: "advanced", max_results: 4,
+      search_depth: "advanced", max_results: 6,
       topic: "news", include_answer: true, time_range: "month",
     }),
   });
@@ -477,6 +525,28 @@ function countArticlesInDir() {
   return fs.readdirSync(ARTIGOS_DIR).filter((f) => f.endsWith(".md")).length;
 }
 
+function getExistingSlugs() {
+  if (!fs.existsSync(ARTIGOS_DIR)) return [];
+  return fs.readdirSync(ARTIGOS_DIR)
+    .filter((f) => f.endsWith(".md"))
+    .map((f) => f.replace(/\.md$/, ""));
+}
+
+function validateInternalLinks(body) {
+  const existingSlugs = getExistingSlugs();
+  const linkRegex = /\[([^\]]+)\]\(\/blog-gamer\/blog\/([^)]+?)\/?\)/g;
+  let match;
+  let fixed = body;
+  while ((match = linkRegex.exec(fixed)) !== null) {
+    const slug = match[2];
+    if (!existingSlugs.includes(slug)) {
+      log("WARN", `Link interno invalido removido: /blog-gamer/blog/${slug}/`);
+      fixed = fixed.replace(match[0], "");
+    }
+  }
+  return fixed.replace(/\n{3,}/g, "\n\n");
+}
+
 function getCategoryCounts() {
   const counts = {};
   if (!fs.existsSync(ARTIGOS_DIR)) return counts;
@@ -562,11 +632,40 @@ async function main() {
   let mlProducts = [];
   if (ML_CLIENT_ID && ML_CLIENT_SECRET) {
     try {
-      mlProducts = await searchMLviaGoogle(topic.ml_query, ML_COOKIES_PATH, TAVILY_API_KEY, 4);
-      if (mlProducts.length === 0) {
-        log("INFO", "Google nao encontrou produtos, tentando API ML como fallback...");
-        mlProducts = await searchML(topic.ml_query, ML_CLIENT_ID, ML_CLIENT_SECRET, TAVILY_API_KEY, ML_COOKIES_PATH, 4);
+      const trendingKws = topic.trending_keywords || [];
+      const searchQueries = [
+        topic.ml_query,
+        ...trendingKws.slice(0, 2).map((kw) => `${kw} jogo acessorio console`),
+      ].slice(0, 3);
+
+      const seen = new Set();
+      for (const query of searchQueries) {
+        try {
+          let results = await searchMLviaGoogle(query, ML_COOKIES_PATH, TAVILY_API_KEY, 4);
+          if (results.length === 0) {
+            log("INFO", `Google: 0 resultados para "${query}", tentando API ML...`);
+            results = await searchML(query, ML_CLIENT_ID, ML_CLIENT_SECRET, TAVILY_API_KEY, ML_COOKIES_PATH, 4);
+          }
+          for (const p of results) {
+            if (!seen.has(p.permalink)) {
+              seen.add(p.permalink);
+              mlProducts.push(p);
+            }
+          }
+        } catch (e) {
+          log("WARN", `ML search "${query}": ${e.message}`);
+        }
+        if (mlProducts.length >= 4) break;
       }
+
+      if (mlProducts.length === 0) {
+        log("INFO", "Nenhum produto encontrado via multiplas queries, tentando fallback com query original...");
+        mlProducts = await searchMLviaGoogle(topic.ml_query, ML_COOKIES_PATH, TAVILY_API_KEY, 4);
+        if (mlProducts.length === 0) {
+          mlProducts = await searchML(topic.ml_query, ML_CLIENT_ID, ML_CLIENT_SECRET, TAVILY_API_KEY, ML_COOKIES_PATH, 4);
+        }
+      }
+
       for (const p of mlProducts) {
         if (fs.existsSync(ML_COOKIES_PATH)) {
           try {
@@ -588,8 +687,10 @@ async function main() {
     log("WARN", "ML_CLIENT_ID/ML_CLIENT_SECRET nao configurados — pulando busca de produtos ML");
   }
 
+  mlProducts = mlProducts.filter((p) => isGamerProduct(p.title));
+
   const productBlock = mlProducts.length > 0
-    ? `\nProdutos do Mercado Livre (use imagens e links obrigatoriamente):\n${mlProducts.map((p, i) =>
+    ? `\nProdutos do Mercado Livre (APENAS mencione-os no texto, o sistema ja injeta imagens e links):\n${mlProducts.map((p, i) =>
         `[Produto ${i + 1}]\n` +
         `Nome: ${p.title}\n` +
         `Preco: R$ ${p.price?.toFixed(2) || "N/A"}\n` +
@@ -609,7 +710,7 @@ Regras:
 - ESTRUTURA OBRIGATORIA: Todo artigo DEVE ter headings ## para cada secao principal. Use ## para secoes (ex: ## Introducao, ## Analise, ## Dicas) e ### para subsecoes. NUNCA escreva um artigo sem headings.
 - Sempre que citar um jogo pela PRIMEIRA vez, use **Nome Do Jogo** em negrito. Ex: "**EA Sports FC 26** e um dos melhores..."
 - IMPORTANTE: NUNCA invente URLs de imagens (ex: wikipedia, google). O sistema insere imagens automaticamente para nomes de jogos em negrito.
-- ${mlProducts.length > 0 ? `Produtos do Mercado Livre: use APENAS produtos relacionados a games, consoles, perifericos e hardware gamer. IGNORE produtos NAO-GAMER (ex: whey protein, parafusadeira, relogios, roupas, cosmeticos, itens de cozinha, decoracao). Para cada produto gamer use: <img src="URL_IMAGEM" alt="NOME" class="product-image"> e botoes: <a href="LINK_AFILIADO" class="btn btn-primary" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>` : "Modo informativo: artigo de conteudo puro. Nao invente produtos, precos, links de compra, ou URLs de imagens. Use APENAS **negrito** nos nomes de jogos."}
+- ${mlProducts.length > 0 ? `Produtos do Mercado Livre: O sistema ja injeta os produtos automaticamente no artigo. NÃO inclua imagens, preços ou links dos produtos listados abaixo — apenas MENCIONE-OS NATURALMENTE no texto quando relevante. Para cada produto gamer mencionado use: texto descritivo sem duplicar o que o sistema ja faz.` : "Modo informativo: artigo de conteudo puro. Nao invente produtos, precos, links de compra, ou URLs de imagens. Use APENAS **negrito** nos nomes de jogos."}
 - ${mlProducts.length > 0 ? `ENRIQUECIMENTO OBRIGATORIO: inclua uma TABELA COMPARATIVA dos produtos com colunas: Produto | Preco | Destaque | Nota (1-10). Inclua uma secao ## FAQ com 3-4 perguntas e respostas. Para cada produto, liste PROS e CONTRAS em bullets.` : `ENRIQUECIMENTO OBRIGATORIO: inclua uma secao ## FAQ com 3-4 perguntas. Inclua tabelas quando relevante para comparar jogos, especificacoes, ou dados.`}
 - IMPORTANTE: Inclua 2 a 3 links internos para outros artigos do Blog Gamer usando o formato [texto](/blog-gamer/blog/slug-do-artigo/). Ex: "Confira tambem nosso [guia de placas de video](/blog-gamer/blog/as-10-melhores-placas-de-video-custo-beneficio-do-mercado-livre-em-2026/)".
 - Ao final do artigo, inclua um call-to-action convidando o leitor a entrar no grupo VIP do Telegram para ofertas diarias: "## Quer mais ofertas?\\n\\nEntre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e receba ofertas diarias de games, consoles e perifericos!"
@@ -636,7 +737,8 @@ Instrucoes:
 1. Titulo SEO atraente (50-60 caracteres)
 2. Descricao persuasiva (120-160 caracteres, sem exageros promocionais)
 3. Artigo em markdown com estrutura clara: ## Introducao, ## [Topico Principal], ## Dicas, ## Conclusao, ## Fontes
-4. ${mlProducts.length > 0 ? `Use produtos do Mercado Livre: <img src="URL_IMAGEM" alt="NOME" class="product-image"> e botoes de afiliado. APENAS produtos gamer — ignore whey protein, parafusadeiras, relogios, roupas ou qualquer item nao relacionado a games.\n5. Para cada produto gamer mencionado, coloque um botao "VER NO MERCADO LIVRE" com o link de afiliado. Produtos nao-gamer DEVEM SER IGNORADOS completamente.` : `4. USE **NEGRITO** nos nomes de jogos na primeira mencao.\n5. NAO invente links de compra nem URLs de imagens.`}
+4. ${mlProducts.length > 0 ? `Mencione produtos do Mercado Livre naturalmente no texto — o sistema ja injeta cards, imagens e botoes automaticamente.` : `NAO invente links de compra nem URLs de imagens.`}
+5. USE **NEGRITO** nos nomes de jogos na primeira mencao
 6. Inclua 2-3 links internos para outros artigos do Blog Gamer (ex: [guia de placas de video](/blog-gamer/blog/as-10-melhores-placas-de-video-custo-beneficio-do-mercado-livre-em-2026/))
 7. Ao final, secao "## Quer mais ofertas?" com link para o grupo Telegram (https://t.me/+TRWZ67WHuk85Y2Nh)
 8. Minimo 800 palavras de conteudo real (o sistema rejeita artigos menores)
@@ -672,6 +774,10 @@ Instrucoes:
   }
 
   log("INFO", "Validacoes OK");
+
+  log("INFO", "Validando links internos...");
+  body = validateInternalLinks(body);
+  log("INFO", "Links internos validados");
 
   log("INFO", "Injetando produtos do Mercado Livre no artigo...");
   body = injectProductCards(body, mlProducts);
