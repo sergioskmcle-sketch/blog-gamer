@@ -272,15 +272,23 @@ async function fetchRAWGImage(gameName) {
     );
     if (!r.ok) return null;
     const data = await r.json();
-    const bg = data.results?.[0]?.background_image;
-    if (bg) {
-      const hqUrl = bg.replace("/media/", "/media/crop/600/400/") + "?auto=format&fit=crop&w=800&h=450";
-      try {
-        GAME_IMAGE_CACHE[gameName] = hqUrl;
-        log("INFO", `RAWG imagem "${gameName.slice(0, 40)}": ${hqUrl.slice(0, 60)}...`);
-        return hqUrl;
-      } catch {}
+    const result = data.results?.[0];
+    if (!result?.background_image) return null;
+
+    const bg = result.background_image;
+    const foundName = result.name || "";
+
+    const searchWords = clean.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
+    const foundWords = foundName.toLowerCase().split(/\s+/);
+    const matchCount = searchWords.filter((sw) => foundWords.some((fw) => fw.includes(sw) || sw.includes(fw))).length;
+    if (matchCount === 0 && searchWords.length > 0) {
+      return null;
     }
+
+    const hqUrl = bg.replace("/media/", "/media/crop/600/400/") + "?auto=format&fit=crop&w=800&h=450";
+    GAME_IMAGE_CACHE[gameName] = hqUrl;
+    log("INFO", `RAWG imagem "${gameName.slice(0, 40)}": ${hqUrl.slice(0, 60)}...`);
+    return hqUrl;
   } catch (e) {
     log("WARN", `RAWG erro "${gameName.slice(0, 40)}": ${e.message}`);
   }
