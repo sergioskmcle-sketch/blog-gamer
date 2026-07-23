@@ -295,6 +295,10 @@ function extractGameNames(body) {
     "progresso compartilhado", "progresso", "sistema", "opção", "opcao",
     "resolução 4k", "resolucao 4k", "4k", "60fps", "120fps", "hdr",
     "ray tracing", "dlss", "fsr", "vrr", "ssd", "hdd", "fps",
+    "prós", "pros", "contras", "contrás",
+    "versão digital", "versao digital", "mídia física", "midia fisica",
+    "excelente", "recondicionado", "recondicionada",
+    "acessórios", "acessorios", "periféricos", "perifericos",
   ]);
   const found = body.match(/\*\*([^*]+)\*\*/g);
   if (!found) return [];
@@ -304,7 +308,9 @@ function extractGameNames(body) {
     const name = match.replace(/^\*\*|\*\*$/g, "").trim();
     if (name && name.length > 3 && !name.startsWith("http") && !name.startsWith("R$")) {
       const lower = name.toLowerCase();
+      if (name.length > 60) continue;
       if (nonGameTerms.has(lower)) continue;
+      if (/(mídia física|midia fisica|recondicionado|recondicionada|excelente.*recondicionado)/i.test(name)) continue;
       if (!seen.has(name)) {
         seen.add(name);
         result.push(name);
