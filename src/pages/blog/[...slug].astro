@@ -274,20 +274,89 @@ const categories = [
       }
     });
 
+    let lightbox = null;
+    function openLightbox(src, alt) {
+      if (lightbox) lightbox.remove();
+      lightbox = document.createElement("div");
+      lightbox.className = "lightbox-overlay";
+      lightbox.innerHTML = `<div class="lightbox-backdrop"></div><img src="${src}" alt="${alt}" class="lightbox-img"><button class="lightbox-close">&times;</button>`;
+      document.body.appendChild(lightbox);
+      requestAnimationFrame(() => lightbox.classList.add("active"));
+      lightbox.querySelector(".lightbox-backdrop").addEventListener("click", closeLightbox);
+      lightbox.querySelector(".lightbox-close").addEventListener("click", closeLightbox);
+      document.addEventListener("keydown", onLightboxKey);
+    }
+    function closeLightbox() {
+      if (!lightbox) return;
+      lightbox.classList.remove("active");
+      document.removeEventListener("keydown", onLightboxKey);
+      setTimeout(() => { if (lightbox) { lightbox.remove(); lightbox = null; } }, 300);
+    }
+    function onLightboxKey(e) { if (e.key === "Escape") closeLightbox(); }
+
+    document.querySelectorAll("#articleBody img").forEach((img) => {
+      img.style.cursor = "pointer";
+      img.addEventListener("click", () => openLightbox(img.src, img.alt));
+    });
+
 
   </script>
 
   <style is:global>
+    /* === Lightbox === */
+    .lightbox-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    }
+    .lightbox-overlay.active { opacity: 1; pointer-events: auto; }
+    .lightbox-backdrop {
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.92);
+    }
+    .lightbox-img {
+      position: relative; z-index: 1;
+      max-width: 90vw; max-height: 90vh;
+      object-fit: contain;
+      border-radius: 10px;
+      box-shadow: 0 0 60px rgba(168,85,247,0.15);
+      transform: scale(0.9); transition: transform 0.3s ease;
+    }
+    .lightbox-overlay.active .lightbox-img { transform: scale(1); }
+    .lightbox-close {
+      position: absolute; top: 24px; right: 32px; z-index: 2;
+      background: none; border: none;
+      color: #fff; font-size: 2rem; cursor: pointer;
+      opacity: 0.7; transition: opacity 0.2s;
+    }
+    .lightbox-close:hover { opacity: 1; }
+
     /* === Article Game Images === */
     #articleBody .article-game-img {
       width: 100%;
-      max-width: 400px;
+      max-width: 600px;
       aspect-ratio: 16 / 9;
       object-fit: cover;
       border-radius: var(--radius-md, 10px);
       border: 1px solid var(--border, #1C1C2E);
       display: block;
-      margin: 0.5rem 0 0.75rem 0;
+      margin: 0.75rem 0;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    #articleBody .article-game-img:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 20px rgba(168,85,247,0.15);
+    }
+
+    /* === Article body font size === */
+    #articleBody {
+      font-size: 1.05rem;
+      line-height: 1.85;
+    }
+    #articleBody p {
+      font-size: 1.05rem;
+      line-height: 1.85;
+      margin-bottom: 1.25rem;
     }
     /* === Product Cards === */
     #articleBody .product-card {
@@ -308,6 +377,7 @@ const categories = [
       object-fit: cover;
       display: block;
       border-radius: 0;
+      cursor: pointer;
     }
     #articleBody .product-card-body {
       padding: 1.25rem;

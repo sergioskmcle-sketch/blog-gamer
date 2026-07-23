@@ -267,20 +267,18 @@ async function fetchRAWGImage(gameName) {
 
   try {
     const r = await fetch(
-      `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(clean)}&page_size=1`,
+      `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(clean)}&page_size=1&page=1`,
       { timeout: 10000 }
     );
     if (!r.ok) return null;
     const data = await r.json();
     const bg = data.results?.[0]?.background_image;
     if (bg) {
+      const hqUrl = bg.replace("/media/", "/media/crop/600/400/") + "?auto=format&fit=crop&w=800&h=450";
       try {
-        const headRes = await fetch(bg, { method: "HEAD", timeout: 5000 });
-        if (headRes.ok) {
-          GAME_IMAGE_CACHE[gameName] = bg;
-          log("INFO", `RAWG imagem "${gameName.slice(0, 40)}": ${bg.slice(0, 60)}...`);
-          return bg;
-        }
+        GAME_IMAGE_CACHE[gameName] = hqUrl;
+        log("INFO", `RAWG imagem "${gameName.slice(0, 40)}": ${hqUrl.slice(0, 60)}...`);
+        return hqUrl;
       } catch {}
     }
   } catch (e) {
@@ -290,6 +288,14 @@ async function fetchRAWGImage(gameName) {
 }
 
 function extractGameNames(body) {
+  const nonGameTerms = new Set([
+    "instalação rápida", "instalacao rapida", "ajuste de dificuldade", "ajuste de dificuldade",
+    "gerenciamento de recursos", "exploração de dlcs", "exploracao de dlcs",
+    "download", "update", "patch", "modo", "sobrevivência", "sobrevivencia",
+    "progresso compartilhado", "progresso", "sistema", "opção", "opcao",
+    "resolução 4k", "resolucao 4k", "4k", "60fps", "120fps", "hdr",
+    "ray tracing", "dlss", "fsr", "vrr", "ssd", "hdd", "fps",
+  ]);
   const found = body.match(/\*\*([^*]+)\*\*/g);
   if (!found) return [];
   const seen = new Set();
@@ -297,6 +303,8 @@ function extractGameNames(body) {
   for (const match of found) {
     const name = match.replace(/^\*\*|\*\*$/g, "").trim();
     if (name && name.length > 3 && !name.startsWith("http") && !name.startsWith("R$")) {
+      const lower = name.toLowerCase();
+      if (nonGameTerms.has(lower)) continue;
       if (!seen.has(name)) {
         seen.add(name);
         result.push(name);
@@ -311,13 +319,18 @@ function injectGameImages(body, gameImages) {
   for (const [name, imgUrl] of Object.entries(gameImages)) {
     if (!imgUrl) continue;
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const re = new RegExp(`\\*\\*${escaped}\\*\\*`, "g");
-    if (re.test(result)) {
-      result = result.replace(
-        new RegExp(`\\*\\*${escaped}\\*\\*`),
-        `\n<img src="${imgUrl}" alt="${name}" class="article-game-img">\n\n**${name}**`
-      );
-    }
+    const boldRegex = new RegExp(`\\*\\*${escaped}\\*\\*`, "g");
+    const match = boldRegex.exec(result);
+    if (!match) continue;
+
+    const boldPos = match.index;
+    let paraStart = result.lastIndexOf("\n\n", boldPos);
+    paraStart = paraStart === -1 ? 0 : paraStart + 2;
+    let paraEnd = result.indexOf("\n\n", boldPos + match[0].length);
+    paraEnd = paraEnd === -1 ? result.length : paraEnd;
+
+    const imageTag = `<img src="${imgUrl}" alt="${name}" class="article-game-img" loading="lazy" decoding="async">`;
+    result = result.slice(0, paraEnd) + `\n\n${imageTag}` + result.slice(paraEnd);
   }
   return result;
 }
@@ -711,7 +724,8 @@ Regras:
 - Sempre que citar um jogo pela PRIMEIRA vez, use **Nome Do Jogo** em negrito. Ex: "**EA Sports FC 26** e um dos melhores..."
 - IMPORTANTE: NUNCA invente URLs de imagens (ex: wikipedia, google). O sistema insere imagens automaticamente para nomes de jogos em negrito.
 - ${mlProducts.length > 0 ? `Produtos do Mercado Livre: O sistema ja injeta os produtos automaticamente no artigo. NÃO inclua imagens, preços ou links dos produtos listados abaixo — apenas MENCIONE-OS NATURALMENTE no texto quando relevante. Para cada produto gamer mencionado use: texto descritivo sem duplicar o que o sistema ja faz.` : "Modo informativo: artigo de conteudo puro. Nao invente produtos, precos, links de compra, ou URLs de imagens. Use APENAS **negrito** nos nomes de jogos."}
-- ${mlProducts.length > 0 ? `ENRIQUECIMENTO OBRIGATORIO: inclua uma TABELA COMPARATIVA dos produtos com colunas: Produto | Preco | Destaque | Nota (1-10). Inclua uma secao ## FAQ com 3-4 perguntas e respostas. Para cada produto, liste PROS e CONTRAS em bullets.` : `ENRIQUECIMENTO OBRIGATORIO: inclua uma secao ## FAQ com 3-4 perguntas. Inclua tabelas quando relevante para comparar jogos, especificacoes, ou dados.`}
+- ${mlProducts.length > 0 ? `ENRIQUECIMENTO OBRIGATORIO: inclua uma TABELA COMPARATIVA dos produtos com colunas: Produto | Preco | Destaque | Nota (1-10). Inclua uma secao ## FAQ com 3-4 perguntas e respostas. Para cada produto, liste PROS e CONTRAS em bullets estruturadas ## Pros e Contras. IMPORTANTE: use listas e bullets (<ul>/<li> ou -) em TODAS as secoes para melhorar a legibilidade.` : `ENRIQUECIMENTO OBRIGATORIO: inclua uma secao ## FAQ com 3-4 perguntas. Inclua tabelas quando relevante para comparar jogos, especificacoes, ou dados. Use listas e bullets em todas as secoes.`}
+- IMPORTANTE: Toda secao do artigo DEVE ter pelo menos 2-3 bullets/listas com topicos claros. Numere passos (1. 2. 3.) ou use bullets (- texto). Artigos sem topicos/listas sao rejeitados.
 - IMPORTANTE: Inclua 2 a 3 links internos para outros artigos do Blog Gamer usando o formato [texto](/blog-gamer/blog/slug-do-artigo/). Ex: "Confira tambem nosso [guia de placas de video](/blog-gamer/blog/as-10-melhores-placas-de-video-custo-beneficio-do-mercado-livre-em-2026/)".
 - Ao final do artigo, inclua um call-to-action convidando o leitor a entrar no grupo VIP do Telegram para ofertas diarias: "## Quer mais ofertas?\\n\\nEntre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e receba ofertas diarias de games, consoles e perifericos!"
 - Cite as fontes de pesquisa no final: "## Fontes" com links
