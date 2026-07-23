@@ -75,7 +75,7 @@ export default {
         xl: "32px",
         xxl: "48px",
         gutter: "24px",
-        "max-content-width": "720px",
+        "max-content-width": "780px",
         "margin-desktop": "32px",
       },
       fontFamily: {
@@ -94,7 +94,7 @@ export default {
         label: ["0.75rem", { lineHeight: "1.5", letterSpacing: "0.05em", fontWeight: "500" }],
       },
       maxWidth: {
-        content: "720px",
+        content: "780px",
         page: "1280px",
         "page-narrow": "1100px",
       },

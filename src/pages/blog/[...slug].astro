@@ -50,7 +50,7 @@ const categories = [
   </div>
 
   <div class="relative z-10 pt-[100px] pb-xxl px-gutter">
-    <div class="max-w-[1100px] mx-auto grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-xl">
+    <div class="max-w-[1280px] mx-auto grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-xl">
       <article class="max-w-max-content-width mx-auto w-full" id="articleContent">
         {frontmatter.image && (
           <div class="rounded-xl overflow-hidden mb-xl shadow-2xl group">
@@ -357,6 +357,12 @@ const categories = [
       font-size: 1.05rem;
       line-height: 1.85;
       margin-bottom: 1.25rem;
+      text-align: justify;
+      text-justify: inter-word;
+    }
+    #articleBody li {
+      text-align: justify;
+      text-justify: inter-word;
     }
     /* === Product Cards === */
     #articleBody .product-card {
