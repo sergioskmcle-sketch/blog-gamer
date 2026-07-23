@@ -15,9 +15,9 @@ O blog se auto-gerencia. Para verificar a saúde do sistema, abra o [`status.jso
 ```json
 {
   "saudavel": true,
-  "ultimo_artigo": "2026-07-21",
-  "ultimo_deploy": "2026-07-21T23:54:53Z",
-  "total_artigos": 17,
+  "ultimo_artigo": "2026-07-23",
+  "ultimo_deploy": "2026-07-23T20:14:40Z",
+  "total_artigos": 24,
   "erros_recentes": [],
   "apis": { "groq": "ok", "tavily": "ok", "rawg": "ok" }
 }
@@ -41,7 +41,7 @@ scripts/
   ml_affiliate.mjs          → API ML (token OAuth, searchMLviaGoogle, link afiliado)
   gerar-status.cjs          → Gera status.json a cada deploy
   download-images.mjs       → Baixa imagens dos produtos para o repo
-  convert-banners.mjs       → Converte banners PNG para WebP
+  convert-banners.mjs       → Converter banners PNG → WebP
 
 src/content/artigos/   → Artigos em markdown com frontmatter
 state.json             → Estado da geração (cooldown, falhas, tópicos recentes)
@@ -51,29 +51,183 @@ public/images/         → Banners Telegram (WebP), logo SVG, imagens de produto
 
 ---
 
-## Modelo de IA
+## Pipeline Completo de Geração
 
-**openai/gpt-oss-120b** (Groq, plano Free). Substituiu o llama-3.3-70b em Jul/2026. Escreve melhor em português, segue instruções complexas (tabelas, FAQ, pros/cons), e tem o dobro do limite gratuito (200K tokens/dia vs 100K). Limitado a 8K TPM por requisição (payload otimizado para ~7K).
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ 1. TRENDING     RSS (MeuPlayStation, GameVicio, IGN) + Reddit      │
+│                 → Extrai keywords, ranqueia por frequência          │
+│                 → Escolhe tema NÃO usado recentemente (dedup)       │
+├─────────────────────────────────────────────────────────────────────┤
+│ 2. PESQUISA     Tavily: 6 resultados (search_depth: advanced)       │
+│                 → Contexto de ~600 words por fonte injetado         │
+├─────────────────────────────────────────────────────────────────────┤
+│ 3. PRODUTOS ML  Google (Tavily) → scraping → affiliate link         │
+│                 Até 4 queries usando trending keywords              │
+│                 Filtro isGamerProduct + dedup por permalink         │
+├─────────────────────────────────────────────────────────────────────┤
+│ 4. GROQ IA      openai/gpt-oss-120b (8K TPM)                       │
+│                 Persona dual: Mano Gamer / Técnico                  │
+│                 Retry exponencial 8x em falhas (429/503/413)        │
+├─────────────────────────────────────────────────────────────────────┤
+│ 5. VALIDAÇÃO    Frontmatter, word count (400+), links internos      │
+│                 Links inválidos removidos automaticamente           │
+├─────────────────────────────────────────────────────────────────────┤
+│ 6. INJEÇÃO      Product cards → entre intro e 2º heading           │
+│                 Imagens RAWG → final dos parágrafos                 │
+│                 Capa → RAWG trending keyword ou produto ML          │
+├─────────────────────────────────────────────────────────────────────┤
+│ 7. SAVE + PUSH  Markdown salvo em src/content/artigos/              │
+│                 Commit automático → git push → deploy GitHub Pages  │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Injeção Mecânica de Produtos
+## Tipos de Artigo e Personas
 
-Os artigos **não dependem mais** da IA incluir produtos no texto. Após o Groq gerar o artigo, o sistema injeta os product cards diretamente no markdown — com imagens, preços e botões "VER NO MERCADO LIVRE". Isso garante que **100% dos produtos encontrados** aparecem no artigo, independente do modelo cooperar ou não.
+O blog publica **5 categorias** de artigos. Cada categoria tem uma **persona de IA** específica que define o tom e o estilo de escrita.
+
+### Persona "Mano Gamer" (Irreverente — `noticia`, `lista`, `promocao`)
+
+Usada para 3 das 5 categorias. O prompt define uma voz forte:
+
+```
+PERSONA: Você é o "Mano Gamer", narrador raiz do Blog Gamer — um gamer brasileiro
+que escreve como se estivesse trocando ideia com os amigos no Discord.
+```
+
+**Características do estilo:**
+- **Abertura:** gancho direto — *"Fala, gamer!"*, *"Segura essa, galera!"*
+- **Opinião forte:** critica empresas, elogia quando merece
+- **Humor/sarcasmo:** metáforas do mundo gamer — *"mais difícil que matar Malenia no level 1"*
+- **Gírias BR:** *"brabo"*, *"tankar"*, *"farmar"*, *"rushar"*, *"o bagulho"*, *"mermão"*
+- **Leitor direto:** *"teu setup"*, *"bora ver?"*, *"vai encarar?"*
+- **Proibido:** voz passiva, emojis, mencionar que é IA, termos corporativos
+
+### Persona "Técnico" (Factual — `guia`, `review`)
+
+Usada para guias de compra e reviews. O prompt define precisão:
+
+```
+PERSONA: Você é um redator técnico especializado em games e hardware.
+Escreve reviews e guias com precisão e profundidade.
+```
+
+**Características do estilo:**
+- **Abertura:** direto ao ponto, contextualiza em 1-2 frases
+- **Objetividade:** compara especificações, mostra dados, explica decisões
+- **Profundidade:** explica o "porquê" de cada recomendação
+- **Estrutura:** tabelas comparativas, pros/contras, listas numeradas
+- **Tom:** profissional acessível — *"A RTX 4060 entrega 60 fps estáveis em 1080p"*
+- **Proibido:** gírias de boteco, humor forçado, sarcasmo
+
+### Categorias
+
+| Categoria | Slug | Persona | Conteúdo típico |
+|-----------|------|---------|-----------------|
+| **Notícia** | `noticia` | Mano Gamer | Lançamentos, eventos (E3, Game Awards), anúncios, trailers |
+| **Review** | `review` | Técnico | Análise de jogos: gameplay, gráficos, desempenho, nota |
+| **Guia de Compra** | `guia` | Técnico | Hardware: headsets, teclados, mouses, monitores, cadeiras, GPUs |
+| **Lista** | `lista` | Mano Gamer | Rankings, melhores jogos do ano, melhores gratuitos, por estilo |
+| **Promoção** | `promocao` | Mano Gamer | Ofertas: Steam Sale, descontos em periféricos, bundles |
+
+### Estrutura obrigatória (todas as categorias)
+
+Todo artigo, independente da persona, deve conter:
+- **Headings** (`##`) para cada seção principal — rejeitado sem headings
+- **`**nome do jogo**` em negrito** na primeira menção (sistema injeta imagem RAWG)
+- **Tabela comparativa** com colunas: Produto | Preço | Destaque | Nota (1-10)
+- **FAQ** com 3-4 perguntas e respostas
+- **Pros e Contras** em bullets para cada produto
+- **2-3 links internos** para outros artigos do blog
+- **Seção "Quer mais ofertas?"** com link do Telegram
+- **Seção "Fontes"** com links de pesquisa
+- **Mínimo 800 palavras** (sistema rejeita artigos menores)
 
 ---
 
-## Busca de Produtos via Google
+## Como as Imagens São Inseridas
 
-O sistema usa **Tavily/Google** para encontrar produtos no Mercado Livre (não a API interna do ML, que é limitada para hardware). O fluxo:
+### Imagens de Jogos (RAWG.io)
 
-1. Tavily busca `"RTX 4060 placa de video preço Brasil"` + `"site:mercadolivre.com.br"`
-2. Extrai URLs de produtos do ML dos resultados
-3. Faz scraping da página do produto (título, preço, imagem)
-4. Gera link de afiliado via `generateAffiliateLink()`
-5. Injeta product cards no artigo
+O sistema **nunca pede para a IA gerar imagens**. Em vez disso:
 
-Fallback: se o Google não encontrar, tenta a API interna do ML.
+1. **Detecção** (`extractGameNames`): varre o artigo por `**texto em negrito**` (padrão da IA para marcar jogos). Filtra automaticamente termos não-jogos:
+   - "Instalação rápida", "Ajuste de dificuldade", "Prós", "Contras"
+   - "O que é?", "Por que vale a pena?", perguntas de seção
+   - Nomes de produtos (>60 caracteres, contendo "recondicionado", "mídia física")
+
+2. **Busca no RAWG.io** (`fetchRAWGImage`): consulta `api.rawg.io/api/games?search=[nome]` e valida se o nome retornado corresponde ao termo buscado (mínimo 1 palavra >3 letras coincidindo). Rejeita matches falsos.
+
+3. **URL de alta qualidade**: transforma o link RAWG em crop 800×450:
+   ```
+   /media/games/xxx.jpg → /media/crop/600/400/games/xxx.jpg?auto=format&fit=crop&w=800&h=450
+   ```
+
+4. **Posição** (`injectGameImages`): a imagem é inserida **após o parágrafo** que contém o nome do jogo — nunca no meio da frase. Exemplo:
+   ```markdown
+   A Capcom confirmou **Resident Evil Requiem** para PS5 com gráficos no ultra.
+
+   <img src="https://media.rawg.io/..." alt="Resident Evil Requiem" class="article-game-img">
+   ```
+
+5. **Lightbox**: no frontend (`[...slug].astro`), ao clicar em qualquer imagem, ela abre em tela cheia com overlay. Fecha com ESC ou clique no fundo.
+
+### Imagem de Capa
+
+A capa do artigo (hero image no topo da página e thumbnail nos cards) segue esta prioridade:
+
+1. **RAWG da 1ª trending keyword** (tópico principal do artigo — ex: wallpaper de "Resident Evil")
+2. **Thumbnail do 1º produto do Mercado Livre** (fallback)
+3. **RAWG do 1º jogo mencionado no corpo do texto** (segundo fallback)
+4. **Vazio** (artigo sem imagem de capa)
+
+---
+
+## Como os Produtos do Mercado Livre São Inseridos
+
+### Injeção Mecânica de Product Cards
+
+Os artigos **não dependem da IA** incluir produtos no texto. Após o Groq gerar o artigo, o sistema injeta product cards diretamente no markdown:
+
+1. **Busca de produtos** (`searchMLviaGoogle`): até 4 queries usando trending keywords (ex: `"resident evil jogo ps5 xbox pc"`). Fallback para API interna do ML.
+2. **Link de afiliado** (`generateAffiliateLink`): visita a página do produto para obter CSRF token, chama API de afiliados — resultado: `https://meli.la/XXXXXX`
+3. **Filtro** (`isGamerProduct`): bloqueia itens não-gamer (whey, parafusadeira, roupas, cosméticos, utensílios de cozinha, etc.)
+4. **Posição**: os cards são injetados **entre o conteúdo da introdução e o segundo heading** do artigo — o leitor vê a introdução primeiro, depois os produtos.
+
+### Formato do Card
+
+```html
+<div class="product-card">
+  <img src="[thumbnail]" class="product-card-img">
+  <div class="product-card-body">
+    <h3>[nome do produto]</h3>
+    <div class="product-price">R$ [preço]</div>
+    <p>Garante o teu no Mercado Livre antes que o estoque acabe.</p>
+    <div class="product-pros"><strong>Destaque:</strong> [frase rotativa]</div>
+    <a href="https://meli.la/XXXXX" class="product-btn">VER NO MERCADO LIVRE</a>
+  </div>
+</div>
+```
+
+Os destaques são frases rotativas no tom do blog:
+- *"Setup gamer raiz sem vender o rim"*
+- *"Desempenho de elite sem preço de scalper"*
+- *"Custo-benefício que não pesa no bolso"*
+
+### A IA e os Produtos
+
+A IA recebe a lista de produtos no prompt, mas é instruída a **apenas mencioná-los naturalmente** no texto — sem imagens, preços ou links. O sistema cuida de toda a parte visual. Isso evita:
+- Produtos duplicados (card do sistema + texto da IA)
+- Links quebrados ou preços errados
+- Imagens de baixa qualidade
+
+### Tabela + Pros/Contras
+
+A IA gera dentro do corpo do artigo:
+- **Tabela comparativa:** `| Produto | Preço | Destaque | Nota (1-10) |`
+- **Seção Pros e Contras:** bullets para cada produto
 
 ---
 
@@ -82,18 +236,40 @@ Fallback: se o Google não encontrar, tenta a API interna do ML.
 Antes de cada artigo, o sistema consulta **RSS feeds** de sites BR (MeuPlayStation, GameVicio, IGN Brasil) e **Reddit** (r/gaming, r/gamesEcultura) para descobrir o que está em alta:
 
 1. Coleta headlines dos feeds RSS e posts do Reddit
-2. Extrai palavras-chave e ranqueia por frequência
-3. Tema vencedor vira o artigo do dia
-4. Contexto trending injetado no prompt do Groq
-5. Fallback estático se nenhum trending for encontrado (score < 2)
-6. Últimos 10 tópicos salvos no `state.json` para evitar repetição
+2. Extrai palavras-chave de 4 categorias: **GAMES** (gta, persona, resident evil...), **CONSOLES** (ps5, xbox, nintendo switch...), **HARDWARE** (monitor, rtx, headset...), **EVENTOS** (lançamento, game awards, e3...) e **PROMOÇÕES** (oferta, desconto, steam sale...)
+3. Ranqueia por frequência
+4. **Dedup:** pula keywords já usadas nos últimos artigos (2+ palavras coincidindo = bloqueio)
+5. Tema vencedor vira o artigo do dia, com a categoria determinada pelo tipo de keyword
+6. Contexto trending injetado no prompt do Groq
+7. Fallback estático se nenhum trending for encontrado (score < 2)
+8. Últimos 10 tópicos salvos no `state.json`
+
+### Como o `ml_query` é construído
+
+A query de busca de produtos usa as **trending keywords reais**, não queries genéricas:
+
+| Tipo de keyword | Query de exemplo |
+|----------------|-----------------|
+| Game (ex: resident evil) | `"resident evil persona jogo ps5 xbox pc"` |
+| Console (ex: ps5) | `"ps5 resident evil persona jogo"` |
+| Hardware (ex: monitor) | `"monitor gamer resident evil 2026"` |
+| Evento (ex: lançamento) | `"resident evil persona jogo ps5 pc"` |
+| Promoção (ex: oferta) | `"resident evil persona promocao oferta"` |
+
+Isso garante que os produtos encontrados sejam **relacionados ao conteúdo real** do artigo, não acessórios genéricos.
+
+---
+
+## Modelo de IA
+
+**openai/gpt-oss-120b** (Groq, plano Free). Substituiu o llama-3.3-70b em Jul/2026. Escreve melhor em português, segue instruções complexas (tabelas, FAQ, pros/cons), e tem o dobro do limite gratuito (200K tokens/dia vs 100K). Limitado a 8K TPM por requisição (payload otimizado para ~7K).
 
 ---
 
 ## Sistemas de Resiliência
 
 ### Retry exponencial
-8 tentativas com backoff: 10s → 20s → 40s → 80s → 160s → 5min → 10min → 20min (~2h de cobertura). Trata quotas (429), servidor indisponível (503/502) e falhas temporárias de rede.
+8 tentativas com backoff: 10s → 20s → 40s → 80s → 160s → 5min → 10min → 20min (~2h de cobertura). Trata quotas (429), servidor indisponível (503/502), payload muito grande (413) e falhas temporárias de rede.
 
 ### Cooldown inteligente (20h)
 Cooldown por horas reais, não por data UTC. Se o último artigo foi gerado há menos de 20h, o sistema pula. Workflow manual tem checkbox **Force** para ignorar o cooldown.
@@ -106,39 +282,22 @@ Cooldown por horas reais, não por data UTC. Se o último artigo foi gerado há 
 - **RSS/Reddit offline** → fallback para lista estática de temas
 - **Google não acha produtos** → fallback para API interna do ML
 
-### Imagens automáticas de jogos
-Integração com RAWG.io — nomes de jogos em **negrito** recebem imagens automaticamente. Capa do artigo usa RAWG quando não há produto do ML.
-
 ### Concorrência isolada
 `gerar-conteudo.yml`, `gerar-artigo-pilar.yml` e `deploy.yml` usam grupos de concorrência separados, evitando filas e deploys redundantes.
 
 ---
 
-## Fluxo de Geração (Artigo Diário)
+## Busca de Produtos via Google
 
-1. **Agendamento** — CI dispara a cada 2 dias (cron `30 9 */2 * *`) ou manualmente
-2. **Trending** — RSS + Reddit para descobrir tema em alta
-3. **Estado** — Verifica cooldown de 20h no `state.json`
-4. **Pesquisa** — Tavily (`search_depth: advanced`, `max_results: 4`) busca fontes
-5. **Produtos ML** — Google → scrape → affiliate link (fallback: API ML)
-6. **Geração** — Groq (openai/gpt-oss-120b) escreve com tabelas, FAQ, pros/cons
-7. **Injeção** — Product cards inseridos mecanicamente no markdown
-8. **Imagens** — RAWG.io busca wallpapers dos jogos mencionados
-9. **Capa** — Produto ML ou RAWG ou vazio
-10. **Validação** — frontmatter, word count mínimo (400 palavras)
-11. **Commit + Push** → dispara deploy automaticamente via `gh workflow run`
+O sistema usa **Tavily/Google** para encontrar produtos no Mercado Livre (não a API interna do ML, que é limitada para hardware). O fluxo:
 
----
+1. Tavily busca `"resident evil jogo ps5"` + `"site:mercadolivre.com.br"`
+2. Extrai URLs de produtos do ML dos resultados
+3. Faz scraping da página do produto (título, preço, imagem)
+4. Gera link de afiliado via `generateAffiliateLink()`
+5. Injeta product cards no artigo
 
-## Fluxo de Geração (Artigo Pilar)
-
-1. **Manual** — `workflow_dispatch` (1x por mês)
-2. **Pesquisa** — 6 queries Tavily + 6 queries Google ML (uma por seção)
-3. **Produtos** — 2 produtos por seção (~12 no total), links de afiliado
-4. **Draft** — Groq gera 9 seções (~3000 palavras)
-5. **Injeção** — Product cards inseridos mecanicamente sob cada heading
-6. **Refino** — Segundo passe do Groq para correções
-7. **Commit + Push** → deploy automático
+Fallback: se o Google não encontrar, tenta a API interna do ML.
 
 ---
 
@@ -149,10 +308,13 @@ Integração com RAWG.io — nomes de jogos em **negrito** recebem imagens autom
 - **404** — Página customizada com estética gamer
 - **Ofertas** — `/ofertas/` agrega artigos com links de afiliado
 - **Progress Bar** — Barra de leitura neon green no topo dos artigos
+- **Lightbox** — Clique em qualquer imagem para expandir em tela cheia (ESC para fechar)
+- **Texto justificado** — Parágrafos e listas com alinhamento justificado para melhor legibilidade
 - **Logo** — Ícone SVG + fonte Orbitron (display gamer)
 - **Background** — Hex grid roxo sutil (opacidade 1.5%)
 - **Ícones** — SVGs inline (sem dependência de fonte externa Material Symbols)
 - **Banners** — WebP otimizados (4.5 MB → 470 KB)
+- **Layout** — Container 1280px, conteúdo 780px, fonte 1.05rem com line-height 1.85
 
 ---
 
@@ -241,7 +403,7 @@ node scripts/convert-banners.mjs       # Converter banners PNG → WebP
 
 ### Renovar cookies do ML
 
-Os cookies do Mercado Livre expiram periodicamente. Sem eles, os links de afiliado ainda funcionam, mas sem tracking.
+Os cookies do Mercado Livre expiram periodicamente. Sem eles, os links saem sem tracking de afiliado (ainda funcionam como links diretos).
 
 1. Acesse mercadolivre.com.br logado com a conta `sergioskm`
 2. Exporte os cookies como JSON (extensão Cookie-Editor)
@@ -251,6 +413,8 @@ Os cookies do Mercado Livre expiram periodicamente. Sem eles, os links de afilia
 ```powershell
 gh secret set ML_COOKIES_B64 --body ([Convert]::ToBase64String([IO.File]::ReadAllBytes("ml_cookies.json"))) --repo sergioskmcle-sketch/blog-gamer
 ```
+
+**Importante:** o arquivo JSON deve ser salvo **sem BOM** (UTF-8 without BOM). PowerShell adiciona BOM com `Set-Content -Encoding UTF8`. Use `[System.IO.File]::WriteAllText` ou export do Cookie-Editor diretamente.
 
 ### Recriar chave do Groq
 
