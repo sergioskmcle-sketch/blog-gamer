@@ -24,29 +24,17 @@ Além disso, o conforto é um fator que muita gente ignora até sentir dor de or
 
 ## HyperX Cloud Stinger 2 Core — O Melhor para Quem Começa
 
-<img src="https://media.rawg.io/media/games/b19/b19cdd6be95ffffd63fdd2d1fbac057a.jpg" alt="HyperX Cloud Stinger 2 Core" class="article-game-img">
-
 O HyperX Cloud Stinger 2 Core é a porta de entrada honesta para quem quer um headset gamer de qualidade sem estourar o orçamento. Com drivers de 40 mm sintonizados para médios limpos — ideais para ouvir passos, recargas e vozes em jogos —, ele entrega um som equilibrado que surpreende pelo preço. O microfone unidirecional com cancelamento de ruído básico garante comunicação clara no Discord, sem aquele chiado irritante de fones genéricos.
 
 O grande destaque é o peso: apenas 275 gramas. Você esquece que está usando o headset depois de vinte minutos. A construção em plástico resistente aguenta o tranco do dia a dia, e o ajuste por arco metálico permite adaptação para diferentes tamanhos de cabeça. A compatibilidade é total — funciona via P2 de 3,5 mm em PC, PS5, Xbox, Nintendo Switch e celular.
 
 O ponto fraco? Não tem wireless e o design é simples, sem RGB ou recursos premium. Mas para quem está começando ou quer um headset secundário confiável, é imbatível na faixa de preço.
 
-<div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_756435-MLA95500672926_102025-O.webp" alt="HyperX Cloud Stinger 2 Core" class="product-card-img">
-<div class="product-card-body">
-<h3>HyperX Cloud Stinger 2 Core — Headset Gamer com Fio</h3>
-<p class="product-price"><strong>Preço:</strong> R$ 169 – R$ 280</p>
-<p class="product-desc">Drivers de 40 mm com som equilibrado, microfone unidirecional com cancelamento de ruído, peso de apenas 275g e compatibilidade total com PC, PS5, Xbox e Switch via P2 3,5mm.</p>
-<div class="product-pros"><strong>✅ Pros:</strong><br>• Preço muito acessível<br>• Leve e confortável para sessões longas<br>• Compatível com todas as plataformas via P2<br>• Microfone decente para a faixa de preço</div>
-<div class="product-cons"><strong>❌ Contras:</strong><br>• Apenas conexão com fio<br>• Construção em plástico (sem alumínio)</div>
+<img src="https://http2.mlstatic.com/D_NQ_NP_756435-MLA95500672926_102025-O.webp" alt="HyperX Cloud Stinger 2 Core" class="article-game-img">
+
 <a href="https://meli.la/1Bj3UZc" class="product-btn">VER NO MERCADO LIVRE</a>
-</div>
-</div>
 
 ## Havit FUXI H3 — Conectividade Tripla pelo Menor Preço
-
-<img src="https://media.rawg.io/media/screenshots/253/253daf451fb1840de122a1f95850f3cd.jpg" alt="Havit FUXI H3" class="article-game-img">
 
 O Havit FUXI H3 quebra o paradigma de que wireless decente custa caro. Com conectividade tripla — 2.4 GHz via dongle USB para baixa latência, Bluetooth 5.0 para celular e música, e cabo USB-C como backup —, ele é o headset mais versátil nessa faixa de preço. Drivers de 40 mm entregam graves potentes e agudos nítidos, e o microfone removível surpreende pela qualidade acima da média.
 
@@ -54,21 +42,11 @@ Para quem alterna entre PC e celular várias vezes ao dia, é uma mão na roda. 
 
 O ponto de atenção é a construção: funcional, mas não tão robusta quanto modelos de marcas consagradas. Ainda assim, pelo preço praticado, é o headset wireless com melhor custo-benefício do mercado brasileiro em 2026.
 
-<div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_816962-MLA99529727794_122025-O.webp" alt="Havit FUXI H3" class="product-card-img">
-<div class="product-card-body">
-<h3>Havit FUXI H3 — Headset Gamer Wireless Tri-mode</h3>
-<p class="product-price"><strong>Preço:</strong> R$ 180 – R$ 300</p>
-<p class="product-desc">Conectividade tripla (2.4GHz + Bluetooth 5.0 + USB-C), drivers de 40mm, microfone removível de alta qualidade, design dobrável e leve. Ideal para quem alterna entre PC e celular.</p>
-<div class="product-pros"><strong>✅ Pros:</strong><br>• Três formas de conexão em um só headset<br>• Microfone removível com boa captação<br>• Design leve e dobrável para transporte<br>• Bateria com autonomia adequada</div>
-<div class="product-cons"><strong>❌ Contras:</strong><br>• Construção não é premium<br>• Bluetooth pode ter latência em jogos competitivos</div>
+<img src="https://http2.mlstatic.com/D_NQ_NP_816962-MLA99529727794_122025-O.webp" alt="Havit FUXI H3" class="article-game-img">
+
 <a href="https://meli.la/1v5EEui" class="product-btn">VER NO MERCADO LIVRE</a>
-</div>
-</div>
 
 ## Redragon Zeus Pro — Surround 7.1 e Drivers de 53 mm
-
-<img src="https://media.rawg.io/media/games/3f6/3f6a04b856f23310d3c2f5be8c5963f7.jpg" alt="Redragon Zeus Pro" class="article-game-img">
 
 O Redragon Zeus Pro é o headset que mais se aproxima de modelos premium sem cobrar preço deles. Drivers de 53 mm — os maiores desta seleção — combinados com surround 7.1 virtual entregam uma experiência imersiva que faz você se sentir dentro do jogo. Graves profundos, médios definidos e agudos nítidos: cada detalhe sonoro é revelado com clareza.
 
@@ -76,21 +54,11 @@ A conectividade via 2.4 GHz via dongle USB garante baixa latência para jogos co
 
 O peso pode ser um fator para alguns — é mais pesado que os concorrentes diretos. Mas quem prioriza qualidade de som e imersão vai considerar esse um preço justo para pagar. Para FPS e jogos de ação onde o posicionamento sonoro é vantagem competitiva, o Zeus Pro se destaca.
 
-<div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_945456-MLA99456386724_112025-O.webp" alt="Redragon Zeus Pro" class="product-card-img">
-<div class="product-card-body">
-<h3>Redragon Zeus Pro — Headset Gamer Wireless 7.1</h3>
-<p class="product-price"><strong>Preço:</strong> R$ 280 – R$ 350</p>
-<p class="product-desc">Drivers de 53mm com surround 7.1 virtual, conexão 2.4GHz via dongle USB, microfone omnidirecional ajustável, almofadas memory foam e construção robusta para sessões intensas.</p>
-<div class="product-pros"><strong>✅ Pros:</strong><br>• Drivers de 53mm com graves potentes<br>• Surround 7.1 para imersão total<br>• Wireless com baixa latência<br>• Almofadas confortáveis em memory foam</div>
-<div class="product-cons"><strong>❌ Contras:</strong><br>• Mais pesado que concorrentes<br>• Autonomia de bateria pode ser limitada</div>
+<img src="https://http2.mlstatic.com/D_NQ_NP_945456-MLA99456386724_112025-O.webp" alt="Redragon Zeus Pro" class="article-game-img">
+
 <a href="https://meli.la/1LBwCZs" class="product-btn">VER NO MERCADO LIVRE</a>
-</div>
-</div>
 
 ## HyperX Cloud III — O Padrão Ouro com Fio
-
-<img src="https://media.rawg.io/media/screenshots/f01/f0144550419986d5b3b03f13ce35c19b.jpg" alt="HyperX Cloud III" class="article-game-img">
 
 O HyperX Cloud III é a referência consolidada na faixa intermediária. Drivers angulados de 53 mm — um design exclusivo que projeta o som diretamente para o canal auditivo — entregam separação sonora cirúrgica. Em Valorant ou CS2, identificar de qual corredor vem o passo fica drasticamente mais fácil. O microfone destacável com cancelamento de ruído bidirecional capta voz cristalina, adequada tanto para Discord quanto para streaming iniciante.
 
@@ -98,21 +66,11 @@ A construção em alumínio escovado garante durabilidade de anos sem perder qua
 
 O único ponto contra é não ter wireless. Mas para quem prioriza qualidade de som e microfone acima de tudo, o Cloud III com fio entrega mais que qualquer wireless nessa faixa de preço. É o headset que você compra uma vez e usa por 4, 5 anos sem reclamar.
 
-<div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_987107-MLA91558794736_092025-O.webp" alt="HyperX Cloud III" class="product-card-img">
-<div class="product-card-body">
-<h3>HyperX Cloud III — Headset Gamer Premium com Fio</h3>
-<p class="product-price"><strong>Preço:</strong> R$ 650 – R$ 850</p>
-<p class="product-desc">Drivers angulados de 53mm para posicionamento sonoro cirúrgico, microfone destacável certificado pelo Discord, construção em alumínio escovado e almofadas memory foam respiráveis.</p>
-<div class="product-pros"><strong>✅ Pros:</strong><br>• Drivers angulados de 53mm com clareza excepcional<br>• Microfone profissional com cancelamento de ruído<br>• Construção em alumínio — dura anos<br>• Compatível com todas as plataformas</div>
-<div class="product-cons"><strong>❌ Contras:</strong><br>• Apenas conexão com fio<br>• Preço mais elevado que opções de entrada</div>
+<img src="https://http2.mlstatic.com/D_NQ_NP_987107-MLA91558794736_092025-O.webp" alt="HyperX Cloud III" class="article-game-img">
+
 <a href="https://meli.la/1gijccH" class="product-btn">VER NO MERCADO LIVRE</a>
-</div>
-</div>
 
 ## Logitech G435 LIGHTSPEED — O Mais Leve com Wireless Duplo
-
-<img src="https://media.rawg.io/media/games/5c1/5c1bf751ed0db8f26fb9fbaffe8f51c0.jpg" alt="Logitech G435 LIGHTSPEED" class="article-game-img">
 
 O Logitech G435 LIGHTSPEED é o headset mais leve desta seleção — apenas 165 gramas, menos da metade do peso de muitos concorrentes. O grande diferencial é o wireless duplo: LIGHTSPEED 2.4 GHz para jogos com latência mínima e Bluetooth para celular, funcionando simultaneamente. Você joga no PC e atende ligação do celular pareado sem trocar de dispositivo.
 
@@ -120,17 +78,9 @@ A bateria dura entre 18 e 24 horas dependendo do uso, e recarrega via USB-C em c
 
 O calcanhar de Aquiles é o microfone embutido nas conchas — funciona, capta voz, mas não tem a clareza de um cardioide com haste articulada. Para Discord casual resolve, mas para streaming sério é melhor usar mic dedicado. Ainda assim, para quem prioriza leveidade e mobilidade, é imbatível.
 
-<div class="product-card">
-<img src="https://http2.mlstatic.com/D_NQ_NP_901198-MLA99972929477_112025-F.jpg" alt="Logitech G435 LIGHTSPEED" class="product-card-img">
-<div class="product-card-body">
-<h3>Logitech G435 LIGHTSPEED — Headset Gamer Wireless Leve</h3>
-<p class="product-price"><strong>Preço:</strong> R$ 450 – R$ 500</p>
-<p class="product-desc">Wireless duplo (LIGHTSPEED + Bluetooth), apenas 165g, bateria de até 24h, recarga USB-C, design minimalista e compatível com PS5, Switch e PC.</p>
-<div class="product-pros"><strong>✅ Pros:</strong><br>• Extremamente leve (165g)<br>• Wireless duplo — LIGHTSPEED + Bluetooth simultâneo<br>• Bateria de longa duração<br>• Design moderno e confortável</div>
-<div class="product-cons"><strong>❌ Contras:</strong><br>• Microfone embutido não é ideal para streaming<br>• Sem ajuste de volume no headset</div>
+<img src="https://http2.mlstatic.com/D_NQ_NP_901198-MLA99972929477_112025-F.jpg" alt="Logitech G435 LIGHTSPEED" class="article-game-img">
+
 <a href="https://meli.la/1v5EEui" class="product-btn">VER NO MERCADO LIVRE</a>
-</div>
-</div>
 
 ## Comparativo dos 5 Melhores Fones Gamer
 
