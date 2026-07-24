@@ -4,7 +4,8 @@
 import assert from "assert";
 import {
   injectProductCards, injectGameImages, extractImageMarkers, repositionImageMarkers,
-  stripLeftoverMarkers, validate, checkTitle, similarity, nameSimilarity, computeMaxTokens,
+  stripLeftoverMarkers, validate, checkTitle, capitalizeTitle, similarity, nameSimilarity,
+  computeMaxTokens, buildProductCardHtml, formatProductPriceForPrompt, findPricesInBody,
 } from "./gerar-artigo.mjs";
 
 let passou = 0;
@@ -58,7 +59,7 @@ ok(!semImg.includes("[IMG:"), "marcador sem imagem no RAWG e removido");
 ok(semImg.includes("Mais um paragrafo"), "texto ao redor preservado");
 
 // --- cards de produto ---
-out = injectProductCards(out, produtos, true);
+out = injectProductCards(out, produtos);
 const posHeadset = out.indexOf("HyperX Cloud II");
 const posMouse = out.indexOf("Logitech G Pro X");
 const posSecMira = out.indexOf("## Perifericos que ajudam na mira");
@@ -66,13 +67,38 @@ ok(posHeadset > 0 && posMouse > 0, "dois cards injetados");
 ok(posHeadset < posSecMira, "card 1 no trecho sobre audio");
 ok(posMouse > posSecMira, "card 2 no trecho sobre mira");
 ok(!out.includes("[PRODUTO:"), "marcadores de produto consumidos");
-ok(out.includes("R$ 349.90") && out.includes("R$ 89.90"), "precos renderizados nos cards");
 
 // fallback: IA esqueceu os marcadores -> ninguem perde link de afiliado
 const semMarcador = corpo.replace(/\[PRODUTO:\d\]\n\n/g, "");
-const fb = injectProductCards(semMarcador, produtos, true);
+const fb = injectProductCards(semMarcador, produtos);
 ok(fb.includes("HyperX Cloud II") && fb.includes("Logitech G Pro X"), "fallback injeta os dois produtos");
 ok(fb.indexOf("HyperX") < fb.indexOf("## Resident Evil Requiem lidera"), "fallback posiciona antes do 2o heading");
+
+// IA usou um marcador e omitiu o outro de proposito — sem fallback forcado
+const parcial = corpo.replace("[PRODUTO:2]\n\n", "");
+const injParcial = injectProductCards(parcial, produtos);
+ok(injParcial.includes("HyperX Cloud II"), "produto com marcador injetado");
+ok(!injParcial.includes("Logitech G Pro X"), "produto omitido pela IA nao e reinserido");
+
+// --- product-btn ---
+igual(formatProductPriceForPrompt({ price: 349.9 }), "R$ 349.90", "preco formatado com R$");
+igual(formatProductPriceForPrompt({}), "NAO DISPONIVEL", "sem preco nao emite R$ solto");
+const cardSemPreco = buildProductCardHtml({ title: "Persona 5 Tactica", affiliate_link: "http://ml/x" });
+ok(cardSemPreco.includes("product-btn"), "gera botao de afiliado");
+ok(cardSemPreco.includes("http://ml/x"), "link de afiliado presente");
+
+// --- capa nao duplicada no corpo ---
+const capaUrl = "http://rawg/cover.jpg";
+const corpoImg = `Paragrafo sobre **Resident Evil Requiem**.
+
+[IMG:Resident Evil Requiem]
+
+Outro paragrafo.`;
+const semDup = injectGameImages(corpoImg, { "Resident Evil Requiem": capaUrl }, true, capaUrl);
+ok(!semDup.includes("<img"), "imagem de capa omitida do corpo quando URL coincide");
+
+const precosEncontrados = findPricesInBody("Custa R$ 299,90 e sai por R$ 154,38", [299.9, 154.38, 999]);
+igual(precosEncontrados, ["299.90", "154.38"], "findPricesInBody casa valores da lista");
 
 // --- fallback de imagem por negrito ---
 const comLista = `## Passos
@@ -151,6 +177,9 @@ ok(checkTitle("Resident Evil e Persona: tudo que voce precisa saber", "resident 
 ok(checkTitle("As 7 novidades do PS5 que chegaram com Resident Evil Requiem", "resident evil requiem").some((p) => /tarde demais/.test(p)), "pega palavra-chave tardia");
 igual(checkTitle("PS5: as novidades do Resident Evil Requiem em 2026 e mais", "resident evil requiem"), [], "palavra-chave dentro dos 40% passa");
 ok(checkTitle("Guia rapido", "").some((p) => /curto demais/.test(p)), "pega titulo curto");
+ok(checkTitle("lancamento 2026: Resident Evil Requiem", "resident evil").some((p) => /minuscula/.test(p)), "pega titulo com inicial minuscula");
+igual(capitalizeTitle("lancamento 2026: Resident Evil"), "Lancamento 2026: Resident Evil", "capitaliza so a primeira letra");
+ok(checkTitle("Lancamento 2026: novidades que vao mexer no setup", "lancamento").some((p) => /generica/.test(p)), "pega novidades que vao <verbo>");
 
 // --- validate ---
 const fm = {
@@ -162,6 +191,11 @@ const corpoLongo = corpo + "\n\n" + "palavra ".repeat(700);
 let r = validate(fm, corpoLongo, { category: "noticia", productCount: 2, primaryKeyword: "resident evil" });
 igual(r.hard, [], "artigo bom: sem bloqueantes");
 igual(r.soft, [], "artigo bom: sem alertas");
+
+r = validate(fm, corpoLongo + "\nO headset custa R$ 349,90 no varejo.", {
+  category: "noticia", productCount: 2, productPrices: [349.9], primaryKeyword: "resident evil",
+});
+ok(r.soft.some((e) => /preco de produto em prosa/.test(e)), "detecta preco de produto repetido no texto");
 
 const semMarcadores = corpoLongo.replace(/\[PRODUTO:\d\]/g, "").replace(/\[IMG:[^\]]+\]/g, "");
 r = validate(fm, semMarcadores, { category: "noticia", productCount: 2, primaryKeyword: "resident evil" });

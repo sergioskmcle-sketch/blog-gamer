@@ -446,7 +446,7 @@ function extractImageMarkers(body) {
 }
 
 // A IA as vezes marca a imagem uma secao antes do trecho que cita o jogo.
-// Aqui o marcador e movido para logo depois do paragrafo que NOMEIA o jogo;
+// Aqui o marcador e movido para logo ANTES do paragrafo que NOMEIA o jogo;
 // se nenhum paragrafo cita, o marcador cai fora (melhor sem imagem que errada).
 function repositionImageMarkers(body) {
   const blocks = body.split(/\n{2,}/);
@@ -472,10 +472,10 @@ function repositionImageMarkers(body) {
       log("WARN", `Marcador [IMG:${name}] descartado: nenhum paragrafo cita esse jogo`);
       continue;
     }
-    let insertAt = target + 1;
+    let insertAt = target;
     while (insertAt < kept.length && isMarker(kept[insertAt])) insertAt++;
     kept.splice(insertAt, 0, block);
-    log("INFO", `Marcador [IMG:${name}] movido para junto do paragrafo que cita o jogo`);
+    log("INFO", `Marcador [IMG:${name}] movido para antes do paragrafo que cita o jogo`);
   }
 
   return kept.join("\n\n");
@@ -486,14 +486,21 @@ function buildImageTag(name, imgUrl) {
 }
 
 // Substitui [IMG:Nome] pela tag. Marcadores sem imagem correspondente somem.
+// skipCoverUrl evita repetir a mesma arte da capa no corpo.
 // Fallback (IA nao usou marcador): injeta apos o paragrafo do **negrito**.
-function injectGameImages(body, gameImages, hasMarkers) {
+function injectGameImages(body, gameImages, hasMarkers, skipCoverUrl = null) {
   if (hasMarkers) {
+    let coverSkipped = false;
     return body.replace(IMG_MARKER_REGEX, (full, rawName) => {
       const name = rawName.trim();
       const key = Object.keys(gameImages).find((k) => k.toLowerCase() === name.toLowerCase());
       const url = key ? gameImages[key] : null;
-      return url ? buildImageTag(name, url) : "";
+      if (!url) return "";
+      if (skipCoverUrl && url === skipCoverUrl && !coverSkipped) {
+        coverSkipped = true;
+        return "";
+      }
+      return buildImageTag(name, url);
     });
   }
 
@@ -512,9 +519,10 @@ function injectGameImages(body, gameImages, hasMarkers) {
     // Nao quebra listas, tabelas nem headings ao meio.
     if (/^\s*(?:[-*+]|\d+\.|#|\|)/.test(lineText)) continue;
 
-    let paraEnd = body.indexOf("\n\n", match.index + match[0].length);
-    paraEnd = paraEnd === -1 ? body.length : paraEnd;
-    insertions.push({ pos: paraEnd, html: `\n\n${buildImageTag(name, imgUrl)}` });
+    if (skipCoverUrl && imgUrl === skipCoverUrl) continue;
+
+    let paraStart = body.lastIndexOf("\n", match.index - 1) + 1;
+    insertions.push({ pos: paraStart, html: `${buildImageTag(name, imgUrl)}\n` });
   }
 
   let result = body;
@@ -554,69 +562,53 @@ function isGamerProduct(title) {
   return true;
 }
 
-function buildProductCardHtml(p, opinativo) {
-  const img = p.thumbnail && p.thumbnail.startsWith("http") ? p.thumbnail : "";
+function buildProductCardHtml(p) {
   const link = p.affiliate_link || p.permalink || "";
-  const preco = p.price ? `R$ ${p.price.toFixed(2)}` : "";
-
-  // Destaque derivado do proprio produto (faixa de preco), nao sorteado.
-  let highlight;
-  if (!p.price) {
-    highlight = opinativo ? "Preco varia conforme o vendedor — confere antes de fechar" : "Preco sujeito a variacao no Mercado Livre";
-  } else if (p.price < 200) {
-    highlight = opinativo ? "Entra facil no orcamento sem comprometer o setup" : "Faixa de entrada: melhor relacao custo-beneficio da lista";
-  } else if (p.price < 600) {
-    highlight = opinativo ? "Meio-termo honesto: paga bem sem doer no bolso" : "Faixa intermediaria: equilibrio entre preco e desempenho";
-  } else {
-    highlight = opinativo ? "Investimento alto, mas e o topo da categoria" : "Faixa premium: indicado para quem prioriza desempenho";
-  }
-
-  const desc = opinativo
-    ? "Garante o teu no Mercado Livre antes que o estoque acabe."
-    : "Disponivel no Mercado Livre — confira preco e disponibilidade atualizados.";
-
-  return `<div class="product-card">
-  ${img ? `<img src="${img}" alt="${p.title}" class="product-card-img" loading="lazy" decoding="async">` : ""}
-  <div class="product-card-body">
-    <h3>${p.title}</h3>
-    ${preco ? `<div class="product-price">${preco}</div>` : ""}
-    <p class="product-desc">${desc}</p>
-    <div class="product-pros"><strong>Destaque:</strong> ${highlight}</div>
-    ${link ? `<a href="${link}" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>` : ""}
-  </div>
-</div>`;
+  return link
+    ? `\n<a href="${link}" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>\n`
+    : "";
 }
 
-// Substitui [PRODUTO:N] pelo card. Produtos sem marcador caem no fallback
-// antigo (bloco unico antes do 2o heading), pra nunca perder o afiliado.
-function injectProductCards(body, mlProducts, opinativo) {
+// Substitui [PRODUTO:N] pelo card. Fallback posicional so quando a IA ignorou
+// o mecanismo inteiro (nenhum marcador); se usou algum, omissao e editorial.
+function injectProductCards(body, mlProducts) {
   if (!mlProducts || mlProducts.length === 0) return body;
 
   let result = body;
   const orphans = [];
+  let markersUsed = 0;
 
   mlProducts.forEach((p, i) => {
-    const html = buildProductCardHtml(p, opinativo);
+    const html = buildProductCardHtml(p);
     const marker = new RegExp(`^[ \\t]*\\[PRODUTO:\\s*${i + 1}\\s*\\][ \\t]*$`, "m");
     if (marker.test(result)) {
       result = result.replace(marker, () => `\n${html}\n`);
+      markersUsed++;
     } else {
       orphans.push(html);
     }
   });
 
   if (orphans.length > 0) {
-    log("WARN", `${orphans.length}/${mlProducts.length} produtos sem marcador — usando posicionamento automatico`);
-    const block = `\n\n${orphans.join("\n\n")}\n`;
-    const headings = [...result.matchAll(/## (?!Fontes|Quer mais ofertas\?|Conclus[aã]o\b)[^\n]+/gi)];
-    if (headings.length >= 2) {
-      result = result.slice(0, headings[1].index) + block + "\n" + result.slice(headings[1].index);
+    if (markersUsed === 0) {
+      log("WARN", `${orphans.length}/${mlProducts.length} produtos sem marcador — usando posicionamento automatico`);
+      const block = `\n\n${orphans.join("\n\n")}\n`;
+      const headings = [...result.matchAll(/## (?!Fontes|Quer mais ofertas\?|Conclus[aã]o\b)[^\n]+/gi)];
+      if (headings.length >= 2) {
+        result = result.slice(0, headings[1].index) + block + "\n" + result.slice(headings[1].index);
+      } else {
+        result = result + block;
+      }
     } else {
-      result = result + block;
+      log("INFO", `${orphans.length}/${mlProducts.length} produtos omitidos pela IA (sem marcador) — respeitando decisao editorial`);
     }
   }
 
   return result;
+}
+
+function formatProductPriceForPrompt(p) {
+  return p.price ? `R$ ${p.price.toFixed(2)}` : "NAO DISPONIVEL";
 }
 
 function cleanFakeImages(body) {
@@ -821,7 +813,7 @@ const ABSOLUTE_MIN_WORDS = 500;
 
 const GENERIC_TITLE_PATTERNS = [
   /tudo (o )?que voc[êe] precisa saber/i,
-  /novidades que v[ãa]o bombar/i,
+  /novidades que v[ãa]o \w+/i,
   /voc[êe] n[ãa]o vai acreditar/i,
   /fique por dentro/i,
   /confira( agora)?[!?]*$/i,
@@ -831,10 +823,22 @@ const GENERIC_TITLE_PATTERNS = [
   /o que esperar\s*[?!]*$/i,
 ];
 
+function capitalizeTitle(title) {
+  const t = String(title || "").trim();
+  if (!t) return t;
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
 // Regras de SERP/CTR. Retorna lista de problemas (vazia = titulo aprovado).
 function checkTitle(title, primaryKeyword) {
   const problems = [];
   const t = String(title || "");
+  if (t.length > 0) {
+    const first = t.charAt(0);
+    if (first === first.toLowerCase() && first !== first.toUpperCase()) {
+      problems.push("title: comeca com letra minuscula");
+    }
+  }
   if (t.length < 40) problems.push(`title: curto demais (${t.length} chars — ideal 55-65)`);
   if (t.length > 70) problems.push(`title: longo demais (${t.length} chars — ideal 55-65)`);
   for (const re of GENERIC_TITLE_PATTERNS) {
@@ -852,6 +856,22 @@ function checkTitle(title, primaryKeyword) {
 
 // hard = nao publica de jeito nenhum. soft = vale regerar, mas nao derruba a
 // execucao na ultima tentativa (o cron diario nao pode ficar sem artigo).
+function findPricesInBody(body, prices) {
+  const matches = [];
+  const seen = new Set();
+  for (const m of body.matchAll(/R\$\s*([\d.,]+)/g)) {
+    const raw = m[1].replace(/\./g, "").replace(",", ".");
+    const val = parseFloat(raw);
+    if (Number.isNaN(val)) continue;
+    const rounded = Math.round(val * 100) / 100;
+    if (prices.some((p) => Math.abs(p - rounded) < 0.01) && !seen.has(rounded)) {
+      seen.add(rounded);
+      matches.push(rounded.toFixed(2));
+    }
+  }
+  return matches;
+}
+
 function validate(fm, body, ctx = {}) {
   const hard = [];
   const soft = [];
@@ -887,6 +907,13 @@ function validate(fm, body, ctx = {}) {
 
   soft.push(...checkTitle(fm.title, ctx.primaryKeyword));
 
+  if (ctx.productPrices?.length) {
+    const prosePrices = findPricesInBody(body, ctx.productPrices);
+    if (prosePrices.length > 0) {
+      soft.push(`Corpo contem preco de produto em prosa (R$ ${prosePrices.join(", R$ ")}) — preco fica so no card, nunca no texto`);
+    }
+  }
+
   return { hard, soft };
 }
 
@@ -900,6 +927,30 @@ function getExistingSlugs() {
   return fs.readdirSync(ARTIGOS_DIR)
     .filter((f) => f.endsWith(".md"))
     .map((f) => f.replace(/\.md$/, ""));
+}
+
+function getRecentArticlesForPrompt(limit = 12) {
+  if (!fs.existsSync(ARTIGOS_DIR)) return [];
+  const articles = fs.readdirSync(ARTIGOS_DIR)
+    .filter((f) => f.endsWith(".md"))
+    .map((f) => {
+      const content = fs.readFileSync(path.join(ARTIGOS_DIR, f), "utf-8");
+      const titleMatch = content.match(/^title:\s*"?([^"\n]+)"?/m);
+      const pubMatch = content.match(/^pubDate:\s*(\S+)/m);
+      return {
+        slug: f.replace(/\.md$/, ""),
+        title: (titleMatch?.[1] || f).slice(0, 55),
+        pubDate: pubMatch?.[1] || "",
+      };
+    });
+  return articles.sort((a, b) => b.pubDate.localeCompare(a.pubDate)).slice(0, limit);
+}
+
+function buildInternalLinksBlock() {
+  const articles = getRecentArticlesForPrompt(12);
+  if (articles.length === 0) return "";
+  const lines = articles.map((a) => `- ${a.title} -> /blog-gamer/blog/${a.slug}/`);
+  return `\nARTIGOS EXISTENTES (links internos SO desta lista — proibido inventar slug):\n${lines.join("\n")}\n`;
 }
 
 function validateInternalLinks(body) {
@@ -1065,9 +1116,11 @@ async function main() {
     ? `\nPRODUTOS DISPONIVEIS (use o marcador indicado para posicionar cada card):\n${mlProducts.map((p, i) =>
         `Marcador: [PRODUTO:${i + 1}]\n` +
         `Nome: ${p.title}\n` +
-        `Preco: R$ ${p.price?.toFixed(2) || "nao informado"}\n`
-      ).join("\n")}\nO sistema monta o card (imagem, preco, botao de compra) no lugar do marcador. Voce NAO escreve preco, link nem imagem desses produtos — so decide ONDE cada card entra.`
+        `Preco: ${formatProductPriceForPrompt(p)}\n`
+      ).join("\n")}\nO sistema monta o card (imagem, preco, botao de compra) no lugar do marcador. Voce NAO escreve preco, link nem imagem desses produtos — so decide ONDE cada card entra. NUNCA escreva "R$ X" no texto para produtos listados — o card ja mostra o preco.\nREGRA DE PRECO AUSENTE: se o produto estiver marcado como "Preco: NAO DISPONIVEL", voce NAO escreve preco, NUNCA diz gratis, gratuito, preco zero ou de graca, e orienta o leitor a conferir o preco atual no card.`
     : "";
+
+  const internalLinksBlock = buildInternalLinksBlock();
 
   const trendingNote = topic.trending_keywords
     ? `\nCONTEXTO: Este topico esta em alta agora em sites de games e redes sociais. Palavras-chave trending: ${topic.trending_keywords.join(", ")}. Escreva um artigo relevante e atual conectando esses temas.`
@@ -1098,8 +1151,9 @@ REGRAS DE ESTILO:
 - PROFUNDIDADE: Guias e reviews precisam de detalhes. Explique o "por que" por tras de cada recomendacao.
 - ESTRUTURA: Use tabelas comparativas, pros/contras, listas numeradas de passos.
 - TOM: Profissional mas acessivel. Nem robotico, nem informal demais. Ex: "A RTX 4060 entrega 60 fps estaveis em 1080p." (e nao: "A placa apresenta desempenho satisfatorio no que tange a...")
+- HUMOR CONTROLADO (hibrido): no maximo 1 comparacao leve ou observacao ironica a cada 3 paragrafos (ex: "mais exigente que boss de soulslike", "preco de scalper"). Humor e tempero, nunca estrutura — a precisao tecnica vem primeiro.
 - FALE COM O LEITOR: Use "voce" e "seu setup", mas sem girias pesadas.
-- JAMAIS: girias de boteco ("mermao", "ta ligado"), humor forcado, sarcasmo`;
+- JAMAIS: girias de boteco ("mermao", "ta ligado"), humor forcado em todo paragrafo, sarcasmo constante`;
 
   const personaPrompt = estiloOpinativo ? personaManoGamer : personaFactual;
   const minWords = MIN_WORDS[categoria] || 650;
@@ -1112,15 +1166,15 @@ ${personaPrompt}${trendingNote}
 
 ## MARCADORES DE POSICIONAMENTO (OBRIGATORIO)
 Voce nao renderiza imagens nem cards de produto — voce decide ONDE eles entram, com marcadores que o sistema substitui depois.
-- [IMG:Nome Exato do Jogo] — em uma linha sozinha, logo APOS o paragrafo que apresenta ou descreve aquele jogo. Use so para titulos de jogos reais (ex: [IMG:Resident Evil Requiem]). NUNCA para conceitos, passos, secoes ou specs (nada de [IMG:Instalacao rapida]). Use de 2 a 4 no artigo.
-- ${mlProducts.length > 0 ? `[PRODUTO:N] — em uma linha sozinha, no ponto em que aquele produto especifico e relevante (logo depois do paragrafo que fala dele ou da categoria dele). NAO empilhe todos no comeco. Use o numero exato indicado na lista de produtos.` : "Nao ha produtos nesta rodada — nao use [PRODUTO:N]."}
+- [IMG:Nome Exato do Jogo] — em uma linha sozinha, logo ANTES do paragrafo que apresenta ou descreve aquele jogo. Use so para titulos de jogos reais (ex: [IMG:Resident Evil Requiem]). NUNCA para conceitos, passos, secoes ou specs (nada de [IMG:Instalacao rapida]). Use de 2 a 4 no artigo.
+- ${mlProducts.length > 0 ? `[PRODUTO:N] — em uma linha sozinha, logo APOS a secao que descreve o produto (depois do texto que fala dele). NAO empilhe todos no comeco. Use o numero exato indicado na lista de produtos.` : "Nao ha produtos nesta rodada — nao use [PRODUTO:N]."}
 - Nunca coloque dois marcadores seguidos sem texto entre eles. Se um jogo ou produto nao tem relevancia real em nenhum trecho, omita o marcador — melhor faltar do que forcar.
 - Se o sistema nao achar imagem para um [IMG:...], ele remove o marcador. Entao o paragrafo tem que fazer sentido sozinho, sem depender da imagem.
 
 ## REGRAS DE TITULO
 - 55 a 65 caracteres.
 - ${primaryKeyword ? `A palavra-chave "${primaryKeyword}" DEVE aparecer nos primeiros 40% do titulo.` : "A palavra-chave principal (jogo, produto ou evento) deve aparecer nos primeiros 40% do titulo."}
-- PROIBIDO: "Tudo que voce precisa saber", "Novidades que vao bombar", "Fique por dentro", "Imperdivel", "Revolucionario", "O que esperar".
+- PROIBIDO: "Tudo que voce precisa saber", "Novidades que vao bombar/mexer/transformar", "Fique por dentro", "Imperdivel", "Revolucionario", "O que esperar".
 - Use numero, data ou beneficio concreto: "10 Melhores X em 2026", "X vs Y: Qual Vale a Pena", "X Chega em Marco: O Que Muda".
 - Nada de clickbait vazio: o titulo tem que ser 100% sustentado pelo conteudo.
 
@@ -1132,7 +1186,7 @@ Voce nao renderiza imagens nem cards de produto — voce decide ONDE eles entram
 5. EXTENSAO: minimo ${minWords} palavras, alvo ${alvoWords}. Extensao e consequencia de profundidade — nao encha linguica pra bater numero.
 6. E permitido (e recomendado) discordar do hype de marketing quando os dados sustentarem. Isso gera credibilidade.
 7. Frases curtas alternadas com uma ou duas mais longas. Paragrafos com frases todas do mesmo tamanho denunciam texto de IA.
-${estiloOpinativo ? "8. Giria e humor sao tempero, nao estrutura: no maximo 1 giria marcante a cada 2-3 paragrafos, nunca empilhadas." : "8. Tom tecnico com clareza: pode ter um toque de humor seco, mas sem giria de boteco."}
+${estiloOpinativo ? "8. Giria e humor sao tempero, nao estrutura: no maximo 1 giria marcante a cada 2-3 paragrafos, nunca empilhadas." : "8. Tom tecnico com humor seco dosado: no maximo 1 toque ironico a cada 3 paragrafos, sem giria de boteco."}
 
 ## ESTRUTURA (adapte a categoria — nao force todos os blocos sempre)
 - Headings ## em toda secao principal (### para subsecoes). Subtitulos que dizem algo, nao "Analise" ou "Detalhes".
@@ -1143,13 +1197,14 @@ ${estiloOpinativo ? "8. Giria e humor sao tempero, nao estrutura: no maximo 1 gi
 - ${mlProducts.length > 0 ? "Tabela comparativa dos produtos (Produto | Preco | Destaque | Nota 1-10) com notas que realmente diferenciam, e uma secao ## Pros e Contras especifica de cada item (nada de pro generico)." : "Tabela quando houver o que comparar (jogos, specs, edicoes)."}
 - ## FAQ com 3-4 perguntas que as pessoas realmente pesquisam no Google sobre o tema.
 - Conclusao com recomendacao clara: pra quem vale a pena e pra quem nao vale.
-- 2 a 3 links internos no formato [texto](/blog-gamer/blog/slug-do-artigo/).
+- 2 a 3 links internos no formato [texto](/blog-gamer/blog/slug-do-artigo/) — use SOMENTE slugs da lista de artigos existentes fornecida.
 - "## Quer mais ofertas?" com: Entre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e receba ofertas diarias de games, consoles e perifericos!
 - "## Fontes" com os links da pesquisa.
 
 ## PROIBIDO
 - Inventar URL de imagem (wikipedia, google, unsplash) ou link de compra.
-- Escrever preco, imagem ou botao dos produtos listados — isso e do card.
+- Escrever preco, imagem ou botao dos produtos listados — isso e do card. NUNCA escreva "R$" seguido de valor que coincida com produto da lista.
+- Produto sem preco na lista (Preco: NAO DISPONIVEL): nunca afirme preco, nunca diga que e gratis, gratuito, preco zero ou de graca; refira-se a ele como "confira o preco atual no card".
 - Emojis, voz passiva, mencionar que e IA, termos corporativos ("desta forma", "outrossim", "vale ressaltar que").
 - Markdown (** ou *) dentro do title e da description do frontmatter.
 
@@ -1168,7 +1223,7 @@ category DEVE ser: noticia, review, guia, lista ou promocao`;
   const buildUserPrompt = (research) => `Escreva um artigo de categoria "${categoria}" sobre: ${topic.hint}
 
 ${research ? `PESQUISA (use estes fatos — nao invente dados fora daqui):\n${research}\n` : "SEM PESQUISA DISPONIVEL: escreva so o que e conhecimento consolidado, sem inventar numeros, datas ou precos.\n"}
-${productBlock}
+${productBlock}${internalLinksBlock}
 
 Checklist antes de responder:
 1. Titulo com 55-65 chars${primaryKeyword ? `, com "${primaryKeyword}" no comeco` : ""}, sem frase generica.
@@ -1178,7 +1233,8 @@ Checklist antes de responder:
 5. 2 a 4 marcadores [IMG:Nome do Jogo], cada um apos o paragrafo que descreve o jogo.
 6. Cada dado concreto rastreavel ate a pesquisa acima.
 7. 5 tags relevantes.
-8. ${estiloOpinativo ? "Voz Mano Gamer: opiniao com lado tomado, giria dosada, sem enrolacao." : "Voz tecnica: precisao, comparacao de specs, o porque de cada recomendacao."}`;
+8. ${estiloOpinativo ? "Voz Mano Gamer: opiniao com lado tomado, giria dosada, sem enrolacao." : "Voz tecnica hibrida: precisao, comparacao de specs, humor seco dosado (max 1 a cada 3 paragrafos)."}
+9. 2 a 3 links internos usando SOMENTE slugs da lista ARTIGOS EXISTENTES acima.`;
 
   // Encolhe a pesquisa ate sobrar espaco de saida suficiente dentro do TPM.
   let userPrompt = buildUserPrompt(researchContext);
@@ -1193,6 +1249,7 @@ Checklist antes de responder:
   const validationCtx = {
     category: categoria,
     productCount: mlProducts.length,
+    productPrices: mlProducts.filter((p) => p.price).map((p) => p.price),
     primaryKeyword,
   };
 
@@ -1263,7 +1320,7 @@ Checklist antes de responder:
     }
   }
 
-  fm.title = String(fm.title).replace(/\*/g, "").trim();
+  fm.title = capitalizeTitle(String(fm.title).replace(/\*/g, "").trim());
   fm.description = String(fm.description).replace(/\*/g, "").trim();
 
   log("INFO", "Validando links internos...");
@@ -1275,10 +1332,12 @@ Checklist antes de responder:
 
   if (extractImageMarkers(body).length > 0) body = repositionImageMarkers(body);
 
+  const trendingKeywordForCover = topic.trending_keywords?.[0] || "";
   const markerNames = extractImageMarkers(body);
   const hasImageMarkers = markerNames.length > 0;
   const gameNames = hasImageMarkers ? markerNames : extractGameNames(body);
   const gameImages = {};
+  let coverImage = "";
 
   if (gameNames.length > 0) {
     log("INFO", `${gameNames.length} jogos ${hasImageMarkers ? "marcados com [IMG:]" : "detectados por negrito (fallback)"}: ${gameNames.slice(0, 8).join(", ")}`);
@@ -1286,34 +1345,35 @@ Checklist antes de responder:
       const img = await fetchRAWGImage(name);
       if (img) gameImages[name] = img;
     }
-    body = injectGameImages(body, gameImages, hasImageMarkers);
-    log("INFO", `${Object.keys(gameImages).length}/${gameNames.length} imagens RAWG injetadas`);
+
+    for (const name of markerNames) {
+      if (gameImages[name]) { coverImage = gameImages[name]; break; }
+    }
+    if (!coverImage) {
+      coverImage = await getBestCoverImage(mlProducts, body, trendingKeywordForCover, markerNames) || "";
+    }
+
+    body = injectGameImages(body, gameImages, hasImageMarkers, coverImage || null);
+    log("INFO", `${Object.keys(gameImages).length}/${gameNames.length} imagens RAWG injetadas${coverImage ? " (capa omitida do corpo)" : ""}`);
   } else {
     log("WARN", "Nenhum jogo marcado nem detectado no artigo");
+    coverImage = await getBestCoverImage(mlProducts, body, trendingKeywordForCover, markerNames) || "";
   }
 
   log("INFO", "Injetando produtos do Mercado Livre no artigo...");
-  body = injectProductCards(body, mlProducts, estiloOpinativo);
+  body = injectProductCards(body, mlProducts);
   log("INFO", `${mlProducts.length} produtos injetados no corpo do artigo`);
 
   body = stripLeftoverMarkers(body);
 
-  const trendingKeywordForCover = topic.trending_keywords?.[0] || "";
-  const coverImage = await getBestCoverImage(mlProducts, body, trendingKeywordForCover, markerNames);
   if (!coverImage) {
     const fallbackKw = trendingKeywordForCover || topic.ml_query?.split(" ").slice(0, 2).join(" ") || "";
-    if (fallbackKw) {
-      const fallbackImg = await fetchRAWGImage(fallbackKw);
-      if (fallbackImg) {
-        fm.image = fallbackImg;
-        log("INFO", `Imagem de capa via RAWG (fallback): ${fallbackImg.slice(0, 80)}`);
-      }
-    }
-  } else {
+    if (fallbackKw) coverImage = await fetchRAWGImage(fallbackKw) || "";
+  }
+  if (coverImage) {
     fm.image = coverImage;
     log("INFO", `Imagem de capa: ${coverImage.slice(0, 80)}`);
-  }
-  if (!fm.image) {
+  } else {
     log("WARN", "Nenhuma imagem de capa encontrada — artigo ficara sem imagem principal");
   }
 
@@ -1409,10 +1469,14 @@ export {
   injectGameImages,
   injectProductCards,
   buildProductCardHtml,
+  formatProductPriceForPrompt,
   stripLeftoverMarkers,
   extractGameNames,
   checkTitle,
+  capitalizeTitle,
   validate,
+  findPricesInBody,
   computeMaxTokens,
   MIN_WORDS,
+  GENERIC_TITLE_PATTERNS,
 };

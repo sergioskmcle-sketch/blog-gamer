@@ -5,9 +5,9 @@
 | Tipo | Modo | Conteúdo | Imagens | Produtos |
 |------|------|----------|---------|----------|
 | **Informativo puro** | `informativo` | Conteúdo editorial (FAQ, lista, curiosidades) | RAWG inline (`<img class="article-game-img">`) | ❌ Nenhum |
-| **Produto — Melhores** | `melhores` | Product cards + tabela comparativa | ML thumbnails | ✅ Afiliados, ordenado do MAIS CARO para o mais barato |
-| **Produto — Custo-Benefício** | `custo-beneficio` | Product cards + tabela comparativa | ML thumbnails | ✅ Afiliados, ordenado do MAIS BARATO para o mais caro |
-| **Misto** | `misto` | Conteúdo informativo + seção "Produtos Recomendados" no final | RAWG inline no conteúdo + ML thumbnails nos cards | ✅ Afiliados apenas na seção final |
+| **Produto — Melhores** | `melhores` | ## Tópico → Imagem → Texto → Botão + tabela comparativa | Fotos reais do produto (`<img class="article-game-img">`) | ✅ Afiliados, ordenado do MAIS CARO para o mais barato |
+| **Produto — Custo-Benefício** | `custo-beneficio` | ## Tópico → Imagem → Texto → Botão + tabela comparativa | Fotos reais do produto (`<img class="article-game-img">`) | ✅ Afiliados, ordenado do MAIS BARATO para o mais caro |
+| **Misto** | `misto` | Conteúdo informativo + seção "Produtos Recomendados" no final | RAWG inline no conteúdo + fotos reais nos tópicos de produto | ✅ Afiliados apenas na seção final |
 
 ## Detalhamento
 
@@ -22,17 +22,19 @@
 ### 2. Produto — Melhores (`mode: melhores`)
 
 - **Para que serve**: reviews de produtos gamers, comparativos de hardware
-- **Conteúdo**: product cards HTML com prós/contras, tabela comparativa, FAQ
+- **Conteúdo**: cada produto segue a estrutura `## Nome → Imagem → Texto → Botão afiliado`, tabela comparativa, FAQ
 - **Ordem de exibição**: do MAIS CARO para o mais barato (qualidade acima de preço)
-- **Produtos**: todos os produtos com links de afiliado
+- **Imagens**: fotos REAIS do produto (nunca screenshots de jogos)
+- **Botão**: HTML simples `<a class="product-btn">`, sem `<div class="product-card">`
 - **Frontmatter**: `affiliate: true`
 
 ### 3. Produto — Custo-Benefício (`mode: custo-beneficio`)
 
 - **Para que serve**: guias de compra econômicos, "melhores pelo menor preço"
-- **Conteúdo**: product cards HTML com prós/contras, tabela comparativa, FAQ
+- **Conteúdo**: cada produto segue a estrutura `## Nome → Imagem → Texto → Botão afiliado`, tabela comparativa, FAQ
 - **Ordem de exibição**: do MAIS BARATO para o mais caro (economia primeiro)
-- **Produtos**: todos os produtos com links de afiliado
+- **Imagens**: fotos REAIS do produto (nunca screenshots de jogos)
+- **Botão**: HTML simples `<a class="product-btn">`, sem `<div class="product-card">`
 - **Frontmatter**: `affiliate: true`
 
 ### 4. Misto (`mode: misto`)
@@ -40,15 +42,17 @@
 - **Para que serve**: análises completas de jogos/eventos que naturalmente geram recomendações de produtos (ex: "tudo sobre GTA 6", "vale a pena comprar o PS5 Pro?")
 - **Conteúdo**: 
   - Parte 1: conteúdo informativo normal (com imagens RAWG inline via **negrito**)
-  - Parte 2: seção "## Produtos Recomendados" com product cards HTML + links de afiliado
+  - Parte 2: seção "## Produtos Recomendados" com estrutura `## Nome → Imagem → Texto → Botão afiliado`
 - **Produtos**: apenas na seção final, não misturados no conteúdo editorial
 - **Frontmatter**: `affiliate: true`
 
 ## Regras de Imagens
 
 - Artigos `informativo` e `misto`: o script `generate_article.py` escaneia o corpo em busca de `**NomeDoJogo**` e insere `<img class="article-game-img">` automaticamente via RAWG API
-- Artigos `melhores` e `custo-beneficio`: as imagens vêm dos thumbnails do Mercado Livre (já inclusas nos product cards)
+- Artigos `melhores` e `custo-beneficio`: imagens são fotos REAIS do produto, inseridas ANTES do texto que descreve o produto
 - A classe CSS `.article-game-img` está definida em `src/pages/blog/[...slug].astro`
+- CSS usa `object-fit: contain` (formato natural da imagem, sem corte)
+- Imagens devem ser de produto real (headset, teclado, etc.), nunca screenshots de jogos
 
 ## Como o Script Decide
 

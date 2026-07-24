@@ -673,7 +673,7 @@ def inject_game_images(body, game_images):
             continue
         body = re.sub(
             rf'\*\*{re.escape(name)}\*\*',
-            f'**{name}**\n<img src="{img_url}" alt="{name}" class="article-game-img">',
+            f'<img src="{img_url}" alt="{name}" class="article-game-img">\n**{name}**',
             body,
             count=1
         )
@@ -733,21 +733,17 @@ Estrutura obrigatoria:
 2. CORPO INFORMATIVO: divida em 4-6 secoes com subtitulos (##). Cada secao deve ter dados, curiosidades e informacoes relevantes. Use **NomeDoJogo** em negrito na primeira mencao de cada jogo.
 3. FAQ (3-5 perguntas)
 4. CONCLUSAO
-5. ## Produtos Recomendados — use EXATAMENTE este template HTML para CADA produto:
+5. ## Produtos Recomendados — para CADA produto, use este formato:
 
-<div class="product-card">
-<img src="URL_IMAGEM" alt="NOME_PRODUTO" class="product-card-img">
-<div class="product-card-body">
-<h3>NOME DO PRODUTO</h3>
-<p class="product-price"><strong>Preco:</strong> R$XX,XX</p>
-<p class="product-desc">Descricao exclusiva do produto, destacando PUBLICO IDEAL e CARACTERISTICAS principais.</p>
-<div class="product-pros"><strong>✅ Pros:</strong><br>• Beneficio 1<br>• Beneficio 2<br>• Beneficio 3</div>
-<div class="product-cons"><strong>❌ Contras:</strong><br>• Ponto negativo 1<br>• Ponto negativo 2</div>
+## Nome do Produto — Subtitítulo
+
+<img src="URL_IMAGEM" alt="NOME_PRODUTO" class="article-game-img">
+
+Descricao do produto (2-3 paragrafos).
+
 <a href="LINK_AFILIADO" class="product-btn">VER NO MERCADO LIVRE</a>
-</div>
-</div>
 
-IMPORTANTE: Nao omita nenhum campo do template. Nao use formatacao Markdown dentro do card. Cada card e HTML puro.
+IMPORTANTE: Nao use <div class="product-card">. O botao e um link simples com class="product-btn".
 
 6. ## Fontes
 
@@ -785,21 +781,17 @@ Modo: {mode_pt}.
 
 Estrutura obrigatoria:
 1. INTRODUCAO: desperte curiosidade, mostre o problema. NUNCA comee com "Neste artigo...", "Hoje vamos falar..."
-2. Cada produto (do MAIS BARATO ao MAIS CARO): use EXATAMENTE este template HTML com CLASSES para cada card de produto:
+2. Cada produto (do MAIS BARATO ao MAIS CARO): use este formato:
 
-<div class="product-card">
-<img src="URL_IMAGEM" alt="NOME_PRODUTO" class="product-card-img">
-<div class="product-card-body">
-<h3>NOME DO PRODUTO</h3>
-<p class="product-price"><strong>Preço:</strong> R$XX,XX</p>
-<p class="product-desc">Descricao exclusiva do produto, destacando PUBLICO IDEAL e CARACTERISTICAS principais.</p>
-<div class="product-pros"><strong>✅ Prós:</strong><br>• Benefício 1<br>• Benefício 2<br>• Benefício 3</div>
-<div class="product-cons"><strong>❌ Contras:</strong><br>• Ponto negativo 1<br>• Ponto negativo 2</div>
+## Nome do Produto — Subtítulo
+
+<img src="URL_IMAGEM" alt="NOME_PRODUTO" class="article-game-img">
+
+Descricao do produto (2-3 paragrafos).
+
 <a href="LINK_AFILIADO" class="product-btn">VER NO MERCADO LIVRE</a>
-</div>
-</div>
 
-IMPORTANTE: Nao omita nenhum campo do template. Nao use formatacao Markdown dentro do card. Cada card e HTML puro.
+IMPORTANTE: Nao use <div class="product-card">. O botao e um link simples com class="product-btn".
 
 3. TABELA COMPARATIVA com todos os produtos e precos
 4. FAQ (3-5 perguntas)
