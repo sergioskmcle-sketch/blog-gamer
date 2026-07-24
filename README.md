@@ -73,9 +73,9 @@ public/images/         → Banners Telegram (WebP), logo SVG, imagens de produto
 │ 5. VALIDAÇÃO    Frontmatter, word count (400+), links internos      │
 │                 Links inválidos removidos automaticamente           │
 ├─────────────────────────────────────────────────────────────────────┤
-│ 6. INJEÇÃO      Product cards → entre intro e 2º heading           │
-│                 Imagens RAWG → final dos parágrafos                 │
-│                 Capa → RAWG trending keyword ou produto ML          │
+│ 6. INJEÇÃO      Imagens RAWG → início dos parágrafos (antes do texto)  │
+│                 Botão afiliado → final de cada tópico                  │
+│                 Capa → foto real do produto do artigo                   │
 ├─────────────────────────────────────────────────────────────────────┤
 │ 7. SAVE + PUSH  Markdown salvo em src/content/artigos/              │
 │                 Commit automático → git push → deploy GitHub Pages  │
@@ -136,6 +136,7 @@ Escreve reviews e guias com precisão e profundidade.
 
 Todo artigo, independente da persona, deve conter:
 - **Headings** (`##`) para cada seção principal — rejeitado sem headings
+- **Estrutura por tópico:** `## Nome → Imagem → Texto → Botão` (imagem antes do texto)
 - **`**nome do jogo**` em negrito** na primeira menção (sistema injeta imagem RAWG)
 - **Tabela comparativa** com colunas: Produto | Preço | Destaque | Nota (1-10)
 - **FAQ** com 3-4 perguntas e respostas
@@ -165,63 +166,52 @@ O sistema **nunca pede para a IA gerar imagens**. Em vez disso:
    /media/games/xxx.jpg → /media/crop/600/400/games/xxx.jpg?auto=format&fit=crop&w=800&h=450
    ```
 
-4. **Posição** (`injectGameImages`): a imagem é inserida **após o parágrafo** que contém o nome do jogo — nunca no meio da frase. Exemplo:
+4. **Posição** (`injectGameImages`): a imagem é inserida **antes do parágrafo** que contém o nome do jogo — nunca no meio da frase. Exemplo:
    ```markdown
-   A Capcom confirmou **Resident Evil Requiem** para PS5 com gráficos no ultra.
-
    <img src="https://media.rawg.io/..." alt="Resident Evil Requiem" class="article-game-img">
+
+   A Capcom confirmou **Resident Evil Requiem** para PS5 com gráficos no ultra.
    ```
 
-5. **Lightbox**: no frontend (`[...slug].astro`), ao clicar em qualquer imagem, ela abre em tela cheia com overlay. Fecha com ESC ou clique no fundo.
+5. **CSS**: `object-fit: contain` (formato natural da imagem, sem corte forçado)
+
+6. **Lightbox**: no frontend (`[...slug].astro`), ao clicar em qualquer imagem, ela abre em tela cheia com overlay. Fecha com ESC ou clique no fundo.
 
 ### Imagem de Capa
 
 A capa do artigo (hero image no topo da página e thumbnail nos cards) segue esta prioridade:
 
-1. **RAWG da 1ª trending keyword** (tópico principal do artigo — ex: wallpaper de "Resident Evil")
-2. **Thumbnail do 1º produto do Mercado Livre** (fallback)
-3. **RAWG do 1º jogo mencionado no corpo do texto** (segundo fallback)
+1. **Foto real do produto principal** (artigos de produto: headsets, teclados, etc.)
+2. **RAWG da 1ª trending keyword** (tópico principal do artigo — ex: wallpaper de "Resident Evil")
+3. **Thumbnail do 1º produto do Mercado Livre** (fallback)
 4. **Vazio** (artigo sem imagem de capa)
 
 ---
 
 ## Como os Produtos do Mercado Livre São Inseridos
 
-### Injeção Mecânica de Product Cards
+### Injeção de Botão de Afiliado
 
-Os artigos **não dependem da IA** incluir produtos no texto. Após o Groq gerar o artigo, o sistema injeta product cards diretamente no markdown:
+Os artigos **não dependem da IA** incluir produtos no texto. Após o Groq gerar o artigo, o sistema injeta um botão de afiliado simples no final de cada tópico de produto:
 
 1. **Busca de produtos** (`searchMLviaGoogle`): até 4 queries usando trending keywords (ex: `"resident evil jogo ps5 xbox pc"`). Fallback para API interna do ML.
 2. **Link de afiliado** (`generateAffiliateLink`): visita a página do produto para obter CSRF token, chama API de afiliados — resultado: `https://meli.la/XXXXXX`
 3. **Filtro** (`isGamerProduct`): bloqueia itens não-gamer (whey, parafusadeira, roupas, cosméticos, utensílios de cozinha, etc.)
-4. **Posição**: os cards são injetados **entre o conteúdo da introdução e o segundo heading** do artigo — o leitor vê a introdução primeiro, depois os produtos.
+4. **Posição**: o botão é injetado **no final de cada tópico de produto**, após o texto que descreve o produto.
 
-### Formato do Card
+### Formato do Botão
 
 ```html
-<div class="product-card">
-  <img src="[thumbnail]" class="product-card-img">
-  <div class="product-card-body">
-    <h3>[nome do produto]</h3>
-    <div class="product-price">R$ [preço]</div>
-    <p>Garante o teu no Mercado Livre antes que o estoque acabe.</p>
-    <div class="product-pros"><strong>Destaque:</strong> [frase rotativa]</div>
-    <a href="https://meli.la/XXXXX" class="product-btn">VER NO MERCADO LIVRE</a>
-  </div>
-</div>
+<a href="https://meli.la/XXXXX" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
 ```
 
-Os destaques são frases rotativas no tom do blog:
-- *"Setup gamer raiz sem vender o rim"*
-- *"Desempenho de elite sem preço de scalper"*
-- *"Custo-benefício que não pesa no bolso"*
+O botão é um link simples e direto — sem container com imagem, preço, prós/contras. A descrição do produto fica no texto do artigo, escrita pelo redator.
 
 ### A IA e os Produtos
 
 A IA recebe a lista de produtos no prompt, mas é instruída a **apenas mencioná-los naturalmente** no texto — sem imagens, preços ou links. O sistema cuida de toda a parte visual. Isso evita:
-- Produtos duplicados (card do sistema + texto da IA)
+- Produtos duplicados (botão do sistema + texto da IA)
 - Links quebrados ou preços errados
-- Imagens de baixa qualidade
 
 ### Tabela + Pros/Contras
 
