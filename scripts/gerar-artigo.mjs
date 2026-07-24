@@ -1,6 +1,7 @@
 ﻿import "dotenv/config";
 import fs from "fs";
 import path from "path";
+import { pathToFileURL } from "url";
 import Parser from "rss-parser";
 import { searchML, generateAffiliateLink, searchMLviaGoogle } from "./ml_affiliate.mjs";
 
@@ -255,9 +256,92 @@ function slugify(text) {
     .slice(0, 80);
 }
 
+function normalizeForMatch(text) {
+  return String(text || "")
+    .toLowerCase()
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function levenshtein(a, b) {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+    }
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+// 0 a 1. Combina distancia de edicao com contencao ("resident evil" dentro de
+// "Resident Evil Requiem" e match; "gta" dentro de um nome longo nao e).
+function similarity(a, b) {
+  const x = normalizeForMatch(a);
+  const y = normalizeForMatch(b);
+  if (!x || !y) return 0;
+  if (x === y) return 1;
+  const lev = 1 - levenshtein(x, y) / Math.max(x.length, y.length);
+  const shorter = x.length <= y.length ? x : y;
+  const longer = x.length <= y.length ? y : x;
+  if (longer.includes(shorter)) {
+    const proporcional = (shorter.length / longer.length) * 0.9 + 0.1;
+    // "Silksong" dentro de "Hollow Knight: Silksong" e match forte mesmo sendo
+    // curto, desde que apareca como palavra inteira e seja distintivo.
+    const palavraInteira = new RegExp(`(^| )${shorter.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}( |$)`).test(longer);
+    const distintivo = palavraInteira && shorter.length >= 5 ? 0.75 : 0;
+    return Math.max(lev, proporcional, distintivo);
+  }
+  return lev;
+}
+
+// "Grand Theft Auto VI" -> "gta vi". Sem isso, sigla usada no texto nunca casa
+// com o nome completo que a RAWG devolve.
+function acronymAlias(name) {
+  const words = normalizeForMatch(name).split(" ").filter(Boolean);
+  const head = [];
+  const tail = [];
+  for (const w of words) {
+    if (tail.length === 0 && /^[a-z]+$/.test(w) && w.length > 2) head.push(w);
+    else tail.push(w);
+  }
+  if (head.length < 2) return null;
+  return [head.map((w) => w[0]).join(""), ...tail].join(" ").trim();
+}
+
+// Melhor score entre os nomes e suas versoes em sigla, com uma trava: o termo
+// que distingue o titulo (ultima palavra) precisa existir no candidato — senao
+// "Resident Evil Requiem" casaria com "Resident Evil Village".
+function nameSimilarity(a, b) {
+  const variantsA = [a, acronymAlias(a)].filter(Boolean);
+  const variantsB = [b, acronymAlias(b)].filter(Boolean);
+  let best = 0;
+  for (const va of variantsA) {
+    for (const vb of variantsB) best = Math.max(best, similarity(va, vb));
+  }
+
+  const tokensA = normalizeForMatch(a).split(" ").filter(Boolean);
+  const distintivo = tokensA[tokensA.length - 1];
+  if (tokensA.length > 1 && distintivo && distintivo.length > 2) {
+    const todosB = variantsB.map(normalizeForMatch).join(" ");
+    if (!todosB.includes(distintivo)) best = Math.min(best, RAWG_MATCH_THRESHOLD - 0.05);
+  }
+
+  return best;
+}
+
+const RAWG_MATCH_THRESHOLD = 0.55;
+
 async function fetchRAWGImage(gameName) {
   if (!RAWG_API_KEY) return null;
-  if (GAME_IMAGE_CACHE[gameName]) return GAME_IMAGE_CACHE[gameName];
+  if (GAME_IMAGE_CACHE[gameName] !== undefined) return GAME_IMAGE_CACHE[gameName];
 
   const clean = gameName
     .replace(/[^a-zA-Z0-9 àáâãéêíóôõúç:]/g, "")
@@ -268,27 +352,30 @@ async function fetchRAWGImage(gameName) {
 
   try {
     const r = await fetch(
-      `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(clean)}&page_size=1&page=1`,
+      `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(clean)}&page_size=5&page=1`,
       { timeout: 10000 }
     );
     if (!r.ok) return null;
     const data = await r.json();
-    const result = data.results?.[0];
-    if (!result?.background_image) return null;
+    const candidates = (data.results || []).filter((g) => g.background_image);
+    if (candidates.length === 0) return null;
 
-    const bg = result.background_image;
-    const foundName = result.name || "";
+    let best = null;
+    let bestScore = 0;
+    for (const c of candidates) {
+      const score = nameSimilarity(clean, c.name || "");
+      if (score > bestScore) { bestScore = score; best = c; }
+    }
 
-    const searchWords = clean.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
-    const foundWords = foundName.toLowerCase().split(/\s+/);
-    const matchCount = searchWords.filter((sw) => foundWords.some((fw) => fw.includes(sw) || sw.includes(fw))).length;
-    if (matchCount === 0 && searchWords.length > 0) {
+    if (!best || bestScore < RAWG_MATCH_THRESHOLD) {
+      log("WARN", `RAWG descartado "${gameName.slice(0, 40)}": melhor match "${best?.name || "-"}" (score ${bestScore.toFixed(2)} < ${RAWG_MATCH_THRESHOLD})`);
+      GAME_IMAGE_CACHE[gameName] = null;
       return null;
     }
 
-    const hqUrl = bg.replace("/media/", "/media/crop/600/400/") + "?auto=format&fit=crop&w=800&h=450";
+    const hqUrl = best.background_image.replace("/media/", "/media/crop/600/400/") + "?auto=format&fit=crop&w=800&h=450";
     GAME_IMAGE_CACHE[gameName] = hqUrl;
-    log("INFO", `RAWG imagem "${gameName.slice(0, 40)}": ${hqUrl.slice(0, 60)}...`);
+    log("INFO", `RAWG imagem "${gameName.slice(0, 40)}" -> "${best.name}" (score ${bestScore.toFixed(2)})`);
     return hqUrl;
   } catch (e) {
     log("WARN", `RAWG erro "${gameName.slice(0, 40)}": ${e.message}`);
@@ -342,25 +429,108 @@ function extractGameNames(body) {
   return result;
 }
 
-function injectGameImages(body, gameImages) {
-  let result = body;
+const IMG_MARKER_REGEX = /^[ \t]*\[IMG:\s*([^\]\n]+?)\s*\][ \t]*$/gm;
+const PRODUCT_MARKER_REGEX = /^[ \t]*\[PRODUTO:\s*(\d+)\s*\][ \t]*$/gm;
+
+// Nomes de jogos que a IA marcou para receber imagem, na ordem em que aparecem.
+function extractImageMarkers(body) {
+  const names = [];
+  const seen = new Set();
+  for (const m of body.matchAll(IMG_MARKER_REGEX)) {
+    const name = m[1].trim();
+    if (!name || seen.has(name.toLowerCase())) continue;
+    seen.add(name.toLowerCase());
+    names.push(name);
+  }
+  return names;
+}
+
+// A IA as vezes marca a imagem uma secao antes do trecho que cita o jogo.
+// Aqui o marcador e movido para logo depois do paragrafo que NOMEIA o jogo;
+// se nenhum paragrafo cita, o marcador cai fora (melhor sem imagem que errada).
+function repositionImageMarkers(body) {
+  const blocks = body.split(/\n{2,}/);
+  const isMarker = (b) => /^\[IMG:\s*[^\]\n]+\]$/.test(b.trim());
+  const markerName = (b) => b.trim().replace(/^\[IMG:\s*|\s*\]$/g, "");
+  const isHeading = (b) => /^#{1,6}\s/.test(b.trim());
+  const mentions = (block, name) => normalizeForMatch(block).includes(normalizeForMatch(name));
+
+  const kept = [];
+  const pending = [];
+
+  for (const block of blocks) {
+    if (!isMarker(block)) { kept.push(block); continue; }
+    const name = markerName(block);
+    const prev = [...kept].reverse().find((b) => b.trim() && !isMarker(b) && !isHeading(b));
+    if (prev && mentions(prev, name)) kept.push(block);
+    else pending.push({ name, block });
+  }
+
+  for (const { name, block } of pending) {
+    const target = kept.findIndex((b) => !isHeading(b) && !isMarker(b) && b.trim() && mentions(b, name));
+    if (target === -1) {
+      log("WARN", `Marcador [IMG:${name}] descartado: nenhum paragrafo cita esse jogo`);
+      continue;
+    }
+    let insertAt = target + 1;
+    while (insertAt < kept.length && isMarker(kept[insertAt])) insertAt++;
+    kept.splice(insertAt, 0, block);
+    log("INFO", `Marcador [IMG:${name}] movido para junto do paragrafo que cita o jogo`);
+  }
+
+  return kept.join("\n\n");
+}
+
+function buildImageTag(name, imgUrl) {
+  return `<img src="${imgUrl}" alt="${name.replace(/"/g, "&quot;")}" class="article-game-img" loading="lazy" decoding="async">`;
+}
+
+// Substitui [IMG:Nome] pela tag. Marcadores sem imagem correspondente somem.
+// Fallback (IA nao usou marcador): injeta apos o paragrafo do **negrito**.
+function injectGameImages(body, gameImages, hasMarkers) {
+  if (hasMarkers) {
+    return body.replace(IMG_MARKER_REGEX, (full, rawName) => {
+      const name = rawName.trim();
+      const key = Object.keys(gameImages).find((k) => k.toLowerCase() === name.toLowerCase());
+      const url = key ? gameImages[key] : null;
+      return url ? buildImageTag(name, url) : "";
+    });
+  }
+
+  // Calcula todos os pontos de insercao ANTES de mexer no texto, e aplica de
+  // tras pra frente — senao cada insercao desloca os indices seguintes.
+  const insertions = [];
   for (const [name, imgUrl] of Object.entries(gameImages)) {
     if (!imgUrl) continue;
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const boldRegex = new RegExp(`\\*\\*${escaped}\\*\\*`, "g");
-    const match = boldRegex.exec(result);
+    const match = new RegExp(`\\*\\*${escaped}\\*\\*`).exec(body);
     if (!match) continue;
 
-    const boldPos = match.index;
-    let paraStart = result.lastIndexOf("\n\n", boldPos);
-    paraStart = paraStart === -1 ? 0 : paraStart + 2;
-    let paraEnd = result.indexOf("\n\n", boldPos + match[0].length);
-    paraEnd = paraEnd === -1 ? result.length : paraEnd;
+    const lineStart = body.lastIndexOf("\n", match.index) + 1;
+    const nextBreak = body.indexOf("\n", match.index);
+    const lineText = body.slice(lineStart, nextBreak === -1 ? body.length : nextBreak);
+    // Nao quebra listas, tabelas nem headings ao meio.
+    if (/^\s*(?:[-*+]|\d+\.|#|\|)/.test(lineText)) continue;
 
-    const imageTag = `<img src="${imgUrl}" alt="${name}" class="article-game-img" loading="lazy" decoding="async">`;
-    result = result.slice(0, paraEnd) + `\n\n${imageTag}` + result.slice(paraEnd);
+    let paraEnd = body.indexOf("\n\n", match.index + match[0].length);
+    paraEnd = paraEnd === -1 ? body.length : paraEnd;
+    insertions.push({ pos: paraEnd, html: `\n\n${buildImageTag(name, imgUrl)}` });
+  }
+
+  let result = body;
+  for (const ins of insertions.sort((a, b) => b.pos - a.pos)) {
+    result = result.slice(0, ins.pos) + ins.html + result.slice(ins.pos);
   }
   return result;
+}
+
+// Remove marcadores que sobraram (IA inventou numero de produto inexistente,
+// jogo sem imagem no RAWG, marcador duplicado).
+function stripLeftoverMarkers(body) {
+  return body
+    .replace(/\[(?:IMG|PRODUTO):[^\]\n]*\]/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n");
 }
 
 function isGamerProduct(title) {
@@ -384,44 +554,69 @@ function isGamerProduct(title) {
   return true;
 }
 
-function injectProductCards(body, mlProducts) {
-  if (!mlProducts || mlProducts.length === 0) return body;
+function buildProductCardHtml(p, opinativo) {
+  const img = p.thumbnail && p.thumbnail.startsWith("http") ? p.thumbnail : "";
+  const link = p.affiliate_link || p.permalink || "";
+  const preco = p.price ? `R$ ${p.price.toFixed(2)}` : "";
 
-  const productCards = mlProducts.map((p) => {
-    const img = p.thumbnail && p.thumbnail.startsWith("http") ? p.thumbnail : "";
-    const link = p.affiliate_link || p.permalink || "";
-    const preco = p.price ? `R$ ${p.price.toFixed(2)}` : "";
-    const highlights = [
-      "Custo-beneficio que nao pesa no bolso",
-      "Setup gamer raiz sem vender o rim",
-      "Qualidade que vale cada centavo",
-      "Desempenho de elite sem preco de scalper",
-      "Ideal pra quem quer jogar sem lag no orcamento",
-    ];
-    const highlight = highlights[Math.floor(Math.random() * highlights.length)];
-    return `<div class="product-card">
+  // Destaque derivado do proprio produto (faixa de preco), nao sorteado.
+  let highlight;
+  if (!p.price) {
+    highlight = opinativo ? "Preco varia conforme o vendedor — confere antes de fechar" : "Preco sujeito a variacao no Mercado Livre";
+  } else if (p.price < 200) {
+    highlight = opinativo ? "Entra facil no orcamento sem comprometer o setup" : "Faixa de entrada: melhor relacao custo-beneficio da lista";
+  } else if (p.price < 600) {
+    highlight = opinativo ? "Meio-termo honesto: paga bem sem doer no bolso" : "Faixa intermediaria: equilibrio entre preco e desempenho";
+  } else {
+    highlight = opinativo ? "Investimento alto, mas e o topo da categoria" : "Faixa premium: indicado para quem prioriza desempenho";
+  }
+
+  const desc = opinativo
+    ? "Garante o teu no Mercado Livre antes que o estoque acabe."
+    : "Disponivel no Mercado Livre — confira preco e disponibilidade atualizados.";
+
+  return `<div class="product-card">
   ${img ? `<img src="${img}" alt="${p.title}" class="product-card-img" loading="lazy" decoding="async">` : ""}
   <div class="product-card-body">
     <h3>${p.title}</h3>
     ${preco ? `<div class="product-price">${preco}</div>` : ""}
-    <p class="product-desc">Garante o teu no Mercado Livre antes que o estoque acabe.</p>
+    <p class="product-desc">${desc}</p>
     <div class="product-pros"><strong>Destaque:</strong> ${highlight}</div>
     ${link ? `<a href="${link}" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>` : ""}
   </div>
 </div>`;
-  }).join("\n\n");
+}
 
-  const allProductsBlock = `\n\n${productCards}\n`;
+// Substitui [PRODUTO:N] pelo card. Produtos sem marcador caem no fallback
+// antigo (bloco unico antes do 2o heading), pra nunca perder o afiliado.
+function injectProductCards(body, mlProducts, opinativo) {
+  if (!mlProducts || mlProducts.length === 0) return body;
 
-  const headingRegex = /## (?!Fontes|Quer mais ofertas\?|Conclus[aã]o\b)[^\n]+/gi;
-  const headings = [...body.matchAll(headingRegex)];
+  let result = body;
+  const orphans = [];
 
-  if (headings.length >= 2) {
-    const insertAt = headings[1].index;
-    return body.slice(0, insertAt) + allProductsBlock + "\n" + body.slice(insertAt);
+  mlProducts.forEach((p, i) => {
+    const html = buildProductCardHtml(p, opinativo);
+    const marker = new RegExp(`^[ \\t]*\\[PRODUTO:\\s*${i + 1}\\s*\\][ \\t]*$`, "m");
+    if (marker.test(result)) {
+      result = result.replace(marker, () => `\n${html}\n`);
+    } else {
+      orphans.push(html);
+    }
+  });
+
+  if (orphans.length > 0) {
+    log("WARN", `${orphans.length}/${mlProducts.length} produtos sem marcador — usando posicionamento automatico`);
+    const block = `\n\n${orphans.join("\n\n")}\n`;
+    const headings = [...result.matchAll(/## (?!Fontes|Quer mais ofertas\?|Conclus[aã]o\b)[^\n]+/gi)];
+    if (headings.length >= 2) {
+      result = result.slice(0, headings[1].index) + block + "\n" + result.slice(headings[1].index);
+    } else {
+      result = result + block;
+    }
   }
 
-  return body + allProductsBlock;
+  return result;
 }
 
 function cleanFakeImages(body) {
@@ -430,22 +625,24 @@ function cleanFakeImages(body) {
     .replace(/\n\s*\n\s*\n/g, "\n\n");
 }
 
-async function getBestCoverImage(products, articleBody, trendingKeyword) {
+// Prioriza o jogo que a IA marcou no corpo — e o que o artigo realmente fala.
+// Keyword trending e thumbnail de produto sao fallback.
+async function getBestCoverImage(products, articleBody, trendingKeyword, markedGames = []) {
+  for (const name of markedGames.slice(0, 3)) {
+    const img = await fetchRAWGImage(name);
+    if (img) return img;
+  }
   if (trendingKeyword) {
     const img = await fetchRAWGImage(trendingKeyword);
     if (img) return img;
-  }
-  if (products.length > 0) {
-    for (const p of products) {
-      if (p.thumbnail && p.thumbnail.startsWith("http")) {
-        return p.thumbnail;
-      }
-    }
   }
   const gameNames = extractGameNames(articleBody);
   if (gameNames.length > 0) {
     const img = await fetchRAWGImage(gameNames[0]);
     if (img) return img;
+  }
+  for (const p of products) {
+    if (p.thumbnail && p.thumbnail.startsWith("http")) return p.thumbnail;
   }
   return "";
 }
@@ -467,7 +664,7 @@ async function fetchTavily(query) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       api_key: TAVILY_API_KEY, query,
-      search_depth: "advanced", max_results: 6,
+      search_depth: "advanced", max_results: 5,
       topic: "news", include_answer: true, time_range: "month",
     }),
   });
@@ -480,7 +677,26 @@ async function fetchTavily(query) {
   return data;
 }
 
-async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 8) {
+// A conta e service tier on_demand: 8000 tokens por minuto, e a Groq conta
+// prompt + max_tokens na MESMA requisicao. Passar disso da 413 deterministico.
+const GROQ_TPM_LIMIT = 8000;
+const GROQ_SAFETY_MARGIN = 500;
+const GROQ_MIN_OUTPUT = 3000;
+const GROQ_MAX_OUTPUT = 5000;
+
+function estimateTokens(text) {
+  return Math.ceil(String(text || "").length / 3.3);
+}
+
+// Sobra de tokens para a resposta depois de descontar o prompt. Nunca inventa
+// espaco que nao existe: prompt + retorno tem que caber nos 8000 do minuto.
+function computeMaxTokens(systemPrompt, userPrompt) {
+  const promptTokens = estimateTokens(systemPrompt) + estimateTokens(userPrompt);
+  const available = GROQ_TPM_LIMIT - promptTokens - GROQ_SAFETY_MARGIN;
+  return Math.min(GROQ_MAX_OUTPUT, available);
+}
+
+async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 8, opts = {}) {
   const url = "https://api.groq.com/openai/v1/chat/completions";
   const body = {
     model: "openai/gpt-oss-120b",
@@ -488,9 +704,13 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 8) {
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
-    temperature: 0.7,
-    max_tokens: 4096,
+    temperature: opts.temperature ?? 0.7,
+    max_tokens: opts.maxTokens ?? computeMaxTokens(systemPrompt, userPrompt),
   };
+
+  if (body.max_tokens < 1000) {
+    throw new Error(`Groq: prompt grande demais — sobram so ${body.max_tokens} tokens de saida no limite de ${GROQ_TPM_LIMIT} TPM`);
+  }
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       log("INFO", `Groq: tentativa ${attempt}/${maxAttempts}...`);
@@ -511,18 +731,52 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 8) {
         if (res.status === 401) {
           log("ERROR", `Groq: API key invalida! Atualize GROQ_API_KEY no GitHub Secrets.`);
         }
+        // 413 e deterministico (tamanho da requisicao): retentar so perde tempo.
+        if (res.status === 413) {
+          log("ERROR", `Groq: requisicao maior que o limite de ${GROQ_TPM_LIMIT} TPM (prompt + max_tokens=${body.max_tokens}). Reduza o prompt.`);
+          const fatal = new Error(msg);
+          fatal.fatal = true;
+          throw fatal;
+        }
         throw new Error(msg);
       }
       const data = await res.json();
-      if (!data.choices?.[0]?.message?.content)
+      const choice = data.choices?.[0];
+      if (!choice?.message?.content)
         throw new Error(`Groq: resposta vazia: ${JSON.stringify(data).slice(0, 200)}`);
-      return data.choices[0].message.content;
+      if (choice.finish_reason === "length")
+        throw new Error(`Groq: resposta truncada (max_tokens=${body.max_tokens})`);
+      return choice.message.content;
     } catch (err) {
-      if (attempt === maxAttempts) throw err;
+      if (err.fatal || attempt === maxAttempts) throw err;
       const wait = Math.min(10 * Math.pow(2, attempt - 1), 300);
       log("WARN", `Groq: erro "${err.message.slice(0,80)}", retentando em ${wait}s...`);
       await sleep(wait * 1000);
     }
+  }
+}
+
+// Gate de qualidade barato: uma chamada curta so pra consertar o titulo,
+// em vez de descartar um artigo bom por causa de uma linha.
+async function regenerateTitle(currentTitle, topicHint, primaryKeyword, categoria) {
+  const sys = `Voce e editor de SEO de um blog gamer brasileiro. Responda APENAS com o titulo novo, em uma linha, sem aspas e sem explicacao.`;
+  const user = `Reescreva este titulo de artigo (categoria ${categoria}) sobre "${topicHint}":
+
+"${currentTitle}"
+
+Regras:
+- 55 a 65 caracteres.
+${primaryKeyword ? `- A palavra-chave "${primaryKeyword}" nos primeiros 40% do titulo.` : "- Palavra-chave principal no comeco."}
+- Use numero, data ou beneficio concreto.
+- Proibido: "Tudo que voce precisa saber", "Novidades que vao bombar", "Fique por dentro", "Imperdivel", "Revolucionario", "O que esperar".
+- Sem clickbait vazio, sem emoji, sem markdown.`;
+
+  try {
+    const out = await fetchGroq(sys, user, 2, { maxTokens: 512, temperature: 0.6 });
+    return out.trim().split("\n").filter(Boolean).pop()?.replace(/^["']|["']$/g, "").trim() || null;
+  } catch (e) {
+    log("WARN", `Reescrita de titulo falhou: ${e.message}`);
+    return null;
   }
 }
 
@@ -560,17 +814,80 @@ function parseRaw(raw) {
   return fm;
 }
 
-function validate(fm, body) {
-  const errors = [];
-  if (!fm.title || String(fm.title).length < 10) errors.push("title: muito curto");
-  if (!fm.description || String(fm.description).length < 120) errors.push("description: muito curto (min 120)");
-  if (!fm.pubDate) errors.push("pubDate: ausente");
-  if (!fm.category) errors.push("category: ausente");
-  if (!fm.tags || !Array.isArray(fm.tags) || fm.tags.length < 3) errors.push("tags: minimo 3");
-  if (fm.affiliate === undefined) errors.push("affiliate: ausente");
-  const wc = body.split(/\s+/).length;
-  if (wc < 400) errors.push(`Conteudo muito curto: ${wc} palavras`);
-  return errors;
+// Alinhado ao orcamento de saida da Groq (8000 TPM): pedir mais que isso faz
+// o artigo ser truncado no meio.
+const MIN_WORDS = { guia: 800, review: 800, noticia: 650, lista: 650, promocao: 650 };
+const ABSOLUTE_MIN_WORDS = 500;
+
+const GENERIC_TITLE_PATTERNS = [
+  /tudo (o )?que voc[êe] precisa saber/i,
+  /novidades que v[ãa]o bombar/i,
+  /voc[êe] n[ãa]o vai acreditar/i,
+  /fique por dentro/i,
+  /confira( agora)?[!?]*$/i,
+  /imperd[íi]vel/i,
+  /surpreendente/i,
+  /revolucion[áa]ri[oa]/i,
+  /o que esperar\s*[?!]*$/i,
+];
+
+// Regras de SERP/CTR. Retorna lista de problemas (vazia = titulo aprovado).
+function checkTitle(title, primaryKeyword) {
+  const problems = [];
+  const t = String(title || "");
+  if (t.length < 40) problems.push(`title: curto demais (${t.length} chars — ideal 55-65)`);
+  if (t.length > 70) problems.push(`title: longo demais (${t.length} chars — ideal 55-65)`);
+  for (const re of GENERIC_TITLE_PATTERNS) {
+    const m = t.match(re);
+    if (m) problems.push(`title: expressao generica/clickbait "${m[0]}"`);
+  }
+  if (primaryKeyword) {
+    const nt = normalizeForMatch(t);
+    const idx = nt.indexOf(normalizeForMatch(primaryKeyword));
+    if (idx === -1) problems.push(`title: nao contem a palavra-chave "${primaryKeyword}"`);
+    else if (nt.length > 0 && idx / nt.length > 0.4) problems.push(`title: palavra-chave "${primaryKeyword}" aparece tarde demais (${Math.round((idx / nt.length) * 100)}% do titulo)`);
+  }
+  return problems;
+}
+
+// hard = nao publica de jeito nenhum. soft = vale regerar, mas nao derruba a
+// execucao na ultima tentativa (o cron diario nao pode ficar sem artigo).
+function validate(fm, body, ctx = {}) {
+  const hard = [];
+  const soft = [];
+
+  if (!fm.title || String(fm.title).length < 10) hard.push("title: muito curto");
+  if (!fm.description || String(fm.description).length < 120) hard.push("description: muito curto (min 120)");
+  if (!fm.pubDate) hard.push("pubDate: ausente");
+  if (!fm.category) hard.push("category: ausente");
+  if (!fm.tags || !Array.isArray(fm.tags) || fm.tags.length < 3) hard.push("tags: minimo 3");
+  if (fm.affiliate === undefined) hard.push("affiliate: ausente");
+
+  const wc = body.split(/\s+/).filter(Boolean).length;
+  const min = MIN_WORDS[ctx.category] || 650;
+  const floor = ctx.lastAttempt ? ABSOLUTE_MIN_WORDS : min;
+  if (wc < floor) hard.push(`Conteudo muito curto: ${wc} palavras (minimo ${min})`);
+  else if (wc < min) soft.push(`Conteudo abaixo do alvo: ${wc} palavras (minimo ${min})`);
+
+  if (!/^##\s+/m.test(body)) hard.push("Artigo sem headings ##");
+
+  if (ctx.productCount > 0) {
+    const used = new Set([...body.matchAll(PRODUCT_MARKER_REGEX)].map((m) => Number(m[1])));
+    const valid = [...used].filter((n) => n >= 1 && n <= ctx.productCount);
+    if (valid.length === 0) {
+      soft.push(`Nenhum marcador [PRODUTO:N] usado (havia ${ctx.productCount} produtos disponiveis)`);
+    } else if (valid.length < Math.min(2, ctx.productCount)) {
+      soft.push(`So ${valid.length} de ${ctx.productCount} produtos posicionados com [PRODUTO:N]`);
+    }
+  }
+
+  if (extractImageMarkers(body).length === 0) {
+    soft.push("Nenhum marcador [IMG:Nome do Jogo] usado — artigo ficara sem imagens no corpo");
+  }
+
+  soft.push(...checkTitle(fm.title, ctx.primaryKeyword));
+
+  return { hard, soft };
 }
 
 function countArticlesInDir() {
@@ -675,8 +992,10 @@ async function main() {
       ? `${topic.hint} Brasil 2026`
       : `melhores ${topic.hint} Brasil 2026`;
     const sr = await fetchTavily(query);
-    researchContext = sr?.results
-      .map((r, i) => `[Fonte ${i + 1}] ${r.title}\nURL: ${r.url}\n${r.content?.slice(0, 600)}`)
+    // 450 chars por fonte: o limite de 8000 TPM da Groq divide o orcamento
+    // entre pesquisa e tamanho do artigo.
+    researchContext = (sr?.results || [])
+      .map((r, i) => `[Fonte ${i + 1}] ${r.title}\nURL: ${r.url}\n${r.content?.slice(0, 450)}`)
       .join("\n\n");
   } catch (err) {
     log("WARN", `Tavily: ${err.message}`);
@@ -743,13 +1062,11 @@ async function main() {
   mlProducts = mlProducts.filter((p) => isGamerProduct(p.title));
 
   const productBlock = mlProducts.length > 0
-    ? `\nProdutos do Mercado Livre (APENAS mencione-os no texto, o sistema ja injeta imagens e links):\n${mlProducts.map((p, i) =>
-        `[Produto ${i + 1}]\n` +
+    ? `\nPRODUTOS DISPONIVEIS (use o marcador indicado para posicionar cada card):\n${mlProducts.map((p, i) =>
+        `Marcador: [PRODUTO:${i + 1}]\n` +
         `Nome: ${p.title}\n` +
-        `Preco: R$ ${p.price?.toFixed(2) || "N/A"}\n` +
-        `Imagem: ${p.thumbnail}\n` +
-        `Link Mercado Livre: ${p.affiliate_link || p.permalink}\n`
-      ).join("\n")}`
+        `Preco: R$ ${p.price?.toFixed(2) || "nao informado"}\n`
+      ).join("\n")}\nO sistema monta o card (imagem, preco, botao de compra) no lugar do marcador. Voce NAO escreve preco, link nem imagem desses produtos — so decide ONDE cada card entra.`
     : "";
 
   const trendingNote = topic.trending_keywords
@@ -785,26 +1102,62 @@ REGRAS DE ESTILO:
 - JAMAIS: girias de boteco ("mermao", "ta ligado"), humor forcado, sarcasmo`;
 
   const personaPrompt = estiloOpinativo ? personaManoGamer : personaFactual;
+  const minWords = MIN_WORDS[categoria] || 650;
+  const alvoWords = estiloFactual ? "900-1100" : "700-900";
+  const primaryKeyword = topic.trending_keywords?.[0] || "";
 
-  const systemPrompt = `${personaPrompt}${trendingNote}
+  const systemPrompt = `Voce e redator senior de um blog gamer brasileiro de alto trafego. Seu artigo e publicado como esta, sem revisao humana: generalidade, cliche e dado inventado custam trafego e credibilidade.
 
-Regras:
-- Artigo: MINIMO 800 palavras (obrigatorio, o sistema rejeita artigos com menos de 800 palavras)
-- ESTRUTURA OBRIGATORIA: Todo artigo DEVE ter headings ## para cada secao principal. Use ## para secoes (ex: ## Introducao, ## Analise, ## Dicas) e ### para subsecoes. NUNCA escreva um artigo sem headings.
-- Sempre que citar um jogo pela PRIMEIRA vez, use **Nome Do Jogo** em negrito. Ex: "**EA Sports FC 26** e um dos melhores..."
-- IMPORTANTE: NUNCA invente URLs de imagens (ex: wikipedia, google). O sistema insere imagens automaticamente para nomes de jogos em negrito.
-- ${mlProducts.length > 0 ? `Produtos do Mercado Livre: O sistema ja injeta os produtos automaticamente no artigo. NÃO inclua imagens, preços ou links dos produtos listados abaixo — apenas MENCIONE-OS NATURALMENTE no texto quando relevante. Para cada produto gamer mencionado use: texto descritivo sem duplicar o que o sistema ja faz.` : "Modo informativo: artigo de conteudo puro. Nao invente produtos, precos, links de compra, ou URLs de imagens. Use APENAS **negrito** nos nomes de jogos."}
-- ${mlProducts.length > 0 ? `ENRIQUECIMENTO OBRIGATORIO: inclua uma TABELA COMPARATIVA dos produtos com colunas: Produto | Preco | Destaque | Nota (1-10). Inclua uma secao ## FAQ com 3-4 perguntas e respostas. Para cada produto, liste PROS e CONTRAS em bullets estruturadas ## Pros e Contras. IMPORTANTE: use listas e bullets (<ul>/<li> ou -) em TODAS as secoes para melhorar a legibilidade.` : `ENRIQUECIMENTO OBRIGATORIO: inclua uma secao ## FAQ com 3-4 perguntas. Inclua tabelas quando relevante para comparar jogos, especificacoes, ou dados. Use listas e bullets em todas as secoes.`}
-- IMPORTANTE: Toda secao do artigo DEVE ter pelo menos 2-3 bullets/listas com topicos claros. Numere passos (1. 2. 3.) ou use bullets (- texto). Artigos sem topicos/listas sao rejeitados.
-- IMPORTANTE: Inclua 2 a 3 links internos para outros artigos do Blog Gamer usando o formato [texto](/blog-gamer/blog/slug-do-artigo/). Ex: "Confira tambem nosso [guia de placas de video](/blog-gamer/blog/as-10-melhores-placas-de-video-custo-beneficio-do-mercado-livre-em-2026/)".
-- Ao final do artigo, inclua um call-to-action convidando o leitor a entrar no grupo VIP do Telegram para ofertas diarias: "## Quer mais ofertas?\\n\\nEntre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e receba ofertas diarias de games, consoles e perifericos!"
-- Cite as fontes de pesquisa no final: "## Fontes" com links
-- NUNCA mencione que e IA. NUNCA use emojis.
-- Saida EXATA: frontmatter YAML entre "---" e fechando com "---" depois o conteudo markdown
+${personaPrompt}${trendingNote}
 
-Frontmatter obrigatorio:
-title: "Titulo SEO (50-60 caracteres)"
-description: "Descricao persuasiva (120-160 caracteres)"
+## MARCADORES DE POSICIONAMENTO (OBRIGATORIO)
+Voce nao renderiza imagens nem cards de produto — voce decide ONDE eles entram, com marcadores que o sistema substitui depois.
+- [IMG:Nome Exato do Jogo] — em uma linha sozinha, logo APOS o paragrafo que apresenta ou descreve aquele jogo. Use so para titulos de jogos reais (ex: [IMG:Resident Evil Requiem]). NUNCA para conceitos, passos, secoes ou specs (nada de [IMG:Instalacao rapida]). Use de 2 a 4 no artigo.
+- ${mlProducts.length > 0 ? `[PRODUTO:N] — em uma linha sozinha, no ponto em que aquele produto especifico e relevante (logo depois do paragrafo que fala dele ou da categoria dele). NAO empilhe todos no comeco. Use o numero exato indicado na lista de produtos.` : "Nao ha produtos nesta rodada — nao use [PRODUTO:N]."}
+- Nunca coloque dois marcadores seguidos sem texto entre eles. Se um jogo ou produto nao tem relevancia real em nenhum trecho, omita o marcador — melhor faltar do que forcar.
+- Se o sistema nao achar imagem para um [IMG:...], ele remove o marcador. Entao o paragrafo tem que fazer sentido sozinho, sem depender da imagem.
+
+## REGRAS DE TITULO
+- 55 a 65 caracteres.
+- ${primaryKeyword ? `A palavra-chave "${primaryKeyword}" DEVE aparecer nos primeiros 40% do titulo.` : "A palavra-chave principal (jogo, produto ou evento) deve aparecer nos primeiros 40% do titulo."}
+- PROIBIDO: "Tudo que voce precisa saber", "Novidades que vao bombar", "Fique por dentro", "Imperdivel", "Revolucionario", "O que esperar".
+- Use numero, data ou beneficio concreto: "10 Melhores X em 2026", "X vs Y: Qual Vale a Pena", "X Chega em Marco: O Que Muda".
+- Nada de clickbait vazio: o titulo tem que ser 100% sustentado pelo conteudo.
+
+## REGRAS DE CONTEUDO
+1. GROUNDING: todo dado concreto (preco, spec, data, numero de vendas, nota) vem das fontes de pesquisa fornecidas. Se nao esta la, nao afirme como fato — use "segundo rumores", "ainda sem confirmacao".
+2. ESPECIFICIDADE: proibido "incrivel", "revolucionario", "surpreendente" sem uma frase logo depois explicando o motivo concreto.
+3. TESE POR SECAO: cada secao defende um ponto, nao lista fatos soltos. Nao "as specs do monitor X", e sim "o monitor X vale o preco por causa de Y, apesar de Z".
+4. COMPARACAO REAL: em tabela comparativa, os numeros precisam diferenciar os itens. Nada de todo mundo com nota 9/10.
+5. EXTENSAO: minimo ${minWords} palavras, alvo ${alvoWords}. Extensao e consequencia de profundidade — nao encha linguica pra bater numero.
+6. E permitido (e recomendado) discordar do hype de marketing quando os dados sustentarem. Isso gera credibilidade.
+7. Frases curtas alternadas com uma ou duas mais longas. Paragrafos com frases todas do mesmo tamanho denunciam texto de IA.
+${estiloOpinativo ? "8. Giria e humor sao tempero, nao estrutura: no maximo 1 giria marcante a cada 2-3 paragrafos, nunca empilhadas." : "8. Tom tecnico com clareza: pode ter um toque de humor seco, mas sem giria de boteco."}
+
+## ESTRUTURA (adapte a categoria — nao force todos os blocos sempre)
+- Headings ## em toda secao principal (### para subsecoes). Subtitulos que dizem algo, nao "Analise" ou "Detalhes".
+- Introducao com gancho concreto (um fato especifico, nao pergunta retorica generica).
+- Corpo com os marcadores posicionados conforme as regras acima.
+- Jogos citados pela PRIMEIRA vez em **negrito**: "**EA Sports FC 26** chegou..."
+- Bullets ou passos numerados nas secoes onde ajudam a leitura (nao em todas a forca).
+- ${mlProducts.length > 0 ? "Tabela comparativa dos produtos (Produto | Preco | Destaque | Nota 1-10) com notas que realmente diferenciam, e uma secao ## Pros e Contras especifica de cada item (nada de pro generico)." : "Tabela quando houver o que comparar (jogos, specs, edicoes)."}
+- ## FAQ com 3-4 perguntas que as pessoas realmente pesquisam no Google sobre o tema.
+- Conclusao com recomendacao clara: pra quem vale a pena e pra quem nao vale.
+- 2 a 3 links internos no formato [texto](/blog-gamer/blog/slug-do-artigo/).
+- "## Quer mais ofertas?" com: Entre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e receba ofertas diarias de games, consoles e perifericos!
+- "## Fontes" com os links da pesquisa.
+
+## PROIBIDO
+- Inventar URL de imagem (wikipedia, google, unsplash) ou link de compra.
+- Escrever preco, imagem ou botao dos produtos listados — isso e do card.
+- Emojis, voz passiva, mencionar que e IA, termos corporativos ("desta forma", "outrossim", "vale ressaltar que").
+- Markdown (** ou *) dentro do title e da description do frontmatter.
+
+## SAIDA
+Frontmatter YAML entre "---" e "---", depois o markdown do artigo com os marcadores no corpo. Nada alem disso — sem comentarios sobre o processo.
+
+title: "Titulo SEO (55-65 caracteres)"
+description: "Descricao persuasiva (120-160 caracteres, sem markdown)"
 pubDate: ${today}
 tags: [tag1, tag2, tag3, tag4, tag5]
 category: "${topic.category}"
@@ -812,83 +1165,141 @@ affiliate: ${mlProducts.length > 0}
 
 category DEVE ser: noticia, review, guia, lista ou promocao`;
 
-  let userPrompt = `Escreva um artigo sobre "${topic.hint}".
+  const buildUserPrompt = (research) => `Escreva um artigo de categoria "${categoria}" sobre: ${topic.hint}
 
-${researchContext ? `Fontes de pesquisa:\n${researchContext}\n` : ""}
+${research ? `PESQUISA (use estes fatos — nao invente dados fora daqui):\n${research}\n` : "SEM PESQUISA DISPONIVEL: escreva so o que e conhecimento consolidado, sem inventar numeros, datas ou precos.\n"}
 ${productBlock}
 
-Instrucoes:
-1. Titulo SEO atraente (50-60 caracteres)${estiloOpinativo ? ' — com personalidade e gancho' : ' — direto e informativo'}
-2. Descricao persuasiva (120-160 caracteres, sem exageros promocionais)
-3. Artigo em markdown com estrutura clara: ## Introducao, ## [Topico Principal], ## Dicas, ## Conclusao, ## Fontes
-4. ${mlProducts.length > 0 ? `Mencione produtos do Mercado Livre naturalmente no texto — o sistema ja injeta cards, imagens e botoes automaticamente.` : `NAO invente links de compra nem URLs de imagens.`}
-5. USE **NEGRITO** nos nomes de jogos na primeira mencao
-6. Inclua 2-3 links internos para outros artigos do Blog Gamer (ex: [guia de placas de video](/blog-gamer/blog/as-10-melhores-placas-de-video-custo-beneficio-do-mercado-livre-em-2026/))
-7. Ao final, secao "## Quer mais ofertas?" com link para o grupo Telegram (https://t.me/+TRWZ67WHuk85Y2Nh)
-8. Minimo 800 palavras de conteudo real (o sistema rejeita artigos menores)
-9. 5 tags relevantes
-10. ${estiloOpinativo ? `ESTILO MANO GAMER: Seja irreverente, use girias, metaforas de jogo, fale direto com o leitor. Sem voz passiva ou robotica.` : `ESTILO TECNICO: Seja preciso, compare specs, explique decisoes. Tom profissional acessivel.`}`;
+Checklist antes de responder:
+1. Titulo com 55-65 chars${primaryKeyword ? `, com "${primaryKeyword}" no comeco` : ""}, sem frase generica.
+2. Description 120-160 chars, sem ** e sem exagero promocional.
+3. Minimo ${minWords} palavras de conteudo real (alvo ${alvoWords}).
+4. ${mlProducts.length > 0 ? `Marcadores [PRODUTO:1]..[PRODUTO:${mlProducts.length}] distribuidos ao longo do texto, cada um perto do trecho que fala daquele produto.` : "Sem produtos nesta rodada."}
+5. 2 a 4 marcadores [IMG:Nome do Jogo], cada um apos o paragrafo que descreve o jogo.
+6. Cada dado concreto rastreavel ate a pesquisa acima.
+7. 5 tags relevantes.
+8. ${estiloOpinativo ? "Voz Mano Gamer: opiniao com lado tomado, giria dosada, sem enrolacao." : "Voz tecnica: precisao, comparacao de specs, o porque de cada recomendacao."}`;
 
-  log("INFO", "Gerando artigo com Groq...");
-  let article;
-  try {
-    article = await fetchGroq(systemPrompt, userPrompt);
-    log("INFO", "Artigo gerado, parseando...");
-  } catch (err) {
-    log("ERROR", `Falha na geracao: ${err.message}`);
-    process.exit(1);
+  // Encolhe a pesquisa ate sobrar espaco de saida suficiente dentro do TPM.
+  let userPrompt = buildUserPrompt(researchContext);
+  while (computeMaxTokens(systemPrompt, userPrompt) < GROQ_MIN_OUTPUT && researchContext.length > 800) {
+    researchContext = researchContext.slice(0, Math.floor(researchContext.length * 0.75));
+    userPrompt = buildUserPrompt(researchContext);
+    log("WARN", `Pesquisa reduzida para caber no limite de ${GROQ_TPM_LIMIT} TPM`);
+  }
+  log("INFO", `Orcamento Groq: prompt ~${estimateTokens(systemPrompt) + estimateTokens(userPrompt)} tokens, saida ~${computeMaxTokens(systemPrompt, userPrompt)} tokens`);
+
+  const MAX_GEN_ATTEMPTS = 3;
+  const validationCtx = {
+    category: categoria,
+    productCount: mlProducts.length,
+    primaryKeyword,
+  };
+
+  let fm = null;
+  let body = null;
+  let feedback = "";
+
+  for (let attempt = 1; attempt <= MAX_GEN_ATTEMPTS; attempt++) {
+    const lastAttempt = attempt === MAX_GEN_ATTEMPTS;
+    log("INFO", `Gerando artigo com Groq (tentativa ${attempt}/${MAX_GEN_ATTEMPTS})...`);
+
+    let article;
+    try {
+      article = await fetchGroq(systemPrompt, userPrompt + feedback);
+    } catch (err) {
+      log("ERROR", `Falha na geracao: ${err.message}`);
+      process.exit(1);
+    }
+
+    let parsed;
+    try {
+      parsed = parseFrontmatter(article);
+    } catch (err) {
+      log("WARN", `Erro frontmatter: ${err.message}`);
+      log("DEBUG", article.slice(0, 600));
+      if (lastAttempt) { log("ERROR", "Frontmatter invalido apos todas as tentativas"); process.exit(1); }
+      feedback = "\n\nA resposta anterior nao tinha frontmatter YAML valido. Comece a resposta com --- e feche com --- antes do markdown.";
+      continue;
+    }
+
+    const { hard, soft } = validate(parsed.frontmatter, parsed.body, { ...validationCtx, lastAttempt });
+
+    if (hard.length === 0 && soft.length === 0) {
+      fm = parsed.frontmatter;
+      body = parsed.body;
+      log("INFO", "Validacoes OK");
+      break;
+    }
+
+    if (hard.length > 0) log("WARN", `Bloqueantes:\n  - ${hard.join("\n  - ")}`);
+    if (soft.length > 0) log("WARN", `Qualidade:\n  - ${soft.join("\n  - ")}`);
+
+    if (lastAttempt) {
+      if (hard.length > 0) {
+        log("ERROR", `Validacao falhou apos ${MAX_GEN_ATTEMPTS} tentativas:\n${hard.join("\n")}`);
+        log("DEBUG", JSON.stringify(parsed.frontmatter, null, 2));
+        process.exit(1);
+      }
+      log("WARN", "Publicando com ressalvas de qualidade (ultima tentativa)");
+      fm = parsed.frontmatter;
+      body = parsed.body;
+      break;
+    }
+
+    feedback = `\n\nA versao anterior foi rejeitada. Corrija TUDO isto e reescreva o artigo inteiro:\n- ${[...hard, ...soft].join("\n- ")}`;
   }
 
-  let fm, body;
-  try {
-    const parsed = parseFrontmatter(article);
-    fm = parsed.frontmatter;
-    body = parsed.body;
-  } catch (err) {
-    log("ERROR", `Erro frontmatter: ${err.message}`);
-    log("DEBUG", article.slice(0, 600));
-    process.exit(1);
+  // Ultimo recurso pro titulo: uma chamada curta so pra reescrever o titulo.
+  const titleProblems = checkTitle(fm.title, primaryKeyword);
+  if (titleProblems.length > 0) {
+    log("WARN", `Titulo ainda com problemas: ${titleProblems.join("; ")} — tentando reescrever`);
+    const better = await regenerateTitle(fm.title, topic.hint, primaryKeyword, categoria);
+    if (better && checkTitle(better, primaryKeyword).length === 0) {
+      log("INFO", `Titulo reescrito: "${better}"`);
+      fm.title = better;
+    } else {
+      log("WARN", "Reescrita do titulo nao passou no gate — mantendo o original");
+    }
   }
 
-  const errors = validate(fm, body);
-  if (errors.length > 0) {
-    log("ERROR", `Validacao falhou:\n${errors.join("\n")}`);
-    log("DEBUG", JSON.stringify(fm, null, 2));
-    process.exit(1);
-  }
-
-  log("INFO", "Validacoes OK");
+  fm.title = String(fm.title).replace(/\*/g, "").trim();
+  fm.description = String(fm.description).replace(/\*/g, "").trim();
 
   log("INFO", "Validando links internos...");
   body = validateInternalLinks(body);
   log("INFO", "Links internos validados");
 
-  log("INFO", "Injetando produtos do Mercado Livre no artigo...");
-  body = injectProductCards(body, mlProducts);
-  log("INFO", `${mlProducts.length} produtos injetados no corpo do artigo`);
-
   log("INFO", "Buscando imagens de jogos via RAWG...");
   body = cleanFakeImages(body);
-  const gameNames = extractGameNames(body);
+
+  if (extractImageMarkers(body).length > 0) body = repositionImageMarkers(body);
+
+  const markerNames = extractImageMarkers(body);
+  const hasImageMarkers = markerNames.length > 0;
+  const gameNames = hasImageMarkers ? markerNames : extractGameNames(body);
+  const gameImages = {};
+
   if (gameNames.length > 0) {
-    log("INFO", `${gameNames.length} jogos detectados: ${gameNames.slice(0, 8).join(", ")}`);
-    const gameImages = {};
+    log("INFO", `${gameNames.length} jogos ${hasImageMarkers ? "marcados com [IMG:]" : "detectados por negrito (fallback)"}: ${gameNames.slice(0, 8).join(", ")}`);
     for (const name of gameNames.slice(0, 8)) {
       const img = await fetchRAWGImage(name);
       if (img) gameImages[name] = img;
     }
-    if (Object.keys(gameImages).length > 0) {
-      body = injectGameImages(body, gameImages);
-      log("INFO", `${Object.keys(gameImages).length} imagens RAWG injetadas`);
-    } else {
-      log("WARN", "Nenhuma imagem RAWG encontrada");
-    }
+    body = injectGameImages(body, gameImages, hasImageMarkers);
+    log("INFO", `${Object.keys(gameImages).length}/${gameNames.length} imagens RAWG injetadas`);
   } else {
-    log("WARN", "Nenhum nome de jogo detectado no artigo");
+    log("WARN", "Nenhum jogo marcado nem detectado no artigo");
   }
 
+  log("INFO", "Injetando produtos do Mercado Livre no artigo...");
+  body = injectProductCards(body, mlProducts, estiloOpinativo);
+  log("INFO", `${mlProducts.length} produtos injetados no corpo do artigo`);
+
+  body = stripLeftoverMarkers(body);
+
   const trendingKeywordForCover = topic.trending_keywords?.[0] || "";
-  const coverImage = await getBestCoverImage(mlProducts, body, trendingKeywordForCover);
+  const coverImage = await getBestCoverImage(mlProducts, body, trendingKeywordForCover, markerNames);
   if (!coverImage) {
     const fallbackKw = trendingKeywordForCover || topic.ml_query?.split(" ").slice(0, 2).join(" ") || "";
     if (fallbackKw) {
@@ -972,14 +1383,36 @@ async function generateStatusFile(state) {
   log("INFO", "status.json gerado");
 }
 
-main().catch((err) => {
-  log("ERROR", err.message);
-  const state = loadState();
-  const today = new Date().toISOString().split("T")[0];
-  state.last_error = err.message.slice(0, 200);
-  state.last_error_date = today;
-  state.consecutive_failures = (state.consecutive_failures || 0) + 1;
-  saveState(state);
-  generateStatusFile(state);
-  process.exit(1);
-});
+// So roda o pipeline quando o arquivo e executado direto (node scripts/gerar-artigo.mjs).
+// Importado como modulo (pelos testes), apenas expoe as funcoes puras abaixo.
+const executadoDireto = process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url;
+
+if (executadoDireto) {
+  main().catch((err) => {
+    log("ERROR", err.message);
+    const state = loadState();
+    const today = new Date().toISOString().split("T")[0];
+    state.last_error = err.message.slice(0, 200);
+    state.last_error_date = today;
+    state.consecutive_failures = (state.consecutive_failures || 0) + 1;
+    saveState(state);
+    generateStatusFile(state);
+    process.exit(1);
+  });
+}
+
+export {
+  similarity,
+  nameSimilarity,
+  extractImageMarkers,
+  repositionImageMarkers,
+  injectGameImages,
+  injectProductCards,
+  buildProductCardHtml,
+  stripLeftoverMarkers,
+  extractGameNames,
+  checkTitle,
+  validate,
+  computeMaxTokens,
+  MIN_WORDS,
+};
