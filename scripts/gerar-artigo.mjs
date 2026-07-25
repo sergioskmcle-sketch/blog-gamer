@@ -1263,6 +1263,7 @@ ${estiloOpinativo ? "8. Giria e humor sao tempero, nao estrutura: no maximo 1 gi
 - Produto sem preco na lista (Preco: NAO DISPONIVEL): nunca afirme preco, nunca diga que e gratis, gratuito, preco zero ou de graca; refira-se a ele como "confira o preco atual no card".
 - Emojis, voz passiva, mencionar que e IA, termos corporativos ("desta forma", "outrossim", "vale ressaltar que").
 - Markdown (** ou *) dentro do title e da description do frontmatter.
+- REGRA DA CAPA: a imagem de capa (campo "image" do frontmatter) deve ser EXCLUSIVA — NUNCA repita a mesma imagem da capa dentro do corpo do artigo. Se uma secao usa o mesmo jogo da capa, use uma imagem diferente desse jogo (outra screenshot, outra arte). A capa e unica.
 
 ## SAIDA
 Frontmatter YAML entre "---" e "---", depois o markdown do artigo com os marcadores no corpo. Nada alem disso — sem comentarios sobre o processo.

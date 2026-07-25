@@ -5,7 +5,7 @@ pubDate: 2026-07-25
 tags: ["god of war", "gta 6", "lançamentos", "guia", "notícias"]
 category: "noticia"
 affiliate: false
-image: "https://media.rawg.io/media/crop/600/400/screenshots/6dc/6dc941f6e619f59ec849d7f681e72c46.jpg?auto=format&fit=crop&w=800&h=450"
+image: "https://media.rawg.io/media/games/1c3/1c305096502c475c00276c827f0fd697.jpg?auto=format&fit=crop&w=800&h=450"
 ---
 
 Fala, gamer! Enquanto a galera ainda tenta entender o último patch de *Elden Ring*, a Sony já soltou a data de **God of War Laufey**. Se liga: o lançamento tá marcado para 16 de fevereiro de 2027, direto do SDCC 2026. E não para por aí: Cory Barlog acabou de confirmar que tem outro título com Kratos vindo logo depois, amarrado na história da própria Laufey. Enquanto isso, o hype de GTA VI explode com um leak que promete redes sociais integradas no celular do personagem. Segura a ansiedade que eu vou destrinchar tudo.
