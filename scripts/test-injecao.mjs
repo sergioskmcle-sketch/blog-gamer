@@ -137,7 +137,7 @@ const orfao = `Paragrafo sobre outra coisa totalmente diferente.
 [IMG:Jogo Que Ninguem Citou]
 
 Fim do texto.`;
-ok(!repositionImageMarkers(orfao).includes("[IMG:"), "marcador sem mencao no texto e descartado");
+ok(repositionImageMarkers(orfao).includes("[IMG:"), "marcador sem mencao no texto e mantido (busca via Tavily)");
 
 // --- limpeza de sobras ---
 const sobra = stripLeftoverMarkers("Texto.\n\n[PRODUTO:9]\n\n[IMG:Jogo Inexistente]\n\nFim.");

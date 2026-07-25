@@ -446,9 +446,9 @@ function extractImageMarkers(body) {
   return names;
 }
 
-// A IA as vezes marca a imagem uma secao antes do trecho que cita o jogo.
-// Aqui o marcador e movido para logo ANTES do paragrafo que NOMEIA o jogo;
-// se nenhum paragrafo cita, o marcador cai fora (melhor sem imagem que errada).
+// A IA as vezes marca a imagem numa posicao errada.
+// Aqui o marcador e movido para logo ANTES do titulo ## que ele descreve;
+// se nenhum titulo ou paragrafo cita, o marcado e mantido (Tavily vai tentar achar imagem).
 function repositionImageMarkers(body) {
   const blocks = body.split(/\n{2,}/);
   const isMarker = (b) => /^\[IMG:\s*[^\]\n]+\]$/.test(b.trim());
@@ -462,21 +462,31 @@ function repositionImageMarkers(body) {
   for (const block of blocks) {
     if (!isMarker(block)) { kept.push(block); continue; }
     const name = markerName(block);
-    const prev = [...kept].reverse().find((b) => b.trim() && !isMarker(b) && !isHeading(b));
-    if (prev && mentions(prev, name)) kept.push(block);
-    else pending.push({ name, block });
+    const prev = [...kept].reverse().find((b) => b.trim() && !isMarker(b));
+    if (prev && (isHeading(prev) || mentions(prev, name))) {
+      kept.push(block);
+    } else {
+      pending.push({ name, block });
+    }
   }
 
   for (const { name, block } of pending) {
-    const target = kept.findIndex((b) => !isHeading(b) && !isMarker(b) && b.trim() && mentions(b, name));
-    if (target === -1) {
-      log("WARN", `Marcador [IMG:${name}] descartado: nenhum paragrafo cita esse jogo`);
+    const headingTarget = kept.findIndex((b) => isHeading(b) && mentions(b, name));
+    if (headingTarget !== -1) {
+      kept.splice(headingTarget, 0, block);
+      log("INFO", `Marcador [IMG:${name}] movido para antes do titulo que menciona o topico`);
       continue;
     }
-    let insertAt = target;
-    while (insertAt < kept.length && isMarker(kept[insertAt])) insertAt++;
-    kept.splice(insertAt, 0, block);
-    log("INFO", `Marcador [IMG:${name}] movido para antes do paragrafo que cita o jogo`);
+    const paraTarget = kept.findIndex((b) => !isHeading(b) && !isMarker(b) && b.trim() && mentions(b, name));
+    if (paraTarget !== -1) {
+      let insertAt = paraTarget;
+      while (insertAt < kept.length && isMarker(kept[insertAt])) insertAt++;
+      kept.splice(insertAt, 0, block);
+      log("INFO", `Marcador [IMG:${name}] movido para antes do paragrafo que cita o topico`);
+      continue;
+    }
+    kept.push(block);
+    log("INFO", `Marcador [IMG:${name}] mantido (busca via Tavily)`);
   }
 
   return kept.join("\n\n");
@@ -668,6 +678,50 @@ async function fetchTavily(query) {
   const data = await res.json();
   log("INFO", `Tavily: ${data.results?.length || 0} resultados`);
   return data;
+}
+
+const TAVILY_IMAGE_CACHE = {};
+
+async function fetchTavilyImage(query) {
+  if (!TAVILY_API_KEY) return null;
+  const cacheKey = query.toLowerCase().trim();
+  if (TAVILY_IMAGE_CACHE[cacheKey] !== undefined) return TAVILY_IMAGE_CACHE[cacheKey];
+
+  try {
+    const res = await fetch("https://api.tavily.com/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        api_key: TAVILY_API_KEY,
+        query: query + " gaming",
+        search_depth: "basic",
+        max_results: 3,
+        include_images: true,
+      }),
+      timeout: 10000,
+    });
+    if (!res.ok) {
+      log("WARN", `Tavily image search falhou: ${res.status}`);
+      TAVILY_IMAGE_CACHE[cacheKey] = null;
+      return null;
+    }
+    const data = await res.json();
+    if (data.images && data.images.length > 0) {
+      const imgUrl = typeof data.images[0] === "string" ? data.images[0] : data.images[0].url;
+      if (imgUrl && imgUrl.startsWith("http")) {
+        TAVILY_IMAGE_CACHE[cacheKey] = imgUrl;
+        log("INFO", `Tavily imagem "${query.slice(0, 30)}" -> ${imgUrl.slice(0, 60)}`);
+        return imgUrl;
+      }
+    }
+    log("WARN", `Tavily: nenhuma imagem encontrada para "${query.slice(0, 30)}"`);
+    TAVILY_IMAGE_CACHE[cacheKey] = null;
+    return null;
+  } catch (e) {
+    log("WARN", `Tavily image erro: ${e.message}`);
+    TAVILY_IMAGE_CACHE[cacheKey] = null;
+    return null;
+  }
 }
 
 // A conta e service tier on_demand: 8000 tokens por minuto, e a Groq conta
@@ -1167,7 +1221,7 @@ ${personaPrompt}${trendingNote}
 
 ## MARCADORES DE POSICIONAMENTO (OBRIGATORIO)
 Voce nao renderiza imagens nem cards de produto — voce decide ONDE eles entram, com marcadores que o sistema substitui depois.
-- [IMG:Nome Exato do Jogo] — em uma linha sozinha, logo ANTES do paragrafo que apresenta ou descreve aquele jogo. Use so para titulos de jogos reais (ex: [IMG:Resident Evil Requiem]). NUNCA para conceitos, passos, secoes ou specs (nada de [IMG:Instalacao rapida]). Use de 2 a 4 no artigo.
+- [IMG:Nome] — OBRIGATORIO em cada secao ## do artigo. Coloque em uma linha sozinha, logo ANTES do titulo ##. Para secoes sobre um jogo, use o nome do jogo (ex: [IMG:God of War Laufey]). Para secoes gerais (setup, comparativos, FAQ, lancamentos), use uma descricao curta do topico (ex: [IMG:Setup Gamer], [IMG:Comparativo de Consoles], [IMG:Perguntas Frequentes]). O sistema busca imagens automaticamente via web. SEMPRE use um marcador — nao existe secao sem imagem.
 - ${mlProducts.length > 0 ? `[PRODUTO:N] — em uma linha sozinha, logo APOS a secao que descreve o produto (depois do texto que fala dele). NAO empilhe todos no comeco. Use o numero exato indicado na lista de produtos.` : "Nao ha produtos nesta rodada — nao use [PRODUTO:N]."}
 - Nunca coloque dois marcadores seguidos sem texto entre eles. Se um jogo ou produto nao tem relevancia real em nenhum trecho, omita o marcador — melhor faltar do que forcar.
 - Se o sistema nao achar imagem para um [IMG:...], ele remove o marcador. Entao o paragrafo tem que fazer sentido sozinho, sem depender da imagem.
@@ -1191,6 +1245,7 @@ ${estiloOpinativo ? "8. Giria e humor sao tempero, nao estrutura: no maximo 1 gi
 
 ## ESTRUTURA (adapte a categoria — nao force todos os blocos sempre)
 - Headings ## em toda secao principal (### para subsecoes). Subtitulos que dizem algo, nao "Analise" ou "Detalhes".
+- Cada secao ## DEVE comecar com um marcador [IMG:Nome] na linha imediatamente anterior ao titulo. Isso e OBRIGATORIO — nao existe secao sem imagem.
 - Introducao com gancho concreto (um fato especifico, nao pergunta retorica generica).
 - Corpo com os marcadores posicionados conforme as regras acima.
 - Jogos citados pela PRIMEIRA vez em **negrito**: "**EA Sports FC 26** chegou..."
@@ -1345,6 +1400,14 @@ Checklist antes de responder:
     for (const name of gameNames.slice(0, 8)) {
       const img = await fetchRAWGImage(name);
       if (img) gameImages[name] = img;
+    }
+
+    for (const name of markerNames) {
+      if (!gameImages[name]) {
+        log("INFO", `Fallback Tavily para imagem: "${name.slice(0, 30)}"`);
+        const tavilyImg = await fetchTavilyImage(name);
+        if (tavilyImg) gameImages[name] = tavilyImg;
+      }
     }
 
     for (const name of markerNames) {
