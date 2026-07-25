@@ -266,7 +266,8 @@ Cooldown por horas reais, não por data UTC. Se o último artigo foi gerado há 
 
 ### Degradação elegante
 - **ML sem produtos** → modo informativo (conteúdo puro, sem links de afiliado)
-- **Tavily offline** → artigo sem fontes de pesquisa (ainda gera conteúdo)
+- **OpenAI indisponível** → capa via RAWG (fallback: sem capa AI)
+- **Tavily offline** → artigo sem fontes de pesquisa + sem imagens Tavily (ainda gera conteúdo)
 - **RAWG offline** → artigo sem imagens de jogos (fallback: sem imagens)
 - **Cookies ML expirados** → links diretos do ML (sem tracking de afiliado)
 - **RSS/Reddit offline** → fallback para lista estática de temas
@@ -339,7 +340,8 @@ Arquivos em `public/images/`.
 | API | Função | Limite |
 |-----|--------|--------|
 | Groq | Geração de texto (openai/gpt-oss-120b) | Free tier (200K tokens/dia) |
-| Tavily | Busca de fontes + busca Google de produtos ML | 1000 consultas/mês free |
+| OpenAI | Capas AI (gpt-image-1-mini, 1536×1024) | Pago (~$0.005/imagem) |
+| Tavily | Busca de fontes + busca Google de produtos ML + imagens não-jogos | 1000 consultas/mês free |
 | ML OAuth | Links de afiliado (client_credentials) | Free |
 | ML (scraping) | Extração de título, preço e imagem de produtos | Sem limite |
 | RAWG | Imagens de jogos | Free tier |
@@ -359,6 +361,7 @@ TAVILY_API_KEY=tvly-...
 ML_CLIENT_ID=...
 ML_CLIENT_SECRET=...
 RAWG_API_KEY=...
+OPENAI_API_KEY=sk-proj-...
 ```
 
 ---
