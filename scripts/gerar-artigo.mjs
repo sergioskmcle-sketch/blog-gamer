@@ -4,6 +4,7 @@ import path from "path";
 import { pathToFileURL } from "url";
 import Parser from "rss-parser";
 import { searchML, generateAffiliateLink, searchMLviaGoogle } from "./ml_affiliate.mjs";
+import { gerarCapaOpenAI } from "./openai-cover.mjs";
 
 const rssParser = new Parser({
   timeout: 15000,
@@ -1365,6 +1366,11 @@ Checklist antes de responder:
   log("INFO", `${mlProducts.length} produtos injetados no corpo do artigo`);
 
   body = stripLeftoverMarkers(body);
+
+  if (!coverImage && mlProducts.length > 0) {
+    const aiCover = await gerarCapaOpenAI({ mlProducts, category: categoria, slug: slugify(fm.title) });
+    if (aiCover) coverImage = aiCover;
+  }
 
   if (!coverImage) {
     const fallbackKw = trendingKeywordForCover || topic.ml_query?.split(" ").slice(0, 2).join(" ") || "";

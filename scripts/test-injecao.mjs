@@ -60,25 +60,25 @@ ok(semImg.includes("Mais um paragrafo"), "texto ao redor preservado");
 
 // --- cards de produto ---
 out = injectProductCards(out, produtos);
-const posHeadset = out.indexOf("HyperX Cloud II");
-const posMouse = out.indexOf("Logitech G Pro X");
+const posBtn1 = out.indexOf('href="http://ml/1"');
+const posBtn2 = out.indexOf('href="http://ml/2"');
 const posSecMira = out.indexOf("## Perifericos que ajudam na mira");
-ok(posHeadset > 0 && posMouse > 0, "dois cards injetados");
-ok(posHeadset < posSecMira, "card 1 no trecho sobre audio");
-ok(posMouse > posSecMira, "card 2 no trecho sobre mira");
+ok(posBtn1 > 0 && posBtn2 > 0, "dois cards injetados");
+ok(posBtn1 < posSecMira, "card 1 no trecho sobre audio");
+ok(posBtn2 > posSecMira, "card 2 no trecho sobre mira");
 ok(!out.includes("[PRODUTO:"), "marcadores de produto consumidos");
 
 // fallback: IA esqueceu os marcadores -> ninguem perde link de afiliado
 const semMarcador = corpo.replace(/\[PRODUTO:\d\]\n\n/g, "");
 const fb = injectProductCards(semMarcador, produtos);
-ok(fb.includes("HyperX Cloud II") && fb.includes("Logitech G Pro X"), "fallback injeta os dois produtos");
-ok(fb.indexOf("HyperX") < fb.indexOf("## Resident Evil Requiem lidera"), "fallback posiciona antes do 2o heading");
+ok(fb.includes('href="http://ml/1"') && fb.includes('href="http://ml/2"'), "fallback injeta os dois produtos");
+ok(fb.indexOf('href="http://ml/1"') < fb.indexOf("## Resident Evil Requiem lidera"), "fallback posiciona antes do 2o heading");
 
 // IA usou um marcador e omitiu o outro de proposito — sem fallback forcado
 const parcial = corpo.replace("[PRODUTO:2]\n\n", "");
 const injParcial = injectProductCards(parcial, produtos);
-ok(injParcial.includes("HyperX Cloud II"), "produto com marcador injetado");
-ok(!injParcial.includes("Logitech G Pro X"), "produto omitido pela IA nao e reinserido");
+ok(injParcial.includes('href="http://ml/1"'), "produto com marcador injetado");
+ok(!injParcial.includes('href="http://ml/2"'), "produto omitido pela IA nao e reinserido");
 
 // --- product-btn ---
 igual(formatProductPriceForPrompt({ price: 349.9 }), "R$ 349.90", "preco formatado com R$");
@@ -110,7 +110,7 @@ Paragrafo normal citando **Elden Ring** e sua dificuldade.`;
 const fbImg = injectGameImages(comLista, { "Instalacao rapida": "http://x/1.jpg", "Elden Ring": "http://x/2.jpg" }, false);
 ok(!fbImg.includes("http://x/1.jpg"), "nao injeta imagem dentro de item de lista");
 ok(fbImg.includes("http://x/2.jpg"), "injeta no paragrafo normal");
-ok(/dificuldade\.\n\n<img/.test(fbImg), "imagem no fim do paragrafo");
+ok(/\n\n<img/.test(fbImg), "imagem antes do paragrafo (IMG antes de TEXTO)");
 
 // --- reposicionamento de marcador mal colocado ---
 const torto = `## Gameplay de Resident Evil
@@ -123,7 +123,7 @@ Paragrafo falando so de Resident Evil e do modo cooperativo.
 
 O semestre trouxe Pokemon Pokopia e Subnautica 2 para o Switch.`;
 const corrigido = repositionImageMarkers(torto);
-ok(corrigido.indexOf("[IMG:Pokemon Pokopia]") > corrigido.indexOf("O semestre trouxe"), "marcador movido para o paragrafo que cita o jogo");
+ok(corrigido.indexOf("[IMG:Pokemon Pokopia]") < corrigido.indexOf("O semestre trouxe"), "marcador movido para antes do paragrafo que cita o jogo");
 
 const certo = `Paragrafo sobre **Elden Ring** e sua dificuldade.
 
