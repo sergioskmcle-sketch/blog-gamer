@@ -481,6 +481,9 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
     <div class="form-group">
       <input type="password" id="tokenInput" class="form-control" placeholder="ghp_xxxx..." onkeydown="if(event.key==='Enter')doSetup()"/>
     </div>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.8rem;color:var(--text-sec);margin-bottom:16px">
+      <input type="checkbox" id="saveTokenCheck" checked/> Salvar token neste navegador
+    </label>
     <button class="btn btn-primary" onclick="doSetup()" style="width:100%;justify-content:center" id="setupBtn">Conectar</button>
     <p id="setupError" style="color:var(--danger);margin-top:12px;display:none"></p>
     <p style="color:var(--text-muted);font-size:0.75rem;margin-top:16px">
@@ -918,7 +921,9 @@ async function doSetup() {
     });
     if (!res.ok) throw new Error(res.status === 401 ? 'Token inválido' : res.status === 403 ? 'Token sem permissão (scope: public_repo)' : 'Erro ao verificar');
     token = t;
-    localStorage.setItem('gh_token', t);
+    if (document.getElementById('saveTokenCheck').checked) {
+      localStorage.setItem('gh_token', t);
+    }
     showApp();
     switchTab('dashboard');
     toast('Conectado com sucesso!');
@@ -994,7 +999,7 @@ async function loadDashboard() {
 // ===== ARTICLES =====
 async function loadArticles() {
   document.getElementById('articlesLoading').style.display = 'block';
-  document.getElementById('articlesList').innerHTML = '';
+  document.getElementById('articlesGrid').innerHTML = '';
   try {
     const data = await ghFetch(`contents/${ARTICLES_PATH}`);
     const mdFiles = Array.isArray(data) ? data.filter(f => f.name.endsWith('.md')) : [];
