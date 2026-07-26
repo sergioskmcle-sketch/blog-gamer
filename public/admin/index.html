@@ -466,6 +466,11 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
 .blog-preview-body .product-card-img { width: 100%; aspect-ratio: 4/3; object-fit: contain; background: #020203; padding: 1rem; display: block; }
 .blog-preview-body .product-card-body { padding: 1.5rem; }
 .blog-preview-body .product-price { color: #A855F7; font-size: 1.1rem; font-weight: 700; margin-bottom: 0.75rem; }
+.blog-preview-body:focus { background: #080810; }
+.blog-preview-body [contenteditable]:focus { outline: 2px solid rgba(168,85,247,0.4); border-radius: 4px; }
+.blog-preview-body h1[contenteditable]:focus,
+.blog-preview-body h2[contenteditable]:focus,
+.blog-preview-body h3[contenteditable]:focus { outline: 2px solid rgba(168,85,247,0.5); border-radius: 4px; padding: 2px 4px; }
 </style>
 </head>
 <body>
@@ -631,9 +636,13 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
   </div>
 
   <div id="editor-preview" class="etab-content" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span style="font-size:0.8rem;color:var(--text-muted)">✏️ Clique no texto para editar diretamente</span>
+      <button class="btn btn-primary btn-sm" onclick="syncPreviewToMarkdown()">⬇️ Sincronizar edits → Markdown</button>
+    </div>
     <div class="blog-preview" id="previewBlog">
       <div class="blog-preview-header" id="previewHeader"></div>
-      <div class="blog-preview-body" id="previewBody"></div>
+      <div class="blog-preview-body" id="previewBody" contenteditable="true" spellcheck="true" style="outline:none;min-height:200px;cursor:text"></div>
     </div>
   </div>
 
@@ -1156,6 +1165,71 @@ function renderPreview() {
   document.getElementById('previewBody').innerHTML = (marked.parse(body || '*Nenhum conteúdo ainda...*')) + tagsHtml;
 }
 
+function htmlToMarkdown(el) {
+  let md = '';
+  for (const node of el.childNodes) {
+    if (node.nodeType === 3) {
+      md += node.textContent;
+    } else if (node.nodeType === 1) {
+      const tag = node.tagName.toLowerCase();
+      if (tag === 'h1') md += `\n\n# ${node.textContent.trim()}\n\n`;
+      else if (tag === 'h2') md += `\n\n## ${node.textContent.trim()}\n\n`;
+      else if (tag === 'h3') md += `\n\n### ${node.textContent.trim()}\n\n`;
+      else if (tag === 'p') md += `${node.textContent.trim()}\n\n`;
+      else if (tag === 'strong' || tag === 'b') md += `**${node.textContent.trim()}**`;
+      else if (tag === 'em' || tag === 'i') md += `*${node.textContent.trim()}*`;
+      else if (tag === 'code') md += `\`${node.textContent.trim()}\``;
+      else if (tag === 'a') md += `[${node.textContent.trim()}](${node.getAttribute('href') || ''})`;
+      else if (tag === 'img') md += `![${node.getAttribute('alt') || ''}](${node.getAttribute('src') || ''})\n\n`;
+      else if (tag === 'ul') {
+        for (const li of node.querySelectorAll(':scope > li')) md += `- ${li.textContent.trim()}\n`;
+        md += '\n';
+      }
+      else if (tag === 'ol') {
+        let i = 1;
+        for (const li of node.querySelectorAll(':scope > li')) md += `${i++}. ${li.textContent.trim()}\n`;
+        md += '\n';
+      }
+      else if (tag === 'blockquote') md += `> ${node.textContent.trim()}\n\n`;
+      else if (tag === 'hr') md += `\n---\n\n`;
+      else if (tag === 'br') md += '\n';
+      else if (tag === 'pre') {
+        const code = node.querySelector('code');
+        md += `\n\`\`\`\n${(code || node).textContent.trim()}\n\`\`\`\n\n`;
+      }
+      else if (tag === 'table') {
+        const rows = node.querySelectorAll('tr');
+        rows.forEach((row, ri) => {
+          const cells = row.querySelectorAll('th, td');
+          md += '| ' + Array.from(cells).map(c => c.textContent.trim()).join(' | ') + ' |\n';
+          if (ri === 0) md += '| ' + Array.from(cells).map(() => '---').join(' | ') + ' |\n';
+        });
+        md += '\n';
+      }
+      else if (tag === 'div' && node.classList.contains('btn')) {
+        const href = node.getAttribute('href') || '#';
+        const cls = node.classList.contains('btn-primary') ? 'btn-primary' : '';
+        md += `\n[🔗 ${node.textContent.trim()}](${href}){.btn .${cls}}\n\n`;
+      }
+      else if (tag === 'div') {
+        md += htmlToMarkdown(node);
+      }
+      else {
+        md += htmlToMarkdown(node);
+      }
+    }
+  }
+  return md;
+}
+
+function syncPreviewToMarkdown() {
+  const bodyEl = document.getElementById('previewBody');
+  let md = htmlToMarkdown(bodyEl);
+  md = md.replace(/\n{3,}/g, '\n\n').trim();
+  document.getElementById('fieldBody').value = md;
+  toast('Conteúdo sincronizado para Markdown!');
+}
+
 async function saveArticle() {
   if (isSaving) return;
   const slug = document.getElementById('fieldSlug').value.trim();
@@ -1265,13 +1339,15 @@ async function savePalette() {
 (function init() {
   marked.setOptions({ breaks: true, gfm: true });
   if (token) {
-    ghFetch(`repos/${REPO}`).then(() => {
-      showApp();
-      switchTab('dashboard');
-    }).catch(() => {
-      localStorage.removeItem('gh_token');
-      token = '';
-      showSetup();
+    showApp();
+    switchTab('dashboard');
+    ghFetch(`repos/${REPO}`).catch(e => {
+      if (e.message && e.message.includes('401')) {
+        localStorage.removeItem('gh_token');
+        token = '';
+        showSetup();
+        toast('Token expirado ou inválido. Cole novamente.', 'error');
+      }
     });
   } else {
     showSetup();
