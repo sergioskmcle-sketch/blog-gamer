@@ -116,18 +116,32 @@ function extractTrendingTopics(headlines) {
   return Object.entries(scores).sort((a, b) => b[1] - a[1]);
 }
 
-function isTopicDuplicate(keyword, existingTopics) {
-  if (!existingTopics || existingTopics.length === 0) return false;
+function isTopicDuplicate(keyword, existingTopics, recentKeywords = []) {
   const kw = keyword.toLowerCase();
-  const kwWords = kw.split(/\s+/).filter((w) => w.length > 3);
-  for (const topic of existingTopics) {
-    const topicLower = topic.toLowerCase();
+
+  for (const rk of recentKeywords) {
+    if (kw === rk.toLowerCase()) return true;
+    const kwWords = kw.split(/\s+/).filter((w) => w.length > 3);
+    const rkWords = rk.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
     let matches = 0;
-    for (const word of kwWords) {
-      if (topicLower.includes(word)) matches++;
+    for (const w of kwWords) {
+      if (rkWords.includes(w)) matches++;
     }
     if (matches >= 2) return true;
   }
+
+  if (existingTopics && existingTopics.length > 0) {
+    const kwWords = kw.split(/\s+/).filter((w) => w.length > 3);
+    for (const topic of existingTopics) {
+      const topicLower = topic.toLowerCase();
+      let matches = 0;
+      for (const word of kwWords) {
+        if (topicLower.includes(word)) matches++;
+      }
+      if (matches >= 2) return true;
+    }
+  }
+
   return false;
 }
 
@@ -170,7 +184,71 @@ function buildTopicFromKeyword(topKeyword, topKeywords, existingTopics = []) {
   return { category, hint, ml_query, trending_score: topKeywords[0]?.[1] || 0, trending_keywords: top3 };
 }
 
-async function discoverTrendingTopic(existingTopics = []) {
+async function analyzeTrendsWithAI(headlines, trending, existingTopics, recentKeywords) {
+  const topHeadlines = headlines.slice(0, 30).map((h, i) => `${i + 1}. ${h}`).join("\n");
+  const topTrending = trending.slice(0, 8).map(([k, v]) => `- "${k}" (${v}x mencoes)`).join("\n");
+  const covered = [...new Set([...recentKeywords, ...existingTopics.map(t => t.slice(0, 60))])].slice(0, 15);
+  const coveredList = covered.length > 0 ? covered.map((c, i) => `${i + 1}. ${c}`).join("\n") : "(nenhum)";
+
+  const systemPrompt = `Você é um editor de blog de games do Brasil. Analisa trending topics e decide qual assunto NOVO e INÉDITO escrever sobre.
+
+REGRAS:
+- O artigo NÃO pode ser sobre o mesmo jogo/assunto dos artigos já escritos (mesmo que seja um ângulo diferente)
+- Priorize assuntos que NÃO estão na lista de "Já cobertos"
+- Se TODOS os trending são sobre assuntos já cobertos, sugira um assunto diferente que esteja em alta mas não está nos trending principais
+- Responda APENAS com JSON válido, sem markdown, sem explicação extra
+
+CATEGORIAS VÁLIDAS: noticia, review, guia, lista, promocao
+
+Formato da resposta JSON:
+{
+  "topic": "palavra-chave principal do assunto escolhido",
+  "category": "categoria do artigo",
+  "hint": "descrição curta do artigo (max 100 chars) em português",
+  "ml_query": "query para buscar produtos no Mercado Livre (3-5 palavras)",
+  "reasoning": "por que este assunto é novo e relevante (1 frase)"
+}`;
+
+  const userPrompt = `HEADLINES DOS FEEDS (RSS + Reddit):
+${topHeadlines}
+
+TOP TRENDING (por frequência):
+${topTrending}
+
+ARTIGOS JÁ ESCritos NO BLOG:
+${coveredList}
+
+Analise as headlines e os trending topics. Escolha um assunto que seja NOVO e INÉDITO no blog. Se todos os trending são repetidos, invente um assunto relevante que esteja em alta.`;
+
+  const response = await fetchGroq(systemPrompt, userPrompt, 3, { temperature: 0.5, maxTokens: 500 });
+  if (!response) return null;
+
+  let parsed;
+  try {
+    const cleaned = response.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    parsed = JSON.parse(cleaned);
+  } catch (e) {
+    log("WARN", `IA retornou JSON invalido: ${response.slice(0, 200)}`);
+    return null;
+  }
+
+  if (!parsed.topic || !parsed.category || !parsed.hint) {
+    log("WARN", `IA retornou JSON incompleto: ${JSON.stringify(parsed)}`);
+    return null;
+  }
+
+  log("INFO", `IA escolheu: "${parsed.topic}" [${parsed.category}] — ${parsed.reasoning || "sem reasoning"}`);
+
+  return {
+    category: parsed.category,
+    hint: parsed.hint,
+    ml_query: parsed.ml_query || `${parsed.topic} gamer 2026`,
+    trending_score: trending[0]?.[1] || 1,
+    trending_keywords: [parsed.topic, ...trending.slice(0, 2).map(([k]) => k)],
+  };
+}
+
+async function discoverTrendingTopic(existingTopics = [], recentKeywords = []) {
   log("INFO", "Buscando topicos trending (RSS + Reddit)...");
 
   const headlines = [];
@@ -219,22 +297,32 @@ async function discoverTrendingTopic(existingTopics = []) {
     return null;
   }
 
-  log("INFO", `Top trending: ${trending.slice(0, 5).map(([k, v]) => `${k} (${v}x)`).join(", ")}`);
+  log("INFO", `Top trending: ${trending.slice(0, 8).map(([k, v]) => `${k} (${v}x)`).join(", ")}`);
+
+  if (GROQ_API_KEY) {
+    try {
+      const aiResult = await analyzeTrendsWithAI(headlines, trending, existingTopics, recentKeywords);
+      if (aiResult) {
+        log("INFO", `IA escolheu topico novo: [${aiResult.category}] ${aiResult.hint}`);
+        return aiResult;
+      }
+    } catch (e) {
+      log("WARN", `Analise IA falhou, usando fallback por keyword: ${e.message}`);
+    }
+  }
 
   for (const [kw, score] of trending) {
-    if (isTopicDuplicate(kw, existingTopics)) {
+    if (isTopicDuplicate(kw, existingTopics, recentKeywords)) {
       log("INFO", `Topico "${kw}" ja usado recentemente, tentando proximo...`);
       continue;
     }
     const topic = buildTopicFromKeyword(kw, trending.slice(0, 3), existingTopics);
-    log("INFO", `Tema escolhido: [${topic.category}] ${topic.hint}`);
+    log("INFO", `Tema escolhido (keyword): [${topic.category}] ${topic.hint}`);
     return topic;
   }
 
-  const topic = buildTopicFromKeyword(trending[0][0], trending.slice(0, 3), existingTopics);
-  log("INFO", `Tema escolhido (todos repetidos, usando top): [${topic.category}] ${topic.hint}`);
-
-  return topic;
+  log("INFO", "Todos trending topics ja foram cobertos, usando fallback estatico");
+  return null;
 }
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
@@ -1081,10 +1169,11 @@ async function main() {
   let topic = null;
   let trendingSource = "estatico";
   const existingTopics = state.recent_topics || [];
+  const recentKeywords = state.recent_keywords || [];
 
   try {
-    const trending = await discoverTrendingTopic(existingTopics);
-    if (trending && trending.trending_score >= 2) {
+    const trending = await discoverTrendingTopic(existingTopics, recentKeywords);
+    if (trending && trending.trending_score >= 1) {
       topic = trending;
       trendingSource = "trending";
     }
