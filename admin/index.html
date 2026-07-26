@@ -1454,10 +1454,15 @@ function compressImage(file, maxDim, quality) {
       canvas.height = h;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, w, h);
+      const mime = file.type === 'image/png' ? 'image/png' : file.type === 'image/webp' ? 'image/webp' : 'image/jpeg';
+      const ext = mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg';
       canvas.toBlob(blob => {
-        if (blob) resolve(new File([blob], file.name, { type: 'image/jpeg' }));
-        else reject(new Error('Falha ao comprimir'));
-      }, 'image/jpeg', quality);
+        if (blob) {
+          const out = new File([blob], file.name.replace(/\.[^.]+$/, '.' + ext), { type: mime });
+          out._ext = ext;
+          resolve(out);
+        } else reject(new Error('Falha ao comprimir'));
+      }, mime, quality);
     };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Falha ao carregar')); };
     img.src = url;
@@ -1627,7 +1632,7 @@ async function handleCoverUpload(event) {
   try {
     const compressed = await compressImage(file, 1200, 0.8);
     const b64 = await fileToBase64(compressed);
-    const ext = file.name.split('.').pop() || 'jpg';
+    const ext = compressed._ext || 'jpg';
     const slug = document.getElementById('fieldSlug').value || 'cover-' + Date.now();
     const filename = `public/images/capas/${slug}.${ext}`;
     try {
