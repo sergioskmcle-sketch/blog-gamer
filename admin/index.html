@@ -1575,6 +1575,7 @@ function syncPreviewToMarkdown(silent) {
   if (!bodyEl || !bodyEl.innerHTML.trim()) return;
   let md = htmlToMarkdown(bodyEl);
   md = md.replace(/\n{3,}/g, '\n\n').trim();
+  md = md.replace(/\nTAGS:.*$/gm, '').trim();
   if (md) document.getElementById('fieldBody').value = md;
 
   const titleEl = document.getElementById('previewTitleEditable');
