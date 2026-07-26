@@ -1,14 +1,1095 @@
 <!doctype html>
-<html>
+<html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Blog Gamer — Admin</title>
-  <style>
-    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Blog Gamer — Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+:root {
+  --bg: #0d0d17;
+  --bg-card: #181825;
+  --bg-elevated: #1e1e2c;
+  --bg-hover: #242433;
+  --border: #2a2a3a;
+  --text: #efecfb;
+  --text-sec: #aca9b7;
+  --text-muted: #757481;
+  --primary: #cc97ff;
+  --primary-dim: #9c48ea;
+  --secondary: #2ff801;
+  --danger: #ff6e84;
+  --warning: #F97316;
+  --radius: 10px;
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 14px; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.sidebar {
+  width: 220px;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+}
+.sidebar-logo {
+  padding: 20px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--primary);
+  border-bottom: 1px solid var(--border);
+  letter-spacing: -0.02em;
+}
+.sidebar-logo small { display: block; font-size: 0.65rem; color: var(--text-muted); font-weight: 400; letter-spacing: 0.05em; text-transform: uppercase; margin-top: 2px; }
+.sidebar-nav { flex: 1; padding: 8px; }
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-sec);
+  transition: all 0.15s;
+  margin-bottom: 2px;
+  font-size: 0.9rem;
+}
+.nav-item:hover { background: var(--bg-hover); color: var(--text); }
+.nav-item.active { background: rgba(204, 151, 255, 0.1); color: var(--primary); }
+.nav-item .icon { font-size: 1.2rem; width: 24px; text-align: center; }
+
+.main {
+  margin-left: 220px;
+  flex: 1;
+  padding: 24px 32px;
+  max-width: 1200px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.topbar h1 { font-size: 1.5rem; font-weight: 700; }
+.topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+.row { display: grid; gap: 16px; }
+.row-2 { grid-template-columns: 1fr 1fr; }
+.row-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.card-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 8px; }
+.card-value { font-size: 2rem; font-weight: 700; color: var(--text); }
+.card-desc { font-size: 0.85rem; color: var(--text-sec); margin-top: 4px; }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+th { color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; }
+td { color: var(--text-sec); }
+tr:hover td { background: var(--bg-hover); }
+tr:last-child td { border-bottom: none; }
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.badge-green { background: rgba(47, 248, 1, 0.1); color: var(--secondary); }
+.badge-purple { background: rgba(204, 151, 255, 0.1); color: var(--primary); }
+.badge-orange { background: rgba(249, 115, 22, 0.1); color: var(--warning); }
+.badge-red { background: rgba(255, 110, 132, 0.1); color: var(--danger); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.15s;
+  font-family: var(--font);
+}
+.btn-primary { background: var(--primary); color: #000; }
+.btn-primary:hover { background: var(--primary-dim); color: #fff; }
+.btn-secondary { background: var(--bg-elevated); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--bg-hover); }
+.btn-danger { background: rgba(255, 110, 132, 0.15); color: var(--danger); border: 1px solid rgba(255, 110, 132, 0.2); }
+.btn-danger:hover { background: rgba(255, 110, 132, 0.25); }
+.btn-sm { padding: 4px 10px; font-size: 0.75rem; }
+.btn-icon { padding: 6px; min-width: 32px; justify-content: center; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 0.8rem; color: var(--text-sec); margin-bottom: 4px; font-weight: 600; }
+.form-control {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-family: var(--font);
+  transition: border 0.15s;
+}
+.form-control:focus { outline: none; border-color: var(--primary); }
+textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; line-height: 1.6; }
+
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100%;
+  background: var(--bg);
+}
+.login-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 40px;
+  width: 400px;
+  max-width: 90vw;
+}
+.login-box h1 { font-size: 1.5rem; margin-bottom: 4px; }
+.login-box p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 24px; }
+.login-box .form-control { margin-bottom: 16px; }
+.login-box a { color: var(--primary); text-decoration: none; }
+.login-box a:hover { text-decoration: underline; }
+
+.section { display: none; }
+.section.active { display: block; }
+
+.modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 450px;
+}
+.modal h2 { margin-bottom: 16px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+.empty { text-align: center; padding: 40px; color: var(--text-muted); }
+.empty .icon { font-size: 2.5rem; margin-bottom: 8px; }
+
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 0.85rem;
+  z-index: 300;
+  display: none;
+  animation: slideIn 0.2s ease;
+}
+.toast.active { display: block; }
+.toast.success { border-color: var(--secondary); }
+.toast.error { border-color: var(--danger); }
+@keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.tag-list { display: flex; gap: 4px; flex-wrap: wrap; }
+.tag-list span { background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; }
+
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.editor-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+.editor-tab {
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+}
+.editor-tab.active { background: var(--bg-elevated); color: var(--text); border-color: var(--border); }
+
+.palette-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+
+.char-count { font-size: 0.7rem; color: var(--text-muted); text-align: right; margin-top: 2px; }
+.char-count.warn { color: var(--warning); }
+.char-count.over { color: var(--danger); }
+
+.preview-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+  line-height: 1.8;
+  max-height: 600px;
+  overflow-y: auto;
+}
+.preview-box h1 { font-size: 1.5rem; margin-bottom: 8px; color: var(--text); }
+.preview-box h2 { font-size: 1.25rem; margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--text); border-bottom: 1px solid var(--border); padding-bottom: 0.25rem; }
+.preview-box h3 { font-size: 1.1rem; margin-top: 1.25rem; color: var(--text); }
+.preview-box p { margin-bottom: 1rem; color: var(--text-sec); }
+.preview-box img { max-width: 100%; border-radius: 8px; margin: 1rem 0; }
+.preview-box a { color: var(--primary); }
+.preview-box strong { color: var(--text); }
+.preview-box ul, .preview-box ol { padding-left: 1.5rem; margin-bottom: 1rem; }
+.preview-box li { margin-bottom: 0.25rem; color: var(--text-sec); }
+.preview-box code { background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+.preview-box pre { background: var(--bg-elevated); padding: 16px; border-radius: 8px; overflow-x: auto; margin-bottom: 1rem; }
+.preview-box pre code { background: none; padding: 0; }
+.preview-box blockquote { border-left: 3px solid var(--primary); padding-left: 1rem; margin-bottom: 1rem; color: var(--text-muted); }
+.preview-box table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+.preview-box th, .preview-box td { padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+.preview-box th { background: var(--bg-elevated); color: var(--text); font-weight: 600; }
+
+.meta-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: var(--text-sec);
+}
+.meta-preview span { display: flex; align-items: center; gap: 4px; }
+
+@media (max-width: 768px) {
+  .sidebar { width: 56px; }
+  .sidebar-logo span, .sidebar-logo small, .nav-item span { display: none; }
+  .sidebar-logo { padding: 16px; text-align: center; }
+  .nav-item { justify-content: center; padding: 10px; }
+  .main { margin-left: 56px; padding: 16px; }
+  .row-2, .row-3 { grid-template-columns: 1fr; }
+  .topbar { flex-direction: column; align-items: flex-start; gap: 8px; }
+}
+</style>
 </head>
 <body>
-  <script src="https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js"></script>
+
+<!-- Setup View -->
+<div id="setupView" class="login-container">
+  <div class="login-box">
+    <h1>🎮 Blog Gamer</h1>
+    <p>Painel de Administração</p>
+    <p style="color:var(--text-sec);font-size:0.8rem;margin-bottom:16px;margin-top:-16px">
+      Cole seu <strong>GitHub Personal Access Token</strong> para gerenciar o blog.
+    </p>
+    <div class="form-group">
+      <input type="password" id="tokenInput" class="form-control" placeholder="ghp_xxxx..." onkeydown="if(event.key==='Enter')doSetup()"/>
+    </div>
+    <button class="btn btn-primary" onclick="doSetup()" style="width:100%;justify-content:center" id="setupBtn">Conectar</button>
+    <p id="setupError" style="color:var(--danger);margin-top:12px;display:none"></p>
+    <p style="color:var(--text-muted);font-size:0.75rem;margin-top:16px">
+      <a href="https://github.com/settings/tokens/new?scopes=public_repo&description=Blog+Gamer+Admin" target="_blank">
+        Como gerar o token →
+      </a>
+    </p>
+    <p style="color:var(--text-muted);font-size:0.7rem;margin-top:8px">
+      Scope necessário: <code style="background:var(--bg-elevated);padding:1px 4px;border-radius:3px">public_repo</code>
+    </p>
+  </div>
+</div>
+
+<!-- App View -->
+<div id="appView" style="display:none;width:100%">
+
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <span>🎮 Blog Gamer</span>
+    <small>Admin Panel</small>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+      <span class="icon">📊</span><span>Dashboard</span>
+    </div>
+    <div class="nav-item" data-tab="articles" onclick="switchTab('articles')">
+      <span class="icon">📝</span><span>Artigos</span>
+    </div>
+    <div class="nav-item" data-tab="editor" onclick="switchTab('editor')">
+      <span class="icon">✏️</span><span>Editor</span>
+    </div>
+    <div class="nav-item" data-tab="settings" onclick="switchTab('settings')">
+      <span class="icon">⚙️</span><span>Configurações</span>
+    </div>
+  </div>
+  <div style="padding:12px 8px;border-top:1px solid var(--border)">
+    <div class="nav-item" onclick="doLogout()" style="color:var(--text-muted)">
+      <span class="icon">🚪</span><span>Sair</span>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+<div class="topbar">
+  <h1 id="pageTitle">Dashboard</h1>
+  <div class="topbar-actions">
+    <span id="statusBadge" class="badge badge-green">Online</span>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div id="section-dashboard" class="section active">
+  <div class="row" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:20px">
+    <div class="card"><div class="card-title">Artigos</div><div class="card-value" id="statArticles">—</div></div>
+    <div class="card"><div class="card-title">Último Artigo</div><div class="card-value" id="statLastDate" style="font-size:1rem">—</div></div>
+    <div class="card"><div class="card-title">Último Commit</div><div class="card-value" id="statLastCommit" style="font-size:0.85rem">—</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">⚡ Ações Rápidas</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="btn btn-primary" onclick="newArticle()">+ Novo Artigo</button>
+      <button class="btn btn-secondary" onclick="switchTab('settings')">⚙️ Configurações</button>
+      <a href="https://github.com/sergioskmcle-sketch/blog-gamer" target="_blank" class="btn btn-secondary">📂 Ver Repositório</a>
+    </div>
+  </div>
+</div>
+
+<!-- Articles -->
+<div id="section-articles" class="section">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <p style="color:var(--text-sec);font-size:0.85rem"><span id="articleCount">0</span> artigos no total</p>
+    <button class="btn btn-primary" onclick="newArticle()">+ Novo Artigo</button>
+  </div>
+  <div class="card">
+    <div id="articlesLoading" style="text-align:center;padding:40px;color:var(--text-muted)">
+      <div class="spinner"></div> Carregando artigos...
+    </div>
+    <div class="table-wrap"><table><thead><tr>
+      <th>Título</th><th>Categoria</th><th>Data</th><th>Afiliado</th><th>Ações</th>
+    </tr></thead><tbody id="articlesList"></tbody></table></div>
+  </div>
+</div>
+
+<!-- Editor -->
+<div id="section-editor" class="section">
+  <input type="hidden" id="editSlug"/>
+  <input type="hidden" id="editSha"/>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+    <button class="btn btn-secondary btn-sm" onclick="switchTab('articles')">← Voltar</button>
+    <span id="editTitle" style="font-size:1rem;font-weight:600;color:var(--text);align-self:center"></span>
+  </div>
+
+  <div class="editor-tabs">
+    <div class="editor-tab active" data-etab="meta" onclick="switchEditorTab('meta')">Metadados</div>
+    <div class="editor-tab" data-etab="content" onclick="switchEditorTab('content')">Conteúdo</div>
+    <div class="editor-tab" data-etab="preview" onclick="switchEditorTab('preview')">Prévia</div>
+  </div>
+
+  <div id="editor-meta" class="etab-content">
+    <div class="row row-2">
+      <div class="form-group"><label>Título</label><input id="fieldTitle" class="form-control" oninput="autoSlug()"/></div>
+      <div class="form-group"><label>Slug</label><input id="fieldSlug" class="form-control" placeholder="url-do-artigo"/></div>
+    </div>
+    <div class="form-group">
+      <label>Descrição</label>
+      <textarea id="fieldDesc" class="form-control" rows="2" maxlength="160" oninput="updateCharCount()"></textarea>
+      <div class="char-count" id="descCharCount">0/160</div>
+    </div>
+    <div class="row row-3">
+      <div class="form-group"><label>Categoria</label>
+        <select id="fieldCategory" class="form-control">
+          <option value="noticia">Notícia</option>
+          <option value="review">Review</option>
+          <option value="guia">Guia de Compra</option>
+          <option value="lista">Lista</option>
+          <option value="promocao">Promoção</option>
+          <option value="lancamento">Lançamento</option>
+          <option value="curiosidade">Curiosidade</option>
+          <option value="tutorial">Tutorial</option>
+          <option value="comparativo">Comparativo</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Data</label><input id="fieldDate" class="form-control" type="date"/></div>
+      <div class="form-group"><label>Modo</label>
+        <select id="fieldMode" class="form-control">
+          <option value="">Nenhum</option>
+          <option value="custo-beneficio">Custo-Benefício</option>
+          <option value="melhores">Melhores</option>
+          <option value="informativo">Informativo</option>
+        </select>
+      </div>
+    </div>
+    <div class="row row-2">
+      <div class="form-group"><label>Tags (separadas por vírgula)</label><input id="fieldTags" class="form-control" placeholder="games, ps5, fortnite"/></div>
+      <div class="form-group"><label>Imagem (URL)</label><input id="fieldImage" class="form-control" placeholder="https://..."/></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.85rem;color:var(--text-sec)">
+        <input type="checkbox" id="fieldAffiliate"/> Possui links de afiliado
+      </label>
+    </div>
+  </div>
+
+  <div id="editor-content" class="etab-content" style="display:none">
+    <div class="form-group"><label>Conteúdo (Markdown + HTML)</label>
+      <textarea id="fieldBody" class="form-control" rows="20" style="min-height:500px;font-size:0.8rem"></textarea>
+    </div>
+  </div>
+
+  <div id="editor-preview" class="etab-content" style="display:none">
+    <div id="previewMeta" class="meta-preview"></div>
+    <div class="preview-box" id="previewContent"></div>
+  </div>
+
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+    <button class="btn btn-secondary" onclick="switchTab('articles')">Cancelar</button>
+    <button class="btn btn-danger" id="btnDeleteArticle" onclick="deleteCurrentArticle()" style="display:none">Excluir</button>
+    <button class="btn btn-primary" onclick="saveArticle()" id="btnSave">💾 Salvar</button>
+  </div>
+</div>
+
+<!-- Settings -->
+<div id="section-settings" class="section">
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">🎨 Paleta de Cores</div>
+    <p style="font-size:0.85rem;color:var(--text-sec);margin-bottom:12px">
+      Edite o <code>tailwind.config.mjs</code> e o <code>global.css</code> para alterar as cores do blog.
+    </p>
+    <div class="palette-grid">
+      <div class="form-group"><label>tailwind.config.mjs</label><textarea id="paletteTailwind" class="form-control" rows="12" style="min-height:200px;font-family:monospace;font-size:0.75rem"></textarea></div>
+      <div class="form-group"><label>global.css</label><textarea id="paletteCSS" class="form-control" rows="12" style="min-height:200px;font-family:monospace;font-size:0.75rem"></textarea></div>
+    </div>
+    <button class="btn btn-primary" onclick="savePalette()" id="btnSavePalette">Salvar Paleta</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔧 Sistema</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><div style="font-size:0.75rem;color:var(--text-muted)">GitHub</div><div style="font-size:1rem" id="sysGhStatus">—</div></div>
+      <div><div style="font-size:0.75rem;color:var(--text-muted)">Artigos no repositório</div><div style="font-size:1rem" id="sysArticles">—</div></div>
+      <div><div style="font-size:0.75rem;color:var(--text-muted)">Última sincronização</div><div style="font-size:1rem" id="sysLastSync">—</div></div>
+      <div><div style="font-size:0.75rem;color:var(--text-muted)">Repositório</div><div style="font-size:1rem"><a href="https://github.com/sergioskmcle-sketch/blog-gamer" target="_blank" style="color:var(--primary)">sergioskmcle-sketch/blog-gamer</a></div></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- main -->
+</div><!-- appView -->
+
+<div id="confirmModal" class="modal-overlay">
+  <div class="modal">
+    <h2 id="modalTitle">Confirmar</h2>
+    <p id="modalBody" style="color:var(--text-sec)"></p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-danger" id="modalConfirmBtn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const REPO = 'sergioskmcle-sketch/blog-gamer';
+const BRANCH = 'main';
+const GH_API = 'https://api.github.com';
+const REPO_URL = `${GH_API}/repos/${REPO}`;
+const ARTICLES_PATH = 'src/content/artigos';
+
+let token = localStorage.getItem('gh_token') || '';
+let articles = [];
+let articleShas = {};
+let currentTab = 'dashboard';
+let isEditing = false;
+let isSaving = false;
+
+function toast(msg, type = 'success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + type + ' active';
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.classList.remove('active'), 3000);
+}
+
+function showModal(title, body, onConfirm) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').textContent = body;
+  const btn = document.getElementById('modalConfirmBtn');
+  btn.onclick = () => { closeModal(); onConfirm(); };
+  document.getElementById('confirmModal').classList.add('active');
+}
+function closeModal() {
+  document.getElementById('confirmModal').classList.remove('active');
+}
+
+function setLoading(btnId, loading) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  if (loading) {
+    btn.disabled = true;
+    btn._originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner"></span> Salvando...';
+  } else {
+    btn.disabled = false;
+    if (btn._originalText) btn.innerHTML = btn._originalText;
+  }
+}
+
+// ===== GITHUB API =====
+function ghHeaders() {
+  return {
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
+  };
+}
+
+async function ghFetch(path, opts = {}) {
+  const res = await fetch(`${REPO_URL}/${path}`, {
+    headers: { ...ghHeaders(), ...opts.headers },
+    ...opts,
+  });
+  if (res.status === 401) {
+    localStorage.removeItem('gh_token');
+    token = '';
+    showSetup();
+    throw new Error('Token inválido ou expirado. Configure novamente.');
+  }
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `Erro ${res.status}`);
+  }
+  return res.json();
+}
+
+async function getFile(path) {
+  const data = await ghFetch(`contents/${path}`);
+  if (!data) return null;
+  return {
+    content: decodeB64(data.content),
+    sha: data.sha,
+    name: data.name,
+  };
+}
+
+function encodeB64(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+
+function decodeB64(b64) {
+  return decodeURIComponent(escape(atob(b64.replace(/\n/g, ''))));
+}
+
+async function putFile(path, content, message, sha = null) {
+  const body = {
+    message,
+    content: encodeB64(content),
+    branch: BRANCH,
+  };
+  if (sha) body.sha = sha;
+  try {
+    return await ghFetch(`contents/${path}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
+  } catch (e) {
+    if (e.message.includes('409') || e.message.includes('already exists') || e.message.includes('conflict')) {
+      const file = await getFile(path);
+      if (file) {
+        body.sha = file.sha;
+        return await ghFetch(`contents/${path}`, {
+          method: 'PUT',
+          body: JSON.stringify(body),
+        });
+      }
+    }
+    throw e;
+  }
+}
+
+async function deleteFile(path, message) {
+  const file = await getFile(path);
+  if (!file) throw new Error('Arquivo não encontrado');
+  return await ghFetch(`contents/${path}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ message, sha: file.sha, branch: BRANCH }),
+  });
+}
+
+// ===== FRONTMATTER =====
+function parseFrontmatter(raw) {
+  if (!raw.startsWith('---')) return { frontmatter: {}, body: raw };
+  const end = raw.indexOf('---', 3);
+  if (end === -1) return { frontmatter: {}, body: raw };
+
+  const fmText = raw.substring(3, end).trim();
+  const body = raw.substring(end + 3).trim();
+  const fm = {};
+  let currentKey = null;
+  let inArray = false;
+  let arrayItems = [];
+
+  for (const line of fmText.split('\n')) {
+    const trimmed = line.trim();
+    if (inArray) {
+      if (trimmed.startsWith('- ')) {
+        arrayItems.push(trimmed.substring(2).replace(/^["']|["']$/g, ''));
+        continue;
+      } else {
+        fm[currentKey] = arrayItems;
+        inArray = false;
+        arrayItems = [];
+      }
+    }
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const colonIdx = trimmed.indexOf(':');
+    if (colonIdx === -1) continue;
+    const key = trimmed.substring(0, colonIdx).trim();
+    let value = trimmed.substring(colonIdx + 1).trim();
+    currentKey = key;
+    if (value.startsWith('[') && value.endsWith(']')) {
+      fm[key] = value.slice(1, -1).split(',').map(v => v.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+      continue;
+    }
+    if (!value) { inArray = true; arrayItems = []; continue; }
+    if (value === 'true') { fm[key] = true; continue; }
+    if (value === 'false') { fm[key] = false; continue; }
+    if (/^\d{4}-\d{2}-\d{2}/.test(value)) { fm[key] = value; continue; }
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      fm[key] = value.slice(1, -1);
+      continue;
+    }
+    fm[key] = value;
+  }
+  if (inArray) fm[currentKey] = arrayItems;
+  return { frontmatter: fm, body };
+}
+
+function serializeFrontmatter(fm, body) {
+  const lines = ['---'];
+  lines.push(`title: "${(fm.title || '').replace(/"/g, '\\"')}"`);
+  lines.push(`description: "${(fm.description || '').replace(/"/g, '\\"')}"`);
+  lines.push(`pubDate: ${fm.pubDate || new Date().toISOString().split('T')[0]}`);
+  if (fm.tags && fm.tags.length > 0) {
+    lines.push('tags:');
+    fm.tags.forEach(tag => lines.push(`  - "${tag.replace(/"/g, '\\"')}"`));
+  } else {
+    lines.push('tags:\n  - games');
+  }
+  lines.push(`category: ${fm.category || 'noticia'}`);
+  lines.push(`affiliate: ${fm.affiliate ? 'true' : 'false'}`);
+  lines.push(`image: "${(fm.image || '').replace(/"/g, '\\"')}"`);
+  if (fm.mode) lines.push(`mode: ${fm.mode}`);
+  lines.push('---');
+  lines.push('');
+  lines.push(body || '');
+  return lines.join('\n');
+}
+
+function generateSlug(title) {
+  return title
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+// ===== SETUP =====
+function showSetup() {
+  document.getElementById('setupView').style.display = 'flex';
+  document.getElementById('appView').style.display = 'none';
+}
+
+function showApp() {
+  document.getElementById('setupView').style.display = 'none';
+  document.getElementById('appView').style.display = 'block';
+}
+
+async function doSetup() {
+  const input = document.getElementById('tokenInput');
+  const errEl = document.getElementById('setupError');
+  const btn = document.getElementById('setupBtn');
+  const t = input.value.trim();
+  if (!t) { errEl.textContent = 'Cole um token'; errEl.style.display = 'block'; return; }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Verificando...';
+  errEl.style.display = 'none';
+
+  try {
+    const res = await fetch(`${GH_API}/repos/${REPO}`, {
+      headers: { 'Authorization': `Bearer ${t}`, 'Accept': 'application/vnd.github.v3+json' },
+    });
+    if (!res.ok) throw new Error(res.status === 401 ? 'Token inválido' : res.status === 403 ? 'Token sem permissão (scope: public_repo)' : 'Erro ao verificar');
+    token = t;
+    localStorage.setItem('gh_token', t);
+    showApp();
+    switchTab('dashboard');
+    toast('Conectado com sucesso!');
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Conectar';
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('gh_token');
+  token = '';
+  document.getElementById('tokenInput').value = '';
+  showSetup();
+}
+
+// ===== TABS =====
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('section-' + tab)?.classList.add('active');
+  document.querySelectorAll('.nav-item[data-tab]').forEach(n => n.classList.remove('active'));
+  document.querySelector(`.nav-item[data-tab="${tab}"]`)?.classList.add('active');
+  const titles = { dashboard: '📊 Dashboard', articles: '📝 Artigos', editor: '✏️ Editor', settings: '⚙️ Configurações' };
+  document.getElementById('pageTitle').textContent = titles[tab] || 'Admin';
+  if (tab === 'dashboard') loadDashboard();
+  if (tab === 'articles') loadArticles();
+  if (tab === 'settings') loadSettings();
+}
+
+function switchEditorTab(tab) {
+  document.querySelectorAll('.etab-content').forEach(e => e.style.display = 'none');
+  document.getElementById('editor-' + tab).style.display = 'block';
+  document.querySelectorAll('.editor-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.editor-tab[data-etab="${tab}"]`)?.classList.add('active');
+  if (tab === 'preview') renderPreview();
+}
+
+// ===== DASHBOARD =====
+async function loadDashboard() {
+  try {
+    const data = await ghFetch(`contents/${ARTICLES_PATH}`);
+    const mdFiles = Array.isArray(data) ? data.filter(f => f.name.endsWith('.md')) : [];
+    document.getElementById('statArticles').textContent = mdFiles.length;
+    document.getElementById('sysArticles').textContent = mdFiles.length;
+    document.getElementById('sysGhStatus').textContent = 'Conectado ✅';
+    document.getElementById('sysLastSync').textContent = new Date().toLocaleString('pt-BR');
+
+    if (mdFiles.length > 0) {
+      const sorted = mdFiles.sort((a, b) => b.name.localeCompare(a.name));
+      const lastFile = sorted[0];
+      const slug = lastFile.name.replace('.md', '');
+      document.getElementById('statLastDate').textContent = slug.replace(/-/g, ' ');
+    }
+  } catch (e) {
+    document.getElementById('sysGhStatus').textContent = 'Erro ❌';
+    toast('Erro ao carregar dashboard: ' + e.message, 'error');
+  }
+
+  try {
+    const commits = await ghFetch('commits?per_page=1');
+    if (commits && commits[0]) {
+      const c = commits[0];
+      const date = new Date(c.commit.committer.date).toLocaleDateString('pt-BR');
+      document.getElementById('statLastCommit').textContent = `${date} — ${c.commit.message.substring(0, 40)}`;
+    }
+  } catch (e) {}
+}
+
+// ===== ARTICLES =====
+async function loadArticles() {
+  document.getElementById('articlesLoading').style.display = 'block';
+  document.getElementById('articlesList').innerHTML = '';
+  try {
+    const data = await ghFetch(`contents/${ARTICLES_PATH}`);
+    const mdFiles = Array.isArray(data) ? data.filter(f => f.name.endsWith('.md')) : [];
+
+    const promises = mdFiles.map(async (f) => {
+      try {
+        const content = decodeB64(f.content || '');
+        const { frontmatter } = parseFrontmatter(content);
+        return {
+          slug: f.name.replace('.md', ''),
+          sha: f.sha,
+          ...frontmatter,
+        };
+      } catch {
+        return { slug: f.name.replace('.md', ''), sha: f.sha, title: f.name };
+      }
+    });
+
+    articles = await Promise.all(promises);
+    articles.sort((a, b) => (b.pubDate || '').localeCompare(a.pubDate || ''));
+
+    articles.forEach(a => { articleShas[a.slug] = a.sha; });
+    document.getElementById('articleCount').textContent = articles.length;
+
+    const tbody = document.getElementById('articlesList');
+    if (articles.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:40px">Nenhum artigo encontrado</td></tr>';
+      document.getElementById('articlesLoading').style.display = 'none';
+      return;
+    }
+
+    tbody.innerHTML = articles.map(a => {
+      const catClass = { noticia: 'badge-green', review: 'badge-purple', guia: 'badge-orange', lista: 'badge-purple', promocao: 'badge-orange', lancamento: 'badge-green', curiosidade: 'badge-orange', tutorial: 'badge-green', comparativo: 'badge-purple' }[a.category] || 'badge-purple';
+      return `<tr>
+        <td><strong>${a.title || a.slug}</strong></td>
+        <td><span class="badge ${catClass}">${a.category || '—'}</span></td>
+        <td style="white-space:nowrap">${a.pubDate || '—'}</td>
+        <td>${a.affiliate ? '✅' : '—'}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-secondary btn-sm" onclick="editArticle('${a.slug}')">✏️ Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="confirmDelete('${a.slug}')">🗑️</button>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    toast('Erro ao carregar artigos: ' + e.message, 'error');
+  } finally {
+    document.getElementById('articlesLoading').style.display = 'none';
+  }
+}
+
+async function editArticle(slug) {
+  try {
+    const file = await getFile(`${ARTICLES_PATH}/${slug}.md`);
+    if (!file) { toast('Artigo não encontrado', 'error'); return; }
+    const { frontmatter, body } = parseFrontmatter(file.content);
+    isEditing = true;
+    document.getElementById('editSlug').value = slug;
+    document.getElementById('editSha').value = file.sha;
+    document.getElementById('editTitle').textContent = 'Editando: ' + (frontmatter.title || slug);
+    document.getElementById('fieldTitle').value = frontmatter.title || '';
+    document.getElementById('fieldSlug').value = slug;
+    document.getElementById('fieldDesc').value = frontmatter.description || '';
+    document.getElementById('fieldCategory').value = frontmatter.category || 'noticia';
+    document.getElementById('fieldDate').value = frontmatter.pubDate || '';
+    document.getElementById('fieldMode').value = frontmatter.mode || '';
+    document.getElementById('fieldTags').value = Array.isArray(frontmatter.tags) ? frontmatter.tags.join(', ') : '';
+    document.getElementById('fieldImage').value = frontmatter.image || '';
+    document.getElementById('fieldAffiliate').checked = frontmatter.affiliate === true;
+    document.getElementById('fieldBody').value = body;
+    document.getElementById('btnDeleteArticle').style.display = 'inline-flex';
+    switchTab('editor');
+    switchEditorTab('meta');
+    updateCharCount();
+  } catch (e) {
+    toast('Erro ao abrir artigo: ' + e.message, 'error');
+  }
+}
+
+function newArticle() {
+  isEditing = false;
+  document.getElementById('editSlug').value = '';
+  document.getElementById('editSha').value = '';
+  document.getElementById('editTitle').textContent = 'Novo Artigo';
+  document.getElementById('fieldTitle').value = '';
+  document.getElementById('fieldSlug').value = '';
+  document.getElementById('fieldDesc').value = '';
+  document.getElementById('fieldCategory').value = 'noticia';
+  document.getElementById('fieldDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('fieldMode').value = '';
+  document.getElementById('fieldTags').value = 'games';
+  document.getElementById('fieldImage').value = '';
+  document.getElementById('fieldAffiliate').checked = false;
+  document.getElementById('fieldBody').value = '';
+  document.getElementById('btnDeleteArticle').style.display = 'none';
+  switchTab('editor');
+  switchEditorTab('meta');
+  updateCharCount();
+}
+
+function autoSlug() {
+  if (!isEditing) {
+    const title = document.getElementById('fieldTitle').value;
+    document.getElementById('fieldSlug').value = generateSlug(title);
+  }
+}
+
+function updateCharCount() {
+  const len = document.getElementById('fieldDesc').value.length;
+  const el = document.getElementById('descCharCount');
+  el.textContent = `${len}/160`;
+  el.className = 'char-count' + (len > 160 ? ' over' : len > 140 ? ' warn' : '');
+}
+
+function renderPreview() {
+  const title = document.getElementById('fieldTitle').value;
+  const desc = document.getElementById('fieldDesc').value;
+  const category = document.getElementById('fieldCategory').value;
+  const date = document.getElementById('fieldDate').value;
+  const tags = document.getElementById('fieldTags').value;
+  const image = document.getElementById('fieldImage').value;
+  const body = document.getElementById('fieldBody').value;
+
+  const meta = document.getElementById('previewMeta');
+  meta.innerHTML = `
+    <span>📁 ${category || '—'}</span>
+    <span>📅 ${date || '—'}</span>
+    <span>🏷️ ${tags || '—'}</span>
+  `;
+
+  let html = '';
+  if (image) html += `<img src="${image}" alt="${title}" style="width:100%;border-radius:8px;margin-bottom:16px"/>`;
+  if (title) html += `<h1>${title}</h1>`;
+  if (desc) html += `<p style="font-size:1.1em;color:var(--text);margin-bottom:16px;font-style:italic">${desc}</p>`;
+  html += marked.parse(body || '*Nenhum conteúdo ainda...*');
+  document.getElementById('previewContent').innerHTML = html;
+}
+
+async function saveArticle() {
+  if (isSaving) return;
+  const slug = document.getElementById('fieldSlug').value.trim();
+  if (!slug) { toast('Slug é obrigatório', 'error'); return; }
+  const title = document.getElementById('fieldTitle').value.trim();
+  if (!title) { toast('Título é obrigatório', 'error'); return; }
+
+  const fm = {
+    title,
+    description: document.getElementById('fieldDesc').value.trim(),
+    pubDate: document.getElementById('fieldDate').value,
+    tags: document.getElementById('fieldTags').value.split(',').map(t => t.trim()).filter(Boolean),
+    category: document.getElementById('fieldCategory').value,
+    affiliate: document.getElementById('fieldAffiliate').checked,
+    image: document.getElementById('fieldImage').value.trim(),
+    mode: document.getElementById('fieldMode').value || undefined,
+  };
+  const body = document.getElementById('fieldBody').value;
+  const oldSlug = document.getElementById('editSlug').value;
+  const oldSha = document.getElementById('editSha').value;
+  const content = serializeFrontmatter(fm, body);
+  const newFilePath = `${ARTICLES_PATH}/${slug}.md`;
+
+  isSaving = true;
+  setLoading('btnSave', true);
+
+  try {
+    if (isEditing && oldSlug) {
+      const isNewSlug = slug !== oldSlug;
+      if (isNewSlug) {
+        await putFile(newFilePath, content, `cms: create "${title}"`);
+        try {
+          await deleteFile(`${ARTICLES_PATH}/${oldSlug}.md`, `cms: remove old slug "${oldSlug}" → "${slug}"`);
+        } catch (e) {
+          toast('Artigo criado, mas não foi possível excluir o arquivo antigo. Exclua manualmente.', 'error');
+        }
+      } else {
+        await putFile(newFilePath, content, `cms: update "${title}"`, oldSha);
+      }
+      toast('Artigo atualizado com sucesso!');
+    } else {
+      await putFile(newFilePath, content, `cms: create "${title}"`);
+      toast('Artigo criado com sucesso!');
+    }
+    switchTab('articles');
+    await loadArticles();
+  } catch (e) {
+    toast('Erro ao salvar: ' + e.message, 'error');
+  } finally {
+    isSaving = false;
+    setLoading('btnSave', false);
+  }
+}
+
+function confirmDelete(slug) {
+  const art = articles.find(a => a.slug === slug);
+  const name = art?.title || slug;
+  showModal('Excluir Artigo', `Tem certeza que deseja excluir "${name}"? Esta ação cria um commit no GitHub e o deploy será disparado.`, async () => {
+    try {
+      await deleteFile(`${ARTICLES_PATH}/${slug}.md`, `cms: delete "${name}"`);
+      toast('Artigo excluído!');
+      await loadArticles();
+    } catch (e) {
+      toast('Erro ao excluir: ' + e.message, 'error');
+    }
+  });
+}
+
+function deleteCurrentArticle() {
+  const slug = document.getElementById('editSlug').value;
+  if (slug) confirmDelete(slug);
+}
+
+// ===== SETTINGS =====
+async function loadSettings() {
+  try {
+    const tw = await getFile('tailwind.config.mjs');
+    if (tw) document.getElementById('paletteTailwind').value = tw.content;
+  } catch (e) {}
+  try {
+    const css = await getFile('src/styles/global.css');
+    if (css) document.getElementById('paletteCSS').value = css.content;
+  } catch (e) {}
+  document.getElementById('sysArticles').textContent = articles.length || '—';
+  document.getElementById('sysGhStatus').textContent = 'Conectado ✅';
+  document.getElementById('sysLastSync').textContent = new Date().toLocaleString('pt-BR');
+}
+
+async function savePalette() {
+  setLoading('btnSavePalette', true);
+  try {
+    const tw = document.getElementById('paletteTailwind').value;
+    const css = document.getElementById('paletteCSS').value;
+    const promises = [];
+    if (tw) promises.push(putFile('tailwind.config.mjs', tw, 'cms: update palette (tailwind.config)'));
+    if (css) promises.push(putFile('src/styles/global.css', css, 'cms: update palette (global.css)'));
+    await Promise.all(promises);
+    toast('Paleta salva! O deploy será disparado automaticamente.');
+  } catch (e) {
+    toast('Erro ao salvar paleta: ' + e.message, 'error');
+  } finally {
+    setLoading('btnSavePalette', false);
+  }
+}
+
+// ===== INIT =====
+(function init() {
+  marked.setOptions({ breaks: true, gfm: true });
+  if (token) {
+    ghFetch(`repos/${REPO}`).then(() => {
+      showApp();
+      switchTab('dashboard');
+    }).catch(() => {
+      localStorage.removeItem('gh_token');
+      token = '';
+      showSetup();
+    });
+  } else {
+    showSetup();
+  }
+})();
+</script>
 </body>
 </html>
