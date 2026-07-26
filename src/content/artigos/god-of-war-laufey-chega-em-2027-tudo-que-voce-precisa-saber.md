@@ -21,7 +21,7 @@ A Sony confirmou que God of War Laufey vai estrear em fevereiro de 2027, direto 
 
 O lançamento de Laufey chega num momento em que a PS5 ainda domina o mercado brasileiro, e a loja digital da Sony promete descontos exclusivos para quem já tem God of War Ragnarök. Se você ainda não garantiu o título da geração passada, agora bate a oportunidade de fechar o combo.
 
-VER NO MERCADO LIVRE
+[🔗 VER NO MERCADO LIVRE](https://www.mercadolivre.com.br){.btn .btn-primary}
 
 ## Ragnarok ainda vale a pena antes de Laufey
 
@@ -31,7 +31,7 @@ Se a tua jogatina ainda está presa em God of War Ragnarök, não se desespere. 
 
 Mas tem um detalhe: Laufey promete mecânicas de “dual‑world” que podem deixar o ritmo de Ragnarok parecendo tutorial. Se você curte desafios, vale a pena garantir Ragnarok agora e usar o progresso como base para o próximo capítulo.
 
-VER NO MERCADO LIVRE
+[🔗 VER NO MERCADO LIVRE](https://www.mercadolivre.com.br){.btn .btn-primary}
 
 ## Comparativo de valor: Laufey vs. Ragnarök
 
@@ -72,22 +72,8 @@ Entre para o nosso grupo VIP no Telegram e receba ofertas diárias de games, con
 
 ### Links internos
 
-- Confira o guia completo de Laufey: God of War Laufey 2027: Data, Trama e Se Liga no Guia C
-- Veja como o lançamento de Ragnarok se encaixa nas novidades de 2026: Lançamento 2026: Resident Evil, Persona e as Novidades
-
-TAGS: GOD OF WAR LANCAMENTO PS5 RAGNAROK FINAL FANTASY
-
-TAGS: GOD OF WAR LANCAMENTO PS5 RAGNAROK FINAL FANTASY
-
-TAGS: GOD OF WAR LANCAMENTO PS5 RAGNAROK FINAL FANTASY
-
-TAGS: GOD OF WAR LANCAMENTO PS5 RAGNAROK FINAL FANTASY
-
-TAGS: GOD OF WAR LANCAMENTO PS5 RAGNAROK FINAL FANTASY
-
-TAGS: GOD OF WAR LANCAMENTO PS5 RAGNAROK FINAL FANTASY
-
-TAGS: GOD OF WAR LANCAMENTO PS5 RAGNAROK FINAL FANTASY
+- [Confira o guia completo de Laufey](/blog-gamer/blog/god-of-war-laufey-2027-data-trama-e-se-liga-no-guia-completo/)
+- [Veja como o lançamento de Ragnarok se encaixa nas novidades de 2026](/blog-gamer/blog/lancamento-2026-resident-evil-persona-e-as-novidades-que-vao-bombar/)
 
 TAGS: GOD OF WAR LANCAMENTO PS5 RAGNAROK FINAL FANTASY
 
