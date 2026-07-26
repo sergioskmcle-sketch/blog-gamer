@@ -220,7 +220,7 @@ ${coveredList}
 
 Analise as headlines e os trending topics. Escolha um assunto que seja NOVO e INÉDITO no blog. Se todos os trending são repetidos, invente um assunto relevante que esteja em alta.`;
 
-  const response = await fetchGroq(systemPrompt, userPrompt, 3, { temperature: 0.5, maxTokens: 500 });
+  const response = await fetchLLM(systemPrompt, userPrompt, 3, { temperature: 0.5, maxTokens: 500 });
   if (!response) return null;
 
   let parsed;
@@ -838,6 +838,8 @@ function computeMaxTokens(systemPrompt, userPrompt) {
   return Math.min(GROQ_MAX_OUTPUT, available);
 }
 
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
 async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
   const url = "https://api.groq.com/openai/v1/chat/completions";
   const body = {
@@ -905,6 +907,72 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
   }
 }
 
+async function fetchOpenAI(systemPrompt, userPrompt, opts = {}) {
+  if (!OPENAI_API_KEY) throw new Error("OpenAI: OPENAI_API_KEY nao configurada");
+  const url = "https://api.openai.com/v1/chat/completions";
+  const body = {
+    model: "gpt-4o-mini",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    temperature: opts.temperature ?? 0.7,
+    max_tokens: opts.maxTokens ?? 4096,
+  };
+  const startTime = Date.now();
+  const MAX_TOTAL_WAIT = 3 * 60 * 1000;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      log("INFO", `OpenAI: tentativa ${attempt}/3...`);
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${OPENAI_API_KEY}` },
+        body: JSON.stringify(body),
+      });
+      if (res.status === 429 || res.status === 503 || res.status === 502) {
+        const elapsed = Date.now() - startTime;
+        if (elapsed > MAX_TOTAL_WAIT) {
+          log("ERROR", `OpenAI: timeout total de ${MAX_TOTAL_WAIT / 1000}s atingido`);
+          throw new Error(`OpenAI: timeout total apos ${attempt} tentativas`);
+        }
+        const wait = Math.min(15 * Math.pow(2, attempt - 1), 60);
+        log("WARN", `OpenAI: ${res.status}, aguardando ${wait}s (tentativa ${attempt}/3)...`);
+        await sleep(wait * 1000);
+        continue;
+      }
+      if (!res.ok) {
+        const err = await res.text();
+        const msg = `OpenAI ${res.status}: ${err.slice(0, 300)}`;
+        if (res.status === 401) {
+          log("ERROR", `OpenAI: API key invalida! Atualize OPENAI_API_KEY no GitHub Secrets.`);
+        }
+        throw new Error(msg);
+      }
+      const data = await res.json();
+      const choice = data.choices?.[0];
+      if (!choice?.message?.content)
+        throw new Error(`OpenAI: resposta vazia: ${JSON.stringify(data).slice(0, 200)}`);
+      if (choice.finish_reason === "length")
+        throw new Error(`OpenAI: resposta truncada (max_tokens=${body.max_tokens})`);
+      return choice.message.content;
+    } catch (err) {
+      if (attempt === 3) throw err;
+      const wait = Math.min(10 * Math.pow(2, attempt - 1), 60);
+      log("WARN", `OpenAI: erro "${err.message.slice(0, 80)}", retentando em ${wait}s...`);
+      await sleep(wait * 1000);
+    }
+  }
+}
+
+async function fetchLLM(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
+  try {
+    return await fetchGroq(systemPrompt, userPrompt, maxAttempts, opts);
+  } catch (groqErr) {
+    log("WARN", `Groq falhou: ${groqErr.message.slice(0, 120)} — tentando OpenAI...`);
+    return await fetchOpenAI(systemPrompt, userPrompt, opts);
+  }
+}
+
 // Gate de qualidade barato: uma chamada curta so pra consertar o titulo,
 // em vez de descartar um artigo bom por causa de uma linha.
 async function regenerateTitle(currentTitle, topicHint, primaryKeyword, categoria) {
@@ -921,7 +989,7 @@ ${primaryKeyword ? `- A palavra-chave "${primaryKeyword}" nos primeiros 40% do t
 - Sem clickbait vazio, sem emoji, sem markdown.`;
 
   try {
-    const out = await fetchGroq(sys, user, 2, { maxTokens: 512, temperature: 0.6 });
+    const out = await fetchLLM(sys, user, 2, { maxTokens: 512, temperature: 0.6 });
     return out.trim().split("\n").filter(Boolean).pop()?.replace(/^["']|["']$/g, "").trim() || null;
   } catch (e) {
     log("WARN", `Reescrita de titulo falhou: ${e.message}`);
@@ -1423,14 +1491,18 @@ Checklist antes de responder:
 
   for (let attempt = 1; attempt <= MAX_GEN_ATTEMPTS; attempt++) {
     const lastAttempt = attempt === MAX_GEN_ATTEMPTS;
-    log("INFO", `Gerando artigo com Groq (tentativa ${attempt}/${MAX_GEN_ATTEMPTS})...`);
+    log("INFO", `Gerando artigo com LLM (tentativa ${attempt}/${MAX_GEN_ATTEMPTS})...`);
 
     let article;
     try {
-      article = await fetchGroq(systemPrompt, userPrompt + feedback);
+      article = await fetchLLM(systemPrompt, userPrompt + feedback);
     } catch (err) {
-      log("ERROR", `Falha na geracao: ${err.message}`);
-      process.exit(1);
+      log("ERROR", `Falha na geracao (Groq + OpenAI): ${err.message}`);
+      state.last_error = err.message.slice(0, 200);
+      state.last_error_date = today;
+      state.consecutive_failures = (state.consecutive_failures || 0) + 1;
+      saveState(state);
+      process.exit(0);
     }
 
     let parsed;
