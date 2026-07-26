@@ -721,7 +721,6 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
         <div style="display:flex;gap:6px">
           <input id="fieldImage" class="form-control" placeholder="https://..." style="flex:1" oninput="updateCoverPreview()"/>
           <button class="btn btn-secondary btn-sm" onclick="document.getElementById('coverUpload').click()" title="Upload da capa">📷</button>
-          <input type="file" id="coverUpload" accept="image/*" style="display:none" onchange="handleCoverUpload(event)"/>
         </div>
         <div id="coverPreview" style="margin-top:8px;display:none">
           <img id="coverPreviewImg" style="max-width:200px;border-radius:8px;border:1px solid var(--border)"/>
@@ -799,6 +798,9 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
     <button class="btn btn-primary" onclick="saveArticle()" id="btnSave">💾 Salvar</button>
   </div>
 </div>
+
+<!-- Global file input (always accessible) -->
+<input type="file" id="coverUpload" accept="image/*" style="display:none" onchange="handleCoverUpload(event)"/>
 
 <!-- Floating Save Button -->
 <div class="floating-save" id="floatingSave">
@@ -1364,36 +1366,57 @@ function insertImageToEditor(src, alt) {
 }
 
 function editInlineImage(img) {
-  const currentSrc = img.src || img.getAttribute('src') || '';
-  const currentAlt = img.alt || img.getAttribute('alt') || '';
-  const action = prompt(
-    'Editar imagem:\n' +
-    '1 = Mudar URL\n' +
-    '2 = Mudar legenda (alt)\n' +
-    '3 = Remover imagem\n' +
-    '\nDigite 1, 2 ou 3:',
-    '1'
-  );
-  if (!action) return;
-  if (action === '1') {
-    const newUrl = prompt('URL da imagem:', currentSrc);
+  const existing = document.getElementById('imgToolbar');
+  if (existing) existing.remove();
+
+  const rect = img.getBoundingClientRect();
+  const toolbar = document.createElement('div');
+  toolbar.id = 'imgToolbar';
+  toolbar.style.cssText = `
+    position:fixed; top:${rect.bottom + 8}px; left:${rect.left}px;
+    background:var(--bg-elevated); border:1px solid var(--border); border-radius:10px;
+    padding:8px; display:flex; gap:4px; z-index:500;
+    box-shadow:0 8px 24px rgba(0,0,0,0.4);
+  `;
+  toolbar.innerHTML = `
+    <button class="btn btn-secondary btn-sm" id="imgBtnEdit" style="font-size:0.75rem">✏️ Editar URL</button>
+    <button class="btn btn-secondary btn-sm" id="imgBtnAlt" style="font-size:0.75rem">🏷️ Legenda</button>
+    <button class="btn btn-danger btn-sm" id="imgBtnDel" style="font-size:0.75rem">🗑️ Remover</button>
+  `;
+  document.body.appendChild(toolbar);
+
+  document.getElementById('imgBtnEdit').onclick = () => {
+    toolbar.remove();
+    const newUrl = prompt('URL da imagem:', img.src || img.getAttribute('src') || '');
     if (newUrl !== null && newUrl.trim()) {
       img.src = newUrl.trim();
       img.setAttribute('src', newUrl.trim());
     }
-  } else if (action === '2') {
-    const newAlt = prompt('Legenda/alt text:', currentAlt);
+  };
+  document.getElementById('imgBtnAlt').onclick = () => {
+    toolbar.remove();
+    const newAlt = prompt('Legenda/alt text:', img.alt || '');
     if (newAlt !== null) {
       img.alt = newAlt;
       img.setAttribute('alt', newAlt);
     }
-  } else if (action === '3') {
+  };
+  document.getElementById('imgBtnDel').onclick = () => {
+    toolbar.remove();
     const parent = img.parentElement;
     img.remove();
     if (parent && parent.tagName.toLowerCase() === 'p' && !parent.textContent.trim()) {
       parent.remove();
     }
-  }
+  };
+
+  const close = (e) => {
+    if (!toolbar.contains(e.target) && e.target !== img) {
+      toolbar.remove();
+      document.removeEventListener('click', close);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', close), 100);
 }
 
 async function handleImageUpload(event) {
@@ -1460,7 +1483,7 @@ function renderPreview() {
 
   let headerHtml = '';
   if (image) headerHtml += `<img class="blog-preview-hero" src="${imgUrl(image)}" alt="${title}" onerror="this.style.display='none'" onclick="editPreviewImage()" style="cursor:pointer" title="Clique para mudar a imagem"/>`;
-  else headerHtml += `<div class="blog-preview-hero" onclick="editPreviewImage()" style="cursor:pointer;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);color:var(--text-muted);font-size:1rem" title="Clique para adicionar imagem">📷 Clique para adicionar imagem</div>`;
+  else headerHtml += `<div class="blog-preview-hero" onclick="editPreviewImage()" style="cursor:pointer;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);color:var(--text-muted);font-size:1rem;gap:8px" title="Clique para adicionar imagem da capa"><span style="font-size:1.5rem">📷</span> <span>Clique para adicionar imagem da capa</span></div>`;
   if (title) headerHtml += `<h1 contenteditable="true" id="previewTitleEditable" style="cursor:text" title="Edite o título diretamente">${title}</h1>`;
   if (desc) headerHtml += `<p class="blog-preview-desc" contenteditable="true" id="previewDescEditable" style="cursor:text" title="Edite a descrição diretamente">${desc}</p>`;
   headerHtml += `<div class="blog-preview-meta">`;
