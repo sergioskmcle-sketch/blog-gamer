@@ -1353,16 +1353,35 @@ function insertImageToEditor(src, alt) {
 }
 
 function editInlineImage(img) {
-  const action = prompt('Opções da imagem:\n1 = Mudar URL\n2 = Mudar legenda\n3 = Remover\nDigite 1, 2 ou 3:', '1');
+  const currentSrc = img.src || img.getAttribute('src') || '';
+  const currentAlt = img.alt || img.getAttribute('alt') || '';
+  const action = prompt(
+    'Editar imagem:\n' +
+    '1 = Mudar URL\n' +
+    '2 = Mudar legenda (alt)\n' +
+    '3 = Remover imagem\n' +
+    '\nDigite 1, 2 ou 3:',
+    '1'
+  );
   if (!action) return;
   if (action === '1') {
-    const newUrl = prompt('Nova URL da imagem:', img.src);
-    if (newUrl) img.src = newUrl;
+    const newUrl = prompt('URL da imagem:', currentSrc);
+    if (newUrl !== null && newUrl.trim()) {
+      img.src = newUrl.trim();
+      img.setAttribute('src', newUrl.trim());
+    }
   } else if (action === '2') {
-    const newAlt = prompt('Legenda/alt text:', img.alt || '');
-    if (newAlt !== null) img.alt = newAlt;
+    const newAlt = prompt('Legenda/alt text:', currentAlt);
+    if (newAlt !== null) {
+      img.alt = newAlt;
+      img.setAttribute('alt', newAlt);
+    }
   } else if (action === '3') {
+    const parent = img.parentElement;
     img.remove();
+    if (parent && parent.tagName.toLowerCase() === 'p' && !parent.textContent.trim()) {
+      parent.remove();
+    }
   }
 }
 
@@ -1463,25 +1482,25 @@ function htmlToMarkdown(el) {
       md += node.textContent;
     } else if (node.nodeType === 1) {
       const tag = node.tagName.toLowerCase();
-      if (tag === 'h1') md += `\n\n# ${node.textContent.trim()}\n\n`;
-      else if (tag === 'h2') md += `\n\n## ${node.textContent.trim()}\n\n`;
-      else if (tag === 'h3') md += `\n\n### ${node.textContent.trim()}\n\n`;
-      else if (tag === 'p') md += `${node.textContent.trim()}\n\n`;
-      else if (tag === 'strong' || tag === 'b') md += `**${node.textContent.trim()}**`;
-      else if (tag === 'em' || tag === 'i') md += `*${node.textContent.trim()}*`;
+      if (tag === 'h1') md += `\n\n# ${htmlToMarkdown(node).trim()}\n\n`;
+      else if (tag === 'h2') md += `\n\n## ${htmlToMarkdown(node).trim()}\n\n`;
+      else if (tag === 'h3') md += `\n\n### ${htmlToMarkdown(node).trim()}\n\n`;
+      else if (tag === 'p') md += `${htmlToMarkdown(node).trim()}\n\n`;
+      else if (tag === 'strong' || tag === 'b') md += `**${htmlToMarkdown(node).trim()}**`;
+      else if (tag === 'em' || tag === 'i') md += `*${htmlToMarkdown(node).trim()}*`;
       else if (tag === 'code') md += `\`${node.textContent.trim()}\``;
-      else if (tag === 'a') md += `[${node.textContent.trim()}](${node.href || node.getAttribute('href') || ''})`;
+      else if (tag === 'a') md += `[${htmlToMarkdown(node).trim()}](${node.href || node.getAttribute('href') || ''})`;
       else if (tag === 'img') md += `![${node.getAttribute('alt') || ''}](${node.src || node.getAttribute('src') || ''})\n\n`;
       else if (tag === 'ul') {
-        for (const li of node.querySelectorAll(':scope > li')) md += `- ${li.textContent.trim()}\n`;
+        for (const li of node.querySelectorAll(':scope > li')) md += `- ${htmlToMarkdown(li).trim()}\n`;
         md += '\n';
       }
       else if (tag === 'ol') {
         let i = 1;
-        for (const li of node.querySelectorAll(':scope > li')) md += `${i++}. ${li.textContent.trim()}\n`;
+        for (const li of node.querySelectorAll(':scope > li')) md += `${i++}. ${htmlToMarkdown(li).trim()}\n`;
         md += '\n';
       }
-      else if (tag === 'blockquote') md += `> ${node.textContent.trim()}\n\n`;
+      else if (tag === 'blockquote') md += `> ${htmlToMarkdown(node).trim()}\n\n`;
       else if (tag === 'hr') md += `\n---\n\n`;
       else if (tag === 'br') md += '\n';
       else if (tag === 'pre') {
@@ -1492,7 +1511,7 @@ function htmlToMarkdown(el) {
         const rows = node.querySelectorAll('tr');
         rows.forEach((row, ri) => {
           const cells = row.querySelectorAll('th, td');
-          md += '| ' + Array.from(cells).map(c => c.textContent.trim()).join(' | ') + ' |\n';
+          md += '| ' + Array.from(cells).map(c => htmlToMarkdown(c).trim()).join(' | ') + ' |\n';
           if (ri === 0) md += '| ' + Array.from(cells).map(() => '---').join(' | ') + ' |\n';
         });
         md += '\n';
@@ -1500,9 +1519,9 @@ function htmlToMarkdown(el) {
       else if (tag === 'div' && node.classList.contains('btn')) {
         const href = node.getAttribute('href') || '#';
         const cls = node.classList.contains('btn-primary') ? 'btn-primary' : '';
-        md += `\n[🔗 ${node.textContent.trim()}](${href}){.btn .${cls}}\n\n`;
+        md += `\n[🔗 ${htmlToMarkdown(node).trim()}](${href}){.btn .${cls}}\n\n`;
       }
-      else if (tag === 'div') {
+      else if (tag === 'div' || tag === 'span' || tag === 'section' || tag === 'article') {
         md += htmlToMarkdown(node);
       }
       else {
@@ -1544,8 +1563,8 @@ function imgUrl(url) {
 function editPreviewImage() {
   const current = document.getElementById('fieldImage').value;
   const newUrl = prompt('URL da imagem da capa:', current);
-  if (newUrl !== null) {
-    document.getElementById('fieldImage').value = newUrl;
+  if (newUrl !== null && newUrl.trim()) {
+    document.getElementById('fieldImage').value = newUrl.trim();
     renderPreview();
     toast('Imagem da capa atualizada!');
   }
