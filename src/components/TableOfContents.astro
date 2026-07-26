@@ -1,0 +1,226 @@
+---
+import Icon from "./Icon.astro";
+
+export interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+export interface Props {
+  headings: Heading[];
+  /** "sidebar" = sticky no desktop; "inline" = <details> recolhível no mobile */
+  variant?: "sidebar" | "inline";
+}
+
+const { headings, variant = "sidebar" } = Astro.props;
+---
+
+{headings.length >= 3 && (
+  variant === "sidebar" ? (
+    <nav class="toc-sidebar card-depth hidden lg:block p-md" aria-labelledby="tocTitle">
+      <h2
+        id="tocTitle"
+        class="font-label text-label text-primary uppercase tracking-widest mb-md flex items-center gap-sm"
+      >
+        <span class="w-8 h-px bg-primary" />
+        NESTE ARTIGO
+      </h2>
+      <ol class="toc-list space-y-1 list-none p-0 m-0">
+        {headings.map((h, i) => (
+          <li class="m-0">
+            <a
+              href={`#${h.slug}`}
+              class="toc-link"
+              data-toc-target={h.slug}
+            >
+              <span class="toc-num">{String(i + 1).padStart(2, "0")}</span>
+              <span>{h.text}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  ) : (
+    <details class="toc-inline lg:hidden">
+      <summary>
+        <Icon name="list" size={18} />
+        <span>Neste artigo</span>
+        <span class="toc-count">{headings.length}</span>
+      </summary>
+      <ol class="toc-list list-none p-0">
+        {headings.map((h, i) => (
+          <li class="m-0">
+            <a href={`#${h.slug}`} class="toc-link">
+              <span class="toc-num">{String(i + 1).padStart(2, "0")}</span>
+              <span>{h.text}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </details>
+  )
+)}
+
+<style>
+  /*
+   * O elemento sticky é o wrapper na página do artigo (sumário + CTA juntos),
+   * então aqui só limitamos a altura para o conjunto caber na viewport.
+   */
+  .toc-sidebar {
+    max-height: calc(100vh - 22rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .toc-sidebar:hover {
+    transform: none;
+  }
+
+  .toc-link {
+    display: flex;
+    gap: 0.625rem;
+    align-items: baseline;
+    min-height: 40px;
+    padding: 0.625rem;
+    border-radius: 8px;
+    border-left: 2px solid transparent;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.45;
+    text-decoration: none;
+    transition: color var(--transition), background var(--transition),
+      border-color var(--transition);
+  }
+
+  .toc-link:hover {
+    color: var(--text-primary);
+    background: rgba(168, 85, 247, 0.06);
+    text-decoration: none;
+  }
+
+  .toc-num {
+    flex-shrink: 0;
+    font-family: var(--font-label);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+  }
+
+  /* Estado ativo controlado pelo scroll-spy */
+  .toc-link[aria-current="true"] {
+    color: var(--accent);
+    background: rgba(168, 85, 247, 0.08);
+    border-left-color: var(--accent);
+    font-weight: 600;
+  }
+
+  .toc-link[aria-current="true"] .toc-num {
+    color: var(--accent);
+  }
+
+  /* --- Variante mobile --- */
+  .toc-inline {
+    margin: 0 auto 2rem;
+    max-width: var(--measure);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .toc-inline summary {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    /* 48px de altura — área de toque adequada */
+    padding: 0.875rem 1rem;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-family: var(--font-label);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    list-style: none;
+  }
+
+  .toc-inline summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .toc-count {
+    margin-left: auto;
+    padding: 0.125rem 0.5rem;
+    border-radius: 999px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-size: 0.6875rem;
+  }
+
+  .toc-inline[open] summary {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .toc-inline .toc-list {
+    padding: 0.5rem;
+    margin: 0;
+  }
+
+  .toc-inline .toc-link {
+    padding: 0.75rem 0.625rem;
+  }
+</style>
+
+<script>
+  // Scroll-spy: marca a seção visível no sumário da sidebar.
+  const links = Array.from(
+    document.querySelectorAll<HTMLAnchorElement>("[data-toc-target]")
+  );
+
+  if (links.length > 0) {
+    const targets = links
+      .map((link) => document.getElementById(link.dataset.tocTarget!))
+      .filter((el): el is HTMLElement => el !== null);
+
+    let activeSlug: string | null = null;
+
+    const setActive = (slug: string | null) => {
+      if (slug === activeSlug) return;
+      activeSlug = slug;
+      links.forEach((link) => {
+        if (link.dataset.tocTarget === slug) {
+          link.setAttribute("aria-current", "true");
+        } else {
+          link.removeAttribute("aria-current");
+        }
+      });
+    };
+
+    // A seção ativa é a última cujo topo já passou da linha de leitura.
+    const update = () => {
+      const line = window.innerHeight * 0.28;
+      let current: string | null = null;
+      for (const el of targets) {
+        if (el.getBoundingClientRect().top <= line) current = el.id;
+      }
+      setActive(current ?? targets[0]?.id ?? null);
+    };
+
+    let ticking = false;
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          update();
+          ticking = false;
+        });
+      },
+      { passive: true }
+    );
+
+    update();
+  }
+</script>

@@ -1,0 +1,135 @@
+---
+import Layout from "../layouts/Layout.astro";
+import HeroSection from "../components/HeroSection.astro";
+import ArticleCard from "../components/ArticleCard.astro";
+import Sidebar from "../components/Sidebar.astro";
+import Pagination from "../components/Pagination.astro";
+import Icon from "../components/Icon.astro";
+
+export async function getStaticPaths({ paginate }) {
+  // Astro extrai getStaticPaths do escopo do módulo, então a constante vive aqui.
+  const PAGE_SIZE = 12;
+
+  const artigos = Object.entries(import.meta.glob("../content/artigos/*.md", { eager: true }))
+    .map(([path, mod]) => ({
+      slug: path.split("/").pop()?.replace(".md", "") || "",
+      ...mod.frontmatter,
+    }))
+    .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
+
+  // O destaque sai do fluxo paginado: ele vira o hero da página 1.
+  const [destaque, ...restante] = artigos;
+
+  return paginate(restante, {
+    pageSize: PAGE_SIZE,
+    props: { destaque, todos: artigos },
+  });
+}
+
+const { page, destaque, todos } = Astro.props;
+const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
+
+const isFirst = page.currentPage === 1;
+const hrefFor = (n: number) => (n === 1 ? base : `${base}${n}/`);
+const urlPrev = page.url.prev ? (page.currentPage === 2 ? base : `${page.url.prev}/`) : undefined;
+const urlNext = page.url.next ? `${page.url.next}/` : undefined;
+
+const titulo = isFirst ? "Blog Gamer" : `Blog Gamer — página ${page.currentPage}`;
+---
+
+<Layout
+  title={titulo}
+  image={`${base}images/banner-grupo.webp`}
+  noindex={!isFirst}
+  prevPage={urlPrev}
+  nextPage={urlNext}
+>
+  <div class="pt-16 max-w-page mx-auto px-gutter">
+    <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-xl lg:gap-[40px] my-xl">
+      <section class="min-w-0 space-y-xl">
+        {isFirst && destaque && (
+          <HeroSection
+            title={destaque.title}
+            description={destaque.description}
+            pubDate={destaque.pubDate}
+            tags={destaque.tags}
+            category={destaque.category}
+            affiliate={destaque.affiliate}
+            slug={destaque.slug}
+            image={destaque.image}
+          />
+        )}
+
+        <div class="space-y-lg">
+          <div class="flex items-center justify-between border-b border-outline-variant/30 pb-md">
+            {/*
+              Na página 1 o h1 é o título do hero, então aqui vira h2. Nas
+              páginas seguintes não há hero — sem isso, elas ficavam sem h1.
+            */}
+            {isFirst ? (
+              <h2 class="font-h2 text-h2 text-on-surface flex items-center gap-sm">
+                <Icon name="bolt" class="text-secondary" />
+                Últimas Notícias
+              </h2>
+            ) : (
+              <h1 class="font-h2 text-h2 text-on-surface flex items-center gap-sm">
+                <Icon name="bolt" class="text-secondary" />
+                Artigos — página {page.currentPage}
+              </h1>
+            )}
+            <a
+              href={`${base}categoria/noticia/`}
+              class="inline-flex items-center px-sm min-h-[40px] rounded-md font-label text-label text-on-surface-variant hover:text-primary hover:bg-white/5 transition-colors uppercase no-underline hover:no-underline"
+            >
+              Ver Todas
+            </a>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
+            {page.data.map((artigo) => (
+              <ArticleCard
+                title={artigo.title}
+                description={artigo.description}
+                pubDate={artigo.pubDate}
+                tags={artigo.tags}
+                category={artigo.category}
+                affiliate={artigo.affiliate}
+                slug={artigo.slug}
+                image={artigo.image}
+              />
+            ))}
+          </div>
+
+          <Pagination
+            currentPage={page.currentPage}
+            lastPage={page.lastPage}
+            urlPrev={urlPrev}
+            urlNext={urlNext}
+            hrefFor={hrefFor}
+          />
+        </div>
+      </section>
+
+      <aside class="min-w-0">
+        <Sidebar artigos={todos} currentSlug={isFirst ? destaque?.slug : undefined} />
+      </aside>
+    </div>
+
+    <a
+      href="https://t.me/+TRWZ67WHuk85Y2Nh"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="block pb-xl rounded-lg overflow-hidden no-underline hover:no-underline"
+    >
+      <img
+        src={`${base}images/banner-grupo.webp`}
+        alt="Grupo VIP Telegram - Ofertas Gamer Diárias"
+        width="1659"
+        height="948"
+        class="w-full h-auto rounded-lg"
+        loading="lazy"
+        decoding="async"
+      />
+    </a>
+  </div>
+</Layout>

@@ -1,0 +1,149 @@
+---
+export interface Related {
+  slug: string;
+  title: string;
+  category?: string;
+  image?: string;
+  pubDate?: Date | string;
+}
+
+export interface Props {
+  posts: Related[];
+  base: string;
+}
+
+const { posts, base } = Astro.props;
+---
+
+{posts.length > 0 && (
+  <section class="related" aria-labelledby="relatedTitle">
+    <h2 id="relatedTitle">Leia também</h2>
+
+    <div class="related-grid">
+      {posts.map((post) => (
+        <a href={`${base}blog/${post.slug}/`} class="related-card card-depth">
+          <div class="related-thumb">
+            {post.image ? (
+              <img
+                src={post.image}
+                alt={post.title}
+                width="480"
+                height="270"
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              <div class="related-fallback" aria-hidden="true">🎮</div>
+            )}
+          </div>
+          <div class="related-body">
+            {post.category && <span class="related-cat">{post.category}</span>}
+            <h3>{post.title}</h3>
+          </div>
+        </a>
+      ))}
+    </div>
+  </section>
+)}
+
+<style>
+  .related {
+    margin-top: 3.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .related h2 {
+    margin: 0 0 1.5rem;
+    font-size: var(--step-2);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+  }
+
+  .related-grid {
+    display: grid;
+    /* Ocupa a coluna inteira do artigo, não só a medida de leitura */
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .related-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    text-decoration: none;
+  }
+
+  .related-card:hover {
+    text-decoration: none;
+  }
+
+  .related-thumb {
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+  }
+
+  .related-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0;
+    transition: transform 0.5s ease;
+  }
+
+  .related-card:hover .related-thumb img {
+    transform: scale(1.05);
+  }
+
+  .related-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-elevated);
+    font-size: 2rem;
+  }
+
+  .related-body {
+    padding: 1rem;
+  }
+
+  .related-cat {
+    display: block;
+    margin-bottom: 0.375rem;
+    font-family: var(--font-label);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+  }
+
+  .related-body h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.4;
+    color: var(--text-primary);
+    /* Títulos têm comprimentos variados; 3 linhas mantém os cards iguais */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    transition: color var(--transition);
+  }
+
+  .related-card:hover .related-body h3 {
+    color: var(--accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .related-thumb img,
+    .related-card:hover .related-thumb img {
+      transition: none;
+      transform: none;
+    }
+  }
+</style>
