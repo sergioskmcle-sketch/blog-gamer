@@ -2,8 +2,6 @@ backend:
   name: github
   repo: sergioskmcle-sketch/blog-gamer
   branch: main
-  base_url: https://oauth.decap-cms.dev
-  site_domain: sergioskmcle-sketch.github.io
 
 publish_mode: editorial_workflow
 media_folder: public/assets
