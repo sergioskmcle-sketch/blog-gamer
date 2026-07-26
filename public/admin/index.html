@@ -1513,19 +1513,26 @@ function htmlToMarkdown(el) {
   return md;
 }
 
-function syncPreviewToMarkdown() {
+function syncPreviewToMarkdown(silent) {
   const bodyEl = document.getElementById('previewBody');
+  if (!bodyEl || !bodyEl.innerHTML.trim()) return;
   let md = htmlToMarkdown(bodyEl);
   md = md.replace(/\n{3,}/g, '\n\n').trim();
-  document.getElementById('fieldBody').value = md;
+  if (md) document.getElementById('fieldBody').value = md;
 
   const titleEl = document.getElementById('previewTitleEditable');
-  if (titleEl) document.getElementById('fieldTitle').value = titleEl.textContent.trim();
+  if (titleEl) {
+    const t = titleEl.textContent.trim();
+    if (t) document.getElementById('fieldTitle').value = t;
+  }
 
   const descEl = document.getElementById('previewDescEditable');
-  if (descEl) document.getElementById('fieldDesc').value = descEl.textContent.trim();
+  if (descEl) {
+    const d = descEl.textContent.trim();
+    if (d) document.getElementById('fieldDesc').value = d;
+  }
 
-  toast('Conteúdo, título e descrição sincronizados!');
+  if (!silent) toast('Prévia sincronizada com Markdown!');
 }
 
 function imgUrl(url) {
@@ -1540,11 +1547,13 @@ function editPreviewImage() {
   if (newUrl !== null) {
     document.getElementById('fieldImage').value = newUrl;
     renderPreview();
+    toast('Imagem da capa atualizada!');
   }
 }
 
 async function saveArticle() {
   if (isSaving) return;
+  syncPreviewToMarkdown(true);
   const slug = document.getElementById('fieldSlug').value.trim();
   if (!slug) { toast('Slug é obrigatório', 'error'); return; }
   const title = document.getElementById('fieldTitle').value.trim();
