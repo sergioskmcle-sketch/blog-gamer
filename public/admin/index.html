@@ -1623,19 +1623,40 @@ async function handleCoverUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
   event.target.value = '';
-  toast('Processando imagem da capa...', 'success');
+  toast('Fazendo upload da imagem...', 'success');
   try {
     const compressed = await compressImage(file, 1200, 0.8);
-    const reader = new FileReader();
-    reader.onload = () => {
-      document.getElementById('fieldImage').value = reader.result;
+    const b64 = await fileToBase64(compressed);
+    const ext = file.name.split('.').pop() || 'jpg';
+    const slug = document.getElementById('fieldSlug').value || 'cover-' + Date.now();
+    const filename = `public/images/capas/${slug}.${ext}`;
+    try {
+      await putFileRaw(filename, b64, `cms: upload cover "${slug}"`);
+      const url = `/blog-gamer/images/capas/${slug}.${ext}`;
+      document.getElementById('fieldImage').value = url;
       updateCoverPreview();
-      toast('Imagem da capa inserida!');
-    };
-    reader.readAsDataURL(compressed);
+      toast('Imagem da capa enviada ao repositório!');
+    } catch (e) {
+      toast('Erro ao enviar: ' + e.message + '. Use uma URL externa.', 'error');
+    }
   } catch (e) {
     toast('Erro ao processar imagem: ' + e.message, 'error');
   }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function putFileRaw(path, base64Content, message, sha = null) {
+  const body = { message, content: base64Content, branch: BRANCH };
+  if (sha) body.sha = sha;
+  return await ghFetch(`contents/${path}`, { method: 'PUT', body: JSON.stringify(body) });
 }
 
 function removeCoverImage() {
