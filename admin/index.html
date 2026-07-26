@@ -471,6 +471,103 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
 .blog-preview-body h1[contenteditable]:focus,
 .blog-preview-body h2[contenteditable]:focus,
 .blog-preview-body h3[contenteditable]:focus { outline: 2px solid rgba(168,85,247,0.5); border-radius: 4px; padding: 2px 4px; }
+
+/* WYSIWYG Toolbar */
+.wysiwyg-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: var(--radius) var(--radius) 0 0;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.wysiwyg-toolbar .sep {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  margin: 0 6px;
+}
+.wysiwyg-toolbar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-sec);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.15s;
+  font-family: var(--font);
+}
+.wysiwyg-toolbar button:hover { background: var(--bg-hover); color: var(--text); border-color: var(--border); }
+.wysiwyg-toolbar button.active { background: rgba(204,151,255,0.15); color: var(--primary); border-color: rgba(204,151,255,0.3); }
+.wysiwyg-toolbar select {
+  height: 32px;
+  padding: 0 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.8rem;
+  font-family: var(--font);
+  cursor: pointer;
+}
+.wysiwyg-toolbar select:focus { outline: none; border-color: var(--primary); }
+.wysiwyg-toolbar .upload-btn {
+  width: auto;
+  padding: 0 10px;
+  gap: 4px;
+  font-size: 0.75rem;
+}
+.wysiwyg-editor-wrap {
+  border: 1px solid var(--border);
+  border-radius: 0 0 var(--radius) var(--radius);
+  overflow: hidden;
+}
+.blog-preview-img-editable {
+  position: relative;
+  cursor: pointer;
+  display: block;
+  max-width: 100%;
+  border-radius: 10px;
+  transition: outline 0.15s;
+}
+.blog-preview-img-editable:hover {
+  outline: 3px solid rgba(168,85,247,0.5);
+  outline-offset: 2px;
+}
+.blog-preview-img-editable::after {
+  content: '✏️';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.7);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+.blog-preview-img-editable:hover::after { opacity: 1; }
+.floating-save {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 150;
+  display: none;
+}
+.floating-save.visible { display: block; }
 </style>
 </head>
 <body>
@@ -636,21 +733,68 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
   </div>
 
   <div id="editor-preview" class="etab-content" style="display:none">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <span style="font-size:0.8rem;color:var(--text-muted)">✏️ Clique no texto para editar diretamente</span>
-      <button class="btn btn-primary btn-sm" onclick="syncPreviewToMarkdown()">⬇️ Sincronizar edits → Markdown</button>
+    <div class="wysiwyg-toolbar" id="wysiwygToolbar">
+      <select id="wysiFont" onchange="wysiwygCmd('fontName',this.value)" title="Fonte">
+        <option value="Inter, system-ui, sans-serif">Inter</option>
+        <option value="Georgia, serif">Georgia</option>
+        <option value="'Courier New', monospace">Courier</option>
+        <option value="Arial, sans-serif">Arial</option>
+      </select>
+      <select id="wysiSize" onchange="wysiwygCmd('fontSize',this.value)" title="Tamanho">
+        <option value="3">Normal</option>
+        <option value="1">Pequeno</option>
+        <option value="2">Médio</option>
+        <option value="4">Grande</option>
+        <option value="5">Maior</option>
+        <option value="6">Huge</option>
+      </select>
+      <div class="sep"></div>
+      <button onclick="wysiwygCmd('bold')" title="Negrito (Ctrl+B)"><b>B</b></button>
+      <button onclick="wysiwygCmd('italic')" title="Itálico (Ctrl+I)"><i>I</i></button>
+      <button onclick="wysiwygCmd('underline')" title="Sublinhado (Ctrl+U)"><u>U</u></button>
+      <button onclick="wysiwygCmd('strikeThrough')" title="Tachado"><s>S</s></button>
+      <div class="sep"></div>
+      <button onclick="wysiwygBlock('h1')" title="Título 1" style="font-size:0.9rem;font-weight:800">H1</button>
+      <button onclick="wysiwygBlock('h2')" title="Título 2" style="font-size:0.85rem;font-weight:700">H2</button>
+      <button onclick="wysiwygBlock('h3')" title="Título 3" style="font-size:0.8rem;font-weight:600">H3</button>
+      <button onclick="wysiwygBlock('p')" title="Parágrafo" style="font-size:0.75rem">¶</button>
+      <div class="sep"></div>
+      <button onclick="wysiwygCmd('insertUnorderedList')" title="Lista com marcadores">•≡</button>
+      <button onclick="wysiwygCmd('insertOrderedList')" title="Lista numerada">1≡</button>
+      <button onclick="wysiwygCmd('formatBlock','blockquote')" title="Citação">❝</button>
+      <div class="sep"></div>
+      <button onclick="wysiwygLink()" title="Inserir link">🔗</button>
+      <button onclick="wysiwygCode()" title="Código inline">&lt;/&gt;</button>
+      <button onclick="wysiwygHR()" title="Linha horizontal">―</button>
+      <div class="sep"></div>
+      <button class="upload-btn" onclick="document.getElementById('wysiUpload').click()" title="Upload de imagem">📷 Upload</button>
+      <input type="file" id="wysiUpload" accept="image/*" style="display:none" onchange="handleImageUpload(event)"/>
+      <button class="upload-btn" onclick="wysiwygImageUrl()" title="Inserir imagem por URL">🖼️ URL</button>
+      <div class="sep"></div>
+      <button onclick="wysiwygCmd('undo')" title="Desfazer">↩</button>
+      <button onclick="wysiwygCmd('redo')" title="Refazer">↪</button>
     </div>
-    <div class="blog-preview" id="previewBlog">
-      <div class="blog-preview-header" id="previewHeader"></div>
-      <div class="blog-preview-body" id="previewBody" contenteditable="true" spellcheck="true" style="outline:none;min-height:200px;cursor:text"></div>
+    <div class="wysiwyg-editor-wrap">
+      <div class="blog-preview" id="previewBlog">
+        <div class="blog-preview-header" id="previewHeader"></div>
+        <div class="blog-preview-body" id="previewBody" contenteditable="true" spellcheck="true" style="outline:none;min-height:300px;cursor:text"></div>
+      </div>
     </div>
   </div>
 
   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
     <button class="btn btn-secondary" onclick="switchTab('articles')">Cancelar</button>
     <button class="btn btn-danger" id="btnDeleteArticle" onclick="deleteCurrentArticle()" style="display:none">Excluir</button>
+    <button class="btn btn-secondary" onclick="syncPreviewToMarkdown()">⬇️ Sincronizar prévia → Markdown</button>
     <button class="btn btn-primary" onclick="saveArticle()" id="btnSave">💾 Salvar</button>
   </div>
+</div>
+
+<!-- Floating Save Button -->
+<div class="floating-save" id="floatingSave">
+  <button class="btn btn-primary" onclick="if(currentTab==='editor')saveArticle()" style="box-shadow:0 4px 20px rgba(204,151,255,0.3);gap:8px;padding:12px 24px">
+    💾 Salvar alterações
+  </button>
 </div>
 
 <!-- Settings -->
@@ -964,6 +1108,7 @@ function switchTab(tab) {
   if (tab === 'dashboard') loadDashboard();
   if (tab === 'articles') loadArticles();
   if (tab === 'settings') loadSettings();
+  showFloatingSave(tab === 'editor');
 }
 
 function switchEditorTab(tab) {
@@ -971,7 +1116,12 @@ function switchEditorTab(tab) {
   document.getElementById('editor-' + tab).style.display = 'block';
   document.querySelectorAll('.editor-tab').forEach(t => t.classList.remove('active'));
   document.querySelector(`.editor-tab[data-etab="${tab}"]`)?.classList.add('active');
-  if (tab === 'preview') renderPreview();
+  if (tab === 'preview') {
+    renderPreview();
+    document.getElementById('wysiwygToolbar').style.display = 'flex';
+  } else {
+    document.getElementById('wysiwygToolbar').style.display = 'none';
+  }
 }
 
 // ===== DASHBOARD =====
@@ -1139,6 +1289,133 @@ function updateCharCount() {
   el.className = 'char-count' + (len > 160 ? ' over' : len > 140 ? ' warn' : '');
 }
 
+// ===== WYSIWYG EDITOR =====
+function wysiwygCmd(cmd, val) {
+  document.getElementById('previewBody').focus();
+  document.execCommand(cmd, false, val || null);
+}
+
+function wysiwygBlock(tag) {
+  document.getElementById('previewBody').focus();
+  document.execCommand('formatBlock', false, `<${tag}>`);
+}
+
+function wysiwygLink() {
+  const url = prompt('URL do link:', 'https://');
+  if (url) {
+    document.getElementById('previewBody').focus();
+    document.execCommand('createLink', false, url);
+  }
+}
+
+function wysiwygCode() {
+  const sel = window.getSelection();
+  if (sel.rangeCount) {
+    const range = sel.getRangeAt(0);
+    const code = document.createElement('code');
+    code.textContent = range.toString() || 'código';
+    range.deleteContents();
+    range.insertNode(code);
+  }
+}
+
+function wysiwygHR() {
+  document.getElementById('previewBody').focus();
+  document.execCommand('insertHorizontalRule');
+}
+
+function wysiwygImageUrl() {
+  const url = prompt('URL da imagem:', 'https://');
+  if (url) insertImageToEditor(url);
+}
+
+function insertImageToEditor(src, alt) {
+  const body = document.getElementById('previewBody');
+  body.focus();
+  const img = document.createElement('img');
+  img.src = src;
+  img.alt = alt || '';
+  img.className = 'blog-preview-img-editable';
+  img.style.cssText = 'max-width:100%;border-radius:10px;margin:1.5rem 0;display:block';
+  img.setAttribute('onclick', 'editInlineImage(this)');
+  const sel = window.getSelection();
+  if (sel.rangeCount) {
+    const range = sel.getRangeAt(0);
+    range.collapse(false);
+    range.insertNode(img);
+    range.setStartAfter(img);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } else {
+    body.appendChild(img);
+  }
+}
+
+function editInlineImage(img) {
+  const action = prompt('Opções da imagem:\n1 = Mudar URL\n2 = Mudar legenda\n3 = Remover\nDigite 1, 2 ou 3:', '1');
+  if (!action) return;
+  if (action === '1') {
+    const newUrl = prompt('Nova URL da imagem:', img.src);
+    if (newUrl) img.src = newUrl;
+  } else if (action === '2') {
+    const newAlt = prompt('Legenda/alt text:', img.alt || '');
+    if (newAlt !== null) img.alt = newAlt;
+  } else if (action === '3') {
+    img.remove();
+  }
+}
+
+async function handleImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = '';
+
+  toast('Processando imagem...', 'success');
+
+  try {
+    const compressed = await compressImage(file, 1200, 0.8);
+    const reader = new FileReader();
+    reader.onload = () => {
+      insertImageToEditor(reader.result, file.name.replace(/\.[^.]+$/, ''));
+      toast('Imagem inserida!');
+    };
+    reader.readAsDataURL(compressed);
+  } catch (e) {
+    toast('Erro ao processar imagem: ' + e.message, 'error');
+  }
+}
+
+function compressImage(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+        else { w = Math.round(w * maxDim / h); h = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(blob => {
+        if (blob) resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+        else reject(new Error('Falha ao comprimir'));
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Falha ao carregar')); };
+    img.src = url;
+  });
+}
+
+function showFloatingSave(show) {
+  document.getElementById('floatingSave').classList.toggle('visible', show);
+}
+
 function renderPreview() {
   const title = document.getElementById('fieldTitle').value;
   const desc = document.getElementById('fieldDesc').value;
@@ -1171,7 +1448,12 @@ function renderPreview() {
   }
 
   document.getElementById('previewHeader').innerHTML = headerHtml;
-  document.getElementById('previewBody').innerHTML = (marked.parse(body || '*Nenhum conteúdo ainda...*')) + tagsHtml;
+  const bodyHtml = (marked.parse(body || '*Nenhum conteúdo ainda...*')) + tagsHtml;
+  document.getElementById('previewBody').innerHTML = bodyHtml;
+  document.querySelectorAll('#previewBody img').forEach(img => {
+    img.className = 'blog-preview-img-editable';
+    img.setAttribute('onclick', 'editInlineImage(this)');
+  });
 }
 
 function htmlToMarkdown(el) {
