@@ -717,7 +717,17 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
     </div>
     <div class="row row-2">
       <div class="form-group"><label>Tags (separadas por vírgula)</label><input id="fieldTags" class="form-control" placeholder="games, ps5, fortnite"/></div>
-      <div class="form-group"><label>Imagem (URL)</label><input id="fieldImage" class="form-control" placeholder="https://..."/></div>
+      <div class="form-group"><label>Imagem da Capa</label>
+        <div style="display:flex;gap:6px">
+          <input id="fieldImage" class="form-control" placeholder="https://..." style="flex:1" oninput="updateCoverPreview()"/>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('coverUpload').click()" title="Upload da capa">📷</button>
+          <input type="file" id="coverUpload" accept="image/*" style="display:none" onchange="handleCoverUpload(event)"/>
+        </div>
+        <div id="coverPreview" style="margin-top:8px;display:none">
+          <img id="coverPreviewImg" style="max-width:200px;border-radius:8px;border:1px solid var(--border)"/>
+          <button class="btn btn-danger btn-sm" onclick="removeCoverImage()" style="margin-left:8px">🗑️ Remover</button>
+        </div>
+      </div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px">
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.85rem;color:var(--text-sec)">
@@ -1249,6 +1259,7 @@ async function editArticle(slug) {
     switchTab('editor');
     switchEditorTab('meta');
     updateCharCount();
+    updateCoverPreview();
   } catch (e) {
     toast('Erro ao abrir artigo: ' + e.message, 'error');
   }
@@ -1561,13 +1572,46 @@ function imgUrl(url) {
 }
 
 function editPreviewImage() {
-  const current = document.getElementById('fieldImage').value;
-  const newUrl = prompt('URL da imagem da capa:', current);
-  if (newUrl !== null && newUrl.trim()) {
-    document.getElementById('fieldImage').value = newUrl.trim();
-    renderPreview();
-    toast('Imagem da capa atualizada!');
+  document.getElementById('coverUpload').click();
+}
+
+function updateCoverPreview() {
+  const val = document.getElementById('fieldImage').value.trim();
+  const preview = document.getElementById('coverPreview');
+  const img = document.getElementById('coverPreviewImg');
+  if (val) {
+    img.src = imgUrl(val);
+    img.onerror = () => { preview.style.display = 'none'; };
+    img.onload = () => { preview.style.display = 'block'; };
+    if (img.complete && img.naturalWidth > 0) preview.style.display = 'block';
+    else preview.style.display = 'none';
+  } else {
+    preview.style.display = 'none';
   }
+}
+
+async function handleCoverUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = '';
+  toast('Processando imagem da capa...', 'success');
+  try {
+    const compressed = await compressImage(file, 1200, 0.8);
+    const reader = new FileReader();
+    reader.onload = () => {
+      document.getElementById('fieldImage').value = reader.result;
+      updateCoverPreview();
+      toast('Imagem da capa inserida!');
+    };
+    reader.readAsDataURL(compressed);
+  } catch (e) {
+    toast('Erro ao processar imagem: ' + e.message, 'error');
+  }
+}
+
+function removeCoverImage() {
+  document.getElementById('fieldImage').value = '';
+  document.getElementById('coverPreview').style.display = 'none';
 }
 
 async function saveArticle() {
