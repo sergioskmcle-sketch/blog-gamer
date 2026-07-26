@@ -7,9 +7,14 @@ const count = fs.existsSync(artsDir) ? fs.readdirSync(artsDir).filter(f => f.end
 let state = {};
 try { state = JSON.parse(fs.readFileSync("state.json", "utf-8")); } catch(e) {}
 
+const CATEGORY_ROTATION = ["noticia", "review", "guia", "lista", "promocao"];
+const nextIdx = (CATEGORY_ROTATION.indexOf(state.last_category) + 1) % CATEGORY_ROTATION.length;
+
 const status = {
   ultimo_artigo: state.last_success || "nunca",
   ultimo_deploy: new Date().toISOString(),
+  ultima_categoria: state.last_category || "nenhuma",
+  proxima_categoria: CATEGORY_ROTATION[nextIdx],
   artigos_semana: count,
   total_artigos: count,
   erros_recentes: state.last_error ? [state.last_error_date + ": " + state.last_error] : [],

@@ -21,7 +21,7 @@ function loadState() {
       return JSON.parse(fs.readFileSync(STATE_FILE, "utf-8"));
     }
   } catch {}
-  return { last_success: null, last_error: null, last_error_date: null, consecutive_failures: 0, total_articles: 0 };
+  return { last_success: null, last_error: null, last_error_date: null, consecutive_failures: 0, total_articles: 0, last_category: null };
 }
 
 function saveState(state) {
@@ -35,6 +35,13 @@ const CATEGORIES = [
   { slug: "lista", name: "Lista" },
   { slug: "promocao", name: "Promoção" },
 ];
+
+const CATEGORY_ROTATION = ["noticia", "review", "guia", "lista", "promocao"];
+
+function nextCategory(lastCategory) {
+  const idx = CATEGORY_ROTATION.indexOf(lastCategory);
+  return CATEGORY_ROTATION[(idx + 1) % CATEGORY_ROTATION.length];
+}
 
 const TOPIC_SEEDS = [
   { category: "noticia", hint: "lancamento de game, evento de games, anuncio de console, placa de video", ml_query: "lancamento games 2026" },
@@ -1092,6 +1099,10 @@ async function main() {
     log("INFO", `Tema trending (${trendingSource}): [${topic.category}] ${topic.hint}`);
   }
 
+  const assignedCategory = nextCategory(state.last_category || "");
+  topic.category = assignedCategory;
+  log("INFO", `Categoria esteira: ${topic.category} (anterior: ${state.last_category || "nenhuma"})`);
+
   let researchContext = "";
   try {
     const query = topic.category === "noticia"
@@ -1482,6 +1493,7 @@ ${body}
   state.consecutive_failures = 0;
   state.total_articles = countArticlesInDir();
   state.last_topic = topic.hint;
+  state.last_category = topic.category;
   state.trending_source = trendingSource;
   state.recent_keywords = topic.trending_keywords || [];
   state.recent_topics = [...((state.recent_topics || []).slice(-9)), topic.hint.slice(0, 60)];
