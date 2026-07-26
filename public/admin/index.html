@@ -1015,7 +1015,13 @@ async function loadArticles() {
 
     const promises = mdFiles.map(async (f) => {
       try {
-        const content = decodeB64(f.content || '');
+        let content = '';
+        if (f.content) {
+          content = decodeB64(f.content);
+        } else {
+          const file = await getFile(`${ARTICLES_PATH}/${f.name}`);
+          if (file) content = file.content;
+        }
         const { frontmatter } = parseFrontmatter(content);
         return {
           slug: f.name.replace('.md', ''),
@@ -1028,7 +1034,10 @@ async function loadArticles() {
     });
 
     articles = await Promise.all(promises);
-    articles.sort((a, b) => new Date(b.pubDate || 0).getTime() - new Date(a.pubDate || 0).getTime());
+    articles.sort((a, b) => {
+      const d = new Date(b.pubDate || 0).getTime() - new Date(a.pubDate || 0).getTime();
+      return d !== 0 ? d : (a.slug || '').localeCompare(b.slug || '');
+    });
 
     articles.forEach(a => { articleShas[a.slug] = a.sha; });
     document.getElementById('articleCount').textContent = articles.length;
@@ -1042,9 +1051,8 @@ async function loadArticles() {
 
     tbody.innerHTML = articles.map(a => {
       const catClass = { noticia: 'badge-green', review: 'badge-purple', guia: 'badge-orange', lista: 'badge-purple', promocao: 'badge-orange', lancamento: 'badge-green', curiosidade: 'badge-orange', tutorial: 'badge-green', comparativo: 'badge-purple' }[a.category] || 'badge-purple';
-      let imgUrl = a.image || '';
-      if (imgUrl && !imgUrl.startsWith('http')) imgUrl = `https://sergioskmcle-sketch.github.io${imgUrl.startsWith('/') ? '' : '/'}${imgUrl}`;
-      const img = imgUrl ? `<img class="article-card-img" src="${imgUrl}" alt="${a.title || ''}" loading="lazy" decoding="async" onerror="this.outerHTML='<div class=\\'article-card-placeholder\\'>🎮</div>'"/>` : '<div class="article-card-placeholder">🎮</div>';
+      const imgSrc = imgUrl(a.image);
+      const img = imgSrc ? `<img class="article-card-img" src="${imgSrc}" alt="${a.title || ''}" loading="lazy" decoding="async" onerror="this.outerHTML='<div class=\\'article-card-placeholder\\'>🎮</div>'"/>` : '<div class="article-card-placeholder">🎮</div>';
       return `<div class="article-card" onclick="editArticle('${a.slug}')">
         ${img}
         <div class="article-card-body">
@@ -1144,9 +1152,10 @@ function renderPreview() {
   const formattedDate = date ? new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
 
   let headerHtml = '';
-  if (image) headerHtml += `<img class="blog-preview-hero" src="${image}" alt="${title}" onerror="this.style.display='none'"/>`;
-  if (title) headerHtml += `<h1>${title}</h1>`;
-  if (desc) headerHtml += `<p class="blog-preview-desc">${desc}</p>`;
+  if (image) headerHtml += `<img class="blog-preview-hero" src="${imgUrl(image)}" alt="${title}" onerror="this.style.display='none'" onclick="editPreviewImage()" style="cursor:pointer" title="Clique para mudar a imagem"/>`;
+  else headerHtml += `<div class="blog-preview-hero" onclick="editPreviewImage()" style="cursor:pointer;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);color:var(--text-muted);font-size:1rem" title="Clique para adicionar imagem">📷 Clique para adicionar imagem</div>`;
+  if (title) headerHtml += `<h1 contenteditable="true" id="previewTitleEditable" style="cursor:text" title="Edite o título diretamente">${title}</h1>`;
+  if (desc) headerHtml += `<p class="blog-preview-desc" contenteditable="true" id="previewDescEditable" style="cursor:text" title="Edite a descrição diretamente">${desc}</p>`;
   headerHtml += `<div class="blog-preview-meta">`;
   headerHtml += `<span>BLOG GAMER</span>`;
   if (formattedDate) headerHtml += `<span>•</span><span>${formattedDate}</span>`;
@@ -1227,7 +1236,29 @@ function syncPreviewToMarkdown() {
   let md = htmlToMarkdown(bodyEl);
   md = md.replace(/\n{3,}/g, '\n\n').trim();
   document.getElementById('fieldBody').value = md;
-  toast('Conteúdo sincronizado para Markdown!');
+
+  const titleEl = document.getElementById('previewTitleEditable');
+  if (titleEl) document.getElementById('fieldTitle').value = titleEl.textContent.trim();
+
+  const descEl = document.getElementById('previewDescEditable');
+  if (descEl) document.getElementById('fieldDesc').value = descEl.textContent.trim();
+
+  toast('Conteúdo, título e descrição sincronizados!');
+}
+
+function imgUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  return `https://sergioskmcle-sketch.github.io${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+function editPreviewImage() {
+  const current = document.getElementById('fieldImage').value;
+  const newUrl = prompt('URL da imagem da capa:', current);
+  if (newUrl !== null) {
+    document.getElementById('fieldImage').value = newUrl;
+    renderPreview();
+  }
 }
 
 async function saveArticle() {
