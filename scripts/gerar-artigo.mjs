@@ -838,7 +838,7 @@ function computeMaxTokens(systemPrompt, userPrompt) {
   return Math.min(GROQ_MAX_OUTPUT, available);
 }
 
-async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 8, opts = {}) {
+async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
   const url = "https://api.groq.com/openai/v1/chat/completions";
   const body = {
     model: "openai/gpt-oss-120b",
@@ -853,6 +853,8 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 8, opts = {}) {
   if (body.max_tokens < 1000) {
     throw new Error(`Groq: prompt grande demais — sobram so ${body.max_tokens} tokens de saida no limite de ${GROQ_TPM_LIMIT} TPM`);
   }
+  const startTime = Date.now();
+  const MAX_TOTAL_WAIT = 5 * 60 * 1000;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       log("INFO", `Groq: tentativa ${attempt}/${maxAttempts}...`);
@@ -862,7 +864,12 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 8, opts = {}) {
         body: JSON.stringify(body),
       });
       if (res.status === 429 || res.status === 503 || res.status === 502) {
-        const wait = Math.min(30 * Math.pow(2, attempt - 1), 1800);
+        const elapsed = Date.now() - startTime;
+        if (elapsed > MAX_TOTAL_WAIT) {
+          log("ERROR", `Groq: timeout total de ${MAX_TOTAL_WAIT / 1000}s atingido, desistindo`);
+          throw new Error(`Groq: timeout total apos ${attempt} tentativas`);
+        }
+        const wait = Math.min(15 * Math.pow(2, attempt - 1), 120);
         log("WARN", `Groq: ${res.status}, aguardando ${wait}s (tentativa ${attempt}/${maxAttempts})...`);
         await sleep(wait * 1000);
         continue;
@@ -891,7 +898,7 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 8, opts = {}) {
       return choice.message.content;
     } catch (err) {
       if (err.fatal || attempt === maxAttempts) throw err;
-      const wait = Math.min(10 * Math.pow(2, attempt - 1), 300);
+      const wait = Math.min(10 * Math.pow(2, attempt - 1), 60);
       log("WARN", `Groq: erro "${err.message.slice(0,80)}", retentando em ${wait}s...`);
       await sleep(wait * 1000);
     }
