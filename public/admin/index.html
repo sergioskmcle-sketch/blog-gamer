@@ -1369,14 +1369,13 @@ function editInlineImage(img) {
   const existing = document.getElementById('imgToolbar');
   if (existing) existing.remove();
 
-  const rect = img.getBoundingClientRect();
   const toolbar = document.createElement('div');
   toolbar.id = 'imgToolbar';
   toolbar.style.cssText = `
-    position:fixed; top:${rect.bottom + 8}px; left:${rect.left}px;
-    background:var(--bg-elevated); border:1px solid var(--border); border-radius:10px;
-    padding:8px; display:flex; gap:4px; z-index:500;
-    box-shadow:0 8px 24px rgba(0,0,0,0.4);
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    background:var(--bg-elevated); border:1px solid var(--border); border-radius:12px;
+    padding:12px 16px; display:flex; gap:6px; z-index:500;
+    box-shadow:0 12px 40px rgba(0,0,0,0.5);
   `;
   toolbar.innerHTML = `
     <button class="btn btn-secondary btn-sm" id="imgBtnEdit" style="font-size:0.75rem">✏️ Editar URL</button>
@@ -1410,13 +1409,13 @@ function editInlineImage(img) {
     }
   };
 
-  const close = (e) => {
-    if (!toolbar.contains(e.target) && e.target !== img) {
+  const closeToolbar = (e) => {
+    if (!toolbar.contains(e.target) && e.target !== img && !img.contains(e.target)) {
       toolbar.remove();
-      document.removeEventListener('click', close);
+      document.removeEventListener('click', closeToolbar);
     }
   };
-  setTimeout(() => document.addEventListener('click', close), 100);
+  setTimeout(() => document.addEventListener('click', closeToolbar), 50);
 }
 
 async function handleImageUpload(event) {
@@ -1483,7 +1482,12 @@ function renderPreview() {
 
   let headerHtml = '';
   if (image) headerHtml += `<img class="blog-preview-hero" src="${imgUrl(image)}" alt="${title}" onerror="this.style.display='none'" onclick="editPreviewImage()" style="cursor:pointer" title="Clique para mudar a imagem"/>`;
-  else headerHtml += `<div class="blog-preview-hero" onclick="editPreviewImage()" style="cursor:pointer;display:flex;align-items:center;justify-content:center;background:var(--bg-elevated);color:var(--text-muted);font-size:1rem;gap:8px" title="Clique para adicionar imagem da capa"><span style="font-size:1.5rem">📷</span> <span>Clique para adicionar imagem da capa</span></div>`;
+  else headerHtml += `
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:32px;margin-bottom:24px;background:var(--bg-elevated);border:2px dashed var(--border);border-radius:10px;cursor:pointer" onclick="document.getElementById('coverUpload').click()">
+      <span style="font-size:2rem">📷</span>
+      <span style="color:var(--text-muted);font-size:0.9rem">Clique para adicionar imagem da capa</span>
+      <span style="color:var(--text-muted);font-size:0.75rem">ou cole a URL no campo "Imagem da Capa" nos Metadados</span>
+    </div>`;
   if (title) headerHtml += `<h1 contenteditable="true" id="previewTitleEditable" style="cursor:text" title="Edite o título diretamente">${title}</h1>`;
   if (desc) headerHtml += `<p class="blog-preview-desc" contenteditable="true" id="previewDescEditable" style="cursor:text" title="Edite a descrição diretamente">${desc}</p>`;
   headerHtml += `<div class="blog-preview-meta">`;
