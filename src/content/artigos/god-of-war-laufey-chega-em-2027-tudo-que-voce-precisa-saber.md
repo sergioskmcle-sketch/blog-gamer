@@ -2,8 +2,13 @@
 title: "God of war Laufey chega em 2027: tudo que você precisa saber"
 description: "Descubra a data de lançamento de God of War Laufey, o que muda para quem tem Ragnarok e como garantir seu próximo título na PS5. Tudo com análise sincera."
 pubDate: 2026-07-26
-tags: ["god of war", "lancamento", "ps5", "ragnarok", "final fantasy"]
-category: "noticia"
+tags:
+  - "god of war"
+  - "lancamento"
+  - "ps5"
+  - "ragnarok"
+  - "final fantasy"
+category: noticia
 affiliate: true
 image: "https://media.rawg.io/media/crop/600/400/screenshots/6dc/6dc941f6e619f59ec849d7f681e72c46.jpg?auto=format&fit=crop&w=800&h=450"
 ---
