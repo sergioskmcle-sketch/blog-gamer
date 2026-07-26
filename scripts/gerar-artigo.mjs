@@ -145,9 +145,12 @@ function isTopicDuplicate(keyword, existingTopics, recentKeywords = []) {
   return false;
 }
 
-function buildTopicFromKeyword(topKeyword, topKeywords, existingTopics = []) {
+function buildTopicFromKeyword(topKeyword, topKeywords, existingTopics = [], recentKeywords = []) {
   const kw = topKeyword.toLowerCase();
-  const top3 = topKeywords.map(([k]) => k);
+  const top3 = topKeywords.map(([k]) => k).filter(k =>
+    k.toLowerCase() !== kw && !isTopicDuplicate(k, existingTopics, recentKeywords)
+  );
+  if (top3.length === 0) top3.push(kw);
   const ctx = top3.slice(0, 3).join(", ");
   const top2names = top3.slice(0, 2).join(" ");
 
@@ -316,7 +319,7 @@ async function discoverTrendingTopic(existingTopics = [], recentKeywords = []) {
       log("INFO", `Topico "${kw}" ja usado recentemente, tentando proximo...`);
       continue;
     }
-    const topic = buildTopicFromKeyword(kw, trending.slice(0, 3), existingTopics);
+    const topic = buildTopicFromKeyword(kw, trending.slice(0, 3), existingTopics, recentKeywords);
     log("INFO", `Tema escolhido (keyword): [${topic.category}] ${topic.hint}`);
     return topic;
   }
@@ -936,7 +939,12 @@ async function fetchOpenAI(systemPrompt, userPrompt, opts = {}) {
           throw new Error(`OpenAI: timeout total apos ${attempt} tentativas`);
         }
         const wait = Math.min(15 * Math.pow(2, attempt - 1), 60);
-        log("WARN", `OpenAI: ${res.status}, aguardando ${wait}s (tentativa ${attempt}/3)...`);
+        const rl = {
+          remaining: res.headers.get("x-ratelimit-remaining"),
+          limit: res.headers.get("x-ratelimit-limit"),
+          reset: res.headers.get("x-ratelimit-reset"),
+        };
+        log("WARN", `OpenAI: ${res.status}, rate-limit: ${JSON.stringify(rl)}, aguardando ${wait}s (tentativa ${attempt}/3)...`);
         await sleep(wait * 1000);
         continue;
       }
