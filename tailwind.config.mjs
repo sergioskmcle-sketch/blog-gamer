@@ -75,7 +75,7 @@ export default {
         xl: "32px",
         xxl: "48px",
         gutter: "24px",
-        "max-content-width": "780px",
+        "max-content-width": "960px",
         "margin-desktop": "32px",
       },
       fontFamily: {
@@ -87,7 +87,7 @@ export default {
         code: ['"Public Sans"', "monospace", ...defaultTheme.fontFamily.sans],
       },
       fontSize: {
-        body: ["1rem", { lineHeight: "1.7", fontWeight: "400" }],
+        body: ["1.125rem", { lineHeight: "1.7", fontWeight: "400" }],
         code: ["0.875rem", { lineHeight: "1.6", fontWeight: "400" }],
         h2: ["1.75rem", { lineHeight: "1.3", letterSpacing: "-0.01em", fontWeight: "700" }],
         h1: ["2.5rem", { lineHeight: "1.2", letterSpacing: "-0.02em", fontWeight: "800" }],
@@ -95,7 +95,7 @@ export default {
       },
       maxWidth: {
         content: "780px",
-        page: "1280px",
+        page: "1440px",
         "page-narrow": "1100px",
       },
     },

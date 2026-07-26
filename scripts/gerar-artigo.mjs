@@ -908,6 +908,7 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
       await sleep(wait * 1000);
     }
   }
+  throw new Error(`Groq: todas as ${maxAttempts} tentativas falharam`);
 }
 
 async function fetchOpenAI(systemPrompt, userPrompt, opts = {}) {
@@ -938,13 +939,15 @@ async function fetchOpenAI(systemPrompt, userPrompt, opts = {}) {
           log("ERROR", `OpenAI: timeout total de ${MAX_TOTAL_WAIT / 1000}s atingido`);
           throw new Error(`OpenAI: timeout total apos ${attempt} tentativas`);
         }
+        const errBody = await res.text().catch(() => "(sem body)");
         const wait = Math.min(15 * Math.pow(2, attempt - 1), 60);
         const rl = {
           remaining: res.headers.get("x-ratelimit-remaining"),
           limit: res.headers.get("x-ratelimit-limit"),
           reset: res.headers.get("x-ratelimit-reset"),
+          retryAfter: res.headers.get("retry-after"),
         };
-        log("WARN", `OpenAI: ${res.status}, rate-limit: ${JSON.stringify(rl)}, aguardando ${wait}s (tentativa ${attempt}/3)...`);
+        log("WARN", `OpenAI: ${res.status}, rate-limit: ${JSON.stringify(rl)}, body: ${errBody.slice(0, 200)}, aguardando ${wait}s (tentativa ${attempt}/3)...`);
         await sleep(wait * 1000);
         continue;
       }
@@ -970,6 +973,7 @@ async function fetchOpenAI(systemPrompt, userPrompt, opts = {}) {
       await sleep(wait * 1000);
     }
   }
+  throw new Error(`OpenAI: todas as 3 tentativas falharam`);
 }
 
 async function fetchLLM(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
