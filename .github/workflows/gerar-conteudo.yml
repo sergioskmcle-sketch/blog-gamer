@@ -65,6 +65,7 @@ jobs:
           git config user.email "bot@blog-gamer.com"
           git add -A
           git commit -m "feat: artigo gerado automaticamente"
+          git pull --rebase origin main
           git push
 
       - name: Disparar deploy
