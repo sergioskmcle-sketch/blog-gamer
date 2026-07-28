@@ -15,9 +15,9 @@ O blog se auto-gerencia. Para verificar a saúde do sistema, abra o [`status.jso
 ```json
 {
   "saudavel": true,
-  "ultimo_artigo": "2026-07-23",
-  "ultimo_deploy": "2026-07-23T20:14:40Z",
-  "total_artigos": 24,
+  "ultimo_artigo": "2026-07-28",
+  "ultimo_deploy": "2026-07-28T17:45:00Z",
+  "total_artigos": 32,
   "erros_recentes": [],
   "apis": { "groq": "ok", "tavily": "ok", "rawg": "ok" }
 }
@@ -386,9 +386,32 @@ node scripts/convert-banners.mjs       # Converter banners PNG → WebP
 
 | Workflow | Gatilho | Função |
 |----------|---------|--------|
-| **Gerar Conteudo Automatico** | Cron (2 dias) + manual | Artigo diário com trending, produtos e deploy |
+| **Gerar Conteudo Automatico** | Cron (2 dias) + manual | Artigo a cada 2 dias com trending, produtos e deploy |
 | **Gerar Artigo Pilar** | Manual | Guia completo 3000+ palavras com 12+ produtos |
 | **Deploy Blog Gamer** | Push + manual | Build e deploy GitHub Pages |
+
+---
+
+## Troubleshooting
+
+### O blog parou de publicar artigos
+
+1. Verifique o [`status.json`](https://sergioskmcle-sketch.github.io/blog-gamer/status.json)
+2. Veja os logs do workflow `Gerar Conteudo Automatico` em **Actions**
+3. Erro comum já corrigido (jul/2026): `Cannot read properties of undefined (reading 'slice')` — ocorria quando o script tentava logar um erro da API sem validar se a mensagem existia. O tratamento de erros agora converte valores `undefined` para string antes de usar `.slice()`.
+4. Verifique se as chaves dos secrets ainda são válidas (`GROQ_API_KEY`, `TAVILY_API_KEY`, etc.)
+
+### Consumo do GROQ
+
+O blog faz poucas chamadas ao GROQ (geralmente 2–3 por artigo, a cada 2 dias). Se você usa a mesma conta do GROQ em outros projetos, o consumo compartilhado pode chegar ao limite gratuito:
+
+| Projeto | Chamadas/24h |
+|---------|-------------|
+| blog-gamer | ~44 |
+| monitor-telegram | ~270 |
+| **Limite gratuito** | **6.000** |
+
+Se o total se aproximar do limite, considere uma conta GROQ separada para o blog.
 
 ---
 

@@ -1296,4 +1296,63 @@ O sistema envia tudo para o Groq (modelo llama-3.3-70b-versatile):
 
 ---
 
+## 13. Como Saber se o Blog Está Funcionando
+
+```
+┌─────────────────────────────────────────────────────────────┐
+  ONDE OLHAR PARA VERIFICAR A SAÚDE DO BLOG                  │
+│                                                             │
+│  1. status.json (raiz do repositório)                       │
+│     → Mostra último sucesso, último erro e falhas seguidas  │
+│                                                             │
+│  2. public/status.json (site publicado)                     │
+│     → Mostra saúde geral, total de artigos e status das APIs│
+│                                                             │
+│  3. GitHub Actions → aba "Actions"                          │
+│     → Mostra se o workflow rodou e se deu erro             │
+│                                                             │
+│  4. Dashboard do GROQ (console.groq.com)                    │
+│     → Mostra chamadas e tokens usados nas últimas 24h      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Campos importantes do `state.json`
+
+```
+┌───────────────────────┬────────────────────────────────────────┐
+│  CAMPO                │  SIGNIFICADO                           │
+├───────────────────────┼────────────────────────────────────────┤
+│  last_success         │  Data do último artigo publicado       │
+│  last_error           │  Mensagem do último erro               │
+│  consecutive_failures │  Quantas falhas seguidas aconteceram   │
+│  total_articles       │  Total de artigos no blog              │
+└───────────────────────┴────────────────────────────────────────┘
+```
+
+Se `consecutive_failures` for maior que 0 e `last_error` não for `null`, algo deu errado na geração.
+
+### Erro comum já corrigido
+
+Em julho de 2026, o workflow começou a falhar com:
+
+```
+Cannot read properties of undefined (reading 'slice')
+```
+
+Esse erro acontecia no tratamento de erros do script. Quando uma API (GROQ, Tavily, OpenAI, etc.) retornava um erro sem uma mensagem de texto, o script tentava cortar essa mensagem com `.slice()` e quebrava. A correção foi validar se o valor existe antes de usar `.slice()`.
+
+### Consumo de API
+
+O blog usa poucas chamadas de API comparado a outros projetos:
+
+| Serviço | Uso típico do blog |
+|---------|-------------------|
+| GROQ | 2–3 chamadas a cada 2 dias |
+| Tavily | 1–2 buscas a cada 2 dias |
+| RAWG | 5–10 buscas a cada 2 dias |
+
+Se o mesmo e-mail do GROQ for usado em outro projeto (como o `monitor-telegram`), o consumo total da conta é somado. No momento, o consumo está tranquilo: cerca de 314 chamadas em 24h, bem abaixo do limite gratuito de 6.000.
+
+---
+
 *Este documento foi criado para análise do pipeline do blog. Explica todos os processos de geração de artigos, desde a pesquisa até a postagem.*
