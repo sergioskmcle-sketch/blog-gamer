@@ -46,7 +46,8 @@ async function fetchGroq(systemPrompt, userPrompt, maxTokens = 4096) {
       }
       if (!res.ok) {
         const err = await res.text();
-        throw new Error(`Groq ${res.status}: ${err.slice(0, 300)}`);
+        const errText = typeof err === "string" ? err : String(err);
+        throw new Error(`Groq ${res.status}: ${errText.slice(0, 300)}`);
       }
       const data = await res.json();
       if (!data.choices?.[0]?.message?.content)
@@ -55,7 +56,8 @@ async function fetchGroq(systemPrompt, userPrompt, maxTokens = 4096) {
     } catch (err) {
       if (attempt === 5) throw err;
       const wait = Math.min(10 * Math.pow(2, attempt - 1), 60);
-      log("WARN", `Groq: erro "${err.message.slice(0, 80)}", retentando em ${wait}s...`);
+      const errMsg = err?.message || String(err);
+      log("WARN", `Groq: erro "${errMsg.slice(0, 80)}", retentando em ${wait}s...`);
       await sleep(wait * 1000);
     }
   }

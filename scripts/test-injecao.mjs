@@ -27,17 +27,17 @@ const corpo = `## Introducao
 
 Texto de abertura sobre o tema com um fato concreto.
 
-## Resident Evil Requiem lidera as vendas
+## Headset Gamer HyperX Cloud II lidera as vendas
 
-Paragrafo falando de **Resident Evil Requiem** e do desempenho no PS5.
+Paragrafo falando do **Headset Gamer HyperX Cloud II** e do desempenho no PC.
 
-[IMG:Resident Evil Requiem]
+[IMG:Headset Gamer HyperX Cloud II]
 
-Mais um paragrafo sobre audio no jogo, onde um headset faz diferenca.
+Mais um paragrafo sobre audio no headset, onde a qualidade sonora faz diferenca.
 
 [PRODUTO:1]
 
-## Perifericos que ajudam na mira
+## Mouses que ajudam na mira
 
 Paragrafo sobre mouse e precisao.
 
@@ -47,12 +47,12 @@ Paragrafo sobre mouse e precisao.
 - [PSX](http://psx.com)`;
 
 // --- marcadores de imagem ---
-igual(extractImageMarkers(corpo), ["Resident Evil Requiem"], "extrai marcador IMG");
+igual(extractImageMarkers(corpo), ["Headset Gamer HyperX Cloud II"], "extrai marcador IMG");
 
-let out = injectGameImages(corpo, { "Resident Evil Requiem": "http://rawg/re.jpg" }, true);
+let out = injectGameImages(corpo, { "Headset Gamer HyperX Cloud II": "http://rawg/re.jpg" }, true);
 ok(out.includes('<img src="http://rawg/re.jpg"'), "imagem injetada no marcador");
 ok(!out.includes("[IMG:"), "marcador consumido");
-ok(/desempenho no PS5\.\n\n<img/.test(out), "imagem depois do paragrafo inteiro, sem cortar frase");
+ok(/desempenho no PC\.\n\n<img/.test(out), "imagem depois do paragrafo inteiro, sem cortar frase");
 
 const semImg = injectGameImages(corpo, {}, true);
 ok(!semImg.includes("[IMG:"), "marcador sem imagem no RAWG e removido");
@@ -62,7 +62,7 @@ ok(semImg.includes("Mais um paragrafo"), "texto ao redor preservado");
 out = injectProductCards(out, produtos);
 const posBtn1 = out.indexOf('href="http://ml/1"');
 const posBtn2 = out.indexOf('href="http://ml/2"');
-const posSecMira = out.indexOf("## Perifericos que ajudam na mira");
+const posSecMira = out.indexOf("## Mouses que ajudam na mira");
 ok(posBtn1 > 0 && posBtn2 > 0, "dois cards injetados");
 ok(posBtn1 < posSecMira, "card 1 no trecho sobre audio");
 ok(posBtn2 > posSecMira, "card 2 no trecho sobre mira");
@@ -72,7 +72,7 @@ ok(!out.includes("[PRODUTO:"), "marcadores de produto consumidos");
 const semMarcador = corpo.replace(/\[PRODUTO:\d\]\n\n/g, "");
 const fb = injectProductCards(semMarcador, produtos);
 ok(fb.includes('href="http://ml/1"') && fb.includes('href="http://ml/2"'), "fallback injeta os dois produtos");
-ok(fb.indexOf('href="http://ml/1"') < fb.indexOf("## Resident Evil Requiem lidera"), "fallback posiciona antes do 2o heading");
+ok(fb.indexOf('href="http://ml/1"') < fb.indexOf("## Headset Gamer HyperX Cloud II lidera"), "fallback posiciona antes do 2o heading");
 
 // IA usou um marcador e omitiu o outro de proposito — sem fallback forcado
 const parcial = corpo.replace("[PRODUTO:2]\n\n", "");
@@ -183,22 +183,22 @@ ok(checkTitle("Lancamento 2026: novidades que vao mexer no setup", "lancamento")
 
 // --- validate ---
 const fm = {
-  title: "Resident Evil Requiem: 5 Novidades do Update 1.31 no PS5",
-  description: "x".repeat(130), pubDate: "2026-07-23", category: "noticia",
+  title: "Headset Gamer HyperX Cloud II: Analise Completa do Audio em 2026",
+  description: "x".repeat(130), pubDate: "2026-07-23", category: "guia",
   tags: ["a", "b", "c"], affiliate: true,
 };
-const corpoLongo = corpo + "\n\n" + "palavra ".repeat(700);
-let r = validate(fm, corpoLongo, { category: "noticia", productCount: 2, primaryKeyword: "resident evil" });
+const corpoLongo = corpo + "\n\n" + "palavra ".repeat(900);
+let r = validate(fm, corpoLongo, { category: "guia", productCount: 2, primaryKeyword: "headset gamer" });
 igual(r.hard, [], "artigo bom: sem bloqueantes");
 igual(r.soft, [], "artigo bom: sem alertas");
 
 r = validate(fm, corpoLongo + "\nO headset custa R$ 349,90 no varejo.", {
-  category: "noticia", productCount: 2, productPrices: [349.9], primaryKeyword: "resident evil",
+  category: "guia", productCount: 2, productPrices: [349.9], primaryKeyword: "headset gamer",
 });
 ok(r.soft.some((e) => /preco de produto em prosa/.test(e)), "detecta preco de produto repetido no texto");
 
 const semMarcadores = corpoLongo.replace(/\[PRODUTO:\d\]/g, "").replace(/\[IMG:[^\]]+\]/g, "");
-r = validate(fm, semMarcadores, { category: "noticia", productCount: 2, primaryKeyword: "resident evil" });
+r = validate(fm, semMarcadores, { category: "guia", productCount: 2, primaryKeyword: "headset gamer" });
 ok(r.soft.some((e) => /PRODUTO/.test(e)), "gate de produto dispara sem marcador");
 ok(r.soft.some((e) => /IMG/.test(e)), "gate de imagem dispara sem marcador");
 igual(r.hard, [], "falta de marcador nao bloqueia publicacao, so forca regeracao");
@@ -206,7 +206,7 @@ igual(r.hard, [], "falta de marcador nao bloqueia publicacao, so forca regeracao
 // piso de palavras por categoria
 r = validate(fm, corpo, { category: "guia", productCount: 0 });
 ok(r.hard.some((e) => /muito curto/.test(e)), "guia curto bloqueia");
-const corpoMedio = corpo + "\n\n" + "palavra ".repeat(700);
+const corpoMedio = corpo + "\n\n" + "palavra ".repeat(650);
 r = validate(fm, corpoMedio, { category: "guia", productCount: 0 });
 ok(r.hard.some((e) => /muito curto/.test(e)), "abaixo do minimo bloqueia e forca regeracao");
 r = validate(fm, corpoMedio, { category: "guia", productCount: 0, lastAttempt: true });

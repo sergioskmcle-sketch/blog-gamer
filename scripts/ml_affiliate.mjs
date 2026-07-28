@@ -5,6 +5,7 @@ const ML_BASE = "https://www.mercadolivre.com.br";
 const API_BASE = "https://api.mercadolibre.com";
 const CREATE_LINK = "/affiliate-program/api/v2/affiliates/createLink";
 const STRIPE_LINK = "/affiliate-program/api/v2/stripe/user/links";
+const AFFILIATE_TAG = process.env.ML_AFFILIATE_TAG || "sergioskm";
 const SESSION_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
   "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
@@ -82,7 +83,10 @@ export async function getMLToken(clientId, clientSecret) {
     headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
     body: `grant_type=client_credentials&client_id=${clientId}&client_secret=${clientSecret}`,
   });
-  if (!res.ok) throw new Error(`ML token: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`ML token: ${res.status} — ${body.slice(0, 200)}`);
+  }
   const data = await res.json();
   return data.access_token;
 }
@@ -369,7 +373,7 @@ export async function generateAffiliateLink(productUrl, cookiePath) {
     const r2 = await fetchWithSession(ML_BASE + CREATE_LINK, jar, {
       method: "POST",
       headers: apiHeaders,
-      body: JSON.stringify({ urls: [affiliateUrl], tag: "sergioskm" }),
+      body: JSON.stringify({ urls: [affiliateUrl], tag: AFFILIATE_TAG }),
     });
 
     if (r2.ok) {
@@ -383,7 +387,7 @@ export async function generateAffiliateLink(productUrl, cookiePath) {
     const r3 = await fetchWithSession(ML_BASE + STRIPE_LINK, jar, {
       method: "POST",
       headers: apiHeaders,
-      body: JSON.stringify({ url: affiliateUrl, tag: "sergioskm" }),
+      body: JSON.stringify({ url: affiliateUrl, tag: AFFILIATE_TAG }),
     });
 
     if (r3.ok) {

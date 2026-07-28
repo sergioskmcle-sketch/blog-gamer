@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { pathToFileURL } from "url";
 import Parser from "rss-parser";
-import { searchML, generateAffiliateLink, searchMLviaGoogle } from "./ml_affiliate.mjs";
+import { generateAffiliateLink, searchMLviaGoogle } from "./ml_affiliate.mjs";
 import { gerarCapaOpenAI } from "./openai-cover.mjs";
 
 const rssParser = new Parser({
@@ -44,11 +44,11 @@ function nextCategory(lastCategory) {
 }
 
 const TOPIC_SEEDS = [
-  { category: "noticia", hint: "lancamento de game, evento de games, anuncio de console, placa de video", ml_query: "lancamento games 2026" },
+  { category: "noticia", hint: "lancamento de game, evento de games, anuncio de console", ml_query: "lancamento jogo ps5 xbox 2026" },
   { category: "review", hint: "review de jogo popular, analise de gameplay, dicas de jogo", ml_query: "jogo popular ps5 xbox switch" },
   { category: "guia", hint: "melhores headsets gamers, teclado mecanico, mouse gamer, monitor, cadeira", ml_query: "headset gamer teclado mecanico mouse gamer monitor" },
   { category: "lista", hint: "melhores jogos para PC, jogos gratis, jogos multiplayer, jogos estilo", ml_query: "jogo pc mais vendido 2026" },
-  { category: "promocao", hint: "promocoes Steam, ofertas de games, descontos em perifericos gamers", ml_query: "promocao jogo pc periferico gamer" },
+  { category: "promocao", hint: "promocoes Steam, ofertas de games e descontos em jogos", ml_query: "promocao jogo pc steam" },
 ];
 
 const RSS_FEEDS = [
@@ -102,6 +102,52 @@ function initKeywordMap() {
 
 initKeywordMap();
 
+// Classifica um texto como "games" (jogos/consoles/software) ou "hardware" (periféricos/PC)
+// Retorna tambem "promo" (termos genericos de promocao), "mixed" (ambos) ou "unknown".
+function classifyDomain(text) {
+  // Ignora a secao de Fontes, que e obrigatoria em todo artigo e pode conter termos ambiguos
+  const cleaned = String(text || "").replace(/##?\s*Fontes[\s\S]*$/im, "");
+  const lower = cleaned.toLowerCase();
+  const hasGame = GAME_KEYWORDS.some((k) => lower.includes(k)) ||
+                  CONSOLE_KEYWORDS.some((k) => lower.includes(k)) ||
+                  EVENT_KEYWORDS.some((k) => lower.includes(k) && k !== "lancamento" && k !== "lançamento");
+  const hasHardware = HARDWARE_KEYWORDS.some((k) => lower.includes(k));
+
+  if (hasGame && hasHardware) return "mixed";
+  if (hasHardware) return "hardware";
+  if (hasGame) return "games";
+  // Termos genericos de promocao sem contexto claro
+  if (PROMO_KEYWORDS.some((k) => lower.includes(k))) return "promo";
+  return "unknown";
+}
+
+function isMixedDomain(text) {
+  return classifyDomain(text) === "mixed";
+}
+
+function explainMixedDomain(text) {
+  const lower = String(text || "").toLowerCase();
+  const gameMatches = [...GAME_KEYWORDS, ...CONSOLE_KEYWORDS, ...EVENT_KEYWORDS.filter(k => k !== "lancamento" && k !== "lançamento")]
+    .filter((k) => lower.includes(k));
+  const hardwareMatches = HARDWARE_KEYWORDS.filter((k) => lower.includes(k));
+  return { gameMatches: gameMatches.slice(0, 10), hardwareMatches: hardwareMatches.slice(0, 10) };
+}
+
+// Filtra palavras-chave mantendo apenas as do mesmo dominio da palavra principal.
+function filterSameDomain(keywords, targetDomain) {
+  if (!targetDomain || targetDomain === "unknown" || targetDomain === "promo") return keywords;
+  return keywords.filter((k) => {
+    const d = classifyDomain(k);
+    return d === targetDomain || d === "promo" || d === "unknown";
+  });
+}
+
+function domainLabel(domain) {
+  if (domain === "hardware") return "periféricos e hardware gamer";
+  if (domain === "games") return "games, consoles e software";
+  return "games e hardware gamer";
+}
+
 function extractTrendingTopics(headlines) {
   const allKeywords = [...GAME_KEYWORDS, ...CONSOLE_KEYWORDS, ...HARDWARE_KEYWORDS, ...EVENT_KEYWORDS, ...PROMO_KEYWORDS];
   const scores = {};
@@ -147,9 +193,13 @@ function isTopicDuplicate(keyword, existingTopics, recentKeywords = []) {
 
 function buildTopicFromKeyword(topKeyword, topKeywords, existingTopics = [], recentKeywords = []) {
   const kw = topKeyword.toLowerCase();
-  const top3 = topKeywords.map(([k]) => k).filter(k =>
+  const domain = classifyDomain(kw);
+
+  // Filtra contexto para manter apenas palavras do mesmo dominio
+  let top3 = topKeywords.map(([k]) => k).filter(k =>
     k.toLowerCase() !== kw && !isTopicDuplicate(k, existingTopics, recentKeywords)
   );
+  top3 = filterSameDomain(top3, domain);
   if (top3.length === 0) top3.push(kw);
   const ctx = top3.slice(0, 3).join(", ");
   const top2names = top3.slice(0, 2).join(" ");
@@ -176,20 +226,31 @@ function buildTopicFromKeyword(topKeyword, topKeywords, existingTopics = [], rec
     ml_query = `${top2names} jogo ps5 pc`;
   } else if (PROMO_KEYWORDS.some((p) => kw.includes(p) || p.includes(kw))) {
     category = "promocao";
-    hint = `melhores ${kw} de games e perifericos em 2026 — topicos em alta: ${ctx}`;
-    ml_query = `${top2names} promocao oferta`;
+    // Foco unico: promocoes de games (default) ou de perifericos, nunca ambos
+    const promoDomain = domain === "hardware" ? "hardware" : "games";
+    const promoFocus = promoDomain === "hardware" ? "perifericos gamer" : "games";
+    hint = `melhores ${kw} de ${promoFocus} em 2026 — topicos em alta: ${ctx}`;
+    ml_query = promoDomain === "hardware"
+      ? `${top2names} promocao oferta periferico gamer`
+      : `${top2names} promocao oferta jogo`;
   } else {
     category = "noticia";
     hint = `novidades sobre ${kw} no mundo gamer — topicos em alta: ${ctx}`;
     ml_query = `${top2names} gamer 2026`;
   }
 
+  // Guard: se por algum motivo o hint ficou misto, descarta
+  if (isMixedDomain(hint) || isMixedDomain(ml_query)) {
+    log("WARN", `buildTopicFromKeyword gerou tema misto para "${kw}": ${hint}`);
+    return null;
+  }
+
   return { category, hint, ml_query, trending_score: topKeywords[0]?.[1] || 0, trending_keywords: top3 };
 }
 
 async function analyzeTrendsWithAI(headlines, trending, existingTopics, recentKeywords) {
-  const topHeadlines = headlines.slice(0, 30).map((h, i) => `${i + 1}. ${h}`).join("\n");
-  const topTrending = trending.slice(0, 8).map(([k, v]) => `- "${k}" (${v}x mencoes)`).join("\n");
+  const topHeadlines = headlines.slice(0, 15).map((h, i) => `${i + 1}. ${h}`).join("\n");
+  const topTrending = trending.slice(0, 6).map(([k, v]) => `- "${k}" (${v}x mencoes)`).join("\n");
   const covered = [...new Set([...recentKeywords, ...existingTopics.map(t => t.slice(0, 60))])].slice(0, 15);
   const coveredList = covered.length > 0 ? covered.map((c, i) => `${i + 1}. ${c}`).join("\n") : "(nenhum)";
 
@@ -198,6 +259,10 @@ async function analyzeTrendsWithAI(headlines, trending, existingTopics, recentKe
 REGRAS:
 - O artigo NÃO pode ser sobre o mesmo jogo/assunto dos artigos já escritos (mesmo que seja um ângulo diferente)
 - Priorize assuntos que NÃO estão na lista de "Já cobertos"
+- FOCO UNICO: o artigo deve tratar APENAS de um dos dois domínios — JOGOS/SOFTWARE/CONSOLES ou PERIFERICOS/HARDWARE GAMER. Nunca misture os dois domínios no mesmo artigo.
+  - Se escolher um jogo/console/evento: o hint, o ml_query e o conteudo devem ser sobre games (ex: "jogo ps5 xbox pc", "lancamentos de games", "ofertas de jogos").
+  - Se escolher hardware/periférico: o hint, o ml_query e o conteudo devem ser sobre perifericos gamer (ex: "mouse gamer", "headset gamer", "monitor gamer 2026").
+  - NUNCA escreva algo como "games e perifericos" no mesmo tema.
 - Se TODOS os trending são sobre assuntos já cobertos, sugira um assunto diferente que esteja em alta mas não está nos trending principais
 - Responda APENAS com JSON válido, sem markdown, sem explicação extra
 
@@ -208,7 +273,7 @@ Formato da resposta JSON:
   "topic": "palavra-chave principal do assunto escolhido",
   "category": "categoria do artigo",
   "hint": "descrição curta do artigo (max 100 chars) em português",
-  "ml_query": "query para buscar produtos no Mercado Livre (3-5 palavras)",
+  "ml_query": "query para buscar produtos no Mercado Livre (3-5 palavras, MESMO dominio do topic)",
   "reasoning": "por que este assunto é novo e relevante (1 frase)"
 }`;
 
@@ -231,7 +296,7 @@ Analise as headlines e os trending topics. Escolha um assunto que seja NOVO e IN
     const cleaned = response.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     parsed = JSON.parse(cleaned);
   } catch (e) {
-    log("WARN", `IA retornou JSON invalido: ${response.slice(0, 200)}`);
+    log("WARN", `IA retornou JSON invalido: ${typeof response === "string" ? response.slice(0, 200) : String(response).slice(0, 200)}`);
     return null;
   }
 
@@ -240,14 +305,26 @@ Analise as headlines e os trending topics. Escolha um assunto que seja NOVO e IN
     return null;
   }
 
+  // Rejeita sugestoes que misturam games e hardware
+  const domain = classifyDomain(parsed.topic);
+  if (isMixedDomain(parsed.hint) || isMixedDomain(parsed.ml_query) ||
+      (domain !== "unknown" && domain !== "promo" && isMixedDomain(parsed.topic))) {
+    log("WARN", `IA sugeriu tema misto (games + hardware): ${parsed.hint}`);
+    return null;
+  }
+
   log("INFO", `IA escolheu: "${parsed.topic}" [${parsed.category}] — ${parsed.reasoning || "sem reasoning"}`);
+
+  // Mantem palavras-chave trending apenas do mesmo dominio escolhido
+  const trendingKws = [parsed.topic, ...trending.slice(0, 4).map(([k]) => k)];
+  const sameDomainKws = filterSameDomain(trendingKws, domain).slice(0, 3);
 
   return {
     category: parsed.category,
     hint: parsed.hint,
     ml_query: parsed.ml_query || `${parsed.topic} gamer 2026`,
     trending_score: trending[0]?.[1] || 1,
-    trending_keywords: [parsed.topic, ...trending.slice(0, 2).map(([k]) => k)],
+    trending_keywords: sameDomainKws.length > 0 ? sameDomainKws : [parsed.topic],
   };
 }
 
@@ -330,10 +407,9 @@ async function discoverTrendingTopic(existingTopics = [], recentKeywords = []) {
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
-const ML_COOKIES_B64 = process.env.ML_COOKIES_B64;
-const ML_CLIENT_ID = process.env.ML_CLIENT_ID;
-const ML_CLIENT_SECRET = process.env.ML_CLIENT_SECRET;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const RAWG_API_KEY = process.env.RAWG_API_KEY;
+const ML_COOKIES_B64 = process.env.ML_COOKIES_B64;
 
 const GAME_IMAGE_CACHE = {};
 
@@ -771,7 +847,8 @@ async function fetchTavily(query) {
   });
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Tavily ${res.status}: ${err.slice(0, 200)}`);
+    const errText = typeof err === "string" ? err : String(err);
+    throw new Error(`Tavily ${res.status}: ${errText.slice(0, 200)}`);
   }
   const data = await res.json();
   log("INFO", `Tavily: ${data.results?.length || 0} resultados`);
@@ -841,8 +918,6 @@ function computeMaxTokens(systemPrompt, userPrompt) {
   return Math.min(GROQ_MAX_OUTPUT, available);
 }
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
 async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
   const url = "https://api.groq.com/openai/v1/chat/completions";
   const body = {
@@ -881,7 +956,8 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
       }
       if (!res.ok) {
         const err = await res.text();
-        const msg = `Groq ${res.status}: ${err.slice(0, 300)}`;
+        const errText = typeof err === "string" ? err : String(err);
+        const msg = `Groq ${res.status}: ${errText.slice(0, 300)}`;
         if (res.status === 401) {
           log("ERROR", `Groq: API key invalida! Atualize GROQ_API_KEY no GitHub Secrets.`);
         }
@@ -904,7 +980,8 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
     } catch (err) {
       if (err.fatal || attempt === maxAttempts) throw err;
       const wait = Math.min(10 * Math.pow(2, attempt - 1), 60);
-      log("WARN", `Groq: erro "${err.message.slice(0,80)}", retentando em ${wait}s...`);
+      const errMsg = err?.message || String(err);
+      log("WARN", `Groq: erro "${errMsg.slice(0,80)}", retentando em ${wait}s...`);
       await sleep(wait * 1000);
     }
   }
@@ -953,7 +1030,8 @@ async function fetchOpenAI(systemPrompt, userPrompt, opts = {}) {
       }
       if (!res.ok) {
         const err = await res.text();
-        const msg = `OpenAI ${res.status}: ${err.slice(0, 300)}`;
+        const errText = typeof err === "string" ? err : String(err);
+        const msg = `OpenAI ${res.status}: ${errText.slice(0, 300)}`;
         if (res.status === 401) {
           log("ERROR", `OpenAI: API key invalida! Atualize OPENAI_API_KEY no GitHub Secrets.`);
         }
@@ -969,7 +1047,8 @@ async function fetchOpenAI(systemPrompt, userPrompt, opts = {}) {
     } catch (err) {
       if (attempt === 3) throw err;
       const wait = Math.min(10 * Math.pow(2, attempt - 1), 60);
-      log("WARN", `OpenAI: erro "${err.message.slice(0, 80)}", retentando em ${wait}s...`);
+      const errMsg = err?.message || String(err);
+      log("WARN", `OpenAI: erro "${errMsg.slice(0, 80)}", retentando em ${wait}s...`);
       await sleep(wait * 1000);
     }
   }
@@ -980,7 +1059,8 @@ async function fetchLLM(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
   try {
     return await fetchGroq(systemPrompt, userPrompt, maxAttempts, opts);
   } catch (groqErr) {
-    log("WARN", `Groq falhou: ${groqErr.message.slice(0, 120)} — tentando OpenAI...`);
+    const errMsg = groqErr?.message || String(groqErr);
+    log("WARN", `Groq falhou: ${errMsg.slice(0, 120)} — tentando OpenAI...`);
     return await fetchOpenAI(systemPrompt, userPrompt, opts);
   }
 }
@@ -1128,6 +1208,19 @@ function validate(fm, body, ctx = {}) {
 
   if (!/^##\s+/m.test(body)) hard.push("Artigo sem headings ##");
 
+  // Verifica se o artigo mistura games e hardware no mesmo texto
+  // Nas primeiras tentativas e um alerta (soft) para dar feedback a IA; na ultima e bloqueante (hard)
+  if (isMixedDomain(fm.title)) {
+    const { gameMatches, hardwareMatches } = explainMixedDomain(fm.title);
+    const msg = `Titulo mistura dominios: games=[${gameMatches.join(", ")}], hardware=[${hardwareMatches.join(", ")}]`;
+    ctx.lastAttempt ? hard.push(msg) : soft.push(msg);
+  }
+  if (isMixedDomain(body)) {
+    const { gameMatches, hardwareMatches } = explainMixedDomain(body);
+    const msg = `Corpo mistura dominios: games=[${gameMatches.join(", ")}], hardware=[${hardwareMatches.join(", ")}]`;
+    ctx.lastAttempt ? hard.push(msg) : soft.push(msg);
+  }
+
   if (ctx.productCount > 0) {
     const used = new Set([...body.matchAll(PRODUCT_MARKER_REGEX)].map((m) => Number(m[1])));
     const valid = [...used].filter((n) => n >= 1 && n <= ctx.productCount);
@@ -1228,8 +1321,7 @@ async function main() {
   log("INFO", "=== INICIANDO GERACAO (Groq) ===");
   log("INFO", `GROQ_API_KEY definida: ${!!GROQ_API_KEY}`);
   log("INFO", `TAVILY_API_KEY definida: ${!!TAVILY_API_KEY}`);
-  log("INFO", `ML_CLIENT_ID definida: ${!!ML_CLIENT_ID}`);
-  log("INFO", `ML_CLIENT_SECRET definida: ${!!ML_CLIENT_SECRET}`);
+  log("INFO", `ML_COOKIES_PATH existe: ${fs.existsSync(ML_COOKIES_PATH)}`);
 
   if (!GROQ_API_KEY) { log("ERROR", "GROQ_API_KEY nao configurada"); process.exit(1); }
   if (!TAVILY_API_KEY) log("WARN", "TAVILY_API_KEY nao definida — artigo seguira sem fontes pesquisadas");
@@ -1279,6 +1371,20 @@ async function main() {
   topic.category = assignedCategory;
   log("INFO", `Categoria esteira: ${topic.category} (anterior: ${state.last_category || "nenhuma"})`);
 
+  // Determina o dominio do tema para manter foco unico (games OU hardware)
+  const topicDomain = classifyDomain(topic.hint);
+  if (topicDomain === "mixed") {
+    log("WARN", `Tema com dominio misto detectado: ${topic.hint}. Pulando geracao.`);
+    state.last_error = "Tema misto (games + hardware) — pulando";
+    state.last_error_date = today;
+    state.consecutive_failures = (state.consecutive_failures || 0) + 1;
+    saveState(state);
+    generateStatusFile(state);
+    process.exit(1);
+  }
+  const effectiveDomain = topicDomain === "hardware" ? "hardware" : "games";
+  log("INFO", `Dominio do artigo: ${effectiveDomain}`);
+
   let researchContext = "";
   try {
     const query = topic.category === "noticia"
@@ -1295,22 +1401,23 @@ async function main() {
   }
 
   let mlProducts = [];
-  if (ML_CLIENT_ID && ML_CLIENT_SECRET) {
+  if (TAVILY_API_KEY) {
     try {
       const trendingKws = topic.trending_keywords || [];
+      // Queries de ML seguem o dominio do artigo: games -> jogos; hardware -> perifericos
       const searchQueries = [
-        ...trendingKws.slice(0, 2).map((kw) => `${kw} jogo ps5 xbox pc`),
+        ...trendingKws.slice(0, 2).flatMap((kw) =>
+          effectiveDomain === "hardware"
+            ? [`${kw} gamer 2026`, `${kw} 2026`]
+            : [`${kw} jogo ps5`, `${kw} jogo xbox`]
+        ),
         topic.ml_query,
       ].slice(0, 4);
 
       const seen = new Set();
       for (const query of searchQueries) {
         try {
-          let results = await searchMLviaGoogle(query, ML_COOKIES_PATH, TAVILY_API_KEY, 4);
-          if (results.length === 0) {
-            log("INFO", `Google: 0 resultados para "${query}", tentando API ML...`);
-            results = await searchML(query, ML_CLIENT_ID, ML_CLIENT_SECRET, TAVILY_API_KEY, ML_COOKIES_PATH, 4);
-          }
+          const results = await searchMLviaGoogle(query, ML_COOKIES_PATH, TAVILY_API_KEY, 4);
           for (const p of results) {
             if (!seen.has(p.permalink)) {
               seen.add(p.permalink);
@@ -1326,9 +1433,6 @@ async function main() {
       if (mlProducts.length === 0) {
         log("INFO", "Nenhum produto encontrado via multiplas queries, tentando fallback com query original...");
         mlProducts = await searchMLviaGoogle(topic.ml_query, ML_COOKIES_PATH, TAVILY_API_KEY, 4);
-        if (mlProducts.length === 0) {
-          mlProducts = await searchML(topic.ml_query, ML_CLIENT_ID, ML_CLIENT_SECRET, TAVILY_API_KEY, ML_COOKIES_PATH, 4);
-        }
       }
 
       for (const p of mlProducts) {
@@ -1349,7 +1453,7 @@ async function main() {
       log("WARN", `ML Search: ${err.message}`);
     }
   } else {
-    log("WARN", "ML_CLIENT_ID/ML_CLIENT_SECRET nao configurados — pulando busca de produtos ML");
+    log("WARN", "TAVILY_API_KEY nao configurada — pulando busca de produtos ML");
   }
 
   mlProducts = mlProducts.filter((p) => isGamerProduct(p.title));
@@ -1385,7 +1489,7 @@ REGRAS DE ESTILO:
 - FONTES: Cite no final com naturalidade: "Peguei as infos do [site] e do [outro] — os caras manjam do assunto."
 - JAMAIS: voz passiva, emojis, mencionar que e IA, termos corporativos ("desta forma", "contudo", "outrossim")`;
 
-  const personaFactual = `PERSONA: Voce e um redator tecnico especializado em games e hardware do Blog Gamer. Escreve reviews e guias com precisao e profundidade.
+  const personaFactual = `PERSONA: Voce e um redator tecnico especializado em {{DOMINIO}} do Blog Gamer. Escreve reviews e guias com precisao e profundidade.
 
 REGRAS DE ESTILO:
 - ABERTURA: Va direto ao ponto. Contextualize o topico em 1-2 frases. Ex: "Escolher o monitor certo para games em 2026 exige atencao a 3 especificacoes-chave: taxa de atualizacao, tempo de resposta e tipo de painel."
@@ -1397,12 +1501,24 @@ REGRAS DE ESTILO:
 - FALE COM O LEITOR: Use "voce" e "seu setup", mas sem girias pesadas.
 - JAMAIS: girias de boteco ("mermao", "ta ligado"), humor forcado em todo paragrafo, sarcasmo constante`;
 
-  const personaPrompt = estiloOpinativo ? personaManoGamer : personaFactual;
+  const domain = effectiveDomain || "games";
+  const personaPrompt = estiloOpinativo
+    ? personaManoGamer
+    : personaFactual.replace("{{DOMINIO}}", domainLabel(domain));
   const minWords = MIN_WORDS[categoria] || 650;
   const alvoWords = estiloFactual ? "900-1100" : "700-900";
   const primaryKeyword = topic.trending_keywords?.[0] || "";
 
   const systemPrompt = `Voce e redator senior de um blog gamer brasileiro de alto trafego. Seu artigo e publicado como esta, sem revisao humana: generalidade, cliche e dado inventado custam trafego e credibilidade.
+
+## REGRA DE OURO Nº 1 — DOMINIO UNICO (LEIA PRIMEIRO)
+Este artigo e APENAS sobre ${domainLabel(domain)}. Nunca misture os dois dominios.
+${domain === "hardware"
+  ? `PERMITIDO: mouse, teclado, headset, monitor, placa de video, processador, cadeira, SSD, fonte, gabinete, water cooler.
+PROIBIDO: jogos especificos (Resident Evil, GTA, Fortnite, Zelda, etc.), lancamentos de jogos, eventos de games (Game Awards, E3, Gamescom), gameplay, historia de jogo.`
+  : `PERMITIDO: jogos, consoles, software, lancamentos, eventos de games, noticias da industria.
+PROIBIDO: mouse, teclado, headset, monitor, placa de video, processador, cadeira, SSD, fonte, gabinete, water cooler, setup gamer.`}
+Se voce quebrar essa regra, o artigo sera descartado.
 
 ${personaPrompt}${trendingNote}
 
@@ -1441,7 +1557,7 @@ ${estiloOpinativo ? "8. Giria e humor sao tempero, nao estrutura: no maximo 1 gi
 - ## FAQ com 3-4 perguntas que as pessoas realmente pesquisam no Google sobre o tema.
 - Conclusao com recomendacao clara: pra quem vale a pena e pra quem nao vale.
 - 2 a 3 links internos no formato [texto](/blog-gamer/blog/slug-do-artigo/) — use SOMENTE slugs da lista de artigos existentes fornecida.
-- "## Quer mais ofertas?" com: Entre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e receba ofertas diarias de games, consoles e perifericos!
+- "## Quer mais ofertas?" com: Entre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e receba ofertas diarias de ${domain === "hardware" ? "perifericos e hardware gamer" : "games e consoles"}!
 - "## Fontes" com os links da pesquisa.
 
 ## PROIBIDO
@@ -1465,6 +1581,13 @@ affiliate: ${mlProducts.length > 0}
 category DEVE ser: noticia, review, guia, lista ou promocao`;
 
   const buildUserPrompt = (research) => `Escreva um artigo de categoria "${categoria}" sobre: ${topic.hint}
+
+DOMINIO OBRIGATORIO: este artigo é APENAS sobre ${domainLabel(domain)}. Nao misture games e hardware no mesmo texto.
+${domain === "hardware"
+  ? `Foque em perifericos e hardware gamer. Exemplos validos: "Melhores Mouses Wireless 2026", "Headset Gamer Custo-Beneficio", "Monitor 144Hz vs 240Hz".
+PROIBIDO NO TEXTO: GTA, Resident Evil, Fortnite, Zelda, Game Awards, E3, Gamescom, lancamentos de jogos, gameplay, historia de jogo.`
+  : `Foque em jogos, consoles, software ou eventos de games. Exemplos validos: "GTA 6: data de lancamento", "Melhores Jogos de Corrida 2026", "Resident Evil Requiem no PS5", "Game Awards 2026".
+PROIBIDO NO TEXTO: mouse, teclado, headset, monitor, placa de video, RTX, processador, SSD, fonte, gabinete, water cooler, setup gamer.`}
 
 ${research ? `PESQUISA (use estes fatos — nao invente dados fora daqui):\n${research}\n` : "SEM PESQUISA DISPONIVEL: escreva so o que e conhecimento consolidado, sem inventar numeros, datas ou precos.\n"}
 ${productBlock}${internalLinksBlock}
@@ -1509,12 +1632,15 @@ Checklist antes de responder:
     try {
       article = await fetchLLM(systemPrompt, userPrompt + feedback);
     } catch (err) {
-      log("ERROR", `Falha na geracao (Groq + OpenAI): ${err.message}`);
-      state.last_error = err.message.slice(0, 200);
+      const errorMsg = (err?.stack || err?.message || String(err)).slice(0, 500);
+      log("ERROR", `Falha na geracao (Groq + OpenAI): ${err?.message || String(err)}`);
+      log("DEBUG", `Stack trace: ${errorMsg}`);
+      state.last_error = (err?.message || String(err)).slice(0, 200);
       state.last_error_date = today;
       state.consecutive_failures = (state.consecutive_failures || 0) + 1;
       saveState(state);
-      process.exit(0);
+      generateStatusFile(state);
+      process.exit(1);
     }
 
     let parsed;
@@ -1522,7 +1648,7 @@ Checklist antes de responder:
       parsed = parseFrontmatter(article);
     } catch (err) {
       log("WARN", `Erro frontmatter: ${err.message}`);
-      log("DEBUG", article.slice(0, 600));
+      log("DEBUG", typeof article === "string" ? article.slice(0, 600) : `article nao e string: ${typeof article} — ${String(article).slice(0, 200)}`);
       if (lastAttempt) { log("ERROR", "Frontmatter invalido apos todas as tentativas"); process.exit(1); }
       feedback = "\n\nA resposta anterior nao tinha frontmatter YAML valido. Comece a resposta com --- e feche com --- antes do markdown.";
       continue;
@@ -1552,7 +1678,10 @@ Checklist antes de responder:
       break;
     }
 
-    feedback = `\n\nA versao anterior foi rejeitada. Corrija TUDO isto e reescreva o artigo inteiro:\n- ${[...hard, ...soft].join("\n- ")}`;
+    const domainFeedback = (isMixedDomain(parsed.frontmatter.title) || isMixedDomain(parsed.body))
+      ? `\n\nREGRA DE DOMINIO VIOLADA: voce misturou games e hardware no mesmo texto. Escolha APENAS UM dos lados e remova TODO o outro. Se o artigo for sobre jogos/consoles, remova qualquer mencao a mouse, teclado, headset, monitor, placa de video, processador, fonte, SSD, gabinete, cadeira, setup gamer. Se for sobre hardware, remova qualquer mencao a jogos especificos, lancamentos de jogos, eventos de games, gameplay.`
+      : "";
+    feedback = `\n\nA versao anterior foi rejeitada. Corrija TUDO isto e reescreva o artigo inteiro:\n- ${[...hard, ...soft].join("\n- ")}${domainFeedback}`;
   }
 
   // Ultimo recurso pro titulo: uma chamada curta so pra reescrever o titulo.
@@ -1628,7 +1757,7 @@ Checklist antes de responder:
   }
 
   if (!coverImage) {
-    const fallbackKw = trendingKeywordForCover || topic.ml_query?.split(" ").slice(0, 2).join(" ") || "";
+    const fallbackKw = trendingKeywordForCover || (topic.ml_query ? topic.ml_query.split(" ").slice(0, 2).join(" ") : "") || "";
     if (fallbackKw) coverImage = await fetchRAWGImage(fallbackKw) || "";
   }
   if (coverImage) {
@@ -1645,7 +1774,12 @@ Checklist antes de responder:
 
   if (published.includes(slug)) {
     log("ERROR", `Slug duplicado: ${slug}`);
-    process.exit(0);
+    state.last_error = `Slug duplicado: ${slug}`;
+    state.last_error_date = today;
+    state.consecutive_failures = (state.consecutive_failures || 0) + 1;
+    saveState(state);
+    generateStatusFile(state);
+    process.exit(1);
   }
 
   const cover = fm.image || mlProducts[0]?.thumbnail || "";
@@ -1711,10 +1845,13 @@ const executadoDireto = process.argv[1] && pathToFileURL(process.argv[1]).href =
 
 if (executadoDireto) {
   main().catch((err) => {
-    log("ERROR", err.message);
+    const errorMsg = err?.message || String(err);
+    const errorStack = (err?.stack || errorMsg).slice(0, 500);
+    log("ERROR", errorMsg);
+    log("DEBUG", `Stack trace: ${errorStack}`);
     const state = loadState();
     const today = new Date().toISOString().split("T")[0];
-    state.last_error = err.message.slice(0, 200);
+    state.last_error = errorMsg.slice(0, 200);
     state.last_error_date = today;
     state.consecutive_failures = (state.consecutive_failures || 0) + 1;
     saveState(state);
