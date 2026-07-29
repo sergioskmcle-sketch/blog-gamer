@@ -74,9 +74,41 @@ O OAuth do ML (`client_credentials`) parou de funcionar — retorna `invalid_cli
 
 Use a v1.2 para gerar links `meli.la` localmente. No pipeline GitHub Actions, só funcionará após renovar o `ML_COOKIES_B64`.
 
-## Versão 1.3 — ideia arquivada (multi-source)
+## Versão 1.3 — Capa AI com OpenAI (fallback do Stability)
 
-**Tag:** `v1.3-ideia-multisource`  
+**Data:** 2026-07-29  
+**Commit de referência:** `b0aec40`
+
+### O que mudou
+
+A Stability AI ficou sem créditos (erro 402). A solução foi:
+
+1. **`stability-cover.mjs`** — melhorias no composite de produtos:
+   - `removeBackground()`: chroma key que detecta cor de fundo pelas bordas da thumbnail ML e torna transparente
+   - `createDropShadow()`: sombra direcional com offset (5px direita/baixo) + blur
+   - `fit: "inside"` em vez de `fit: "fill"` — produtos não são mais distorcidos
+   - Refinamento img2img: strength 0.35 → 0.45 para melhor blending
+
+2. **`openai-cover.mjs`** — reescrito para `gpt-image-1-mini`:
+   - Endpoint: `POST /v1/images/generations` (funciona com a chave atual)
+   - Tamanho: `1536x1024` landscape
+   - Gera imagem puramente por texto descrevendo os produtos
+   - **Custo estimado:** ~$0.005 por imagem
+
+3. **Pipeline:** `gerar-artigo.mjs` tenta Stability → se 402 (sem créditos) → fallback para OpenAI automaticamente
+
+### Resultado
+
+A primeira capa gerada com OpenAI (`oferta-no-xbox-summer-sale-2026-5-jogos-impossiveis-de-ignorar.png`, 2052 KB) foi aprovada como "espetacular".
+
+### Problemas conhecidos
+
+- **Stability sem créditos** — para reativar, comprar em `platform.stability.ai/account/credits`
+- **OpenAI sem input de imagens** — a API `gpt-image-1-mini` só aceita texto. Para enviar thumbnails reais, precisa verificar a organização em `platform.openai.com/settings/organization/general` e usar `gpt-4o` via responses API
+
+## Versão 1.4 — ideia arquivada (multi-source)
+
+**Tag:** `v1.4-ideia-multisource`  
 **Branch original:** `feature/v1.1-multisource` (antiga)
 
 Esta ideia foi **arquivada** e renomeada para não conflitar com a v1.1. O objetivo era pesquisar em múltiplas fontes, ranqueá-las e fazer a IA sintetizar um artigo original.
@@ -121,6 +153,15 @@ git push origin main
 git checkout v1.2 -- .
 git add -A
 git commit -m "rollback: retorna para v1.2 (patch afiliados)"
+git push origin main
+```
+
+### Voltar para a v1.3 (capa OpenAI)
+
+```bash
+git checkout v1.3 -- .
+git add -A
+git commit -m "rollback: retorna para v1.3 (capa OpenAI)"
 git push origin main
 ```
 
