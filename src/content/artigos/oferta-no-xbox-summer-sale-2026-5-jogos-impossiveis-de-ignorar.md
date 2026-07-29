@@ -38,7 +38,7 @@ Nao adianta nada ter uma lista gigante de jogos na promocao se o teu console nao
     <h3>Console Xbox Series X 1TB</h3>
     <div class="product-price">R$ 4399.00</div>
     <p class="product-desc">Console Xbox Series X 1TB — adquira no Mercado Livre com link de afiliado.</p>
-    <a href="https://www.mercadolivre.com.br/console-xbox-series-x-1tb-standard-cor-preto/p/MLB37335939" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+    <a href="https://meli.la/27u3kzy" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
   </div>
 </div>
 
@@ -50,7 +50,7 @@ A briga no mercado e forte e a concorrencia nao facilita. O PlayStation 5 Slim v
     <h3>Console Sony PlayStation 5 Slim 1TB + GTA 6</h3>
     <div class="product-price">R$ 4499.00</div>
     <p class="product-desc">Console Sony PlayStation 5 Slim 1TB + GTA 6 — adquira no Mercado Livre com link de afiliado.</p>
-    <a href="https://www.mercadolivre.com.br/console-sony-playstation-5-edico-slim-disk-1tb-branco-controle-sem-fio-dualsense-ps5-branco/p/MLB52897777" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+    <a href="https://meli.la/1grsfwV" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
   </div>
 </div>
 
@@ -62,7 +62,7 @@ Pra galera que nao abre mao de jogar na sala, na cama ou em viagens, o Nintendo 
     <h3>Console Nintendo Switch 2</h3>
     <div class="product-price">R$ 3299.00</div>
     <p class="product-desc">Console Nintendo Switch 2 — adquira no Mercado Livre com link de afiliado.</p>
-    <a href="https://www.mercadolivre.com.br/nintendo-switch-2/p/MLB41884906" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+    <a href="https://meli.la/1bJRsPn" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
   </div>
 </div>
 
@@ -74,7 +74,7 @@ E para quem gosta de alternar a jogatina entre o console e outras plataformas, t
     <h3>Controle Sem Fio DualSense PS5</h3>
     <div class="product-price">R$ 429.00</div>
     <p class="product-desc">Controle Sem Fio DualSense PS5 — adquira no Mercado Livre com link de afiliado.</p>
-    <a href="https://www.mercadolivre.com.br/controle-sem-fio-sony-dualsense-ps5-com-cabo-de-carregamento-usb-cor-branco/p/MLB26725576" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+    <a href="https://meli.la/1icxjyJ" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
   </div>
 </div>
 
