@@ -749,9 +749,76 @@ function isGamerProduct(title) {
 
 function buildProductCardHtml(p) {
   const link = p.affiliate_link || p.permalink || "";
-  return link
-    ? `\n<a href="${link}" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>\n`
-    : "";
+  if (!link) return "";
+
+  const img = p.thumbnail && p.thumbnail.startsWith("http") ? p.thumbnail : "";
+  const preco = p.price ? `R$ ${p.price.toFixed(2)}` : "Consulte no site";
+  const title = p.title || "Produto no Mercado Livre";
+
+  return `<div class="product-card">
+  ${img ? `<img src="${img}" alt="${title}" class="product-card-img" loading="lazy" decoding="async">` : ""}
+  <div class="product-card-body">
+    <h3>${title}</h3>
+    <div class="product-price">${preco}</div>
+    <p class="product-desc">${title} — adquira no Mercado Livre com link de afiliado.</p>
+    <a href="${link}" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+  </div>
+</div>`;
+}
+
+// Gera um sumário/índice com links âncora a partir dos headings ## do artigo
+function injectTableOfContents(body) {
+  if (!body || typeof body !== "string") return body;
+
+  const headings = [...body.matchAll(/^(## )([^\n]+)$/gm)];
+  if (headings.length < 3) return body;
+
+  const excluded = /^(fontes|conclus[aã]o|quer mais ofertas\?|faq|perguntas frequentes|resumo r[áa]pido|veredito)/i;
+
+  const items = headings
+    .filter((m) => !excluded.test(m[2].trim()))
+    .map((m) => {
+      const title = m[2].trim();
+      const baseAnchor = title.toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 60);
+      return { title, baseAnchor };
+    });
+
+  if (items.length < 3) return body;
+
+  // Gera âncoras únicas
+  const usedAnchors = new Set();
+  const tocItems = items.map((item, idx) => {
+    let anchor = item.baseAnchor;
+    let suffix = 1;
+    while (usedAnchors.has(anchor)) {
+      anchor = `${item.baseAnchor}-${suffix}`;
+      suffix++;
+    }
+    usedAnchors.add(anchor);
+    return { title: item.title, anchor };
+  });
+
+  const tocLines = tocItems.map((item, idx) => `${idx + 1}. [${item.title}](#${item.anchor})`);
+  const toc = `## Índice\n\n${tocLines.join("\n")}\n`;
+
+  // Cria mapa título -> âncora final para inserir nos headings
+  const anchorMap = new Map(tocItems.map((item) => [item.title, item.anchor]));
+
+  // Insere âncoras nos headings originais
+  const result = body.replace(/^(## )([^\n]+)$/gm, (match, hashes, title) => {
+    const trimmedTitle = title.trim();
+    if (excluded.test(trimmedTitle)) return match;
+    const anchor = anchorMap.get(trimmedTitle);
+    if (!anchor) return match;
+    return `${hashes}<a id="${anchor}"></a>${trimmedTitle}`;
+  });
+
+  return `${toc}\n${result}`;
 }
 
 // Substitui [PRODUTO:N] pelo card. Fallback posicional so quando a IA ignorou
@@ -1283,6 +1350,51 @@ function buildInternalLinksBlock() {
   return `\nARTIGOS EXISTENTES (links internos SO desta lista — proibido inventar slug):\n${lines.join("\n")}\n`;
 }
 
+function validateSourceCoverage(body, sources = []) {
+  const warnings = [];
+  if (!body || typeof body !== "string") return warnings;
+
+  // Seção Fontes
+  const fontesSection = /##\s+Fontes[\s\S]*$/i.test(body);
+  if (!fontesSection) {
+    warnings.push("Secao ## Fontes ausente — artigo sem citacao de fontes");
+  }
+
+  if (sources.length === 0) {
+    warnings.push("Nenhuma fonte de pesquisa disponivel para validacao de dados");
+    return warnings;
+  }
+
+  const sourceText = sources.map((s) => String(s.title || "") + " " + String(s.content || "") + " " + String(s.url || "")).join("\n");
+  const sourceTextLower = sourceText.toLowerCase();
+
+  // Extrai anos (ex: 2026, 2027) e verifica se estão nas fontes
+  const years = [...new Set([...(body.match(/\b20[2-9]\d\b/g) || [])])];
+  const missingYears = years.filter((y) => !sourceTextLower.includes(y));
+  if (missingYears.length > 0) {
+    warnings.push(`Anos mencionados sem suporte nas fontes: ${missingYears.join(", ")}`);
+  }
+
+  // Extrai notas de review (ex: 8/10, 9.5, Metacritic 85)
+  const scores = [...new Set([
+    ...(body.match(/\b\d{1,2}(?:[.,]\d+)?\s*\/\s*10\b/gi) || []),
+    ...(body.match(/\bMetacritic\s*[:\-]?\s*\d{1,3}\b/gi) || []),
+    ...(body.match(/\bnota\s*[:\-]?\s*\d{1,2}(?:[.,]\d+)?\b/gi) || []),
+  ])];
+  const missingScores = scores.filter((s) => !sourceTextLower.includes(s.toLowerCase()));
+  if (missingScores.length > 0) {
+    warnings.push(`Notas/reviews mencionadas sem suporte nas fontes: ${missingScores.join(", ")}`);
+  }
+
+  // Verifica se há preços em prosa (preços de produtos devem ficar nos cards)
+  const prosePrices = [...body.matchAll(/R\$\s*([\d.,]+)/g)].map((m) => m[0]);
+  if (prosePrices.length > 0) {
+    warnings.push(`Precos em prosa detectados (${prosePrices.length}x) — preco deve ficar apenas no card do produto`);
+  }
+
+  return warnings;
+}
+
 function validateInternalLinks(body) {
   const existingSlugs = getExistingSlugs();
   const linkRegex = /\[([^\]]+)\]\(\/blog-gamer\/blog\/([^)]+?)\/?\)/g;
@@ -1386,14 +1498,16 @@ async function main() {
   log("INFO", `Dominio do artigo: ${effectiveDomain}`);
 
   let researchContext = "";
+  let researchSources = [];
   try {
     const query = topic.category === "noticia"
       ? `${topic.hint} Brasil 2026`
       : `melhores ${topic.hint} Brasil 2026`;
     const sr = await fetchTavily(query);
+    researchSources = sr?.results || [];
     // 450 chars por fonte: o limite de 8000 TPM da Groq divide o orcamento
     // entre pesquisa e tamanho do artigo.
-    researchContext = (sr?.results || [])
+    researchContext = researchSources
       .map((r, i) => `[Fonte ${i + 1}] ${r.title}\nURL: ${r.url}\n${r.content?.slice(0, 450)}`)
       .join("\n\n");
   } catch (err) {
@@ -1656,6 +1770,10 @@ Checklist antes de responder:
 
     const { hard, soft } = validate(parsed.frontmatter, parsed.body, { ...validationCtx, lastAttempt });
 
+    // Validação adicional: cobertura de fontes para dados concretos
+    const sourceWarnings = validateSourceCoverage(parsed.body, researchSources);
+    soft.push(...sourceWarnings);
+
     if (hard.length === 0 && soft.length === 0) {
       fm = parsed.frontmatter;
       body = parsed.body;
@@ -1750,6 +1868,9 @@ Checklist antes de responder:
   log("INFO", `${mlProducts.length} produtos injetados no corpo do artigo`);
 
   body = stripLeftoverMarkers(body);
+
+  // Gera sumário/índice com links âncora para melhor navegação e SEO
+  body = injectTableOfContents(body);
 
   if (!coverImage && mlProducts.length > 0) {
     const aiCover = await gerarCapaOpenAI({ mlProducts, category: categoria, slug: slugify(fm.title) });
@@ -1868,6 +1989,8 @@ export {
   injectGameImages,
   injectProductCards,
   buildProductCardHtml,
+  injectTableOfContents,
+  validateSourceCoverage,
   formatProductPriceForPrompt,
   stripLeftoverMarkers,
   extractGameNames,

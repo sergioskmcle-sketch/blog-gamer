@@ -68,9 +68,30 @@ const searchArticles = Object.entries(import.meta.glob("../content/artigos/*.md"
         "@context": "https://schema.org",
         "@type": "Article",
         headline: title,
-        description,
+        description: description || "Artigo do Blog Gamer sobre o mundo dos games",
+        url: canonicalURL.href,
+        image: image || `${base}images/og-default.png`,
         datePublished: pubDate,
-        author: { "@type": "Person", name: "Blog Gamer" },
+        dateModified: pubDate,
+        author: {
+          "@type": "Organization",
+          name: "Blog Gamer",
+          url: Astro.site?.href || `${base}`,
+        },
+        publisher: {
+          "@type": "Organization",
+          name: "Blog Gamer",
+          logo: {
+            "@type": "ImageObject",
+            url: `${base}favicon.svg`,
+          },
+        },
+        mainEntityOfPage: {
+          "@type": "WebPage",
+          "@id": canonicalURL.href,
+        },
+        keywords: tags?.join(", ") || "games, noticias, reviews",
+        articleSection: category || "Games",
       })} />
     )}
 
