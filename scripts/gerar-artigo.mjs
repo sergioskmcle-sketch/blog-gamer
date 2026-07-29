@@ -1125,7 +1125,7 @@ async function fetchOpenAI(systemPrompt, userPrompt, opts = {}) {
 
 async function fetchGemini(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
   if (!GEMINI_API_KEY) throw new Error("Gemini: GEMINI_API_KEY nao configurada");
-  const model = opts.model || "gemini-1.5-flash";
+  const model = opts.model || "gemini-1.5-flash-latest";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
   const body = {
     systemInstruction: { parts: [{ text: systemPrompt }] },

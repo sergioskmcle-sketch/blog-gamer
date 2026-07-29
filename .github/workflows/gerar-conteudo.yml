@@ -66,8 +66,8 @@ jobs:
           git config user.email "bot@blog-gamer.com"
           git add -A
           git commit -m "feat: artigo gerado automaticamente"
-          git pull --rebase origin main
-          git push
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "${GITHUB_REF_NAME}"
 
       - name: Disparar deploy
         if: steps.check.outputs.changed == 'true'

@@ -22,7 +22,7 @@ function slugify(text) {
 
 async function fetchGemini(systemPrompt, userPrompt) {
   if (!GEMINI_KEY) throw new Error("Gemini: GEMINI_API_KEY nao configurada");
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const res = await fetch(url, {
