@@ -1996,6 +1996,9 @@ Checklist antes de responder:
     if (fallbackKw) coverImage = await fetchRAWGImage(fallbackKw) || "";
   }
   if (coverImage) {
+    if (coverImage.startsWith("/") && !coverImage.startsWith("/blog-gamer") && !coverImage.startsWith("http") && !coverImage.startsWith("data:")) {
+      coverImage = "/blog-gamer" + coverImage;
+    }
     fm.image = coverImage;
     log("INFO", `Imagem de capa: ${coverImage.slice(0, 80)}`);
   } else {
