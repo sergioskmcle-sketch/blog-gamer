@@ -36,6 +36,7 @@ jobs:
           ML_CLIENT_SECRET: ${{ secrets.ML_CLIENT_SECRET }}
           ML_COOKIES_B64: ${{ secrets.ML_COOKIES_B64 }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          STABILITY_API_KEY: ${{ secrets.STABILITY_API_KEY }}
 
       - name: Verificar alteracoes
         id: check

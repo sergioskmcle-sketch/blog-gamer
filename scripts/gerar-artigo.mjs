@@ -4,7 +4,7 @@ import path from "path";
 import { pathToFileURL } from "url";
 import Parser from "rss-parser";
 import { generateAffiliateLink, searchMLviaGoogle, searchMLDirect } from "./ml_affiliate.mjs";
-import { gerarCapaOpenAI } from "./openai-cover.mjs";
+import { gerarCapaStability } from "./stability-cover.mjs";
 
 const rssParser = new Parser({
   timeout: 15000,
@@ -1963,6 +1963,9 @@ Checklist antes de responder:
     for (const name of markerNames) {
       if (gameImages[name]) { coverImage = gameImages[name]; break; }
     }
+    if (!coverImage && mlProducts.length > 0) {
+      coverImage = await gerarCapaStability({ mlProducts, category: categoria, slug: slugify(fm.title) }) || "";
+    }
     if (!coverImage) {
       coverImage = await getBestCoverImage(mlProducts, body, trendingKeywordForCover, markerNames) || "";
     }
@@ -1971,7 +1974,12 @@ Checklist antes de responder:
     log("INFO", `${Object.keys(gameImages).length}/${gameNames.length} imagens RAWG injetadas${coverImage ? " (capa omitida do corpo)" : ""}`);
   } else {
     log("WARN", "Nenhum jogo marcado nem detectado no artigo");
-    coverImage = await getBestCoverImage(mlProducts, body, trendingKeywordForCover, markerNames) || "";
+    if (mlProducts.length > 0) {
+      coverImage = await gerarCapaStability({ mlProducts, category: categoria, slug: slugify(fm.title) }) || "";
+    }
+    if (!coverImage) {
+      coverImage = await getBestCoverImage(mlProducts, body, trendingKeywordForCover, markerNames) || "";
+    }
   }
 
   log("INFO", "Injetando produtos do Mercado Livre no artigo...");
@@ -1982,11 +1990,6 @@ Checklist antes de responder:
 
   // Gera sumário/índice com links âncora para melhor navegação e SEO
   body = injectTableOfContents(body);
-
-  if (!coverImage && mlProducts.length > 0) {
-    const aiCover = await gerarCapaOpenAI({ mlProducts, category: categoria, slug: slugify(fm.title) });
-    if (aiCover) coverImage = aiCover;
-  }
 
   if (!coverImage) {
     const fallbackKw = trendingKeywordForCover || (topic.ml_query ? topic.ml_query.split(" ").slice(0, 2).join(" ") : "") || "";

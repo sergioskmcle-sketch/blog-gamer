@@ -5,7 +5,7 @@ pubDate: 2026-07-29
 tags: ["xbox", "ofertas", "summer sale", "game pass", "consoles"]
 category: "lista"
 affiliate: true
-image: "https://images.purexbox.com/11040b34acfb9/last-chance-to-bag-a-bargain-xbox-summer-sale-2026-ends-tomorrow-1.large.jpg"
+image: "/blog-gamer/images/capas/oferta-no-xbox-summer-sale-2026-5-jogos-impossiveis-de-ignorar.png"
 ---
 
 ## Índice
