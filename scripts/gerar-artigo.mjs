@@ -5,6 +5,7 @@ import { pathToFileURL } from "url";
 import Parser from "rss-parser";
 import { generateAffiliateLink, searchMLviaGoogle, searchMLDirect } from "./ml_affiliate.mjs";
 import { gerarCapaStability } from "./stability-cover.mjs";
+import { gerarCapaOpenAI } from "./openai-cover.mjs";
 
 const rssParser = new Parser({
   timeout: 15000,
@@ -1965,6 +1966,9 @@ Checklist antes de responder:
     }
     if (!coverImage && mlProducts.length > 0) {
       coverImage = await gerarCapaStability({ mlProducts, category: categoria, slug: slugify(fm.title) }) || "";
+      if (!coverImage) {
+        coverImage = await gerarCapaOpenAI({ mlProducts, category: categoria, slug: slugify(fm.title) }) || "";
+      }
     }
     if (!coverImage) {
       coverImage = await getBestCoverImage(mlProducts, body, trendingKeywordForCover, markerNames) || "";
@@ -1976,6 +1980,9 @@ Checklist antes de responder:
     log("WARN", "Nenhum jogo marcado nem detectado no artigo");
     if (mlProducts.length > 0) {
       coverImage = await gerarCapaStability({ mlProducts, category: categoria, slug: slugify(fm.title) }) || "";
+      if (!coverImage) {
+        coverImage = await gerarCapaOpenAI({ mlProducts, category: categoria, slug: slugify(fm.title) }) || "";
+      }
     }
     if (!coverImage) {
       coverImage = await getBestCoverImage(mlProducts, body, trendingKeywordForCover, markerNames) || "";
