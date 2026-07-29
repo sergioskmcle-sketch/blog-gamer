@@ -406,6 +406,7 @@ async function discoverTrendingTopic(existingTopics = [], recentKeywords = []) {
 }
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const RAWG_API_KEY = process.env.RAWG_API_KEY;
@@ -1122,13 +1123,87 @@ async function fetchOpenAI(systemPrompt, userPrompt, opts = {}) {
   throw new Error(`OpenAI: todas as 3 tentativas falharam`);
 }
 
+async function fetchGemini(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
+  if (!GEMINI_API_KEY) throw new Error("Gemini: GEMINI_API_KEY nao configurada");
+  const model = opts.model || "gemini-1.5-flash";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+  const body = {
+    systemInstruction: { parts: [{ text: systemPrompt }] },
+    contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+    generationConfig: {
+      temperature: opts.temperature ?? 0.7,
+      maxOutputTokens: opts.maxTokens ?? computeMaxTokens(systemPrompt, userPrompt),
+    },
+  };
+
+  if (body.generationConfig.maxOutputTokens < 1000) {
+    throw new Error(`Gemini: prompt grande demais — sobram so ${body.generationConfig.maxOutputTokens} tokens de saida no limite de ${GROQ_TPM_LIMIT} TPM`);
+  }
+
+  const startTime = Date.now();
+  const MAX_TOTAL_WAIT = 5 * 60 * 1000;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      log("INFO", `Gemini: tentativa ${attempt}/${maxAttempts}...`);
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.status === 429 || res.status === 503 || res.status === 502) {
+        const elapsed = Date.now() - startTime;
+        if (elapsed > MAX_TOTAL_WAIT) {
+          log("ERROR", `Gemini: timeout total de ${MAX_TOTAL_WAIT / 1000}s atingido, desistindo`);
+          throw new Error(`Gemini: timeout total apos ${attempt} tentativas`);
+        }
+        const wait = Math.min(15 * Math.pow(2, attempt - 1), 120);
+        log("WARN", `Gemini: ${res.status}, aguardando ${wait}s (tentativa ${attempt}/${maxAttempts})...`);
+        await sleep(wait * 1000);
+        continue;
+      }
+      if (!res.ok) {
+        const err = await res.text();
+        const errText = typeof err === "string" ? err : String(err);
+        const msg = `Gemini ${res.status}: ${errText.slice(0, 300)}`;
+        if (res.status === 401 || res.status === 400) {
+          log("ERROR", `Gemini: API key invalida ou requisicao rejeitada! Verifique GEMINI_API_KEY.`);
+          const fatal = new Error(msg);
+          fatal.fatal = true;
+          throw fatal;
+        }
+        throw new Error(msg);
+      }
+      const data = await res.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) throw new Error(`Gemini: resposta vazia: ${JSON.stringify(data).slice(0, 200)}`);
+      if (data.candidates?.[0]?.finishReason === "MAX_TOKENS") {
+        throw new Error(`Gemini: resposta truncada (maxOutputTokens=${body.generationConfig.maxOutputTokens})`);
+      }
+      return text;
+    } catch (err) {
+      if (err.fatal || attempt === maxAttempts) throw err;
+      const wait = Math.min(10 * Math.pow(2, attempt - 1), 60);
+      const errMsg = err?.message || String(err);
+      log("WARN", `Gemini: erro "${errMsg.slice(0, 80)}", retentando em ${wait}s...`);
+      await sleep(wait * 1000);
+    }
+  }
+  throw new Error(`Gemini: todas as ${maxAttempts} tentativas falharam`);
+}
+
 async function fetchLLM(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
   try {
-    return await fetchGroq(systemPrompt, userPrompt, maxAttempts, opts);
-  } catch (groqErr) {
-    const errMsg = groqErr?.message || String(groqErr);
-    log("WARN", `Groq falhou: ${errMsg.slice(0, 120)} — tentando OpenAI...`);
-    return await fetchOpenAI(systemPrompt, userPrompt, opts);
+    return await fetchGemini(systemPrompt, userPrompt, maxAttempts, opts);
+  } catch (geminiErr) {
+    const errMsg = geminiErr?.message || String(geminiErr);
+    log("WARN", `Gemini falhou: ${errMsg.slice(0, 120)} — tentando Groq...`);
+    try {
+      return await fetchGroq(systemPrompt, userPrompt, maxAttempts, opts);
+    } catch (groqErr) {
+      const groqErrMsg = groqErr?.message || String(groqErr);
+      log("WARN", `Groq falhou: ${groqErrMsg.slice(0, 120)} — tentando OpenAI...`);
+      return await fetchOpenAI(systemPrompt, userPrompt, opts);
+    }
   }
 }
 
@@ -1431,11 +1506,12 @@ function pickTopic(counts) {
 
 async function main() {
   log("INFO", "=== INICIANDO GERACAO (Groq) ===");
+  log("INFO", `GEMINI_API_KEY definida: ${!!GEMINI_API_KEY}`);
   log("INFO", `GROQ_API_KEY definida: ${!!GROQ_API_KEY}`);
   log("INFO", `TAVILY_API_KEY definida: ${!!TAVILY_API_KEY}`);
   log("INFO", `ML_COOKIES_PATH existe: ${fs.existsSync(ML_COOKIES_PATH)}`);
 
-  if (!GROQ_API_KEY) { log("ERROR", "GROQ_API_KEY nao configurada"); process.exit(1); }
+  if (!GEMINI_API_KEY && !GROQ_API_KEY) { log("ERROR", "Nenhuma chave de IA configurada (GEMINI_API_KEY ou GROQ_API_KEY)"); process.exit(1); }
   if (!TAVILY_API_KEY) log("WARN", "TAVILY_API_KEY nao definida — artigo seguira sem fontes pesquisadas");
 
   const state = loadState();

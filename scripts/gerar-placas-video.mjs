@@ -7,6 +7,7 @@ const ARTIGOS_DIR = path.resolve("src/content/artigos");
 const ML_COOKIES_PATH = path.resolve("ml_cookies.json");
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 const ML_CLIENT_ID = process.env.ML_CLIENT_ID;
 const ML_CLIENT_SECRET = process.env.ML_CLIENT_SECRET;
@@ -50,6 +51,41 @@ async function fetchTavily(query) {
   return data;
 }
 
+async function fetchGemini(systemPrompt, userPrompt, maxTokens = 8192) {
+  if (!GEMINI_API_KEY) throw new Error("Gemini: GEMINI_API_KEY nao configurada");
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+  const body = {
+    systemInstruction: { parts: [{ text: systemPrompt }] },
+    contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+    generationConfig: { temperature: 0.7, maxOutputTokens: maxTokens },
+  };
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      log("INFO", `Gemini: tentativa ${attempt}/3...`);
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.status === 429 || res.status === 503 || res.status === 502) {
+        const wait = attempt * 30;
+        log("WARN", `Gemini: ${res.status}, aguardando ${wait}s...`);
+        await sleep(wait * 1000);
+        continue;
+      }
+      if (!res.ok) throw new Error(`Gemini ${res.status}`);
+      const data = await res.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) throw new Error("Gemini: resposta vazia");
+      return text;
+    } catch (err) {
+      if (attempt === 3) throw err;
+      log("WARN", `Gemini: erro na tentativa ${attempt}, retentando...`);
+      await sleep(5000);
+    }
+  }
+}
+
 async function fetchGroq(systemPrompt, userPrompt, retries = 3) {
   const url = "https://api.groq.com/openai/v1/chat/completions";
   const body = {
@@ -84,6 +120,15 @@ async function fetchGroq(systemPrompt, userPrompt, retries = 3) {
       log("WARN", `Groq: erro na tentativa ${attempt}, retentando...`);
       await sleep(5000);
     }
+  }
+}
+
+async function fetchLLM(systemPrompt, userPrompt, maxTokens = 8192) {
+  try {
+    return await fetchGemini(systemPrompt, userPrompt, maxTokens);
+  } catch (geminiErr) {
+    log("WARN", `Gemini falhou: ${geminiErr.message.slice(0, 120)} — tentando Groq...`);
+    return await fetchGroq(systemPrompt, userPrompt, 3);
   }
 }
 
@@ -135,7 +180,7 @@ function validate(fm, body) {
 async function main() {
   log("INFO", "=== GERANDO ARTIGO: PLACAS DE VIDEO ===");
 
-  if (!GROQ_API_KEY) { log("ERROR", "GROQ_API_KEY nao configurada"); process.exit(1); }
+  if (!GEMINI_API_KEY && !GROQ_API_KEY) { log("ERROR", "Nenhuma chave de IA configurada (GEMINI_API_KEY ou GROQ_API_KEY)"); process.exit(1); }
   if (!TAVILY_API_KEY) log("WARN", "TAVILY_API_KEY nao definida — artigo seguira sem fontes pesquisadas");
 
   // 1. Research
@@ -313,7 +358,7 @@ Instrucoes:
   log("INFO", "Gerando artigo com Groq...");
   let article;
   try {
-    article = await fetchGroq(systemPrompt, userPrompt);
+    article = await fetchLLM(systemPrompt, userPrompt);
     log("INFO", "Artigo gerado, parseando...");
   } catch (err) {
     log("ERROR", `Falha na geracao: ${err.message}`);

@@ -3,6 +3,7 @@ import path from "path";
 import { generateAffiliateLink, getMLToken } from "./ml_affiliate.mjs";
 
 const GROQ_KEY = process.env.GROQ_API_KEY;
+const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const TAVILY_KEY = process.env.TAVILY_API_KEY;
 const ML_ID = process.env.ML_CLIENT_ID;
 const ML_SECRET = process.env.ML_CLIENT_SECRET;
@@ -17,6 +18,35 @@ function log(level, msg) {
 function slugify(text) {
   return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
+}
+
+async function fetchGemini(systemPrompt, userPrompt) {
+  if (!GEMINI_KEY) throw new Error("Gemini: GEMINI_API_KEY nao configurada");
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+          generationConfig: { temperature: 0.7, maxOutputTokens: 8192 },
+        }),
+      });
+      if (res.status === 429 || res.status === 503 || res.status === 502) {
+        await new Promise(r => setTimeout(r, attempt * 30000));
+        continue;
+      }
+      if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 300)}`);
+      const data = await res.json();
+      return data.candidates[0].content.parts[0].text;
+    } catch (err) {
+      if (attempt === 3) throw err;
+      log("WARN", `Gemini: erro, retentando... ${err.message}`);
+      await new Promise(r => setTimeout(r, 5000));
+    }
+  }
 }
 
 async function fetchGroq(systemPrompt, userPrompt) {
@@ -44,6 +74,15 @@ async function fetchGroq(systemPrompt, userPrompt) {
       log("WARN", `Groq: erro, retentando... ${err.message}`);
       await new Promise(r => setTimeout(r, 5000));
     }
+  }
+}
+
+async function fetchLLM(systemPrompt, userPrompt) {
+  try {
+    return await fetchGemini(systemPrompt, userPrompt);
+  } catch (geminiErr) {
+    log("WARN", `Gemini falhou: ${geminiErr.message.slice(0, 120)} — tentando Groq...`);
+    return await fetchGroq(systemPrompt, userPrompt);
   }
 }
 
@@ -184,8 +223,8 @@ Instrucoes:
 4. Dicas de compra no final
 5. Secao "## Fontes" com links de sites de tecnologia (Adrenaline, TechTudo, etc)`;
 
-log("INFO", "Gerando artigo com Groq...");
-const article = await fetchGroq(systemPrompt, userPrompt);
+log("INFO", "Gerando artigo com LLM (Gemini/Groq)...");
+const article = await fetchLLM(systemPrompt, userPrompt);
 log("INFO", "Artigo gerado, parseando...");
 
 const fmMatch = article.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
