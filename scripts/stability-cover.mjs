@@ -12,6 +12,14 @@ const BG_PROMPTS = {
   promocao: "Bright clean display surface background, light wood or white surface, soft diffused lighting, blurred store or gaming room ambiance, energetic warm tones, shallow depth of field. No products, no text, no watermarks.",
 };
 
+const REFINE_PROMPTS = {
+  guia: "Gaming products on a desk with keyboard and monitor background, professional product photography, realistic shadows and reflections, seamless lighting integration, high detail, photorealistic",
+  review: "Gaming product on a wooden desk with soft natural lighting, professional review-style product photo, realistic shadows and reflections, seamless integration with background, high detail",
+  lista: "Multiple gaming products on a display shelf, professional retail product photography, realistic shadows and reflections, seamless lighting integration, high detail, photorealistic",
+  noticia: "Gaming products in a living room entertainment setup, professional editorial photography, realistic lighting and shadows, seamless integration with room environment",
+  promocao: "Gaming products on a bright clean display surface, professional promotional product photography, realistic shadows and reflections, seamless lighting integration, high detail, photorealistic",
+};
+
 const PLACEHOLDER_PATTERNS = [
   "img-not-available", "no-image", "placeholder", "not-found", "nao-disponivel",
 ];
@@ -47,6 +55,20 @@ async function validateImage(buf) {
   } catch {
     return null;
   }
+}
+
+async function createShadow(w, h, blur) {
+  return sharp({
+    create: {
+      width: w + blur * 2,
+      height: h + blur * 2,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0.3 },
+    },
+  })
+    .blur(blur * 2)
+    .png()
+    .toBuffer();
 }
 
 async function compositeProducts(bgBuffer, products) {
@@ -88,14 +110,6 @@ async function compositeProducts(bgBuffer, products) {
     const padLeft = Math.round(bgW * 0.05);
     const padBottom = Math.round(bgH * 0.08);
 
-    const totalOthersW = others.reduce((sum, p) => {
-      const w = Math.round(bgW * pct);
-      const h = Math.round(w * (p.meta.height / p.meta.width));
-      const maxH = Math.round(bgH * 0.25);
-      const finalH = Math.min(h, maxH);
-      return sum + Math.round(finalH * (p.meta.width / p.meta.height));
-    }, 0) + (others.length - 1) * gap;
-
     let cursorX = padLeft;
     for (const p of others) {
       const targetW = Math.round(bgW * pct);
@@ -122,18 +136,35 @@ async function compositeProducts(bgBuffer, products) {
   return bg.composite(composites).png().toBuffer();
 }
 
-async function createShadow(w, h, blur) {
-  return sharp({
-    create: {
-      width: w + blur * 2,
-      height: h + blur * 2,
-      channels: 4,
-      background: { r: 0, g: 0, b: 0, alpha: 0.3 },
+async function refineComposite(compositeBuffer, category) {
+  const refinePrompt = REFINE_PROMPTS[category] || REFINE_PROMPTS.promocao;
+
+  const fd = new FormData();
+  const blob = new Blob([compositeBuffer], { type: "image/png" });
+  fd.append("image", blob, "composite.png");
+  fd.append("prompt", refinePrompt);
+  fd.append("strength", "0.35");
+  fd.append("mode", "image-to-image");
+  fd.append("output_format", "png");
+
+  const res = await fetch("https://api.stability.ai/v2beta/stable-image/generate/sd3", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.STABILITY_API_KEY}`,
+      Accept: "image/*",
     },
-  })
-    .blur(blur * 2)
-    .png()
-    .toBuffer();
+    body: fd,
+  });
+
+  if (!res.ok) {
+    const errBody = await res.text();
+    log("WARN", `Refinamento Stability falhou (${res.status}): ${errBody.slice(0, 200)}`);
+    return null;
+  }
+
+  const refined = Buffer.from(await res.arrayBuffer());
+  log("INFO", `Imagem refinada pelo Stability (${(refined.length / 1024).toFixed(1)} KB)`);
+  return refined;
 }
 
 export async function gerarCapaStability({ mlProducts, category, slug }) {
@@ -222,8 +253,16 @@ export async function gerarCapaStability({ mlProducts, category, slug }) {
   }
 
   try {
-    const result = await compositeProducts(bgBuffer, loaded);
-    return saveImage(result, slug);
+    const composite = await compositeProducts(bgBuffer, loaded);
+    log("INFO", `Composite gerado (${(composite.length / 1024).toFixed(1)} KB)`);
+
+    const refined = await refineComposite(composite, category);
+    if (refined) {
+      return saveImage(refined, slug);
+    }
+
+    log("WARN", "Refinamento nao disponivel — salvando composite puro");
+    return saveImage(composite, slug);
   } catch (err) {
     log("WARN", `Composicao falhou: ${err.message} — salvando fundo sem produto`);
     return saveImage(bgBuffer, slug);

@@ -33,7 +33,7 @@ Outro destaque brabo e **Cyberpunk 2077: Ultimate Edition**, saindo com 58% de d
 Nao adianta nada ter uma lista gigante de jogos na promocao se o teu console nao acompanha o ritmo da geracao atual. O Xbox Series X continua sendo a maquina definitiva da Microsoft para quem busca desempenho bruto na jogatina em 4K nativo e carregamento instantaneo com Quick Resume.
 
 <div class="product-card">
-  <img src="https://http2.mlstatic.com/D_NQ_NP_2X_622756-MLB76295061312_052024-F.webp" alt="Console Xbox Series X 1TB" class="product-card-img" loading="lazy" decoding="async">
+  <img src="https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/6048892_Image-Buy-Box-0_2000x2000-1?wid=1253&hei=705&fmt=jpg" alt="Console Xbox Series X 1TB" class="product-card-img" loading="lazy" decoding="async">
   <div class="product-card-body">
     <h3>Console Xbox Series X 1TB</h3>
     <div class="product-price">R$ 4399.00</div>
@@ -45,7 +45,7 @@ Nao adianta nada ter uma lista gigante de jogos na promocao se o teu console nao
 A briga no mercado e forte e a concorrencia nao facilita. O PlayStation 5 Slim vem garantindo seu espaco com ofertas agressivas no mercado brasileiro, principalmente pela expectativa dos grandes titulos que estao por vir. Se quiser saber mais sobre a movimentacao da concorrente, leia nossa materia sobre o [desconto em GTA 6 e PS5](/blog-gamer/blog/desconto-em-gta-6-e-ps5-quebra-recorde-de-vendas-em-2026/).
 
 <div class="product-card">
-  <img src="https://http2.mlstatic.com/D_NQ_NP_2X_665141-MLU76321189910_052024-F.webp" alt="Console Sony PlayStation 5 Slim 1TB + GTA 6" class="product-card-img" loading="lazy" decoding="async">
+  <img src="https://store.sony.com.au/dw/image/v2/ABBC_PRD/on/demandware.static/-/Sites-sony-master-catalog/default/dwf11f74b4/images/PLAYSTATION5WSLIM/PLAYSTATION5WSLIM.png" alt="Console Sony PlayStation 5 Slim 1TB + GTA 6" class="product-card-img" loading="lazy" decoding="async">
   <div class="product-card-body">
     <h3>Console Sony PlayStation 5 Slim 1TB + GTA 6</h3>
     <div class="product-price">R$ 4499.00</div>
@@ -57,7 +57,7 @@ A briga no mercado e forte e a concorrencia nao facilita. O PlayStation 5 Slim v
 Pra galera que nao abre mao de jogar na sala, na cama ou em viagens, o Nintendo Switch 2 mantem a relevancia com sua proposta hibrida e biblioteca cheia de exclusivos pesados.
 
 <div class="product-card">
-  <img src="https://http2.mlstatic.com/D_NQ_NP_2X_657466-MLU78359578934_082024-F.webp" alt="Console Nintendo Switch 2" class="product-card-img" loading="lazy" decoding="async">
+  <img src="https://assets.nintendo.com/image/upload/c_fill,w_1200/q_auto:best/f_auto/dpr_2.0/ncom/My%20Nintendo%20Store/EN-US/Nintendo%20Switch%202/Hardware/123669-nintendo-switch-2-package-front-2000x2000" alt="Console Nintendo Switch 2" class="product-card-img" loading="lazy" decoding="async">
   <div class="product-card-body">
     <h3>Console Nintendo Switch 2</h3>
     <div class="product-price">R$ 3299.00</div>
@@ -69,7 +69,7 @@ Pra galera que nao abre mao de jogar na sala, na cama ou em viagens, o Nintendo 
 E para quem gosta de alternar a jogatina entre o console e outras plataformas, ter um controle ergonomico e com resposta rapida faz toda a diferenca na hora de encarar partidas competitivas.
 
 <div class="product-card">
-  <img src="https://http2.mlstatic.com/D_NQ_NP_2X_991346-MLA51831115073_102022-F.webp" alt="Controle Sem Fio DualSense PS5" class="product-card-img" loading="lazy" decoding="async">
+  <img src="https://gmedia.playstation.com/is/image/SIEPDC/dualsense-controller-product-thumbnail-01-en-14sep21" alt="Controle Sem Fio DualSense PS5" class="product-card-img" loading="lazy" decoding="async">
   <div class="product-card-body">
     <h3>Controle Sem Fio DualSense PS5</h3>
     <div class="product-price">R$ 429.00</div>
