@@ -539,7 +539,7 @@ De todos os títulos, o sistema conta quais palavras aparecem mais. Se "GTA 6" a
 
 ### Passo 7: Escrita do artigo pela IA
 
-O sistema envia tudo para a IA (Groq, modelo GPT-OSS 120B):
+O sistema tenta primeiro o Gemini (`gemini-flash-latest`). Se falhar (quota, 503, truncamento), cai para Groq (`openai/gpt-oss-120b`). Se Groq falhar, tenta OpenAI (`gpt-4o-mini`).
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -998,7 +998,7 @@ O sistema tem **13 templates pré-definidos** (chamados de `TOPIC_SEEDS`). Cada 
 
 ### Passo 8: Escrita do artigo pela IA
 
-O sistema envia tudo para o Groq (modelo llama-3.3-70b-versatile):
+O sistema tenta primeiro o Gemini (`gemini-flash-latest`). Se falhar, usa Groq (`llama-3.3-70b-versatile`):
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -1189,8 +1189,11 @@ O sistema envia tudo para o Groq (modelo llama-3.3-70b-versatile):
 ┌────────────────────────┬─────────────────────────────────┬─────────────────────┐
 │  NOME                  │  PARA QUE SERVE                  │  ONDE É USADA       │
 ├────────────────────────┼─────────────────────────────────┼─────────────────────┤
-│  GROQ_API_KEY          │  Acesso à IA que escreve         │  Todos os scripts   │
-│                        │  os artigos                      │  de geração         │
+│  GEMINI_API_KEY        │  Acesso ao Google Gemini         │  Todos os scripts   │
+│                        │  (IA primária)                    │  de geração         │
+├────────────────────────┼─────────────────────────────────┼─────────────────────┤
+│  GROQ_API_KEY          │  Acesso ao Groq (fallback)       │  Todos os scripts   │
+│                        │                                  │  de geração         │
 ├────────────────────────┼─────────────────────────────────┼─────────────────────┤
 │  TAVILY_API_KEY        │  Ferramenta de pesquisa na       │  Todos os scripts   │
 │                        │  internet                        │  de pesquisa        │
@@ -1284,7 +1287,7 @@ O sistema envia tudo para o Groq (modelo llama-3.3-70b-versatile):
 │    → Pesquisa na internet (Tavily)                          │
 │    → Busca produtos no Mercado Livre                        │
 │    → Gera links de afiliado                                 │
-│    → IA escreve o artigo (Groq)                             │
+│    → IA escreve o artigo (Gemini → Groq → OpenAI)          │
 │    → Injeta imagens [IMG:Nome] → <img> (RAWG + OpenAI)     │
 │    → Injeta produtos [PRODUTO:N] → card com botão verde    │
 │    → Salva o arquivo .md (frontmatter + corpo)              │
@@ -1311,8 +1314,8 @@ O sistema envia tudo para o Groq (modelo llama-3.3-70b-versatile):
 │  3. GitHub Actions → aba "Actions"                          │
 │     → Mostra se o workflow rodou e se deu erro             │
 │                                                             │
-│  4. Dashboard do GROQ (console.groq.com)                    │
-│     → Mostra chamadas e tokens usados nas últimas 24h      │
+│  4. Dashboard do Gemini (aistudio.google.com) ou GROQ       │
+│     (console.groq.com) → Mostra chamadas e uso das APIs    │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -1345,13 +1348,14 @@ Esse erro acontecia no tratamento de erros do script. Quando uma API (GROQ, Tavi
 
 O blog usa poucas chamadas de API comparado a outros projetos:
 
-| Serviço | Uso típico do blog |
-|---------|-------------------|
-| GROQ | 2–3 chamadas a cada 2 dias |
-| Tavily | 1–2 buscas a cada 2 dias |
-| RAWG | 5–10 buscas a cada 2 dias |
+| Serviço | Uso típico do blog | Limite |
+|---------|-------------------|--------|
+| Gemini | 3–9 chamadas a cada 2 dias (3 tentativas × 3 gerações) | 30 RPM free |
+| GROQ | 2–3 chamadas a cada 2 dias (fallback) | 200K tokens/dia |
+| Tavily | 1–2 buscas a cada 2 dias | 1000 consultas/mês |
+| RAWG | 5–10 buscas a cada 2 dias | Free tier |
 
-Se o mesmo e-mail do GROQ for usado em outro projeto (como o `monitor-telegram`), o consumo total da conta é somado. No momento, o consumo está tranquilo: cerca de 314 chamadas em 24h, bem abaixo do limite gratuito de 6.000.
+O Gemini é sempre tentado primeiro. Se ele falha (comum no free tier por rate limit), o sistema cai para Groq, que é mais estável mas tem limite menor de tokens.
 
 ---
 

@@ -15,11 +15,11 @@ O blog se auto-gerencia. Para verificar a saúde do sistema, abra o [`status.jso
 ```json
 {
   "saudavel": true,
-  "ultimo_artigo": "2026-07-28",
-  "ultimo_deploy": "2026-07-28T17:45:00Z",
-  "total_artigos": 32,
+  "ultimo_artigo": "2026-07-29",
+  "ultimo_deploy": "2026-07-29T12:40:00Z",
+  "total_artigos": 34,
   "erros_recentes": [],
-  "apis": { "groq": "ok", "tavily": "ok", "rawg": "ok" }
+  "apis": { "gemini": "ok", "groq": "ok", "tavily": "ok", "rawg": "ok" }
 }
 ```
 
@@ -36,10 +36,13 @@ Se `saudavel: false` ou `ultimo_artigo` está muito antigo, verifique os secrets
   deploy.yml              → Deploy GitHub Pages (push + manual)
 
 scripts/
-  gerar-artigo.mjs          → Pipeline principal (trending → Tavily → Google ML → Groq → RAWG → injeção de produtos → validação)
+  gerar-artigo.mjs          → Pipeline principal (trending → Tavily → Google ML → Gemini/Groq → RAWG → injeção de produtos → validação)
   gerar-artigo-pilar.mjs    → Artigo pilar (3 passes: pesquisa → draft → refino + injeção mecânica de produtos)
+  gerar-placas-video.mjs    → Pipeline dedicada para artigos sobre placas de vídeo
+  gerar-lista-monitores.mjs → Pipeline dedicada para artigos sobre monitores gamer
   ml_affiliate.mjs          → API ML (token OAuth, searchMLviaGoogle, link afiliado)
   gerar-status.cjs          → Gera status.json a cada deploy
+  test-injecao.mjs          → Testes de validação (87 asserts): cards, TOC, fontes
   download-images.mjs       → Baixa imagens dos produtos para o repo
   convert-banners.mjs       → Converter banners PNG → WebP
 
@@ -66,9 +69,10 @@ public/images/         → Banners Telegram (WebP), logo SVG, imagens de produto
 │                 Até 4 queries usando trending keywords              │
 │                 Filtro isGamerProduct + dedup por permalink         │
 ├─────────────────────────────────────────────────────────────────────┤
-│ 4. GROQ IA      openai/gpt-oss-120b (8K TPM)                       │
+│ 4. GEMINI IA    gemini-flash-latest (primário, 64K budget)          │
+│                 Fallback: Groq (openai/gpt-oss-120b) → OpenAI       │
 │                 Persona dual: Mano Gamer / Técnico                  │
-│                 Retry exponencial 8x em falhas (429/503/413)        │
+│                 Retry exponencial 3x em falhas (429/503/413)        │
 ├─────────────────────────────────────────────────────────────────────┤
 │ 5. VALIDAÇÃO    Frontmatter, word count (400+), links internos      │
 │                 Links inválidos removidos automaticamente           │
@@ -250,9 +254,11 @@ Isso garante que os produtos encontrados sejam **relacionados ao conteúdo real*
 
 ---
 
-## Modelo de IA
+## Modelos de IA
 
-**openai/gpt-oss-120b** (Groq, plano Free). Substituiu o llama-3.3-70b em Jul/2026. Escreve melhor em português, segue instruções complexas (tabelas, FAQ, pros/cons), e tem o dobro do limite gratuito (200K tokens/dia vs 100K). Limitado a 8K TPM por requisição (payload otimizado para ~7K).
+**Primário:** `gemini-flash-latest` (Google Gemini, plano Free). 1M tokens de entrada, 8192 de saída. Usado como primeira tentativa em toda geração.
+
+**Fallback:** `openai/gpt-oss-120b` (Groq, plano Free) → `gpt-4o-mini` (OpenAI). Se o Gemini falha (quota, 503, truncamento), o sistema tenta Groq automaticamente. Se Groq falha, tenta OpenAI.
 
 ---
 
@@ -326,7 +332,8 @@ Arquivos em `public/images/`.
 
 | Secret | Descrição |
 |--------|-----------|
-| `GROQ_API_KEY` | API key do Groq (não expira, mas pode ser recriada no console) |
+| `GEMINI_API_KEY` | API key do Google Gemini (primário, modelo `gemini-flash-latest`) |
+| `GROQ_API_KEY` | API key do Groq (fallback, não expira) |
 | `TAVILY_API_KEY` | API key do Tavily (1000 consultas/mês free, busca fontes + produtos Google) |
 | `ML_CLIENT_ID` | Client ID do app ML (OAuth client_credentials) |
 | `ML_CLIENT_SECRET` | Client Secret do app ML |
@@ -339,8 +346,9 @@ Arquivos em `public/images/`.
 
 | API | Função | Limite |
 |-----|--------|--------|
-| Groq | Geração de texto (openai/gpt-oss-120b) | Free tier (200K tokens/dia) |
-| OpenAI | Capas AI (gpt-image-1-mini, 1536×1024) | Pago (~$0.005/imagem) |
+| Gemini | Geração de texto (primário, gemini-flash-latest) | Free tier (30 RPM, 1M input, 8K output) |
+| Groq | Geração de texto (fallback, openai/gpt-oss-120b) | Free tier (200K tokens/dia) |
+| OpenAI | Geração de texto + Capas AI (fallback + gpt-image-1-mini) | Pago (~$0.005/imagem) |
 | Tavily | Busca de fontes + busca Google de produtos ML + imagens não-jogos | 1000 consultas/mês free |
 | ML OAuth | Links de afiliado (client_credentials) | Free |
 | ML (scraping) | Extração de título, preço e imagem de produtos | Sem limite |
@@ -356,6 +364,7 @@ Arquivos em `public/images/`.
 Copie `.env.example` para `.env` e preencha:
 
 ```bash
+GEMINI_API_KEY=AIzaSy...
 GROQ_API_KEY=gsk_...
 TAVILY_API_KEY=tvly-...
 ML_CLIENT_ID=...
@@ -382,13 +391,23 @@ node scripts/convert-banners.mjs       # Converter banners PNG → WebP
 
 ---
 
+## Funcionalidades v1.1 (Melhorias de Artigo)
+
+| Funcionalidade | Descrição |
+|----------------|-----------|
+| **Cards visuais de produto** | `buildProductCardHtml()` gera card com imagem, preço e botão de afiliado (substitui o antigo botão simples) |
+| **Índice automático** | `injectTableOfContents()` gera `## Índice` com links âncora para cada seção |
+| **Validação de fontes** | `validateSourceCoverage()` verifica se cada tópico tem fonte citada |
+| **Gemini primário** | `gemini-flash-latest` como IA principal, Groq como fallback |
+| **Budget 64K tokens** | Aumentado de 8K para 64K para evitar truncamento de artigos |
+
 ## Workflows
 
 | Workflow | Gatilho | Função |
 |----------|---------|--------|
 | **Gerar Conteudo Automatico** | Cron (2 dias) + manual | Artigo a cada 2 dias com trending, produtos e deploy |
 | **Gerar Artigo Pilar** | Manual | Guia completo 3000+ palavras com 12+ produtos |
-| **Deploy Blog Gamer** | Push + manual | Build e deploy GitHub Pages |
+| **Deploy Blog Gamer** | Push na main + manual | Build e deploy GitHub Pages |
 
 ---
 
@@ -399,7 +418,10 @@ node scripts/convert-banners.mjs       # Converter banners PNG → WebP
 1. Verifique o [`status.json`](https://sergioskmcle-sketch.github.io/blog-gamer/status.json)
 2. Veja os logs do workflow `Gerar Conteudo Automatico` em **Actions**
 3. Erro comum já corrigido (jul/2026): `Cannot read properties of undefined (reading 'slice')` — ocorria quando o script tentava logar um erro da API sem validar se a mensagem existia. O tratamento de erros agora converte valores `undefined` para string antes de usar `.slice()`.
-4. Verifique se as chaves dos secrets ainda são válidas (`GROQ_API_KEY`, `TAVILY_API_KEY`, etc.)
+4. **Gemini 404/400:** se o Gemini retorna `"not found"` ou `"API key not valid"`, verifique se a chave `GEMINI_API_KEY` está atualizada no GitHub Secrets e se o modelo `gemini-flash-latest` está disponível na sua conta.
+5. **Workflow travando 15min+:** reduzimos as tentativas do Gemini de 5 para 3 (falha rápido e cai para Groq). Também aumentamos o budget de tokens de 8K para 64K para evitar truncamento.
+6. **Push falhando com conflito:** o workflow agora faz rebase na branch atual em vez de forçar `origin main`.
+7. Verifique se as chaves dos secrets ainda são válidas (`GEMINI_API_KEY`, `GROQ_API_KEY`, `TAVILY_API_KEY`, etc.)
 
 ### Consumo do GROQ
 
