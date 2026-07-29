@@ -53,7 +53,7 @@ async function fetchTavily(query) {
 
 async function fetchGemini(systemPrompt, userPrompt, maxTokens = 8192) {
   if (!GEMINI_API_KEY) throw new Error("Gemini: GEMINI_API_KEY nao configurada");
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
   const body = {
     systemInstruction: { parts: [{ text: systemPrompt }] },
     contents: [{ role: "user", parts: [{ text: userPrompt }] }],
