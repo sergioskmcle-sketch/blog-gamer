@@ -8,6 +8,12 @@ const ARTIGOS_DIR = path.resolve("src/content/artigos");
 const ML_AFFILIATE_TAG = process.env.ML_AFFILIATE_TAG || "sergioskm";
 const COOKIES_PATH = path.resolve("ml_cookies.json");
 
+const mlCookiesB64 = process.env.ML_COOKIES_B64 || (fs.existsSync(path.resolve("ml_cookies_base64.txt")) ? fs.readFileSync(path.resolve("ml_cookies_base64.txt"), "utf-8").trim() : null);
+if (mlCookiesB64) {
+  try { fs.writeFileSync(COOKIES_PATH, Buffer.from(mlCookiesB64, "base64"), "utf-8"); log("INFO", "Cookies ML carregados"); }
+  catch (e) { log("WARN", `Erro cookies: ${e.message}`); }
+}
+
 const ps5Slim = "https://www.mercadolivre.com.br/console-sony-playstation-5-edico-slim-disk-1tb-branco-controle-sem-fio-dualsense-ps5-branco/p/MLB52897777";
 const ps5Digital = "https://www.mercadolivre.com.br/console-playstation-5-slim-edico-digital-1tb-branco-sony/p/MLB29001054";
 const xboxX = "https://www.mercadolivre.com.br/console-xbox-series-x-1tb-standard-cor-preto/p/MLB37335939";

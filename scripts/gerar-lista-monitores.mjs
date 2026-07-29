@@ -102,6 +102,12 @@ async function tavilySearchML(query) {
 
 log("INFO", "=== GERANDO ARTIGO: 10 MONITORES GAMER ===");
 
+const mlCookiesB64 = process.env.ML_COOKIES_B64 || (fs.existsSync(path.resolve("ml_cookies_base64.txt")) ? fs.readFileSync(path.resolve("ml_cookies_base64.txt"), "utf-8").trim() : null);
+if (mlCookiesB64) {
+  try { fs.writeFileSync(COOKIE_PATH, Buffer.from(mlCookiesB64, "base64"), "utf-8"); log("INFO", "Cookies ML carregados"); }
+  catch (e) { log("WARN", `Erro cookies: ${e.message}`); }
+}
+
 const token = await getMLToken(ML_ID, ML_SECRET);
 
 // Search multiple monitor queries to find more products

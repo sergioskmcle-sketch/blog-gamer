@@ -892,9 +892,10 @@ async function getBestCoverImage(products, articleBody, trendingKeyword, markedG
   return "";
 }
 
-if (ML_COOKIES_B64) {
+const cookiesB64 = ML_COOKIES_B64 || (fs.existsSync(path.resolve("ml_cookies_base64.txt")) ? fs.readFileSync(path.resolve("ml_cookies_base64.txt"), "utf-8").trim() : null);
+if (cookiesB64) {
   try {
-    fs.writeFileSync(ML_COOKIES_PATH, Buffer.from(ML_COOKIES_B64, "base64"), "utf-8");
+    fs.writeFileSync(ML_COOKIES_PATH, Buffer.from(cookiesB64, "base64"), "utf-8");
     log("INFO", "Cookies ML carregados");
   } catch (e) {
     log("WARN", `Erro ao salvar cookies: ${e.message}`);
@@ -1621,8 +1622,22 @@ async function main() {
       }
 
       if (mlProducts.length === 0) {
-        log("INFO", "Nenhum produto encontrado via multiplas queries, tentando fallback com query original...");
-        mlProducts = await searchMLviaGoogle(topic.ml_query, ML_COOKIES_PATH, TAVILY_API_KEY, 4);
+        log("INFO", "Nenhum produto encontrado via queries especificas, tentando fallback...");
+        const fallbackQueries = effectiveDomain === "games"
+          ? [`${topic.hint} console`, `${topic.hint} acessorio gamer`, `${topic.hint} presente gamer`]
+          : [topic.ml_query];
+        for (const fq of fallbackQueries) {
+          const fallbackProducts = await searchMLviaGoogle(fq, ML_COOKIES_PATH, TAVILY_API_KEY, 4);
+          for (const p of fallbackProducts) {
+            if (![...mlProducts].some(e => e.permalink === p.permalink)) {
+              mlProducts.push(p);
+            }
+          }
+          if (mlProducts.length >= 4) break;
+        }
+        if (mlProducts.length === 0) {
+          mlProducts = await searchMLviaGoogle(topic.ml_query, ML_COOKIES_PATH, TAVILY_API_KEY, 4);
+        }
       }
 
       for (const p of mlProducts) {

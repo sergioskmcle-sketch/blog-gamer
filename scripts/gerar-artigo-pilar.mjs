@@ -260,8 +260,9 @@ async function main() {
 
   if (!GEMINI_API_KEY && !GROQ_API_KEY) { log("ERROR", "Nenhuma chave de IA configurada (GEMINI_API_KEY ou GROQ_API_KEY)"); process.exit(1); }
 
-  if (ML_COOKIES_B64) {
-    try { fs.writeFileSync(ML_COOKIES_PATH, Buffer.from(ML_COOKIES_B64, "base64"), "utf-8"); log("INFO", "Cookies ML carregados"); }
+  const cookiesB64 = ML_COOKIES_B64 || (fs.existsSync(path.resolve("ml_cookies_base64.txt")) ? fs.readFileSync(path.resolve("ml_cookies_base64.txt"), "utf-8").trim() : null);
+  if (cookiesB64) {
+    try { fs.writeFileSync(ML_COOKIES_PATH, Buffer.from(cookiesB64, "base64"), "utf-8"); log("INFO", "Cookies ML carregados"); }
     catch (e) { log("WARN", `Erro cookies: ${e.message}`); }
   }
 
