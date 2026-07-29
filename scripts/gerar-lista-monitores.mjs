@@ -40,6 +40,9 @@ async function fetchGemini(systemPrompt, userPrompt) {
       }
       if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 300)}`);
       const data = await res.json();
+      if (data.candidates?.[0]?.finishReason === "MAX_TOKENS") {
+        throw new Error("Gemini: resposta truncada (maxOutputTokens=8192)");
+      }
       return data.candidates[0].content.parts[0].text;
     } catch (err) {
       if (attempt === 3) throw err;

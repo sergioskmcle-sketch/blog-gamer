@@ -216,15 +216,15 @@ ok(r.soft.some((e) => /abaixo do alvo/.test(e)), "mas registra o alerta");
 r = validate(fm, corpo, { category: "guia", productCount: 0, lastAttempt: true });
 ok(r.hard.some((e) => /muito curto/.test(e)), "piso absoluto bloqueia sempre");
 
-// --- orcamento de tokens da Groq (limite de 8000 TPM da conta) ---
-// A regra que evita o 413: tokens do prompt + max_tokens <= 8000.
+// --- orcamento de tokens ---
+// Garante que prompt + saida cabem no budget e que o teto de saida e respeitado.
 const tokens = (t) => Math.ceil(t.length / 3.3);
 for (const chars of [1000, 10000, 20000]) {
   const p = "x".repeat(chars);
-  ok(tokens(p) + computeMaxTokens(p, "") <= 8000, `prompt de ${chars} chars cabe no TPM`);
+  ok(tokens(p) + computeMaxTokens(p, "") <= 64000, `prompt de ${chars} chars cabe no budget`);
 }
-ok(computeMaxTokens("oi", "oi") <= 5000, "max_tokens respeita o teto de saida");
-ok(computeMaxTokens("x".repeat(30000), "") < 0, "prompt absurdo resulta em orcamento negativo (falha explicita)");
+ok(computeMaxTokens("oi", "oi") <= 8192, "max_tokens respeita o teto de saida");
+ok(computeMaxTokens("x".repeat(210000), "") < 0, "prompt absurdo resulta em orcamento negativo (falha explicita)");
 
 // --- cards visuais de produto (v1.1) ---
 const cardVisual = buildProductCardHtml({

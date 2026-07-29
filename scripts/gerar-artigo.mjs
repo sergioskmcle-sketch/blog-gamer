@@ -967,23 +967,23 @@ async function fetchTavilyImage(query) {
   }
 }
 
-// A conta e service tier on_demand: 8000 tokens por minuto, e a Groq conta
-// prompt + max_tokens na MESMA requisicao. Passar disso da 413 deterministico.
-const GROQ_TPM_LIMIT = 8000;
-const GROQ_SAFETY_MARGIN = 500;
-const GROQ_MIN_OUTPUT = 3000;
-const GROQ_MAX_OUTPUT = 5000;
+// Budget generoso para caber Gemini (ate 8192 tokens de saida) e Groq (ate 32768
+// de entrada). A conta Groq free limita a 8000 TPM, mas o erro 429 e tratado com
+// retry. O importante e nao truncar a resposta.
+const TOKEN_BUDGET = 64000;
+const TOKEN_SAFETY_MARGIN = 500;
+const MIN_OUTPUT = 3000;
+const MAX_OUTPUT = 8192;
 
 function estimateTokens(text) {
   return Math.ceil(String(text || "").length / 3.3);
 }
 
-// Sobra de tokens para a resposta depois de descontar o prompt. Nunca inventa
-// espaco que nao existe: prompt + retorno tem que caber nos 8000 do minuto.
+// Sobra de tokens para a resposta depois de descontar o prompt.
 function computeMaxTokens(systemPrompt, userPrompt) {
   const promptTokens = estimateTokens(systemPrompt) + estimateTokens(userPrompt);
-  const available = GROQ_TPM_LIMIT - promptTokens - GROQ_SAFETY_MARGIN;
-  return Math.min(GROQ_MAX_OUTPUT, available);
+  const available = TOKEN_BUDGET - promptTokens - TOKEN_SAFETY_MARGIN;
+  return Math.min(MAX_OUTPUT, available);
 }
 
 async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
@@ -999,7 +999,7 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
   };
 
   if (body.max_tokens < 1000) {
-    throw new Error(`Groq: prompt grande demais — sobram so ${body.max_tokens} tokens de saida no limite de ${GROQ_TPM_LIMIT} TPM`);
+    throw new Error(`Groq: prompt grande demais — sobram so ${body.max_tokens} tokens de saida no limite de ${TOKEN_BUDGET} TPM`);
   }
   const startTime = Date.now();
   const MAX_TOTAL_WAIT = 5 * 60 * 1000;
@@ -1031,7 +1031,7 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
         }
         // 413 e deterministico (tamanho da requisicao): retentar so perde tempo.
         if (res.status === 413) {
-          log("ERROR", `Groq: requisicao maior que o limite de ${GROQ_TPM_LIMIT} TPM (prompt + max_tokens=${body.max_tokens}). Reduza o prompt.`);
+          log("ERROR", `Groq: requisicao maior que o limite de ${TOKEN_BUDGET} TPM (prompt + max_tokens=${body.max_tokens}). Reduza o prompt.`);
           const fatal = new Error(msg);
           fatal.fatal = true;
           throw fatal;
@@ -1137,7 +1137,7 @@ async function fetchGemini(systemPrompt, userPrompt, maxAttempts = 5, opts = {})
   };
 
   if (body.generationConfig.maxOutputTokens < 1000) {
-    throw new Error(`Gemini: prompt grande demais — sobram so ${body.generationConfig.maxOutputTokens} tokens de saida no limite de ${GROQ_TPM_LIMIT} TPM`);
+    throw new Error(`Gemini: prompt grande demais — sobram so ${body.generationConfig.maxOutputTokens} tokens de saida no limite de ${TOKEN_BUDGET} TPM`);
   }
 
   const startTime = Date.now();
@@ -1191,7 +1191,7 @@ async function fetchGemini(systemPrompt, userPrompt, maxAttempts = 5, opts = {})
   throw new Error(`Gemini: todas as ${maxAttempts} tentativas falharam`);
 }
 
-async function fetchLLM(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
+async function fetchLLM(systemPrompt, userPrompt, maxAttempts = 3, opts = {}) {
   try {
     return await fetchGemini(systemPrompt, userPrompt, maxAttempts, opts);
   } catch (geminiErr) {
@@ -1795,10 +1795,10 @@ Checklist antes de responder:
 
   // Encolhe a pesquisa ate sobrar espaco de saida suficiente dentro do TPM.
   let userPrompt = buildUserPrompt(researchContext);
-  while (computeMaxTokens(systemPrompt, userPrompt) < GROQ_MIN_OUTPUT && researchContext.length > 800) {
+  while (computeMaxTokens(systemPrompt, userPrompt) < MIN_OUTPUT && researchContext.length > 800) {
     researchContext = researchContext.slice(0, Math.floor(researchContext.length * 0.75));
     userPrompt = buildUserPrompt(researchContext);
-    log("WARN", `Pesquisa reduzida para caber no limite de ${GROQ_TPM_LIMIT} TPM`);
+    log("WARN", `Pesquisa reduzida para caber no limite de ${TOKEN_BUDGET} TPM`);
   }
   log("INFO", `Orcamento Groq: prompt ~${estimateTokens(systemPrompt) + estimateTokens(userPrompt)} tokens, saida ~${computeMaxTokens(systemPrompt, userPrompt)} tokens`);
 

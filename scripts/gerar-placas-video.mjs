@@ -77,6 +77,9 @@ async function fetchGemini(systemPrompt, userPrompt, maxTokens = 8192) {
       const data = await res.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!text) throw new Error("Gemini: resposta vazia");
+      if (data.candidates?.[0]?.finishReason === "MAX_TOKENS") {
+        throw new Error(`Gemini: resposta truncada (maxOutputTokens=${maxTokens})`);
+      }
       return text;
     } catch (err) {
       if (attempt === 3) throw err;
