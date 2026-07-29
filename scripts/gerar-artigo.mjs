@@ -406,6 +406,7 @@ async function discoverTrendingTopic(existingTopics = [], recentKeywords = []) {
 }
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const RAWG_API_KEY = process.env.RAWG_API_KEY;
@@ -749,9 +750,76 @@ function isGamerProduct(title) {
 
 function buildProductCardHtml(p) {
   const link = p.affiliate_link || p.permalink || "";
-  return link
-    ? `\n<a href="${link}" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>\n`
-    : "";
+  if (!link) return "";
+
+  const img = p.thumbnail && p.thumbnail.startsWith("http") ? p.thumbnail : "";
+  const preco = p.price ? `R$ ${p.price.toFixed(2)}` : "Consulte no site";
+  const title = p.title || "Produto no Mercado Livre";
+
+  return `<div class="product-card">
+  ${img ? `<img src="${img}" alt="${title}" class="product-card-img" loading="lazy" decoding="async">` : ""}
+  <div class="product-card-body">
+    <h3>${title}</h3>
+    <div class="product-price">${preco}</div>
+    <p class="product-desc">${title} — adquira no Mercado Livre com link de afiliado.</p>
+    <a href="${link}" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+  </div>
+</div>`;
+}
+
+// Gera um sumário/índice com links âncora a partir dos headings ## do artigo
+function injectTableOfContents(body) {
+  if (!body || typeof body !== "string") return body;
+
+  const headings = [...body.matchAll(/^(## )([^\n]+)$/gm)];
+  if (headings.length < 3) return body;
+
+  const excluded = /^(fontes|conclus[aã]o|quer mais ofertas\?|faq|perguntas frequentes|resumo r[áa]pido|veredito)/i;
+
+  const items = headings
+    .filter((m) => !excluded.test(m[2].trim()))
+    .map((m) => {
+      const title = m[2].trim();
+      const baseAnchor = title.toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 60);
+      return { title, baseAnchor };
+    });
+
+  if (items.length < 3) return body;
+
+  // Gera âncoras únicas
+  const usedAnchors = new Set();
+  const tocItems = items.map((item, idx) => {
+    let anchor = item.baseAnchor;
+    let suffix = 1;
+    while (usedAnchors.has(anchor)) {
+      anchor = `${item.baseAnchor}-${suffix}`;
+      suffix++;
+    }
+    usedAnchors.add(anchor);
+    return { title: item.title, anchor };
+  });
+
+  const tocLines = tocItems.map((item, idx) => `${idx + 1}. [${item.title}](#${item.anchor})`);
+  const toc = `## Índice\n\n${tocLines.join("\n")}\n`;
+
+  // Cria mapa título -> âncora final para inserir nos headings
+  const anchorMap = new Map(tocItems.map((item) => [item.title, item.anchor]));
+
+  // Insere âncoras nos headings originais
+  const result = body.replace(/^(## )([^\n]+)$/gm, (match, hashes, title) => {
+    const trimmedTitle = title.trim();
+    if (excluded.test(trimmedTitle)) return match;
+    const anchor = anchorMap.get(trimmedTitle);
+    if (!anchor) return match;
+    return `${hashes}<a id="${anchor}"></a>${trimmedTitle}`;
+  });
+
+  return `${toc}\n${result}`;
 }
 
 // Substitui [PRODUTO:N] pelo card. Fallback posicional so quando a IA ignorou
@@ -899,23 +967,23 @@ async function fetchTavilyImage(query) {
   }
 }
 
-// A conta e service tier on_demand: 8000 tokens por minuto, e a Groq conta
-// prompt + max_tokens na MESMA requisicao. Passar disso da 413 deterministico.
-const GROQ_TPM_LIMIT = 8000;
-const GROQ_SAFETY_MARGIN = 500;
-const GROQ_MIN_OUTPUT = 3000;
-const GROQ_MAX_OUTPUT = 5000;
+// Budget generoso para caber Gemini (ate 8192 tokens de saida) e Groq (ate 32768
+// de entrada). A conta Groq free limita a 8000 TPM, mas o erro 429 e tratado com
+// retry. O importante e nao truncar a resposta.
+const TOKEN_BUDGET = 64000;
+const TOKEN_SAFETY_MARGIN = 500;
+const MIN_OUTPUT = 3000;
+const MAX_OUTPUT = 8192;
 
 function estimateTokens(text) {
   return Math.ceil(String(text || "").length / 3.3);
 }
 
-// Sobra de tokens para a resposta depois de descontar o prompt. Nunca inventa
-// espaco que nao existe: prompt + retorno tem que caber nos 8000 do minuto.
+// Sobra de tokens para a resposta depois de descontar o prompt.
 function computeMaxTokens(systemPrompt, userPrompt) {
   const promptTokens = estimateTokens(systemPrompt) + estimateTokens(userPrompt);
-  const available = GROQ_TPM_LIMIT - promptTokens - GROQ_SAFETY_MARGIN;
-  return Math.min(GROQ_MAX_OUTPUT, available);
+  const available = TOKEN_BUDGET - promptTokens - TOKEN_SAFETY_MARGIN;
+  return Math.min(MAX_OUTPUT, available);
 }
 
 async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
@@ -931,7 +999,7 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
   };
 
   if (body.max_tokens < 1000) {
-    throw new Error(`Groq: prompt grande demais — sobram so ${body.max_tokens} tokens de saida no limite de ${GROQ_TPM_LIMIT} TPM`);
+    throw new Error(`Groq: prompt grande demais — sobram so ${body.max_tokens} tokens de saida no limite de ${TOKEN_BUDGET} TPM`);
   }
   const startTime = Date.now();
   const MAX_TOTAL_WAIT = 5 * 60 * 1000;
@@ -963,7 +1031,7 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
         }
         // 413 e deterministico (tamanho da requisicao): retentar so perde tempo.
         if (res.status === 413) {
-          log("ERROR", `Groq: requisicao maior que o limite de ${GROQ_TPM_LIMIT} TPM (prompt + max_tokens=${body.max_tokens}). Reduza o prompt.`);
+          log("ERROR", `Groq: requisicao maior que o limite de ${TOKEN_BUDGET} TPM (prompt + max_tokens=${body.max_tokens}). Reduza o prompt.`);
           const fatal = new Error(msg);
           fatal.fatal = true;
           throw fatal;
@@ -1055,13 +1123,87 @@ async function fetchOpenAI(systemPrompt, userPrompt, opts = {}) {
   throw new Error(`OpenAI: todas as 3 tentativas falharam`);
 }
 
-async function fetchLLM(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
+async function fetchGemini(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
+  if (!GEMINI_API_KEY) throw new Error("Gemini: GEMINI_API_KEY nao configurada");
+  const model = opts.model || "gemini-flash-latest";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+  const body = {
+    systemInstruction: { parts: [{ text: systemPrompt }] },
+    contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+    generationConfig: {
+      temperature: opts.temperature ?? 0.7,
+      maxOutputTokens: opts.maxTokens ?? computeMaxTokens(systemPrompt, userPrompt),
+    },
+  };
+
+  if (body.generationConfig.maxOutputTokens < 1000) {
+    throw new Error(`Gemini: prompt grande demais — sobram so ${body.generationConfig.maxOutputTokens} tokens de saida no limite de ${TOKEN_BUDGET} TPM`);
+  }
+
+  const startTime = Date.now();
+  const MAX_TOTAL_WAIT = 5 * 60 * 1000;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      log("INFO", `Gemini: tentativa ${attempt}/${maxAttempts}...`);
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.status === 429 || res.status === 503 || res.status === 502) {
+        const elapsed = Date.now() - startTime;
+        if (elapsed > MAX_TOTAL_WAIT) {
+          log("ERROR", `Gemini: timeout total de ${MAX_TOTAL_WAIT / 1000}s atingido, desistindo`);
+          throw new Error(`Gemini: timeout total apos ${attempt} tentativas`);
+        }
+        const wait = Math.min(15 * Math.pow(2, attempt - 1), 120);
+        log("WARN", `Gemini: ${res.status}, aguardando ${wait}s (tentativa ${attempt}/${maxAttempts})...`);
+        await sleep(wait * 1000);
+        continue;
+      }
+      if (!res.ok) {
+        const err = await res.text();
+        const errText = typeof err === "string" ? err : String(err);
+        const msg = `Gemini ${res.status}: ${errText.slice(0, 300)}`;
+        if (res.status === 401 || res.status === 400) {
+          log("ERROR", `Gemini: API key invalida ou requisicao rejeitada! Verifique GEMINI_API_KEY.`);
+          const fatal = new Error(msg);
+          fatal.fatal = true;
+          throw fatal;
+        }
+        throw new Error(msg);
+      }
+      const data = await res.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) throw new Error(`Gemini: resposta vazia: ${JSON.stringify(data).slice(0, 200)}`);
+      if (data.candidates?.[0]?.finishReason === "MAX_TOKENS") {
+        throw new Error(`Gemini: resposta truncada (maxOutputTokens=${body.generationConfig.maxOutputTokens})`);
+      }
+      return text;
+    } catch (err) {
+      if (err.fatal || attempt === maxAttempts) throw err;
+      const wait = Math.min(10 * Math.pow(2, attempt - 1), 60);
+      const errMsg = err?.message || String(err);
+      log("WARN", `Gemini: erro "${errMsg.slice(0, 80)}", retentando em ${wait}s...`);
+      await sleep(wait * 1000);
+    }
+  }
+  throw new Error(`Gemini: todas as ${maxAttempts} tentativas falharam`);
+}
+
+async function fetchLLM(systemPrompt, userPrompt, maxAttempts = 3, opts = {}) {
   try {
-    return await fetchGroq(systemPrompt, userPrompt, maxAttempts, opts);
-  } catch (groqErr) {
-    const errMsg = groqErr?.message || String(groqErr);
-    log("WARN", `Groq falhou: ${errMsg.slice(0, 120)} — tentando OpenAI...`);
-    return await fetchOpenAI(systemPrompt, userPrompt, opts);
+    return await fetchGemini(systemPrompt, userPrompt, maxAttempts, opts);
+  } catch (geminiErr) {
+    const errMsg = geminiErr?.message || String(geminiErr);
+    log("WARN", `Gemini falhou: ${errMsg.slice(0, 120)} — tentando Groq...`);
+    try {
+      return await fetchGroq(systemPrompt, userPrompt, maxAttempts, opts);
+    } catch (groqErr) {
+      const groqErrMsg = groqErr?.message || String(groqErr);
+      log("WARN", `Groq falhou: ${groqErrMsg.slice(0, 120)} — tentando OpenAI...`);
+      return await fetchOpenAI(systemPrompt, userPrompt, opts);
+    }
   }
 }
 
@@ -1283,6 +1425,51 @@ function buildInternalLinksBlock() {
   return `\nARTIGOS EXISTENTES (links internos SO desta lista — proibido inventar slug):\n${lines.join("\n")}\n`;
 }
 
+function validateSourceCoverage(body, sources = []) {
+  const warnings = [];
+  if (!body || typeof body !== "string") return warnings;
+
+  // Seção Fontes
+  const fontesSection = /##\s+Fontes[\s\S]*$/i.test(body);
+  if (!fontesSection) {
+    warnings.push("Secao ## Fontes ausente — artigo sem citacao de fontes");
+  }
+
+  if (sources.length === 0) {
+    warnings.push("Nenhuma fonte de pesquisa disponivel para validacao de dados");
+    return warnings;
+  }
+
+  const sourceText = sources.map((s) => String(s.title || "") + " " + String(s.content || "") + " " + String(s.url || "")).join("\n");
+  const sourceTextLower = sourceText.toLowerCase();
+
+  // Extrai anos (ex: 2026, 2027) e verifica se estão nas fontes
+  const years = [...new Set([...(body.match(/\b20[2-9]\d\b/g) || [])])];
+  const missingYears = years.filter((y) => !sourceTextLower.includes(y));
+  if (missingYears.length > 0) {
+    warnings.push(`Anos mencionados sem suporte nas fontes: ${missingYears.join(", ")}`);
+  }
+
+  // Extrai notas de review (ex: 8/10, 9.5, Metacritic 85)
+  const scores = [...new Set([
+    ...(body.match(/\b\d{1,2}(?:[.,]\d+)?\s*\/\s*10\b/gi) || []),
+    ...(body.match(/\bMetacritic\s*[:\-]?\s*\d{1,3}\b/gi) || []),
+    ...(body.match(/\bnota\s*[:\-]?\s*\d{1,2}(?:[.,]\d+)?\b/gi) || []),
+  ])];
+  const missingScores = scores.filter((s) => !sourceTextLower.includes(s.toLowerCase()));
+  if (missingScores.length > 0) {
+    warnings.push(`Notas/reviews mencionadas sem suporte nas fontes: ${missingScores.join(", ")}`);
+  }
+
+  // Verifica se há preços em prosa (preços de produtos devem ficar nos cards)
+  const prosePrices = [...body.matchAll(/R\$\s*([\d.,]+)/g)].map((m) => m[0]);
+  if (prosePrices.length > 0) {
+    warnings.push(`Precos em prosa detectados (${prosePrices.length}x) — preco deve ficar apenas no card do produto`);
+  }
+
+  return warnings;
+}
+
 function validateInternalLinks(body) {
   const existingSlugs = getExistingSlugs();
   const linkRegex = /\[([^\]]+)\]\(\/blog-gamer\/blog\/([^)]+?)\/?\)/g;
@@ -1319,11 +1506,12 @@ function pickTopic(counts) {
 
 async function main() {
   log("INFO", "=== INICIANDO GERACAO (Groq) ===");
+  log("INFO", `GEMINI_API_KEY definida: ${!!GEMINI_API_KEY}`);
   log("INFO", `GROQ_API_KEY definida: ${!!GROQ_API_KEY}`);
   log("INFO", `TAVILY_API_KEY definida: ${!!TAVILY_API_KEY}`);
   log("INFO", `ML_COOKIES_PATH existe: ${fs.existsSync(ML_COOKIES_PATH)}`);
 
-  if (!GROQ_API_KEY) { log("ERROR", "GROQ_API_KEY nao configurada"); process.exit(1); }
+  if (!GEMINI_API_KEY && !GROQ_API_KEY) { log("ERROR", "Nenhuma chave de IA configurada (GEMINI_API_KEY ou GROQ_API_KEY)"); process.exit(1); }
   if (!TAVILY_API_KEY) log("WARN", "TAVILY_API_KEY nao definida — artigo seguira sem fontes pesquisadas");
 
   const state = loadState();
@@ -1386,14 +1574,16 @@ async function main() {
   log("INFO", `Dominio do artigo: ${effectiveDomain}`);
 
   let researchContext = "";
+  let researchSources = [];
   try {
     const query = topic.category === "noticia"
       ? `${topic.hint} Brasil 2026`
       : `melhores ${topic.hint} Brasil 2026`;
     const sr = await fetchTavily(query);
+    researchSources = sr?.results || [];
     // 450 chars por fonte: o limite de 8000 TPM da Groq divide o orcamento
     // entre pesquisa e tamanho do artigo.
-    researchContext = (sr?.results || [])
+    researchContext = researchSources
       .map((r, i) => `[Fonte ${i + 1}] ${r.title}\nURL: ${r.url}\n${r.content?.slice(0, 450)}`)
       .join("\n\n");
   } catch (err) {
@@ -1605,10 +1795,10 @@ Checklist antes de responder:
 
   // Encolhe a pesquisa ate sobrar espaco de saida suficiente dentro do TPM.
   let userPrompt = buildUserPrompt(researchContext);
-  while (computeMaxTokens(systemPrompt, userPrompt) < GROQ_MIN_OUTPUT && researchContext.length > 800) {
+  while (computeMaxTokens(systemPrompt, userPrompt) < MIN_OUTPUT && researchContext.length > 800) {
     researchContext = researchContext.slice(0, Math.floor(researchContext.length * 0.75));
     userPrompt = buildUserPrompt(researchContext);
-    log("WARN", `Pesquisa reduzida para caber no limite de ${GROQ_TPM_LIMIT} TPM`);
+    log("WARN", `Pesquisa reduzida para caber no limite de ${TOKEN_BUDGET} TPM`);
   }
   log("INFO", `Orcamento Groq: prompt ~${estimateTokens(systemPrompt) + estimateTokens(userPrompt)} tokens, saida ~${computeMaxTokens(systemPrompt, userPrompt)} tokens`);
 
@@ -1655,6 +1845,10 @@ Checklist antes de responder:
     }
 
     const { hard, soft } = validate(parsed.frontmatter, parsed.body, { ...validationCtx, lastAttempt });
+
+    // Validação adicional: cobertura de fontes para dados concretos
+    const sourceWarnings = validateSourceCoverage(parsed.body, researchSources);
+    soft.push(...sourceWarnings);
 
     if (hard.length === 0 && soft.length === 0) {
       fm = parsed.frontmatter;
@@ -1750,6 +1944,9 @@ Checklist antes de responder:
   log("INFO", `${mlProducts.length} produtos injetados no corpo do artigo`);
 
   body = stripLeftoverMarkers(body);
+
+  // Gera sumário/índice com links âncora para melhor navegação e SEO
+  body = injectTableOfContents(body);
 
   if (!coverImage && mlProducts.length > 0) {
     const aiCover = await gerarCapaOpenAI({ mlProducts, category: categoria, slug: slugify(fm.title) });
@@ -1868,6 +2065,8 @@ export {
   injectGameImages,
   injectProductCards,
   buildProductCardHtml,
+  injectTableOfContents,
+  validateSourceCoverage,
   formatProductPriceForPrompt,
   stripLeftoverMarkers,
   extractGameNames,

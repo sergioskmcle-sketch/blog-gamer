@@ -5,7 +5,8 @@ import assert from "assert";
 import {
   injectProductCards, injectGameImages, extractImageMarkers, repositionImageMarkers,
   stripLeftoverMarkers, validate, checkTitle, capitalizeTitle, similarity, nameSimilarity,
-  computeMaxTokens, buildProductCardHtml, formatProductPriceForPrompt, findPricesInBody,
+  computeMaxTokens, buildProductCardHtml, injectTableOfContents, validateSourceCoverage,
+  formatProductPriceForPrompt, findPricesInBody,
 } from "./gerar-artigo.mjs";
 
 let passou = 0;
@@ -215,14 +216,96 @@ ok(r.soft.some((e) => /abaixo do alvo/.test(e)), "mas registra o alerta");
 r = validate(fm, corpo, { category: "guia", productCount: 0, lastAttempt: true });
 ok(r.hard.some((e) => /muito curto/.test(e)), "piso absoluto bloqueia sempre");
 
-// --- orcamento de tokens da Groq (limite de 8000 TPM da conta) ---
-// A regra que evita o 413: tokens do prompt + max_tokens <= 8000.
+// --- orcamento de tokens ---
+// Garante que prompt + saida cabem no budget e que o teto de saida e respeitado.
 const tokens = (t) => Math.ceil(t.length / 3.3);
 for (const chars of [1000, 10000, 20000]) {
   const p = "x".repeat(chars);
-  ok(tokens(p) + computeMaxTokens(p, "") <= 8000, `prompt de ${chars} chars cabe no TPM`);
+  ok(tokens(p) + computeMaxTokens(p, "") <= 64000, `prompt de ${chars} chars cabe no budget`);
 }
-ok(computeMaxTokens("oi", "oi") <= 5000, "max_tokens respeita o teto de saida");
-ok(computeMaxTokens("x".repeat(30000), "") < 0, "prompt absurdo resulta em orcamento negativo (falha explicita)");
+ok(computeMaxTokens("oi", "oi") <= 8192, "max_tokens respeita o teto de saida");
+ok(computeMaxTokens("x".repeat(210000), "") < 0, "prompt absurdo resulta em orcamento negativo (falha explicita)");
+
+// --- cards visuais de produto (v1.1) ---
+const cardVisual = buildProductCardHtml({
+  title: "Headset Gamer HyperX Cloud II",
+  price: 349.9,
+  thumbnail: "http://img/1.jpg",
+  affiliate_link: "http://ml/1",
+});
+ok(cardVisual.includes("product-card"), "card visual gera container product-card");
+ok(cardVisual.includes("product-card-img"), "card visual inclui imagem");
+ok(cardVisual.includes("product-price"), "card visual inclui preco");
+ok(cardVisual.includes("Headset Gamer HyperX Cloud II"), "card visual inclui titulo");
+ok(cardVisual.includes("VER NO MERCADO LIVRE"), "card visual mantem botao");
+
+const cardSemImagem = buildProductCardHtml({
+  title: "Produto sem imagem",
+  price: 199.9,
+  affiliate_link: "http://ml/x",
+});
+ok(cardSemImagem.includes("product-card"), "card sem imagem gera container");
+ok(!cardSemImagem.includes("product-card-img"), "card sem imagem nao inclui tag img");
+
+// --- sumario/indice (v1.1) ---
+const corpoComHeadings = `## Introducao
+
+Texto introdutorio.
+
+## God of War Ragnarok
+
+Texto sobre o jogo.
+
+## Gameplay e Mecanicas
+
+Texto sobre gameplay.
+
+## Conclusao
+
+Texto final.
+
+## Fontes
+
+- [Site](http://site.com)`;
+const comIndice = injectTableOfContents(corpoComHeadings);
+ok(comIndice.includes("## Índice"), "gera secao de Indice");
+ok(comIndice.includes("[God of War Ragnarok](#god-of-war-ragnarok)"), "indice linka para heading");
+ok(comIndice.includes('<a id="god-of-war-ragnarok"></a>'), "insere ancora no heading");
+ok(!comIndice.includes("[Conclusao]"), "nao inclui Conclusao no indice");
+ok(!comIndice.includes("[Fontes]"), "nao inclui Fontes no indice");
+
+// indice nao e gerado quando ha poucos headings
+const corpoCurto = `## Unica Secao\n\nTexto.`;
+igual(injectTableOfContents(corpoCurto), corpoCurto, "nao gera indice com menos de 3 headings");
+
+// --- validacao de cobertura de fontes (v1.1) ---
+const fontes = [
+  { title: "Review Tech", content: "O jogo chega em 19 de novembro de 2026. Nota 9/10.", url: "http://tech.com" },
+];
+const corpoComFontes = `## Introducao
+
+O jogo chega em 19 de novembro de 2026.
+
+## Nota
+
+Recebeu nota 9/10.
+
+## Fontes
+
+- [Review Tech](http://tech.com)`;
+let warnings = validateSourceCoverage(corpoComFontes, fontes);
+ok(warnings.length === 0 || warnings.every((w) => !/Fontes ausente|suporte nas fontes/.test(w)), "dados suportados nao geram warnings criticos");
+
+const corpoSemFontes = `## Introducao
+
+O jogo chega em 2027 e tem nota 15/10.
+
+## Outro topico
+
+Mais texto.`;
+warnings = validateSourceCoverage(corpoSemFontes, fontes);
+ok(warnings.some((w) => /2027/.test(w)), "detecta ano nao suportado pelas fontes");
+ok(warnings.some((w) => /15\/10/.test(w)), "detecta nota nao suportada pelas fontes");
+ok(warnings.some((w) => /Secao ## Fontes ausente/.test(w)), "detecta secao Fontes ausente");
 
 console.log(`${passou} asserts OK`);

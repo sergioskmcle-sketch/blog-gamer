@@ -4,6 +4,7 @@ import path from "path";
 import { searchMLviaGoogle, generateAffiliateLink } from "./ml_affiliate.mjs";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 const ML_CLIENT_ID = process.env.ML_CLIENT_ID;
 const ML_CLIENT_SECRET = process.env.ML_CLIENT_SECRET;
@@ -17,6 +18,50 @@ function log(level, msg) {
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+async function fetchGemini(systemPrompt, userPrompt, maxTokens = 4096) {
+  if (!GEMINI_API_KEY) throw new Error("Gemini: GEMINI_API_KEY nao configurada");
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+  const body = {
+    systemInstruction: { parts: [{ text: systemPrompt }] },
+    contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+    generationConfig: { temperature: 0.7, maxOutputTokens: maxTokens },
+  };
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      log("INFO", `Gemini: tentativa ${attempt}/5...`);
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.status === 429 || res.status === 503 || res.status === 502) {
+        const wait = Math.min(30 * Math.pow(2, attempt - 1), 600);
+        log("WARN", `Gemini: ${res.status}, aguardando ${wait}s...`);
+        await sleep(wait * 1000);
+        continue;
+      }
+      if (!res.ok) {
+        const err = await res.text();
+        const errText = typeof err === "string" ? err : String(err);
+        throw new Error(`Gemini ${res.status}: ${errText.slice(0, 300)}`);
+      }
+      const data = await res.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) throw new Error("Gemini: resposta vazia");
+      if (data.candidates?.[0]?.finishReason === "MAX_TOKENS") {
+        throw new Error(`Gemini: resposta truncada (maxOutputTokens=${maxTokens})`);
+      }
+      return text;
+    } catch (err) {
+      if (attempt === 5) throw err;
+      const wait = Math.min(10 * Math.pow(2, attempt - 1), 60);
+      const errMsg = err?.message || String(err);
+      log("WARN", `Gemini: erro "${errMsg.slice(0, 80)}", retentando em ${wait}s...`);
+      await sleep(wait * 1000);
+    }
+  }
 }
 
 async function fetchGroq(systemPrompt, userPrompt, maxTokens = 4096) {
@@ -60,6 +105,15 @@ async function fetchGroq(systemPrompt, userPrompt, maxTokens = 4096) {
       log("WARN", `Groq: erro "${errMsg.slice(0, 80)}", retentando em ${wait}s...`);
       await sleep(wait * 1000);
     }
+  }
+}
+
+async function fetchLLM(systemPrompt, userPrompt, maxTokens = 4096) {
+  try {
+    return await fetchGemini(systemPrompt, userPrompt, maxTokens);
+  } catch (geminiErr) {
+    log("WARN", `Gemini falhou: ${geminiErr.message.slice(0, 120)} — tentando Groq...`);
+    return await fetchGroq(systemPrompt, userPrompt, maxTokens);
   }
 }
 
@@ -204,7 +258,7 @@ function injectProducts(article, produtosPorSecao) {
 async function main() {
   log("INFO", "=== GERANDO ARTIGO PILAR C/ PRODUTOS ML ===");
 
-  if (!GROQ_API_KEY) { log("ERROR", "GROQ_API_KEY nao configurada"); process.exit(1); }
+  if (!GEMINI_API_KEY && !GROQ_API_KEY) { log("ERROR", "Nenhuma chave de IA configurada (GEMINI_API_KEY ou GROQ_API_KEY)"); process.exit(1); }
 
   if (ML_COOKIES_B64) {
     try { fs.writeFileSync(ML_COOKIES_PATH, Buffer.from(ML_COOKIES_B64, "base64"), "utf-8"); log("INFO", "Cookies ML carregados"); }
@@ -299,7 +353,7 @@ No final ## Fontes com links.`;
 
   let draft;
   try {
-    draft = await fetchGroq(systemDraft, userDraft, 4096);
+    draft = await fetchLLM(systemDraft, userDraft, 4096);
     log("INFO", `Draft: ${draft.length} caracteres`);
   } catch (err) { log("ERROR", `Falha draft: ${err.message}`); process.exit(1); }
 
@@ -319,7 +373,7 @@ No final ## Fontes com links.`;
 - Saida: frontmatter + markdown`;
 
     try {
-      finalArticle = await fetchGroq(systemRefine, `Revise mantendo tudo:\n\n${finalArticle.slice(0, 6000)}...`, 2048);
+      finalArticle = await fetchLLM(systemRefine, `Revise mantendo tudo:\n\n${finalArticle.slice(0, 6000)}...`, 2048);
       log("INFO", `Refinado: ${finalArticle.length} caracteres`);
     } catch (err) {
       log("WARN", `Falha refino: ${err.message} — mantendo com produtos injetados`);
