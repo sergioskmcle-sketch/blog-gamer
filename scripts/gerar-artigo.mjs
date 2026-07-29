@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { pathToFileURL } from "url";
 import Parser from "rss-parser";
-import { generateAffiliateLink, searchMLviaGoogle } from "./ml_affiliate.mjs";
+import { generateAffiliateLink, searchMLviaGoogle, searchMLDirect } from "./ml_affiliate.mjs";
 import { gerarCapaOpenAI } from "./openai-cover.mjs";
 
 const rssParser = new Parser({
@@ -85,7 +85,7 @@ const CONSOLE_KEYWORDS = [
 const HARDWARE_KEYWORDS = [
   "monitor", "headset", "teclado", "mouse", "cadeira", "placa de video",
   "processador", "ssd", "memoria", "rtx", "nvidia", "geforce", "radeon",
-  "amd", "intel", "fonte", "water cooler", "gabinete",
+  "amd", "intel",   "fonte de alimentação", "water cooler", "gabinete",
 ];
 
 const EVENT_KEYWORDS = ["e3", "game awards", "gamescom", "brasil game show", "bgs", "lançamento", "lancamento"];
@@ -411,6 +411,8 @@ const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const RAWG_API_KEY = process.env.RAWG_API_KEY;
 const ML_COOKIES_B64 = process.env.ML_COOKIES_B64;
+const ML_CLIENT_ID = process.env.ML_CLIENT_ID;
+const ML_CLIENT_SECRET = process.env.ML_CLIENT_SECRET;
 
 const GAME_IMAGE_CACHE = {};
 
@@ -1622,21 +1624,21 @@ async function main() {
       }
 
       if (mlProducts.length === 0) {
-        log("INFO", "Nenhum produto encontrado via queries especificas, tentando fallback...");
-        const fallbackQueries = effectiveDomain === "games"
-          ? [`${topic.hint} console`, `${topic.hint} acessorio gamer`, `${topic.hint} presente gamer`]
-          : [topic.ml_query];
-        for (const fq of fallbackQueries) {
-          const fallbackProducts = await searchMLviaGoogle(fq, ML_COOKIES_PATH, TAVILY_API_KEY, 4);
-          for (const p of fallbackProducts) {
-            if (![...mlProducts].some(e => e.permalink === p.permalink)) {
+        log("INFO", "Nenhum produto encontrado via Google/Tavily, tentando API direta do ML...");
+        const directQueries = [
+          ...trendingKws.slice(0, 2),
+          topic.ml_query,
+          effectiveDomain === "games" ? "console game acessorio" : "periferico gamer",
+        ].filter(Boolean);
+        for (const dq of directQueries) {
+          const directResults = await searchMLDirect(dq, ML_CLIENT_ID, ML_CLIENT_SECRET, 4);
+          for (const p of directResults) {
+            if (!seen.has(p.permalink)) {
+              seen.add(p.permalink);
               mlProducts.push(p);
             }
           }
           if (mlProducts.length >= 4) break;
-        }
-        if (mlProducts.length === 0) {
-          mlProducts = await searchMLviaGoogle(topic.ml_query, ML_COOKIES_PATH, TAVILY_API_KEY, 4);
         }
       }
 
@@ -1746,7 +1748,7 @@ Voce nao renderiza imagens nem cards de produto — voce decide ONDE eles entram
 2. ESPECIFICIDADE: proibido "incrivel", "revolucionario", "surpreendente" sem uma frase logo depois explicando o motivo concreto.
 3. TESE POR SECAO: cada secao defende um ponto, nao lista fatos soltos. Nao "as specs do monitor X", e sim "o monitor X vale o preco por causa de Y, apesar de Z".
 4. COMPARACAO REAL: em tabela comparativa, os numeros precisam diferenciar os itens. Nada de todo mundo com nota 9/10.
-5. EXTENSAO: minimo ${minWords} palavras, alvo ${alvoWords}. Extensao e consequencia de profundidade — nao encha linguica pra bater numero.
+  5. EXTENSAO: minimo ${minWords} palavras, alvo ${alvoWords}, maximo 1200 palavras. Extensao e consequencia de profundidade — nao encha linguica pra bater numero.
 6. E permitido (e recomendado) discordar do hype de marketing quando os dados sustentarem. Isso gera credibilidade.
 7. Frases curtas alternadas com uma ou duas mais longas. Paragrafos com frases todas do mesmo tamanho denunciam texto de IA.
 ${estiloOpinativo ? "8. Giria e humor sao tempero, nao estrutura: no maximo 1 giria marcante a cada 2-3 paragrafos, nunca empilhadas." : "8. Tom tecnico com humor seco dosado: no maximo 1 toque ironico a cada 3 paragrafos, sem giria de boteco."}

@@ -300,6 +300,52 @@ export async function searchMLviaGoogle(query, cookiePath, tavilyKey, limit = 4)
   return products;
 }
 
+export async function searchMLDirect(query, clientId, clientSecret, limit = 4) {
+  log("INFO", `Buscando ML via API direta para "${query}"`);
+  try {
+    // Try with auth first if credentials available
+    let token = null;
+    if (clientId && clientSecret) {
+      try { token = await getMLToken(clientId, clientSecret); }
+      catch { log("WARN", "ML token invalido — tentando sem auth"); }
+    }
+
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const searchRes = await fetch(
+      `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(query)}&limit=${limit * 3}`,
+      { headers }
+    );
+    if (!searchRes.ok) {
+      log("WARN", `ML search API: ${searchRes.status}`);
+      return [];
+    }
+    const data = await searchRes.json();
+    const products = [];
+    for (const r of data.results || []) {
+      if (products.length >= limit) break;
+      const pid = r.id;
+      if (!pid) continue;
+      const title = r.title || "";
+      if (!title) continue;
+      const price = r.price || 0;
+      if (!price) continue;
+      products.push({
+        id: pid, title, price,
+        thumbnail: r.thumbnail || "",
+        original_price: r.original_price || 0,
+        permalink: r.permalink || "",
+        images: [r.thumbnail || ""],
+      });
+      log("INFO", `  ML direct: ${title.slice(0, 50)} — R$ ${price.toFixed(2)}`);
+    }
+    log("INFO", `ML direct: ${products.length} produtos`);
+    return products;
+  } catch (e) {
+    log("WARN", `ML direct search error: ${e.message}`);
+    return [];
+  }
+}
+
 export async function generateAffiliateLink(productUrl, cookiePath) {
   if (!cookiePath || !fs.existsSync(cookiePath)) {
     return { short_url: productUrl };
