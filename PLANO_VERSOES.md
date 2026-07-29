@@ -50,9 +50,33 @@ Use a v1.1 para testar se os artigos ficam mais organizados, visuais e confiáve
 
 ---
 
-## Versão 1.2 — ideia arquivada (multi-source)
+## Versão 1.2 — Patch Afiliados (cookie-based)
 
-**Tag:** `v1.2-ideia-multisource`  
+**Data:** 2026-07-29  
+**Commit de referência:** `1343ebf`
+
+### O que mudou
+
+O OAuth do ML (`client_credentials`) parou de funcionar — retorna `invalid_client`. A solução foi usar **cookies de sessão** para autenticar na API afiliada:
+
+1. **`ml_affiliate.mjs`** (JS): implementa `generateAffiliateLink(url, cookiePath)` — carrega cookies de um JSON, visita o produto, extrai CSRF, chama API `createLink`.
+2. **`fix-article-links.mjs`**: script manual para regenerar links `meli.la` em artigos existentes. Recebe lista de URLs + caminho do cookie file.
+3. **Cookies de 613 entradas** funcionam; cookies de 39 entradas (antigo `ml_cookies_base64.txt`) retornam 401.
+4. **Cookie file funcional** em `C:\Users\sismais\Documents\Projetos Pessoais\monitor-telegram\ml_cookies_fresh.json`.
+
+### Problemas conhecidos
+
+- O secret `ML_COOKIES_B64` no GitHub está **desatualizado** (39 cookies). Precisa ser renovado.
+- O OAuth pode voltar a funcionar se um novo app for criado em `developers.mercadolivre.com.br`.
+- Permalinks do ML podem ser reciclados (MLBXXXXX vira outro produto) — necessidade de verificação periódica.
+
+### Quando usar
+
+Use a v1.2 para gerar links `meli.la` localmente. No pipeline GitHub Actions, só funcionará após renovar o `ML_COOKIES_B64`.
+
+## Versão 1.3 — ideia arquivada (multi-source)
+
+**Tag:** `v1.3-ideia-multisource`  
 **Branch original:** `feature/v1.1-multisource` (antiga)
 
 Esta ideia foi **arquivada** e renomeada para não conflitar com a v1.1. O objetivo era pesquisar em múltiplas fontes, ranqueá-las e fazer a IA sintetizar um artigo original.
@@ -88,6 +112,15 @@ git add -A
 git commit -m "restore: volta para v1.1 (melhorias de artigo)"
 
 # Envia para o GitHub
+git push origin main
+```
+
+### Voltar para a v1.2 (patch afiliados)
+
+```bash
+git checkout v1.2 -- .
+git add -A
+git commit -m "rollback: retorna para v1.2 (patch afiliados)"
 git push origin main
 ```
 

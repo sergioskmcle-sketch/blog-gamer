@@ -40,7 +40,8 @@ scripts/
   gerar-artigo-pilar.mjs    → Artigo pilar (3 passes: pesquisa → draft → refino + injeção mecânica de produtos)
   gerar-placas-video.mjs    → Pipeline dedicada para artigos sobre placas de vídeo
   gerar-lista-monitores.mjs → Pipeline dedicada para artigos sobre monitores gamer
-  ml_affiliate.mjs          → API ML (token OAuth, searchMLviaGoogle, link afiliado)
+  ml_affiliate.mjs          → API ML (cookies de sessão → CSRF → meli.la), OAuth OAuth
+  fix-article-links.mjs     → Script manual: substitui links diretos ML por meli.la em artigo existente
   gerar-status.cjs          → Gera status.json a cada deploy
   test-injecao.mjs          → Testes de validação (87 asserts): cards, TOC, fontes
   download-images.mjs       → Baixa imagens dos produtos para o repo
@@ -196,20 +197,60 @@ A capa do artigo (hero image no topo da página e thumbnail nos cards) segue est
 
 ### Injeção de Botão de Afiliado
 
-Os artigos **não dependem da IA** incluir produtos no texto. Após o Groq gerar o artigo, o sistema injeta um botão de afiliado simples no final de cada tópico de produto:
+Os artigos **não dependem da IA** incluir produtos no texto. Após a IA gerar o artigo, o sistema injeta um botão de afiliado no final de cada tópico de produto:
 
 1. **Busca de produtos** (`searchMLviaGoogle`): até 4 queries usando trending keywords (ex: `"resident evil jogo ps5 xbox pc"`). Fallback para API interna do ML.
 2. **Link de afiliado** (`generateAffiliateLink`): visita a página do produto para obter CSRF token, chama API de afiliados — resultado: `https://meli.la/XXXXXX`
 3. **Filtro** (`isGamerProduct`): bloqueia itens não-gamer (whey, parafusadeira, roupas, cosméticos, utensílios de cozinha, etc.)
 4. **Posição**: o botão é injetado **no final de cada tópico de produto**, após o texto que descreve o produto.
 
+### Link de Afiliado — Como Funciona
+
+O ML tem **dois** mecanismos de autenticação para gerar links `meli.la`:
+
+| Método | Status | Detalhe |
+|--------|--------|---------|
+| **OAuth** (`client_credentials`) | ❌ Bloqueado | `ML_CLIENT_ID` + `ML_CLIENT_SECRET` retornam `invalid_client`. App pode ter sido revogado. |
+| **Cookie de sessão** | ✅ Funciona | Navegador logado no ML → exporta cookies → usa para visitar produto + chamar API afiliada. |
+
+O fluxo do `generateAffiliateLink(productUrl, cookiePath)`:
+
+1. **Carrega cookies** de um arquivo JSON exportado pelo [Cookie-Editor](https://cookie-editor.com/)
+2. **Visita a página do produto** com os cookies (obtém CSRF token + canonical URL)
+3. **Chama a API afiliada** com o CSRF e a URL canônica → retorna `meli.la/XXXXXX`
+4. Se o CSRF não for encontrado na página, busca no cookie `_csrf` ou `csrf_token`
+
+**Requisito crítico:** o arquivo de cookies deve ter **muitos cookies** (~600+) exportados de uma sessão ML ativa. Com poucos cookies (< 50) a API retorna `401 Unauthorized` com redirect de login.
+
+### De Onde Vêm os Cookies
+
+O cookie file que **funciona** está em outro projeto:
+```
+C:\Users\sismais\Documents\Projetos Pessoais\monitor-telegram\ml_cookies_fresh.json
+```
+(613 cookies, exportado em 2026-07-29, sessão do nick `COMPROUBARATO2025`)
+
+No pipeline GitHub Actions, os cookies são passados via secret `ML_COOKIES_B64` (base64 do JSON). O script `gerar-artigo.mjs` decodifica para `ml_cookies.json` antes de usar.
+
+**⚠️ Este secret precisa ser atualizado manualmente quando os cookies expirarem.**
+
+### Regenerar Links de um Artigo Existente
+
+Use o script `fix-article-links.mjs`:
+
+```bash
+# 1. Editar SLUG e productUrls no script
+# 2. Executar:
+node --env-file .env scripts/fix-article-links.mjs
+```
+
+O script lê o `.md`, chama `generateAffiliateLink()` para cada URL e substitui por `meli.la/XXXXXX`.
+
 ### Formato do Botão
 
 ```html
 <a href="https://meli.la/XXXXX" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
 ```
-
-O botão é um link simples e direto — sem container com imagem, preço, prós/contras. A descrição do produto fica no texto do artigo, escrita pelo redator.
 
 ### A IA e os Produtos
 
@@ -337,7 +378,7 @@ Arquivos em `public/images/`.
 | `TAVILY_API_KEY` | API key do Tavily (1000 consultas/mês free, busca fontes + produtos Google) |
 | `ML_CLIENT_ID` | Client ID do app ML (OAuth client_credentials) |
 | `ML_CLIENT_SECRET` | Client Secret do app ML |
-| `ML_COOKIES_B64` | Cookies ML em base64 (de `ml_cookies.json`, para links de afiliado) |
+| `ML_COOKIES_B64` | Cookies ML em base64 (de `ml_cookies.json`, ~600+ cookies, para links `meli.la`) |
 | `RAWG_API_KEY` | API key do RAWG.io (imagens de jogos) |
 
 ---
@@ -387,6 +428,9 @@ node scripts/gerar-artigo-pilar.mjs    # Gerar artigo pilar (manual)
 node scripts/gerar-status.cjs          # Gerar status.json
 node scripts/download-images.mjs       # Baixar imagens dos produtos
 node scripts/convert-banners.mjs       # Converter banners PNG → WebP
+
+# — Afiliados ML —
+node scripts/fix-article-links.mjs     # Regenerar links meli.la em artigo existente (editar SLUG antes)
 ```
 
 ---
@@ -423,6 +467,16 @@ node scripts/convert-banners.mjs       # Converter banners PNG → WebP
 6. **Push falhando com conflito:** o workflow agora faz rebase na branch atual em vez de forçar `origin main`.
 7. Verifique se as chaves dos secrets ainda são válidas (`GEMINI_API_KEY`, `GROQ_API_KEY`, `TAVILY_API_KEY`, etc.)
 
+### Links de afiliado não viram `meli.la`
+
+Os artigos ficam com links diretos do ML em vez de `meli.la`:
+
+1. **Cookies expirados:** o secret `ML_COOKIES_B64` pode estar desatualizado. Renove seguindo o procedimento em [Renovar cookies do ML](#renovar-cookies-do-ml).
+2. **Poucos cookies:** o arquivo precisa ter ~600+ cookies. Com < 50 a API retorna `401`.
+3. **OAuth não funciona:** o método `client_credentials` está quebrado (`invalid_client`). Só o método por cookie de sessão funciona atualmente.
+4. **Permalink reciclado:** se o ID do produto (MLBXXXXX) foi reutilizado pra outro item, a URL canônica aponta pro produto errado. É necessário [encontrar a URL correta](#) e atualizar manualmente.
+5. **Produto removido:** se a página do ML retorna 404, o produto não está mais disponível.
+
 ### Consumo do GROQ
 
 O blog faz poucas chamadas ao GROQ (geralmente 2–3 por artigo, a cada 2 dias). Se você usa a mesma conta do GROQ em outros projetos, o consumo compartilhado pode chegar ao limite gratuito:
@@ -441,18 +495,50 @@ Se o total se aproximar do limite, considere uma conta GROQ separada para o blog
 
 ### Renovar cookies do ML
 
-Os cookies do Mercado Livre expiram periodicamente. Sem eles, os links saem sem tracking de afiliado (ainda funcionam como links diretos).
+Os cookies do Mercado Livre expiram periodicamente (semanas a meses). Sem cookies frescos a API afiliada retorna **`401 Unauthorized`** e o pipeline gera links diretos sem tracking.
 
-1. Acesse mercadolivre.com.br logado com a conta `sergioskm`
-2. Exporte os cookies como JSON (extensão Cookie-Editor)
-3. Salve como `ml_cookies.json`
-4. Codifique em base64 e atualize o secret `ML_COOKIES_B64`:
+**Sintoma de cookies expirados:** links `meli.la` não aparecem nos artigos — apenas URLs diretas de produto.
+
+#### Procedimento
+
+1. **Abra o navegador** logado em `mercadolivre.com.br` com a conta `sergioskm` (nick `COMPROUBARATO2025`)
+2. **Instale a extensão** [Cookie-Editor](https://cookie-editor.com/) se não tiver
+3. **Exporte cookies:** Cookie-Editor → Export → formato JSON (copia pra área de transferência)
+4. **Salve localmente e envie pro GitHub Secrets:**
 
 ```powershell
-gh secret set ML_COOKIES_B64 --body ([Convert]::ToBase64String([IO.File]::ReadAllBytes("ml_cookies.json"))) --repo sergioskmcle-sketch/blog-gamer
+# Salvar como arquivo
+[System.IO.File]::WriteAllText("ml_cookies.json", $clipboard_content)
+# ^^^ Use WriteAllText, NÃO Set-Content (evita BOM do PowerShell)
+
+# Codificar em base64
+$b64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes("ml_cookies.json"))
+
+# Atualizar o secret no GitHub
+gh secret set ML_COOKIES_B64 --body $b64 --repo sergioskmcle-sketch/blog-gamer
 ```
 
-**Importante:** o arquivo JSON deve ser salvo **sem BOM** (UTF-8 without BOM). PowerShell adiciona BOM com `Set-Content -Encoding UTF8`. Use `[System.IO.File]::WriteAllText` ou export do Cookie-Editor diretamente.
+5. **Teste local** com o cookie file novo:
+
+```powershell
+node --env-file .env -e "const {generateAffiliateLink}=await import('./scripts/ml_affiliate.mjs'); console.log(await generateAffiliateLink('https://www.mercadolivre.com.br/console-xbox-series-x-1tb-standard-cor-preto/p/MLB37335939', 'ml_cookies.json'))"
+```
+
+Deve retornar algo como `{"short_url":"https://meli.la/XXXXXX",...}`. Se retornar `401` ou `Login required`, os cookies não têm permissão de afiliado.
+
+#### Cookie alternativo (monitor-telegram)
+
+Enquanto o secret `ML_COOKIES_B64` não for atualizado, é possível gerar links localmente usando o cookie file do projeto irmão:
+
+```
+C:\Users\sismais\Documents\Projetos Pessoais\monitor-telegram\ml_cookies_fresh.json
+```
+
+Basta apontar o `cookiePath` para esse arquivo nos scripts locais.
+
+#### ⚠️ Regra de ouro
+
+> O arquivo JSON deve ter **~600+ cookies** pra funcionar. Com < 50 cookies (como o antigo `ml_cookies_base64.txt`) a API retorna 401. Use a exportação completa do Cookie-Editor, não uma exportação parcial.
 
 ### Recriar chave do Groq
 
