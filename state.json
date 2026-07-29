@@ -1,17 +1,16 @@
 {
   "last_success": "2026-07-29",
-  "last_error": "OpenAI: todas as 3 tentativas falharam",
-  "last_error_date": "2026-07-29",
-  "consecutive_failures": 1,
-  "total_articles": 36,
-  "last_slug": "oferta-em-games-em-2026-nintendo-switch-2-e-jogos-em-desconto",
-  "last_topic": "melhores oferta de games em 2026 — topicos em alta: oferta",
+  "last_error": null,
+  "last_error_date": null,
+  "consecutive_failures": 0,
+  "total_articles": 31,
+  "last_slug": "xbox-vs-ps5-em-2026-guia-de-jogos-gamescom-e-descontos",
+  "last_topic": "novidades, jogos e acessorios para xbox — topicos em alta: ps5",
   "trending_source": "trending",
   "recent_keywords": [
-    "oferta"
+    "ps5"
   ],
   "recent_topics": [
-    "lancamento: anuncios, novidades e expectativas - topicos em",
     "novidades, jogos e acessorios para ps5 - topicos em alta",
     "novidades, jogos e acessorios para ps5 - topicos em alta",
     "resident evil: anuncios, novidades e expectativas - topicos em",
@@ -20,8 +19,9 @@
     "novidades, jogos e acessorios para ps5 — topicos em alta: sw",
     "novidades, jogos e acessorios para xbox — topicos em alta: x",
     "melhores oferta de games em 2026 — topicos em alta: desconto",
-    "melhores oferta de games em 2026 — topicos em alta: oferta"
+    "melhores oferta de games em 2026 — topicos em alta: oferta",
+    "novidades, jogos e acessorios para xbox — topicos em alta: p"
   ],
   "last_pilar": "2026-07-22",
-  "last_category": "review"
+  "last_category": "guia"
 }

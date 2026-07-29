@@ -1642,6 +1642,24 @@ async function main() {
         }
       }
 
+      if (mlProducts.length === 0 && effectiveDomain === "games") {
+        log("INFO", "Fallback final: produtos fixos gaming");
+        const gamingProducts = [
+          { title: "Console Sony PlayStation 5 Slim 1TB + GTA 6", price: 4499, thumbnail: "https://http2.mlstatic.com/D_NQ_NP_2X_665141-MLU76321189910_052024-F.webp", permalink: "https://www.mercadolivre.com.br/console-sony-playstation-5-edico-slim-disk-1tb-branco-controle-sem-fio-dualsense-ps5-branco/p/MLB52897777" },
+          { title: "Console Xbox Series X 1TB", price: 4399, thumbnail: "https://http2.mlstatic.com/D_NQ_NP_2X_622756-MLB76295061312_052024-F.webp", permalink: "https://www.mercadolivre.com.br/console-xbox-series-x-1tb-standard-cor-preto/p/MLB37335939" },
+          { title: "Console Nintendo Switch 2", price: 3299, thumbnail: "https://http2.mlstatic.com/D_NQ_NP_2X_657466-MLU78359578934_082024-F.webp", permalink: "https://www.mercadolivre.com.br/nintendo-switch-2/p/MLB41884906" },
+          { title: "Controle Sem Fio DualSense PS5", price: 429, thumbnail: "https://http2.mlstatic.com/D_NQ_NP_2X_991346-MLA51831115073_102022-F.webp", permalink: "https://www.mercadolivre.com.br/controle-sem-fio-sony-dualsense-ps5-com-cabo-de-carregamento-usb-cor-branco/p/MLB26725576" },
+          { title: "Headset Gamer Astro A50 Wireless PS5/PC", price: 1799, thumbnail: "https://http2.mlstatic.com/D_NQ_NP_2X_697790-MLB75680571995_052024-F.webp", permalink: "https://www.mercadolivre.com.br/headset-gamer-astro-a50-wireless-base-station-ps5-pc/p/MLB29785062" },
+          { title: "Controle Xbox Series Wireless", price: 449, thumbnail: "https://http2.mlstatic.com/D_NQ_NP_2X_823063-MLB73535292701_122023-F.webp", permalink: "https://www.mercadolivre.com.br/controle-sem-fio-microsoft-xbox-series-carbon-black/p/MLB26813017" },
+        ];
+        for (const gp of gamingProducts.slice(0, 4)) {
+          if (!seen.has(gp.permalink)) {
+            seen.add(gp.permalink);
+            mlProducts.push(gp);
+          }
+        }
+      }
+
       for (const p of mlProducts) {
         if (fs.existsSync(ML_COOKIES_PATH)) {
           try {
