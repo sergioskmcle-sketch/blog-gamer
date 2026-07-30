@@ -5,7 +5,7 @@ pubDate: 2026-07-27
 tags: ["playstation", "ps-plus", "jogos-2026", "acessórios", "guia"]
 category: "guia"
 affiliate: false
-image: "https://preview.redd.it/a-look-at-all-the-ps-plus-essential-monthly-games-from-the-v0-lfy5pqma789e1.png?width=640&crop=smart&auto=webp&s=2f5b4337c21a8e2b5a01237a8a8c5a7aeae0bd46"
+image: "/blog-gamer/images/capas/playstation-julho-2026-guia-de-jogos-ps-plus-e-acessorios.png"
 ---
 
 ## PS Plus Essential de Julho 2026: O que vale a pena baixar
