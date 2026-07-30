@@ -102,3 +102,11 @@ noticia → review → guia → lista → promocao → (volta)
 - Solução: baixar localmente e servir do GitHub Pages
 - Fallback: seguir link de afiliado → extrair `og:image` da página do produto
 - Path local: `/blog-gamer/images/produtos/{filename}`
+
+### Geração de Capa (Cover Image)
+- **NUNCA** gerar capa apenas com prompt textual — as imagens dos produtos DEVEM ser enviadas como referência
+- Usar endpoint `POST /v1/images/edits` com modelo `gpt-image-2` (fallback: `gpt-image-1`)
+- Enviar todas as imagens dos produtos no campo `image[]` (multipart FormData)
+- Se alguma imagem falhar (404/timeout), buscar automaticamente via Tavily com `include_images: true`
+- Se Tavily também falhar, pular o produto e gerar com as imagens disponíveis
+- Fallback final: `POST /v1/images/generations` com prompt textual (apenas se nenhuma imagem foi obtida)
