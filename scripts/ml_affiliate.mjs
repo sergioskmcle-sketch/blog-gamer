@@ -241,12 +241,15 @@ export async function searchMLviaGoogle(query, cookiePath, tavilyKey, limit = 4)
         body: JSON.stringify({
           api_key: tavilyKey,
           query: tavilyQuery,
-          search_depth: "basic",
+          search_depth: "advanced",
           max_results: 6,
-          country: "br",
         }),
       });
-      if (!res.ok) continue;
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        log("WARN", `Tavily ${res.status} para "${tavilyQuery.slice(0, 50)}": ${errText.slice(0, 100)}`);
+        continue;
+      }
       const data = await res.json();
       for (const r of data.results || []) {
         if (!r.url.includes("mercadolivre.com.br")) continue;
