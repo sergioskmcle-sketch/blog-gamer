@@ -5,7 +5,7 @@ pubDate: 2026-07-29
 tags: ["xbox", "game-pass", "forzahorizon6", "cloudgaming", "lancamentos"]
 category: "promocao"
 affiliate: false
-image: "https://media.rawg.io/media/crop/600/400/games/958/9582b5acfecaefac5875fa13e5901081.jpg?auto=format&fit=crop&w=800&h=450"
+image: "/blog-gamer/images/capas/xbox-game-pass-julho-2026-10-jogos-forza-6-e-cloud-gaming.png"
 ---
 
 Fala, gamer! Julho chegou com a enxurrada de novidades que a Microsoft prometeu, e a primeira leva do Game Pass tá parecendo presente de Natal adiantado. Se você curte ficar de olho nos lançamentos e ainda economizar, prepara o fone que o bagulho vai ser quente.

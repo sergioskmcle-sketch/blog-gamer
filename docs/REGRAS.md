@@ -114,3 +114,7 @@ noticia → review → guia → lista → promocao → (volta)
   - Produtos escuros (luminância < 128) → fundo **CLARO** (mesa branca/madeira clara, iluminação natural, sombras suaves)
   - Produtos claros (luminância ≥ 128) → fundo **ESCURO** (mesa preta, iluminação dramática, sombras ricas, glow RGB)
   - Se a análise falhar, usar fundo neutro (comportamento atual)
+- **Artigos de jogos** (Game Pass, lançamentos, etc.): usar `contentType: "game"` no `gerarCapaOpenAI`:
+  - O prompt orienta a IA a extrair personagens/elementos das imagens de referência e compô-los em um único cenário de mundo de jogo
+  - O cenário de fundo deve ser um ambiente de jogo (paisagem fantástica, cidade sci-fi, arena de batalha)
+  - Usar `TONE` específico para jogos (GAME_TONE) com linguagem de "game world" em vez de "desk setup"

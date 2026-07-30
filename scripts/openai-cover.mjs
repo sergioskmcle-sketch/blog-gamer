@@ -9,6 +9,11 @@ const TONE = {
   DARK_BG: "\nBackground tone: DARK. Dark moody desk with deep black or dark wood surface. Dramatic spotlighting, rich shadows, ambient RGB glow.",
 };
 
+const GAME_TONE = {
+  LIGHT_BG: "\nScene tone: BRIGHT AND VIBRANT. The game world should be colorful, with clear skies, lush environments, and energetic lighting. Highlights are bright, shadows are soft, overall atmosphere is uplifting and adventurous.",
+  DARK_BG: "\nScene tone: DARK AND DRAMATIC. The game world should be moody and intense, with deep shadows, dramatic lighting, and a cinematic atmosphere. Highlights are focused, shadows are rich, overall atmosphere is epic and immersive.",
+};
+
 const COVER_PROMPTS = {
   guia: `Professional close-up product photograph of gaming products arranged on a clean wooden gaming desk. The products are LARGE and dominate the frame. Background is a warm gaming room with subtle RGB lighting and a monitor, softly blurred with bokeh effect. Soft natural lighting creating realistic shadows. Photorealistic, high detail, professional gaming catalog style. No text, no watermarks.`,
   review: `Professional close-up product photograph of a gaming product on a wooden desk. Soft natural window lighting, warm ambient glow from a monitor background, subtle RGB reflections on the desk surface. The product is sharp and detailed, background softly blurred with bokeh. Photorealistic, professional review photography style. No text, no watermarks.`,
@@ -17,9 +22,15 @@ const COVER_PROMPTS = {
   promocao: `Professional promotional product photograph of gaming products on a bright clean display surface. Energetic warm lighting, soft shadows on a light wood background. Background has a soft blurred gaming room ambiance. Products are large, sharp and highly detailed. Photorealistic, professional promotional photography. No text, no watermarks.`,
 };
 
-function buildPromptFromProducts(products, category, backgroundTone) {
+function buildPromptFromProducts(products, category, backgroundTone, contentType) {
   if (!products || products.length === 0) {
     return COVER_PROMPTS[category] || COVER_PROMPTS.promocao;
+  }
+
+  if (contentType === "game") {
+    const gameNames = products.slice(0, 6).map(p => p.name || p.title || "game").join(", ");
+    const tone = backgroundTone === "light" ? GAME_TONE.LIGHT_BG : backgroundTone === "dark" ? GAME_TONE.DARK_BG : "";
+    return `Epic cinematic game banner featuring iconic video game characters and elements in a dynamic game world scene. Dramatic lighting, vibrant colors, high-energy composition with particle effects. Professional game key art style. Photorealistic, high detail. Game references: ${gameNames}.${tone} No text, no watermarks.`;
   }
 
   const typeCounts = {};
@@ -65,9 +76,18 @@ function buildPromptFromProducts(products, category, backgroundTone) {
   return `Professional close-up product photograph of ${sceneDescription}${tone} Products shown: ${productNames}. Photorealistic, high detail, professional gaming catalog photography style. Natural lighting, realistic shadows. No text, no watermarks.`;
 }
 
-function buildEditPrompt(products, category, backgroundTone) {
+function buildEditPrompt(products, category, backgroundTone, contentType) {
   if (!products || products.length === 0) {
+    if (contentType === "game") {
+      return "Create an epic cinematic game banner featuring iconic video game characters and elements in a dynamic game world scene. Dramatic lighting, vibrant colors, high-energy composition. Professional game key art style. No text, no watermarks.";
+    }
     return "Create a professional banner with gaming products on a gaming room background. Photorealistic, high detail. No text, no watermarks.";
+  }
+
+  if (contentType === "game") {
+    const gameNames = products.slice(0, 6).map(p => p.name || p.title || "game").join(", ");
+    const tone = backgroundTone === "light" ? GAME_TONE.LIGHT_BG : backgroundTone === "dark" ? GAME_TONE.DARK_BG : "";
+    return `Create an epic cinematic banner featuring the characters, logos, and iconic elements extracted from the following game reference images: ${gameNames}. Extract the main subjects from each image and compose them into a single unified scene set in an immersive game world inspired by the games shown. The background should look like a game environment — a fantasy landscape, sci-fi city, or dramatic battle arena depending on the references. Dynamic dramatic lighting, vibrant colors, energy effects. The subjects should interact naturally within the scene as if they exist in the same world. Photorealistic, high detail, professional game key art quality.${tone} No text, no watermarks.`;
   }
 
   const typeCounts = {};
@@ -303,14 +323,15 @@ async function analyzeProductBrightness(imageBuffers) {
   return avg < 128 ? "light" : "dark";
 }
 
-export async function gerarCapaOpenAI({ mlProducts, category, slug }) {
+export async function gerarCapaOpenAI({ mlProducts, category, slug, contentType }) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     log("INFO", "OPENAI_API_KEY nao configurada — pulando capa AI");
     return null;
   }
 
-  log("INFO", `Gerando capa OpenAI (category: ${category}, ${mlProducts?.length || 0} produtos)...`);
+  const tipo = contentType === "game" ? "jogos" : "produtos";
+  log("INFO", `Gerando capa OpenAI (tipo: ${tipo}, category: ${category}, ${mlProducts?.length || 0} itens)...`);
 
   const images = [];
   const validProducts = [];
@@ -352,7 +373,7 @@ export async function gerarCapaOpenAI({ mlProducts, category, slug }) {
   }
 
   if (images.length > 0) {
-    const editPrompt = buildEditPrompt(validProducts, category, backgroundTone);
+    const editPrompt = buildEditPrompt(validProducts, category, backgroundTone, contentType);
     log("INFO", `Tentando edits com ${images.length} imagem(ns) de referencia...`);
     const b64 = await generateWithEdits(apiKey, images, editPrompt);
     if (b64) return saveImage(b64, slug);
@@ -361,7 +382,7 @@ export async function gerarCapaOpenAI({ mlProducts, category, slug }) {
     log("INFO", "Nenhuma imagem baixada, usando generations via prompt textual...");
   }
 
-  const textPrompt = buildPromptFromProducts(mlProducts, category, backgroundTone);
+  const textPrompt = buildPromptFromProducts(mlProducts, category, backgroundTone, contentType);
   const b64 = await generateWithGenerations(apiKey, textPrompt);
   if (b64) return saveImage(b64, slug);
 
