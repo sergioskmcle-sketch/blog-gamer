@@ -1,4 +1,4 @@
-name: Deploy Promo Gamer
+name: Deploy Blog Gamer
 
 on:
   push:

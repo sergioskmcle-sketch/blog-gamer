@@ -34,7 +34,7 @@ const hrefFor = (n: number) => (n === 1 ? base : `${base}${n}/`);
 const urlPrev = page.url.prev ? (page.currentPage === 2 ? base : `${page.url.prev}/`) : undefined;
 const urlNext = page.url.next ? `${page.url.next}/` : undefined;
 
-const titulo = isFirst ? "Promo Gamer" : `Promo Gamer — página ${page.currentPage}`;
+const titulo = isFirst ? "Blog Gamer" : `Blog Gamer — página ${page.currentPage}`;
 ---
 
 <Layout
@@ -44,7 +44,7 @@ const titulo = isFirst ? "Promo Gamer" : `Promo Gamer — página ${page.current
   prevPage={urlPrev}
   nextPage={urlNext}
 >
-  <div class="pt-20 max-w-page mx-auto px-gutter">
+  <div class="pt-16 max-w-page mx-auto px-gutter">
     <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-xl lg:gap-[40px] my-xl">
       <section class="min-w-0 space-y-xl">
         {isFirst && destaque && (

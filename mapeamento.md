@@ -1,14 +1,14 @@
-# Mapeamento do Promo Gamer
+# Mapeamento do Blog Gamer
 
 Este documento explica **como o blog funciona**, do início ao fim, em linguagem simples.
 
 ---
 
-## 1. O que é o Promo Gamer
+## 1. O que é o Blog Gamer
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    PROMO GAMER                           │
+│                    BLOG GAMER                            │
 │  Artigos criados automaticamente por IA                  │
 │  Publicados no GitHub Pages (hospedagem gratuita)        │
 │  Links de afiliado do Mercado Livre em cada artigo       │

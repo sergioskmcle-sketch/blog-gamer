@@ -18,8 +18,8 @@ const maisLidos = artigos.filter((a) => a.slug !== destaque?.slug);
 const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 ---
 
-<Layout title="Promo Gamer" image={`${base}images/banner-grupo.webp`}>
-  <div class="pt-20 max-w-page mx-auto px-gutter">
+<Layout title="Blog Gamer" image={`${base}images/banner-grupo.webp`}>
+  <div class="pt-16 max-w-page mx-auto px-gutter">
     <script>
       (function() {
         const params = new URLSearchParams(window.location.search);
@@ -106,11 +106,11 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
   </div>
 
   {!destaque && (
-    <div class="pt-20 max-w-page mx-auto px-gutter py-xxl">
+    <div class="pt-16 max-w-page mx-auto px-gutter py-xxl">
       <section class="text-center py-xxl">
         <p style="font-size: 3rem; margin-bottom: 1rem;">&#x1F3AE;</p>
         <h1 class="font-h1 text-h1 mb-md">
-          Bem-vindo ao <span class="text-primary">Promo Gamer</span>
+          Bem-vindo ao <span class="text-primary">Blog Gamer</span>
         </h1>
         <p class="text-on-surface-variant text-lg max-w-lg mx-auto mb-lg">
           Notícias, reviews, listas e guias sobre o universo dos games.

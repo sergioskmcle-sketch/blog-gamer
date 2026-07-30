@@ -1,4 +1,4 @@
-# Orientações Editoriais — Promo Gamer
+# Orientações Editoriais — Blog Gamer
 
 ## Índice
 1. [Papel do Editor-Chefe](#papel-do-editor-chefe)

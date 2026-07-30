@@ -1,4 +1,4 @@
-# Design System — Promo Gamer
+# Design System — Blog Gamer
 
 > Portal de conteúdo gamer premium — Black Piano, roxo elétrico, verde limão neon. Experiência editorial de última geração.
 

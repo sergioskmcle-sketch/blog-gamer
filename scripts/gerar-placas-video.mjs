@@ -330,7 +330,7 @@ async function main() {
       ).join("\n")}`
     : "";
 
-  const systemPrompt = `Voce e um redator especializado em hardware e videogames do Promo Gamer, site brasileiro. Escreva em portugues brasileiro, tom natural de gamer.
+  const systemPrompt = `Voce e um redator especializado em hardware e videogames do Blog Gamer, site brasileiro. Escreva em portugues brasileiro, tom natural de gamer.
 
 Regras:
 - Artigo: MINIMO 1500 palavras (obrigatorio)

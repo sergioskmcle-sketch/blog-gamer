@@ -1,4 +1,4 @@
-# Promo Gamer
+# Blog Gamer
 
 Blog estático sobre o mundo gamer com links de afiliado do Mercado Livre. Geração automática de artigos via GitHub Actions.
 
@@ -40,10 +40,8 @@ scripts/
   gerar-artigo-pilar.mjs    → Artigo pilar (3 passes: pesquisa → draft → refino + injeção mecânica de produtos)
   gerar-placas-video.mjs    → Pipeline dedicada para artigos sobre placas de vídeo
   gerar-lista-monitores.mjs → Pipeline dedicada para artigos sobre monitores gamer
-  ml_affiliate.mjs          → API ML (cookies de sessão → CSRF → meli.la)
+  ml_affiliate.mjs          → API ML (cookies de sessão → CSRF → meli.la), OAuth OAuth
   fix-article-links.mjs     → Script manual: substitui links diretos ML por meli.la em artigo existente
-  stability-cover.mjs       → Capa AI: fundo Stability → composite sharp com produtos → refinamento img2img
-  openai-cover.mjs          → Capa AI via OpenAI gpt-image-1-mini (fallback quando Stability sem créditos)
   gerar-status.cjs          → Gera status.json a cada deploy
   test-injecao.mjs          → Testes de validação (87 asserts): cards, TOC, fontes
   download-images.mjs       → Baixa imagens dos produtos para o repo
@@ -100,7 +98,7 @@ O blog publica **5 categorias** de artigos. Cada categoria tem uma **persona de 
 Usada para 3 das 5 categorias. O prompt define uma voz forte:
 
 ```
-PERSONA: Você é o "Mano Gamer", narrador raiz do Promo Gamer — um gamer brasileiro
+PERSONA: Você é o "Mano Gamer", narrador raiz do Blog Gamer — um gamer brasileiro
 que escreve como se estivesse trocando ideia com os amigos no Discord.
 ```
 
@@ -188,41 +186,10 @@ O sistema **nunca pede para a IA gerar imagens**. Em vez disso:
 
 A capa do artigo (hero image no topo da página e thumbnail nos cards) segue esta prioridade:
 
-1. **Capa AI** — gerada automaticamente se o artigo tiver produtos ML:
-   - **Primário:** `stability-cover.mjs` → fundo com Stability AI (SD3.5 Medium) → composite de produtos reais com sharp (chroma key, sombras direcionais) → refinamento img2img (strength 0.45)
-   - **Fallback:** `openai-cover.mjs` → `gpt-image-1-mini` via OpenAI (1536x1024, qualidade auto)
+1. **Foto real do produto principal** (artigos de produto: headsets, teclados, etc.)
 2. **RAWG da 1ª trending keyword** (tópico principal do artigo — ex: wallpaper de "Resident Evil")
 3. **Thumbnail do 1º produto do Mercado Livre** (fallback)
 4. **Vazio** (artigo sem imagem de capa)
-
-#### Fluxo de geração da capa AI
-
-```
-Stability AI (SD3.5 Medium) ──402 sem créditos──→ OpenAI (gpt-image-1-mini)
-       │                                              │
-       ├─ fundo AI 16:9                                ├─ texto descritivo com nomes dos produtos
-       ├─ download thumbnails reais                    ├─ gera imagem 1536x1024
-       ├─ removeBackground (chroma key)                └─ salva PNG
-       ├─ compositeProducts (fit:inside + sombras)
-       └─ refineComposite (img2img strength 0.45)
-              │
-              └→ resultado: produtos reais na cena AI (mais realista)
-```
-
-#### Regenerar capa de um artigo existente
-
-```bash
-node scripts/regenerate-xbox-cover.mjs   # (editar SLUG + produtos antes)
-```
-
-Ou diretamente:
-
-```bash
-node --env-file .env -e "
-import { gerarCapaOpenAI } from './scripts/openai-cover.mjs';
-const r = await gerarCapaOpenAI({ mlProducts: [...], category: 'promocao', slug: 'meu-slug' });
-console.log(r);
-"
 
 ---
 
@@ -413,8 +380,6 @@ Arquivos em `public/images/`.
 | `ML_CLIENT_SECRET` | Client Secret do app ML |
 | `ML_COOKIES_B64` | Cookies ML em base64 (de `ml_cookies.json`, ~600+ cookies, para links `meli.la`) |
 | `RAWG_API_KEY` | API key do RAWG.io (imagens de jogos) |
-| `OPENAI_API_KEY` | API key da OpenAI (capa AI via gpt-image-1-mini, ~$0.005/imagem) |
-| `STABILITY_API_KEY` | API key da Stability AI (capa primária, SD3.5 Medium. Precisa de créditos) |
 
 ---
 
@@ -424,8 +389,7 @@ Arquivos em `public/images/`.
 |-----|--------|--------|
 | Gemini | Geração de texto (primário, gemini-flash-latest) | Free tier (30 RPM, 1M input, 8K output) |
 | Groq | Geração de texto (fallback, openai/gpt-oss-120b) | Free tier (200K tokens/dia) |
-| OpenAI | Geração de texto + Capas AI com gpt-image-1-mini (fallback) | Pago (~$0.005/imagem) |
-| Stability AI | Capa AI primária (SD3.5 Medium) + refinamento img2img | Pago (créditos, ~$0.04/imagem) |
+| OpenAI | Geração de texto + Capas AI (fallback + gpt-image-1-mini) | Pago (~$0.005/imagem) |
 | Tavily | Busca de fontes + busca Google de produtos ML + imagens não-jogos | 1000 consultas/mês free |
 | ML OAuth | Links de afiliado (client_credentials) | Free |
 | ML (scraping) | Extração de título, preço e imagem de produtos | Sem limite |
@@ -448,7 +412,6 @@ ML_CLIENT_ID=...
 ML_CLIENT_SECRET=...
 RAWG_API_KEY=...
 OPENAI_API_KEY=sk-proj-...
-STABILITY_API_KEY=sk-...
 ```
 
 ---
@@ -465,12 +428,6 @@ node scripts/gerar-artigo-pilar.mjs    # Gerar artigo pilar (manual)
 node scripts/gerar-status.cjs          # Gerar status.json
 node scripts/download-images.mjs       # Baixar imagens dos produtos
 node scripts/convert-banners.mjs       # Converter banners PNG → WebP
-
-# — Capas AI —
-node --env-file .env -e "import('./scripts/openai-cover.mjs').then(m=>m.gerarCapaOpenAI({mlProducts:[...],category:'promocao',slug:'teste'})).then(console.log)"
-# ^^^ Gerar capa com OpenAI gpt-image-1-mini (preencher mlProducts, category, slug)
-node --env-file .env -e "import('./scripts/stability-cover.mjs').then(m=>m.gerarCapaStability({mlProducts:[...],category:'promocao',slug:'teste'})).then(console.log)"
-# ^^^ Gerar capa com Stability SD3.5 Medium + composite de produtos
 
 # — Afiliados ML —
 node scripts/fix-article-links.mjs     # Regenerar links meli.la em artigo existente (editar SLUG antes)
@@ -494,7 +451,7 @@ node scripts/fix-article-links.mjs     # Regenerar links meli.la em artigo exist
 |----------|---------|--------|
 | **Gerar Conteudo Automatico** | Cron (2 dias) + manual | Artigo a cada 2 dias com trending, produtos e deploy |
 | **Gerar Artigo Pilar** | Manual | Guia completo 3000+ palavras com 12+ produtos |
-| **Deploy Promo Gamer** | Push na main + manual | Build e deploy GitHub Pages |
+| **Deploy Blog Gamer** | Push na main + manual | Build e deploy GitHub Pages |
 
 ---
 

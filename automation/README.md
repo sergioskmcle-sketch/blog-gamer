@@ -1,6 +1,6 @@
-﻿# Promo Gamer Automation
+﻿# Blog Gamer Automation
 
-Pipeline de geraÃ§Ã£o automÃ¡tica de artigos para o [Promo Gamer](https://sergioskmcle-sketch.github.io/blog-gamer/) com links de afiliado do Mercado Livre.
+Pipeline de geraÃ§Ã£o automÃ¡tica de artigos para o [Blog Gamer](https://sergioskmcle-sketch.github.io/blog-gamer/) com links de afiliado do Mercado Livre.
 
 ## Fluxo
 
@@ -130,7 +130,7 @@ Arquivo: `/etc/systemd/system/blog-gamer.service`
 
 ```ini
 [Unit]
-Description=Promo Gamer Automation - Geracao automatica de artigos
+Description=Blog Gamer Automation - Geracao automatica de artigos
 After=network.target
 
 [Service]

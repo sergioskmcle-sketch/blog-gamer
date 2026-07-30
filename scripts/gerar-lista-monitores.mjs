@@ -200,7 +200,7 @@ const productBlock = selected.map((p, i) =>
 const today = new Date().toISOString().split("T")[0];
 
 // GROQ
-const systemPrompt = `Voce e um redator especializado em videogames do Promo Gamer, site brasileiro. Escreva em portugues brasileiro, tom natural de gamer.
+const systemPrompt = `Voce e um redator especializado em videogames do Blog Gamer, site brasileiro. Escreva em portugues brasileiro, tom natural de gamer.
 
 Regras:
 - Artigo: MINIMO 1500 palavras

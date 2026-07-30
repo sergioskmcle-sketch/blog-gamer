@@ -37,7 +37,7 @@ const searchArticles = Object.entries(import.meta.glob("../content/artigos/*.md"
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="google-site-verification" content="kOOZLZ1vJ0aNnQUkmNDReiwSoYUJKZB0p-inN6ziszc" />
-    <meta name="description" content={description || "Promo Gamer — notícias, reviews e guias do mundo dos games"} />
+    <meta name="description" content={description || "Blog Gamer — notícias, reviews e guias do mundo dos games"} />
     <meta name="theme-color" content="#050505" />
 
     <link rel="canonical" href={canonicalURL.href} />
@@ -47,7 +47,7 @@ const searchArticles = Object.entries(import.meta.glob("../content/artigos/*.md"
     <meta property="og:description" content={description || "Blog sobre o mundo gamer"} />
     <meta property="og:url" content={canonicalURL.href} />
     <meta property="og:type" content={pubDate ? "article" : "website"} />
-    <meta property="og:site_name" content="Promo Gamer" />
+    <meta property="og:site_name" content="Blog Gamer" />
     {image && (
       <>
         <meta property="og:image" content={image} />
@@ -68,19 +68,19 @@ const searchArticles = Object.entries(import.meta.glob("../content/artigos/*.md"
         "@context": "https://schema.org",
         "@type": "Article",
         headline: title,
-        description: description || "Artigo do Promo Gamer sobre o mundo dos games",
+        description: description || "Artigo do Blog Gamer sobre o mundo dos games",
         url: canonicalURL.href,
         image: image || `${base}images/og-default.png`,
         datePublished: pubDate,
         dateModified: pubDate,
         author: {
           "@type": "Organization",
-          name: "Promo Gamer",
+          name: "Blog Gamer",
           url: Astro.site?.href || `${base}`,
         },
         publisher: {
           "@type": "Organization",
-          name: "Promo Gamer",
+          name: "Blog Gamer",
           logo: {
             "@type": "ImageObject",
             url: `${base}favicon.svg`,
@@ -95,7 +95,7 @@ const searchArticles = Object.entries(import.meta.glob("../content/artigos/*.md"
       })} />
     )}
 
-    <title>{title} — Promo Gamer</title>
+    <title>{title} — Blog Gamer</title>
   </head>
   <body class="font-body selection:bg-primary selection:text-on-primary">
     <CursorEffect />

@@ -311,7 +311,7 @@ async function main() {
   // PASSO 2: Gerar draft
   log("INFO", "Passo 1/2: gerando draft...");
 
-  const systemDraft = `Voce e um jornalista especializado em hardware e games. Escreva para o Promo Gamer, site brasileiro.
+  const systemDraft = `Voce e um jornalista especializado em hardware e games. Escreva para o Blog Gamer, site brasileiro.
 
 REGRAS:
 - Artigo de 2000-3000 palavras

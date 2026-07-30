@@ -1,5 +1,5 @@
 ---
-name: Promo Gamer
+name: Blog Gamer
 colors:
   bg-primary: "#050505"
   bg-secondary: "#020203"
@@ -139,7 +139,7 @@ spacing:
 
 ## Brand & Style
 
-**Promo Gamer** is a **premium gaming content portal** — a professional editorial platform focused on news, articles, reviews, guides, tutorials, hardware, games, eSports, and tech analysis. The brand communicates technology, innovation, and high performance — evoking supercars, premium PC builds, and elite gaming setups.
+**Blog Gamer** is a **premium gaming content portal** — a professional editorial platform focused on news, articles, reviews, guides, tutorials, hardware, games, eSports, and tech analysis. The brand communicates technology, innovation, and high performance — evoking supercars, premium PC builds, and elite gaming setups.
 
 The visual style is **Dark Premium RGB** — true Black Piano (`#050505`) as the canvas, with a vibrant dual-accent system: **Electric Purple (`#A855F7`)** for technology and brand identity, **Lime Neon Green (`#39FF14`)** for actions and important destinations. Colors are intense and energetic — no pastel, washed, or grayish tones.
 
