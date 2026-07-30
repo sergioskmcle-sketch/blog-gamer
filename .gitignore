@@ -19,8 +19,9 @@ runs.mjs
 status.mjs
 wait.mjs
 
-# Source logo asset (use public/logo.png instead)
+# Source logo assets
 promo-gamer.jpg
+logo-blog.png
 
 # Build output
 dist/
