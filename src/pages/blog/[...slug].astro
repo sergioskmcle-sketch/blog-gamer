@@ -378,8 +378,9 @@ const categories = [
     }
     #articleBody .product-card-img {
       width: 100%;
-      aspect-ratio: 16 / 9;
-      object-fit: cover;
+      max-width: 600px;
+      object-fit: contain;
+      aspect-ratio: auto;
       display: block;
       border-radius: 0;
       cursor: pointer;
