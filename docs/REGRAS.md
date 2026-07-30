@@ -110,3 +110,7 @@ noticia → review → guia → lista → promocao → (volta)
 - Se alguma imagem falhar (404/timeout), buscar automaticamente via Tavily com `include_images: true`
 - Se Tavily também falhar, pular o produto e gerar com as imagens disponíveis
 - Fallback final: `POST /v1/images/generations` com prompt textual (apenas se nenhuma imagem foi obtida)
+- **Contraste obrigatório**: analisar a luminosidade média das imagens via `sharp().stats()` e escolher o fundo oposto:
+  - Produtos escuros (luminância < 128) → fundo **CLARO** (mesa branca/madeira clara, iluminação natural, sombras suaves)
+  - Produtos claros (luminância ≥ 128) → fundo **ESCURO** (mesa preta, iluminação dramática, sombras ricas, glow RGB)
+  - Se a análise falhar, usar fundo neutro (comportamento atual)
