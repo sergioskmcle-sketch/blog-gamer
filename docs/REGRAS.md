@@ -82,7 +82,7 @@ pick_topic() → scrape_ml_products() → generate_affiliate_link() → call_gro
 
 ## Ciclo de Categorias
 ```
-noticia → review → guia → lista → promocao → (volta)
+noticia → review → guia → lista → (volta)
 ```
 - Controlado por `last_category_index` em `state.json`
 - Um artigo por dia (verificado por `last_article_date`)

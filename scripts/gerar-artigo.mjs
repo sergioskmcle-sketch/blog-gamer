@@ -34,10 +34,9 @@ const CATEGORIES = [
   { slug: "review", name: "Review" },
   { slug: "guia", name: "Guia de Compra" },
   { slug: "lista", name: "Lista" },
-  { slug: "promocao", name: "Promoção" },
 ];
 
-const CATEGORY_ROTATION = ["noticia", "review", "guia", "lista", "promocao"];
+const CATEGORY_ROTATION = ["noticia", "review", "guia", "lista"];
 
 function nextCategory(lastCategory) {
   const idx = CATEGORY_ROTATION.indexOf(lastCategory);
@@ -49,7 +48,6 @@ const TOPIC_SEEDS = [
   { category: "review", hint: "review de jogo popular, analise de gameplay, dicas de jogo", ml_query: "jogo popular ps5 xbox switch" },
   { category: "guia", hint: "melhores headsets gamers, teclado mecanico, mouse gamer, monitor, cadeira", ml_query: "headset gamer teclado mecanico mouse gamer monitor" },
   { category: "lista", hint: "melhores jogos para PC, jogos gratis, jogos multiplayer, jogos estilo", ml_query: "jogo pc mais vendido 2026" },
-  { category: "promocao", hint: "promocoes Steam, ofertas de games e descontos em jogos", ml_query: "promocao jogo pc steam" },
 ];
 
 const RSS_FEEDS = [
@@ -91,13 +89,10 @@ const HARDWARE_KEYWORDS = [
 
 const EVENT_KEYWORDS = ["e3", "game awards", "gamescom", "brasil game show", "bgs", "lançamento", "lancamento"];
 
-const PROMO_KEYWORDS = ["promocao", "promoção", "oferta", "gratis", "grátis", "desconto", "steam sale"];
-
 const KEYWORD_CATEGORY_MAP = {};
 
 function initKeywordMap() {
   for (const kw of HARDWARE_KEYWORDS) KEYWORD_CATEGORY_MAP[kw] = "guia";
-  for (const kw of PROMO_KEYWORDS) KEYWORD_CATEGORY_MAP[kw] = "promocao";
   for (const kw of EVENT_KEYWORDS) KEYWORD_CATEGORY_MAP[kw] = "noticia";
 }
 
@@ -117,8 +112,6 @@ function classifyDomain(text) {
   if (hasGame && hasHardware) return "mixed";
   if (hasHardware) return "hardware";
   if (hasGame) return "games";
-  // Termos genericos de promocao sem contexto claro
-  if (PROMO_KEYWORDS.some((k) => lower.includes(k))) return "promo";
   return "unknown";
 }
 
@@ -225,15 +218,6 @@ function buildTopicFromKeyword(topKeyword, topKeywords, existingTopics = [], rec
     category = "noticia";
     hint = `${kw}: anuncios, novidades e expectativas — topicos em alta: ${ctx}`;
     ml_query = `${top2names} jogo ps5 pc`;
-  } else if (PROMO_KEYWORDS.some((p) => kw.includes(p) || p.includes(kw))) {
-    category = "promocao";
-    // Foco unico: promocoes de games (default) ou de perifericos, nunca ambos
-    const promoDomain = domain === "hardware" ? "hardware" : "games";
-    const promoFocus = promoDomain === "hardware" ? "perifericos gamer" : "games";
-    hint = `melhores ${kw} de ${promoFocus} em 2026 — topicos em alta: ${ctx}`;
-    ml_query = promoDomain === "hardware"
-      ? `${top2names} promocao oferta periferico gamer`
-      : `${top2names} promocao oferta jogo`;
   } else {
     category = "noticia";
     hint = `novidades sobre ${kw} no mundo gamer — topicos em alta: ${ctx}`;
@@ -267,7 +251,7 @@ REGRAS:
 - Se TODOS os trending são sobre assuntos já cobertos, sugira um assunto diferente que esteja em alta mas não está nos trending principais
 - Responda APENAS com JSON válido, sem markdown, sem explicação extra
 
-CATEGORIAS VÁLIDAS: noticia, review, guia, lista, promocao
+CATEGORIAS VÁLIDAS: noticia, review, guia, lista
 
 Formato da resposta JSON:
 {
@@ -1271,7 +1255,7 @@ function parseRaw(raw) {
 
 // Alinhado ao orcamento de saida da Groq (8000 TPM): pedir mais que isso faz
 // o artigo ser truncado no meio.
-const MIN_WORDS = { guia: 800, review: 800, noticia: 650, lista: 650, promocao: 650 };
+const MIN_WORDS = { guia: 800, review: 800, noticia: 650, lista: 650 };
 const ABSOLUTE_MIN_WORDS = 500;
 
 const GENERIC_TITLE_PATTERNS = [
@@ -1699,7 +1683,7 @@ async function main() {
     : "";
 
   const categoria = topic.category;
-  const estiloOpinativo = categoria === "noticia" || categoria === "lista" || categoria === "promocao";
+  const estiloOpinativo = categoria === "noticia" || categoria === "lista";
   const estiloFactual = categoria === "guia" || categoria === "review";
 
   const personaManoGamer = `PERSONA: Voce e o "Mano Gamer", narrador raiz do Blog Gamer — um gamer brasileiro que escreve como se estivesse trocando ideia com os amigos no Discord.
@@ -1804,7 +1788,7 @@ tags: [tag1, tag2, tag3, tag4, tag5]
 category: "${topic.category}"
 affiliate: ${mlProducts.length > 0}
 
-category DEVE ser: noticia, review, guia, lista ou promocao`;
+category DEVE ser: noticia, review, guia ou lista`;
 
   const buildUserPrompt = (research) => `Escreva um artigo de categoria "${categoria}" sobre: ${topic.hint}
 
