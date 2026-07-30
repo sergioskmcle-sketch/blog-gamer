@@ -18,7 +18,7 @@ image: "https://http2.mlstatic.com/D_NQ_NP_998608-MLA96674190946_112025-F.jpg"
 
 <img src="https://media.rawg.io/media/crop/600/400/games/51a/51a404b9918a0b19fc704a3ca248c69f.jpg?auto=format&fit=crop&w=800&h=450" alt="Resident Evil 4 Remake" class="article-game-img" loading="lazy" decoding="async">
 
-> Se você ainda não acompanha o Blog Gamer, aproveite para conferir nosso [guia de placas de vídeo](/blog-gamer/blog/as-10-melhores-placas-de-video-custo-beneficio-do-mercado-livre-em-2026/) e ficar por dentro das melhores opções de hardware para 2026.
+> Se você ainda não acompanha o Promo Gamer, aproveite para conferir nosso [guia de placas de vídeo](/blog-gamer/blog/as-10-melhores-placas-de-video-custo-beneficio-do-mercado-livre-em-2026/) e ficar por dentro das melhores opções de hardware para 2026.
 
 <div class="product-card">
   <img src="https://http2.mlstatic.com/D_NQ_NP_998608-MLA96674190946_112025-F.jpg" alt="Jogo Persona 5 Royal Nintendo Switch Mídia Física - Excelente (Recondicionado)" class="product-card-img" loading="lazy" decoding="async">

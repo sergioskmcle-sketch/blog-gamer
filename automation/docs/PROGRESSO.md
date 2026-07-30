@@ -1,4 +1,4 @@
-# Blog Gamer — Status do Projeto
+# Promo Gamer — Status do Projeto
 
 > Última atualização: 2026-07-02
 

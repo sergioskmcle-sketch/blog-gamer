@@ -1,4 +1,4 @@
-# Plano de Versões — Blog Gamer
+# Plano de Versões — Promo Gamer
 
 Este documento registra as versões do pipeline de geração de artigos, explica o que muda em cada uma e fornece os comandos para alternar entre elas.
 

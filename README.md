@@ -1,4 +1,4 @@
-# Blog Gamer
+# Promo Gamer
 
 Blog estático sobre o mundo gamer com links de afiliado do Mercado Livre. Geração automática de artigos via GitHub Actions.
 
@@ -100,7 +100,7 @@ O blog publica **5 categorias** de artigos. Cada categoria tem uma **persona de 
 Usada para 3 das 5 categorias. O prompt define uma voz forte:
 
 ```
-PERSONA: Você é o "Mano Gamer", narrador raiz do Blog Gamer — um gamer brasileiro
+PERSONA: Você é o "Mano Gamer", narrador raiz do Promo Gamer — um gamer brasileiro
 que escreve como se estivesse trocando ideia com os amigos no Discord.
 ```
 
@@ -494,7 +494,7 @@ node scripts/fix-article-links.mjs     # Regenerar links meli.la em artigo exist
 |----------|---------|--------|
 | **Gerar Conteudo Automatico** | Cron (2 dias) + manual | Artigo a cada 2 dias com trending, produtos e deploy |
 | **Gerar Artigo Pilar** | Manual | Guia completo 3000+ palavras com 12+ produtos |
-| **Deploy Blog Gamer** | Push na main + manual | Build e deploy GitHub Pages |
+| **Deploy Promo Gamer** | Push na main + manual | Build e deploy GitHub Pages |
 
 ---
 

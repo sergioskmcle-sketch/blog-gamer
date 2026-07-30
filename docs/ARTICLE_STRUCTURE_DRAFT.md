@@ -1,4 +1,4 @@
-# Estrutura de Artigo — Blog Gamer
+# Estrutura de Artigo — Promo Gamer
 
 ## Ordem de cada tópico (seção com produto)
 
