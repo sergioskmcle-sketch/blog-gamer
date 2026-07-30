@@ -5,7 +5,7 @@ pubDate: 2026-07-30
 tags: ["cadeira gamer", "dt3 rhino", "thunderx3 yama", "husky storm", "corsair t3 rush", "ergonomia", "guia de compra", "hardware gamer"]
 category: "guia"
 affiliate: true
-image: "/blog-gamer/images/capas/melhores-cadeiras-gamer-de-2026.png"
+image: "/images/capas/melhores-cadeiras-gamer-de-2026.png"
 ---
 
 ## Introdução
