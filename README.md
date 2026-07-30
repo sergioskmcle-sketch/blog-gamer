@@ -184,12 +184,18 @@ O sistema **nunca pede para a IA gerar imagens**. Em vez disso:
 
 ### Imagem de Capa
 
-A capa do artigo (hero image no topo da página e thumbnail nos cards) segue esta prioridade:
+A capa do artigo (hero image e thumbnail) é gerada via **OpenAI** com as imagens dos produtos como referência. O pipeline está em `scripts/openai-cover.mjs`:
 
-1. **Foto real do produto principal** (artigos de produto: headsets, teclados, etc.)
-2. **RAWG da 1ª trending keyword** (tópico principal do artigo — ex: wallpaper de "Resident Evil")
-3. **Thumbnail do 1º produto do Mercado Livre** (fallback)
-4. **Vazio** (artigo sem imagem de capa)
+- **Endpoint:** `POST /v1/images/edits` com modelo `gpt-image-2` (fallback: `gpt-image-1`)
+- **Referências:** todas as imagens dos produtos são enviadas no campo `image[]` (multipart FormData)
+- **Fallback de imagem:** se URL direta falha (404/timeout), busca automaticamente via Tavily (`include_images: true`)
+- **Contraste automático:** `analyzeProductBrightness()` mede a luminância média via sharp (resize 10×10, skip pixels >200) — produtos escuros ganham fundo claro, produtos claros ganham fundo escuro
+- **Artigos de jogos:** `contentType: "game"` orienta a IA a extrair personagens das referências e compô-los em um cenário de mundo de jogo (usa `GAME_TONE` em vez de `TONE`)
+- **Capa gerada:** salva como PNG local em `public/images/capas/{slug}.png`, frontmatter `image:` atualizado automaticamente
+- **Fallback final:** `POST /v1/images/generations` com prompt textual (apenas se nenhuma imagem foi obtida)
+- **Script de exemplo:** `scripts/regenerate-psplus-cover.mjs` — cria array de produtos com `name`/`image`/`link`, chama `gerarCapaOpenAI({ mlProducts, category, slug, contentType })`
+
+Para artigos automáticos (pipeline diário), a capa é gerada durante o `gerar-artigo.mjs`. Para regenerar manualmente, crie um script dedicado seguindo o padrão dos existentes em `scripts/regenerate-*-cover.mjs`.
 
 ---
 
