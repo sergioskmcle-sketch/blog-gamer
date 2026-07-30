@@ -5,7 +5,7 @@ pubDate: 2026-07-30
 tags: ["monitores gamer", "samsung odyssey g5", "lg 27ms500", "superframe ace", "hardware gamer"]
 category: "review"
 affiliate: false
-image: "https://m.media-amazon.com/images/I/61Lb5JbFxML.jpg"
+image: "/blog-gamer/images/capas/monitores-gamer-guia-completo-de-modelos-100hz-a-165hz-em-2026.png"
 ---
 
 ## Índice
