@@ -177,7 +177,7 @@ function domainLabel(domain) {
 }
 
 function extractTrendingTopics(headlines) {
-  const allKeywords = [...GAME_KEYWORDS, ...CONSOLE_KEYWORDS, ...HARDWARE_KEYWORDS, ...EVENT_KEYWORDS, ...PROMO_KEYWORDS];
+  const allKeywords = [...GAME_KEYWORDS, ...CONSOLE_KEYWORDS, ...HARDWARE_KEYWORDS, ...EVENT_KEYWORDS];
   const scores = {};
   for (const text of headlines) {
     const lower = text.toLowerCase();
