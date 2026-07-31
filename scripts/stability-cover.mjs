@@ -295,14 +295,15 @@ async function compositeProducts(bgBuffer, products) {
   return bg.composite(composites).png().toBuffer();
 }
 
-async function refineComposite(compositeBuffer, category) {
+async function refineComposite(compositeBuffer, category, context) {
   const refinePrompt = REFINE_PROMPTS[category] || REFINE_PROMPTS.promocao;
+  const contextLine = context ? ` Scene context: ${context}.` : "";
 
   const fd = new FormData();
   const blob = new Blob([compositeBuffer], { type: "image/png" });
   fd.append("image", blob, "composite.png");
-  fd.append("prompt", refinePrompt);
-  fd.append("strength", "0.45");
+  fd.append("prompt", `${refinePrompt}${contextLine} The products must look naturally integrated into the scene, with realistic shadows and lighting as if photographed in place.`);
+  fd.append("strength", "0.55");
   fd.append("mode", "image-to-image");
   fd.append("output_format", "png");
 
@@ -326,20 +327,16 @@ async function refineComposite(compositeBuffer, category) {
   return refined;
 }
 
-export async function gerarCapaStability({ mlProducts, category, slug }) {
+export async function gerarCapaStability({ mlProducts, category, slug, context, gameRefs }) {
   const apiKey = process.env.STABILITY_API_KEY;
   if (!apiKey) {
     log("INFO", "STABILITY_API_KEY nao configurada — pulando capa AI");
     return null;
   }
 
-  if (!mlProducts || mlProducts.length === 0) {
-    log("INFO", "Sem produtos ML — pulando capa AI");
-    return null;
-  }
-
   const prompt = BG_PROMPTS[category] || BG_PROMPTS.guia;
-  const fullPrompt = `${prompt} Use bright, light-toned background colors to create contrast with the product.`.trim();
+  const contextLine = context ? ` The scene should evoke: ${context}.` : "";
+  const fullPrompt = `${prompt}${contextLine} Use bright, light-toned background colors.`.trim();
 
   log("INFO", `Gerando fundo Stability AI (category: ${category})...`);
 
@@ -375,6 +372,11 @@ export async function gerarCapaStability({ mlProducts, category, slug }) {
   } catch (err) {
     log("WARN", `Stability AI requisicao falhou: ${err.message}`);
     return null;
+  }
+
+  if (!mlProducts || mlProducts.length === 0) {
+    log("INFO", "Sem produtos para compor — salvando fundo tematico gerado por IA");
+    return saveImage(bgBuffer, slug);
   }
 
   const loaded = [];
@@ -420,7 +422,7 @@ export async function gerarCapaStability({ mlProducts, category, slug }) {
     const composite = await compositeProducts(bgBuffer, loaded);
     log("INFO", `Composite gerado (${(composite.length / 1024).toFixed(1)} KB)`);
 
-    const refined = await refineComposite(composite, category);
+    const refined = await refineComposite(composite, category, context);
     if (refined) {
       return saveImage(refined, slug);
     }

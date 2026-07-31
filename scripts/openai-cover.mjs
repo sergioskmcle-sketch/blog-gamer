@@ -22,15 +22,17 @@ const COVER_PROMPTS = {
   promocao: `Professional promotional product photograph of gaming products on a bright clean display surface. Energetic warm lighting, soft shadows on a light wood background. Background has a soft blurred gaming room ambiance. Products are large, sharp and highly detailed. Photorealistic, professional promotional photography. No text, no watermarks.`,
 };
 
-function buildPromptFromProducts(products, category, backgroundTone, contentType) {
-  if (!products || products.length === 0) {
-    return COVER_PROMPTS[category] || COVER_PROMPTS.promocao;
-  }
-
+function buildPromptFromProducts(products, category, backgroundTone, contentType, context) {
   if (contentType === "game") {
     const gameNames = products.slice(0, 6).map(p => p.name || p.title || "game").join(", ");
     const tone = backgroundTone === "light" ? GAME_TONE.LIGHT_BG : backgroundTone === "dark" ? GAME_TONE.DARK_BG : "";
-    return `Epic cinematic game banner featuring iconic video game characters and elements in a dynamic game world scene. Dramatic lighting, vibrant colors, high-energy composition with particle effects. Professional game key art style. Photorealistic, high detail. Game references: ${gameNames}.${tone} No text, no watermarks.`;
+    const subject = context ? `\nThe scene must evoke: ${context}.` : "";
+    return `Epic cinematic game banner featuring iconic video game characters and elements in a dynamic game world scene. Dramatic lighting, vibrant colors, high-energy composition with particle effects. Professional game key art style. Photorealistic, high detail. Game references: ${gameNames}.${subject}${tone} No text, no watermarks.`;
+  }
+
+  if (!products || products.length === 0) {
+    const base = COVER_PROMPTS[category] || COVER_PROMPTS.promocao;
+    return context ? `${base}\nScene context: ${context}.` : base;
   }
 
   const typeCounts = {};
@@ -72,22 +74,25 @@ function buildPromptFromProducts(products, category, backgroundTone, contentType
 
   const tone = backgroundTone === "light" ? TONE.LIGHT_BG : backgroundTone === "dark" ? TONE.DARK_BG : "";
   const productNames = products.slice(0, 4).map(p => p.title || p.name || "gaming product").join(", ");
+  const contextLine = context ? `\nScene context: ${context}.` : "";
 
-  return `Professional close-up product photograph of ${sceneDescription}${tone} Products shown: ${productNames}. Photorealistic, high detail, professional gaming catalog photography style. Natural lighting, realistic shadows. No text, no watermarks.`;
+  return `Professional close-up product photograph of ${sceneDescription}${tone} Products shown: ${productNames}.${contextLine} The products must look naturally integrated into the scene with realistic lighting, shadows and perspective — as if photographed in place, never pasted on top. Photorealistic, high detail, professional gaming catalog photography style. Natural lighting, realistic shadows. No text, no watermarks.`;
 }
 
-function buildEditPrompt(products, category, backgroundTone, contentType) {
+function buildEditPrompt(products, category, backgroundTone, contentType, context) {
   if (!products || products.length === 0) {
     if (contentType === "game") {
-      return "Create an epic cinematic game banner featuring iconic video game characters and elements in a dynamic game world scene. Dramatic lighting, vibrant colors, high-energy composition. Professional game key art style. No text, no watermarks.";
+      const subject = context ? ` The scene must evoke: ${context}.` : "";
+      return `Create an epic cinematic game banner featuring iconic video game characters and elements in a dynamic game world scene. Dramatic lighting, vibrant colors, high-energy composition. Professional game key art style.${subject} No text, no watermarks.`;
     }
-    return "Create a professional banner with gaming products on a gaming room background. Photorealistic, high detail. No text, no watermarks.";
+    return `Create a professional banner with gaming products on a gaming room background. Photorealistic, high detail. No text, no watermarks.`;
   }
 
   if (contentType === "game") {
     const gameNames = products.slice(0, 6).map(p => p.name || p.title || "game").join(", ");
     const tone = backgroundTone === "light" ? GAME_TONE.LIGHT_BG : backgroundTone === "dark" ? GAME_TONE.DARK_BG : "";
-    return `Create an epic cinematic banner featuring the characters, logos, and iconic elements extracted from the following game reference images: ${gameNames}. Extract the main subjects from each image and compose them into a single unified scene set in an immersive game world inspired by the games shown. The background should look like a game environment — a fantasy landscape, sci-fi city, or dramatic battle arena depending on the references. Dynamic dramatic lighting, vibrant colors, energy effects. The subjects should interact naturally within the scene as if they exist in the same world. Photorealistic, high detail, professional game key art quality.${tone} No text, no watermarks.`;
+    const subject = context ? ` The scene must evoke: ${context}.` : "";
+    return `Create an epic cinematic banner featuring the characters, logos, and iconic elements extracted from the following game reference images: ${gameNames}. Extract the main subjects from each image and compose them into a single unified scene set in an immersive game world inspired by the games shown. The background should look like a game environment — a fantasy landscape, sci-fi city, or dramatic battle arena depending on the references. Dynamic dramatic lighting, vibrant colors, energy effects. The subjects should interact naturally within the scene as if they exist in the same world.${subject} Photorealistic, high detail, professional game key art quality.${tone} No text, no watermarks.`;
   }
 
   const typeCounts = {};
@@ -129,8 +134,9 @@ function buildEditPrompt(products, category, backgroundTone, contentType) {
 
   const tone = backgroundTone === "light" ? TONE.LIGHT_BG : backgroundTone === "dark" ? TONE.DARK_BG : "";
   const productNames = products.slice(0, 4).map(p => p.title || p.name || "gaming product").join(", ");
+  const contextLine = context ? ` Scene context: ${context}.` : "";
 
-  return `Create a professional banner featuring the following gaming product(s) from the reference images: ${productNames}. Arrange them in a visually appealing layout on ${sceneDescription}${tone} Each product should be clearly visible, well-lit, and professionally presented. Photorealistic, high detail, professional catalog quality. No text, no watermarks.`;
+  return `Create a professional banner featuring the following gaming product(s) from the reference images: ${productNames}. Arrange them in a visually appealing layout on ${sceneDescription}${tone}${contextLine} The products must be integrated naturally into the scene — correct perspective, realistic shadows and lighting that match the environment, as if they were photographed in place. Photorealistic, high detail, professional catalog quality. No text, no watermarks.`;
 }
 
 async function downloadImage(url) {
@@ -323,45 +329,61 @@ async function analyzeProductBrightness(imageBuffers) {
   return avg < 128 ? "light" : "dark";
 }
 
-export async function gerarCapaOpenAI({ mlProducts, category, slug, contentType }) {
+export async function gerarCapaOpenAI({ mlProducts, category, slug, contentType, context, gameRefs }) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     log("INFO", "OPENAI_API_KEY nao configurada — pulando capa AI");
     return null;
   }
 
-  const tipo = contentType === "game" ? "jogos" : "produtos";
+  const isGame = contentType === "game";
+  const tipo = isGame ? "jogos" : "produtos";
   log("INFO", `Gerando capa OpenAI (tipo: ${tipo}, category: ${category}, ${mlProducts?.length || 0} itens)...`);
 
   const images = [];
   const validProducts = [];
 
-  for (const product of (mlProducts || [])) {
-    let buf = null;
-
-    if (product.image) {
+  if (isGame) {
+    for (const url of (gameRefs || [])) {
       try {
-        buf = await downloadImage(product.image);
+        const buf = await downloadImage(url);
+        if (buf) {
+          images.push({ buffer: buf, name: "game reference" });
+          log("INFO", `Referencia de jogo OK (${(buf.length / 1024).toFixed(1)} KB)`);
+        }
       } catch (e) {
-        log("WARN", `Erro ao baixar ${product.name || product.title}: ${e.message}`);
+        log("WARN", `Erro ao baixar referencia de jogo: ${e.message}`);
       }
     }
+  } else {
+    for (const product of (mlProducts || [])) {
+      let buf = null;
 
-    if (!buf) {
-      log("WARN", `URL direta falhou, buscando imagem de ${product.name || product.title} na web...`);
-      try {
-        buf = await searchTavilyImage(product.name || product.title);
-      } catch (e) {
-        log("WARN", `Busca web falhou para ${product.name || product.title}: ${e.message}`);
+      const directUrl = product.image || product.thumbnail;
+      if (directUrl) {
+        try {
+          buf = await downloadImage(directUrl);
+        } catch (e) {
+          log("WARN", `Erro ao baixar ${product.name || product.title}: ${e.message}`);
+        }
       }
-    }
 
-    if (buf) {
-      images.push({ buffer: buf, name: product.name || product.title || "product" });
-      validProducts.push(product);
-      log("INFO", `Imagem OK: ${product.name || product.title} (${(buf.length / 1024).toFixed(1)} KB)`);
-    } else {
-      log("WARN", `Falha ao obter imagem: ${product.name || product.title}`);
+      if (!buf) {
+        log("WARN", `URL direta falhou, buscando imagem de ${product.name || product.title} na web...`);
+        try {
+          buf = await searchTavilyImage(product.name || product.title);
+        } catch (e) {
+          log("WARN", `Busca web falhou para ${product.name || product.title}: ${e.message}`);
+        }
+      }
+
+      if (buf) {
+        images.push({ buffer: buf, name: product.name || product.title || "product" });
+        validProducts.push(product);
+        log("INFO", `Imagem OK: ${product.name || product.title} (${(buf.length / 1024).toFixed(1)} KB)`);
+      } else {
+        log("WARN", `Falha ao obter imagem: ${product.name || product.title}`);
+      }
     }
   }
 
@@ -373,16 +395,16 @@ export async function gerarCapaOpenAI({ mlProducts, category, slug, contentType 
   }
 
   if (images.length > 0) {
-    const editPrompt = buildEditPrompt(validProducts, category, backgroundTone, contentType);
+    const editPrompt = buildEditPrompt(validProducts, category, backgroundTone, contentType, context);
     log("INFO", `Tentando edits com ${images.length} imagem(ns) de referencia...`);
     const b64 = await generateWithEdits(apiKey, images, editPrompt);
     if (b64) return saveImage(b64, slug);
     log("WARN", "Edits falhou, tentando fallback para generations...");
   } else {
-    log("INFO", "Nenhuma imagem baixada, usando generations via prompt textual...");
+    log("INFO", "Nenhuma imagem de referencia, usando generations via prompt textual...");
   }
 
-  const textPrompt = buildPromptFromProducts(mlProducts, category, backgroundTone, contentType);
+  const textPrompt = buildPromptFromProducts(validProducts, category, backgroundTone, contentType, context);
   const b64 = await generateWithGenerations(apiKey, textPrompt);
   if (b64) return saveImage(b64, slug);
 

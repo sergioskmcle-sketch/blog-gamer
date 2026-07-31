@@ -6,6 +6,7 @@ import time
 import random
 import subprocess
 import sys
+import base64
 from datetime import datetime, timezone
 from pathlib import Path
 from dotenv import load_dotenv
@@ -108,12 +109,7 @@ TOPIC_SEEDS = [
     {'category': 'review',   'mode': 'melhores',     'hint': 'review de jogo popular, analise de gameplay, dicas de jogo',                                      'ml_query': 'jogo original ps5 xbox midia fisica lancamento'},
     {'category': 'guia',     'mode': 'custo-beneficio', 'hint': 'melhores headsets gamers, teclado mecanico, mouse gamer, monitor, cadeira',                    'ml_query': 'headset gamer teclado mecanico mouse gamer monitor'},
     {'category': 'lista',    'mode': 'custo-beneficio', 'hint': 'melhores jogos para console, jogos populares, lancamentos, jogos estilo',                        'ml_query': 'jogo original ps4 ps5 xbox midia fisica list'},
-    {'category': 'lista',    'mode': 'informativo',    'hint': 'jogos mais populares, rankings, jogos mais jogados 2026, lista de melhores jogos, ranking games', 'ml_query': ''},
-    {'category': 'promocao', 'mode': 'custo-beneficio', 'hint': 'promocoes Steam, ofertas de games, descontos em perifericos gamers',                           'ml_query': 'jogo promocao ps5 xbox pc midia fisica original'},
-    {'category': 'curiosidade', 'mode': 'informativo', 'hint': 'curiosidades sobre consoles clasicos, história dos games, erros de jogos famosos, easter eggs',  'ml_query': 'console retro game boy playstation nintendo clasico'},
-    {'category': 'tutorial',    'mode': 'informativo', 'hint': 'como montar setup gamer, dicas de configuracao, melhores ajustes para jogos',                   'ml_query': 'setup gamer periferico rgb teclado mouse headset monitor'},
-    {'category': 'comparativo', 'mode': 'melhores',    'hint': 'comparativo entre consoles, placas de video x vs y, melhor processador para jogos',             'ml_query': 'console playstation xbox nintendo placa video rtx'},
-    {'category': 'lancamento',  'mode': 'melhores',    'hint': 'lancamento de console, novo jogo aguardado, placa de video nova geracao, perifericos',           'ml_query': 'lancamento jogo ps5 xbox pc midia fisica 2026'},
+    {'category': 'lista',    'mode': 'informativo',    'hint': 'jogos mais populares, rankings, jogos mais jogados 2026, lista de melhores jogos, ranking games', 'ml_query': 'jogo original ps5 xbox midia fisica 2026'},
     {'category': 'noticia',     'mode': 'misto',       'hint': 'tudo sobre jogo novo, analise completa de lancamento, o que esperar do novo console/game',         'ml_query': 'console ps5 xbox nintendo placa video rtx'},
     {'category': 'review',      'mode': 'misto',       'hint': 'review completo de jogo, vale a pena comprar, analise de gameplay, graficos e desempenho',          'ml_query': 'jogo original ps5 xbox midia fisica 2026'},
     {'category': 'guia',        'mode': 'misto',       'hint': 'guia completo sobre console ou jogo, o que comprar para jogar, setup recomendado para game x',     'ml_query': 'console video game ps5 xbox nintendo acessorio'},
@@ -625,6 +621,56 @@ def get_best_cover_image(products, topic=None):
     return img_url
 
 
+def generate_ai_cover(topic, products, slug):
+    if not OPENAI_API_KEY:
+        log('  Sem OPENAI_API_KEY — capa IA pulada')
+        return ''
+    context = (topic.get('hint') or '')[:160]
+    if products:
+        prod_lines = '\n'.join(
+            f'- {p.get("title", "")}' + (f' | R${p.get("price", 0):.2f}' if p.get('price') else '')
+            for p in products[:4]
+        )
+        prod_prompt = (
+            'Incorpore de forma natural os seguintes itens na cena, respeitando perspectiva, '
+            'sombras e iluminacao como se fizessem parte do ambiente:\n' + prod_lines
+        )
+    else:
+        prod_prompt = 'Crie um fundo tematico de games, sem produtos especificos.'
+    prompt = (
+        'Capa de artigo de blog gamer, estilo editorial digital premium, composicao dinamica '
+        'de jogos e tecnologia, luz neon suave, alto detalhe. '
+        f'Tema: {context}. {prod_prompt}'
+    )
+    try:
+        r = requests.post(
+            'https://api.openai.com/v1/images/generations',
+            headers={'Authorization': f'Bearer {OPENAI_API_KEY}'},
+            json={
+                'model': 'gpt-image-1',
+                'prompt': prompt,
+                'n': 1,
+                'size': '1536x1024',
+                'output_format': 'webp',
+            },
+            timeout=120,
+        )
+        if not r.ok:
+            log(f'  OpenAI capa erro {r.status_code}: {r.text[:200]}')
+            return ''
+        b64 = r.json()['data'][0]['b64_json']
+        img = base64.b64decode(b64)
+        cover_dir = Path(BLOG_REPO_PATH) / 'images' / 'capas' if BLOG_REPO_PATH else Path('images') / 'capas'
+        cover_dir.mkdir(parents=True, exist_ok=True)
+        out = cover_dir / f'{slug}.webp'
+        out.write_bytes(img)
+        log(f'  Capa IA salva: {out}')
+        return f'/blog-gamer/images/capas/{slug}.webp'
+    except Exception as e:
+        log(f'  OpenAI capa erro: {e}')
+        return ''
+
+
 GAME_IMAGE_CACHE = {}
 
 def extract_game_names(body):
@@ -687,9 +733,34 @@ def build_groq_prompt(topic, products, sources_text, today, cover_image=''):
         cover_image = get_best_cover_image(products, topic)
 
     if mode == 'informativo':
+        if products:
+            product_lines = '\n'.join([_format_product_for_prompt(p) for p in products])
+            product_section_rule = '''6. ## Produtos Recomendados — para CADA produto, use este formato:
+
+## Nome do Produto — Subtítulo
+
+<img src="URL_IMAGEM" alt="NOME_PRODUTO" class="article-game-img">
+
+Descricao do produto (2-3 paragrafos).
+
+<a href="LINK_AFILIADO" class="product-btn">VER NO MERCADO LIVRE</a>
+
+IMPORTANTE: Nao use <div class="product-card">. O botao e um link simples com class="product-btn".
+
+7. ## Fontes
+
+Regras: MINIMO 1200 palavras no total. NUNCA mencione IA. LINK_AFILIADO exato (nao modificar). Nao misture produtos no corpo informativo — produtos vao APENAS na secao final.'''
+            affiliate_flag = True
+        else:
+            product_lines = ''
+            product_section_rule = '''6. ## Fontes
+
+Regras: MINIMO 1200 palavras. NUNCA mencione IA. Nao invente dados - use APENAS informacoes das Fontes fornecidas. Nao inclua produtos, precos, nem links de compra/afiliado (sem produtos nesta rodada).'''
+            affiliate_flag = False
+
         system_prompt = f'''Editor-Chefe de portal gamer. Escreva em portugues brasileiro, tom natural de gamer experiente, conversacional, sem parecer robo.
 
-Modo: informativo (conteudo puro, sem produtos nem links de compra).
+Modo: informativo (conteudo editorial com produtos recomendados apenas no final).
 
 Estrutura obrigatoria:
 1. INTRODUCAO: desperte curiosidade, mostre a relevancia do tema. NUNCA comee com "Neste artigo...", "Hoje vamos falar..."
@@ -697,9 +768,7 @@ Estrutura obrigatoria:
 3. LISTA ou TABELA comparativa com dados (se aplicavel ao tema)
 4. FAQ (3-5 perguntas)
 5. CONCLUSAO
-6. ## Fontes
-
-Regras: MINIMO 1200 palavras. NUNCA mencione IA. Nao invente dados - use APENAS informacoes das Fontes fornecidas. Nao inclua produtos, precos, nem links de compra/afiliado.
+{product_section_rule}
 
 IMPORTANTE para geracao de imagens: sempre que citar um jogo pela primeira vez, use **Nome Do Jogo** em negrito. Exemplo: "**Fortnite** e um dos jogos mais populares." Isso e OBRIGATORIO para o sistema inserir imagens automaticamente.
 
@@ -709,14 +778,15 @@ description: "Descricao (100-160 caracteres)"
 pubDate: {today}
 tags: [tag1, tag2, tag3, tag4, tag5]
 category: "{topic['category']}"
-affiliate: false
+affiliate: {affiliate_flag}
 image: "{cover_image}"
 mode: "{mode}"'''
 
         user_prompt = f'''Categoria: {topic['category']} | Modo: {mode} | Tema principal: {topic['hint']}
 
 Fontes para pesquisa:
-{sources_text}'''
+{sources_text}
+{"\nProdutos para a secao final 'Produtos Recomendados' (use TODOS):\n" + product_lines if products else ""}'''
 
         return system_prompt, user_prompt
 
@@ -921,19 +991,11 @@ def main():
 
     mode = topic.get('mode', 'custo-beneficio')
 
-    if mode == 'informativo':
-        products = []
-        log('Modo informativo: sem produtos, apenas conteudo')
-        cover_image = try_fetch_game_wallpaper(topic.get('hint', ''))
-        if not cover_image:
-            cover_image = ''
-        log(f'Imagem de capa: {cover_image[:80] if cover_image else "(default)"}')
-        system_prompt, user_prompt = build_groq_prompt(topic, products, sources_text, today, cover_image)
-    elif mode == 'misto':
+    if mode in ('informativo', 'misto'):
         products = scrape_ml_products(topic['ml_query'], limit=6)
-        log(f'ML products para secao recomendada: {len(products)}')
+        log(f'ML products para secao final: {len(products)}')
         if not products:
-            log('Nenhum produto encontrado, caindo para modo informativo puro')
+            log('Nenhum produto encontrado, caindo para conteudo editorial sem produtos')
             products = []
             cover_image = try_fetch_game_wallpaper(topic.get('hint', ''))
             if not cover_image:
@@ -1026,6 +1088,12 @@ def main():
     if state.get('last_slug') == slug:
         slug = f'{slug}-{int(time.time())}'
         log(f'Slug duplicado, alterado para: {slug}')
+
+    ai_cover = generate_ai_cover(topic, products, slug)
+    if ai_cover:
+        fm['image'] = ai_cover
+        raw = f'---\n{yaml.dump(fm, allow_unicode=True, sort_keys=False).strip()}\n---\n{body}\n'
+        log(f'Capa IA definida no frontmatter: {ai_cover}')
 
     article_path = None
     if BLOG_REPO_PATH:

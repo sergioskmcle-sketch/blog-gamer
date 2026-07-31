@@ -45,10 +45,44 @@ function nextCategory(lastCategory) {
 
 const TOPIC_SEEDS = [
   { category: "noticia", hint: "lancamento de game, evento de games, anuncio de console", ml_query: "lancamento jogo ps5 xbox 2026" },
-  { category: "review", hint: "review de jogo popular, analise de gameplay, dicas de jogo", ml_query: "jogo popular ps5 xbox switch" },
+  { category: "review", hint: "review de jogo popular de 2026, performance nos consoles, o que esperar do jogo", ml_query: "jogo popular ps5 xbox switch 2026" },
   { category: "guia", hint: "melhores headsets gamers, teclado mecanico, mouse gamer, monitor, cadeira", ml_query: "headset gamer teclado mecanico mouse gamer monitor" },
   { category: "lista", hint: "melhores jogos para PC, jogos gratis, jogos multiplayer, jogos estilo", ml_query: "jogo pc mais vendido 2026" },
 ];
+
+// Temas proibidos: apostas, cassino, caça-níqueis e afins. Nunca podem virar artigo.
+const FORBIDDEN_PATTERNS = [
+  /\bca[çc]a[- ]?n[ií]queis?\b/,
+  /\bn[ií]queis?\b/,
+  /\bcassinos?\b/,
+  /\bcasinos?\b/,
+  /\broletas?\b/,
+  /\bapost[aeiou]\w*\b/,
+  /\btigrinho\b/,
+  /\bfortune tiger\b/,
+  /\bjackpots?\b/,
+  /\bpoker\b/,
+  /\bbingo\b/,
+  /\bjogos? de azar\b/,
+  /\bcasas? de apostas\b/,
+  /\bbet365\b/,
+  /\bbetano\b/,
+  /\besportes? da sorte\b/,
+  /\bblaze\b/,
+  /\bgambling\b/,
+  /\bslots? online\b/,
+  /\bslot machines?\b/,
+  /\bjogo do tigrinho\b/,
+];
+
+function hasForbiddenTerm(...texts) {
+  for (const text of texts) {
+    if (!text) continue;
+    const lower = String(text).toLowerCase();
+    if (FORBIDDEN_PATTERNS.some((re) => re.test(lower))) return true;
+  }
+  return false;
+}
 
 const RSS_FEEDS = [
   { name: "MeuPlayStation", url: "https://meups.com.br/feed/" },
@@ -187,6 +221,12 @@ function isTopicDuplicate(keyword, existingTopics, recentKeywords = []) {
 
 function buildTopicFromKeyword(topKeyword, topKeywords, existingTopics = [], recentKeywords = []) {
   const kw = topKeyword.toLowerCase();
+
+  if (hasForbiddenTerm(kw)) {
+    log("WARN", `Keyword proibida (apostas/cassino): "${topKeyword}" — descartando`);
+    return null;
+  }
+
   const domain = classifyDomain(kw);
 
   // Filtra contexto para manter apenas palavras do mesmo dominio
@@ -248,10 +288,11 @@ REGRAS:
   - Se escolher um jogo/console/evento: o hint, o ml_query e o conteudo devem ser sobre games (ex: "jogo ps5 xbox pc", "lancamentos de games", "ofertas de jogos").
   - Se escolher hardware/periférico: o hint, o ml_query e o conteudo devem ser sobre perifericos gamer (ex: "mouse gamer", "headset gamer", "monitor gamer 2026").
   - NUNCA escreva algo como "games e perifericos" no mesmo tema.
+- PROIBIDO escolher temas de apostas, cassino, slots, caça-níqueis, roleta, jogos de azar ou qualquer conteúdo de jogo de dinheiro real. O blog não cobre esse tipo de assunto.
 - Se TODOS os trending são sobre assuntos já cobertos, sugira um assunto diferente que esteja em alta mas não está nos trending principais
 - Responda APENAS com JSON válido, sem markdown, sem explicação extra
 
-CATEGORIAS VÁLIDAS: noticia, review, guia, lista
+CATEGORIAS VÁLIDAS: noticia, review, guia, lista (qualquer outra é rejeitada)
 
 Formato da resposta JSON:
 {
@@ -287,6 +328,16 @@ Analise as headlines e os trending topics. Escolha um assunto que seja NOVO e IN
 
   if (!parsed.topic || !parsed.category || !parsed.hint) {
     log("WARN", `IA retornou JSON incompleto: ${JSON.stringify(parsed)}`);
+    return null;
+  }
+
+  if (hasForbiddenTerm(parsed.topic, parsed.hint, parsed.ml_query)) {
+    log("WARN", `IA sugeriu tema proibido (apostas/cassino): ${parsed.hint}`);
+    return null;
+  }
+
+  if (!["noticia", "review", "guia", "lista"].includes(parsed.category)) {
+    log("WARN", `IA retornou categoria invalida "${parsed.category}", rejeitando: ${parsed.hint}`);
     return null;
   }
 
@@ -349,14 +400,20 @@ async function discoverTrendingTopic(existingTopics = [], recentKeywords = []) {
     }
   }
 
-  if (headlines.length < 5) {
-    log("INFO", `Poucas headlines (${headlines.length}), usando fallback estatico`);
+  const antes = headlines.length;
+  const filteredHeadlines = headlines.filter((h) => !hasForbiddenTerm(h));
+  if (filteredHeadlines.length !== antes) {
+    log("INFO", `Filtrados ${antes - filteredHeadlines.length} headlines de temas proibidos (apostas/cassino)`);
+  }
+
+  if (filteredHeadlines.length < 5) {
+    log("INFO", `Poucas headlines (${filteredHeadlines.length}), usando fallback estatico`);
     return null;
   }
 
-  log("INFO", `Total headlines: ${headlines.length}`);
+  log("INFO", `Total headlines: ${filteredHeadlines.length}`);
 
-  const trending = extractTrendingTopics(headlines);
+  const trending = extractTrendingTopics(filteredHeadlines);
   if (trending.length === 0) {
     log("INFO", "Nenhum topico identificado, usando fallback estatico");
     return null;
@@ -366,7 +423,7 @@ async function discoverTrendingTopic(existingTopics = [], recentKeywords = []) {
 
   if (GROQ_API_KEY) {
     try {
-      const aiResult = await analyzeTrendsWithAI(headlines, trending, existingTopics, recentKeywords);
+      const aiResult = await analyzeTrendsWithAI(filteredHeadlines, trending, existingTopics, recentKeywords);
       if (aiResult) {
         log("INFO", `IA escolheu topico novo: [${aiResult.category}] ${aiResult.hint}`);
         return aiResult;
@@ -382,6 +439,10 @@ async function discoverTrendingTopic(existingTopics = [], recentKeywords = []) {
       continue;
     }
     const topic = buildTopicFromKeyword(kw, trending.slice(0, 3), existingTopics, recentKeywords);
+    if (!topic) {
+      log("INFO", `Keyword "${kw}" nao gerou tema valido, tentando proxima...`);
+      continue;
+    }
     log("INFO", `Tema escolhido (keyword): [${topic.category}] ${topic.hint}`);
     return topic;
   }
@@ -1327,8 +1388,13 @@ function validate(fm, body, ctx = {}) {
   if (!fm.description || String(fm.description).length < 120) hard.push("description: muito curto (min 120)");
   if (!fm.pubDate) hard.push("pubDate: ausente");
   if (!fm.category) hard.push("category: ausente");
+  else if (!["noticia", "review", "guia", "lista"].includes(fm.category)) hard.push(`category: invalida (${fm.category})`);
   if (!fm.tags || !Array.isArray(fm.tags) || fm.tags.length < 3) hard.push("tags: minimo 3");
   if (fm.affiliate === undefined) hard.push("affiliate: ausente");
+
+  if (hasForbiddenTerm(fm.title, fm.description, fm.category, (fm.tags || []).join(" "), body)) {
+    hard.push("Tema proibido detectado (apostas, cassino, caça-níqueis, jogos de azar)");
+  }
 
   const wc = body.split(/\s+/).filter(Boolean).length;
   const min = MIN_WORDS[ctx.category] || 650;
@@ -1772,6 +1838,7 @@ ${estiloOpinativo ? "8. Giria e humor sao tempero, nao estrutura: no maximo 1 gi
 
 ## PROIBIDO
 - Inventar URL de imagem (wikipedia, google, unsplash) ou link de compra.
+- Temas de cassino, slots, caça-níqueis, roleta, apostas, poker, bingo ou qualquer jogo de dinheiro real. O blog não cobre isso.
 - Escrever preco, imagem ou botao dos produtos listados — isso e do card. NUNCA escreva "R$" seguido de valor que coincida com produto da lista.
 - Produto sem preco na lista (Preco: NAO DISPONIVEL): nunca afirme preco, nunca diga que e gratis, gratuito, preco zero ou de graca; refira-se a ele como "confira o preco atual no card".
 - Emojis, voz passiva, mencionar que e IA, termos corporativos ("desta forma", "outrossim", "vale ressaltar que").
@@ -1944,33 +2011,38 @@ Checklist antes de responder:
         if (tavilyImg) gameImages[name] = tavilyImg;
       }
     }
-
-    for (const name of markerNames) {
-      if (gameImages[name]) { coverImage = gameImages[name]; break; }
-    }
-    if (!coverImage && mlProducts.length > 0) {
-      coverImage = await gerarCapaStability({ mlProducts, category: categoria, slug: slugify(fm.title) }) || "";
-      if (!coverImage) {
-        coverImage = await gerarCapaOpenAI({ mlProducts, category: categoria, slug: slugify(fm.title) }) || "";
-      }
-    }
-    if (!coverImage) {
-      coverImage = await getBestCoverImage(mlProducts, body, trendingKeywordForCover, markerNames) || "";
-    }
-
-    body = injectGameImages(body, gameImages, hasImageMarkers, coverImage || null);
-    log("INFO", `${Object.keys(gameImages).length}/${gameNames.length} imagens RAWG injetadas${coverImage ? " (capa omitida do corpo)" : ""}`);
   } else {
     log("WARN", "Nenhum jogo marcado nem detectado no artigo");
-    if (mlProducts.length > 0) {
-      coverImage = await gerarCapaStability({ mlProducts, category: categoria, slug: slugify(fm.title) }) || "";
-      if (!coverImage) {
-        coverImage = await gerarCapaOpenAI({ mlProducts, category: categoria, slug: slugify(fm.title) }) || "";
-      }
-    }
-    if (!coverImage) {
-      coverImage = await getBestCoverImage(mlProducts, body, trendingKeywordForCover, markerNames) || "";
-    }
+  }
+
+  // CAPA IA CONTEXTUAL: tentada SEMPRE, para qualquer tipo de artigo.
+  // Produtos (ou arte de jogo, na ausencia deles) sao inseridos na cena pela IA.
+  const capaSlug = slugify(fm.title);
+  const coverContext = topic.hint || fm.title || "";
+  const gameRefs = Object.values(gameImages);
+  const hasProducts = mlProducts.length > 0;
+
+  log("INFO", `Gerando capa IA contextual (categoria: ${categoria}, ${hasProducts ? mlProducts.length + " produtos" : "sem produtos"}, ${gameRefs.length} imagens de jogo)...`);
+  if (hasProducts) {
+    coverImage = await gerarCapaOpenAI({ mlProducts, category: categoria, slug: capaSlug, context: coverContext }) || "";
+  } else {
+    coverImage = await gerarCapaOpenAI({ mlProducts: [], category: categoria, slug: capaSlug, contentType: "game", context: coverContext, gameRefs }) || "";
+  }
+  if (!coverImage) {
+    coverImage = await gerarCapaStability({ mlProducts, category: categoria, slug: capaSlug, context: coverContext, gameRefs }) || "";
+  }
+
+  // Fallbacks sem IA (mantidos como rede de seguranca)
+  if (!coverImage) {
+    coverImage = await getBestCoverImage(mlProducts, body, trendingKeywordForCover, markerNames) || "";
+  }
+  if (!coverImage && gameRefs.length > 0) {
+    coverImage = gameRefs[0];
+  }
+
+  if (gameNames.length > 0) {
+    body = injectGameImages(body, gameImages, hasImageMarkers, coverImage || null);
+    log("INFO", `${Object.keys(gameImages).length}/${gameNames.length} imagens RAWG injetadas${coverImage ? " (capa omitida do corpo)" : ""}`);
   }
 
   log("INFO", "Injetando produtos do Mercado Livre no artigo...");

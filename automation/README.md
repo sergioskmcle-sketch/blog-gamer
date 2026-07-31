@@ -179,15 +179,18 @@ O scheduler roda `generate_article.py` imediatamente ao ser iniciado, depois seg
 
 A cada execuÃ§Ã£o, o tema alterna na ordem:
 
-| # | Categoria | Exemplo de tema |
-|---|-----------|-----------------|
-| 1 | NotÃ­cia | LanÃ§amento de game, evento, anÃºncio de console |
-| 2 | Review | Review de jogo popular, anÃ¡lise de gameplay |
-| 3 | Guia de Compra | Melhores headsets, teclados, monitores gamers |
-| 4 | Lista | Melhores jogos para PC, jogos multiplayer |
-| 5 | PromoÃ§Ã£o | PromoÃ§Ãµes Steam, ofertas de perifÃ©ricos |
+| # | Categoria | Modo | Exemplo de tema |
+|---|-----------|------|-----------------|
+| 1 | NotÃ­cia | Informativo | LanÃ§amento de game, evento, anÃºncio de console |
+| 2 | Review | Melhores | Review de jogo popular, anÃ¡lise de gameplay |
+| 3 | Guia de Compra | Custo-benefÃ­cio | Melhores headsets, teclados, mouses, monitores, cadeiras |
+| 4 | Lista | Custo-benefÃ­cio | Melhores jogos para console, jogos populares |
+| 5 | Lista | Informativo | Rankings, jogos mais jogados 2026 |
+| 6 | NotÃ­cia | Misto | Tudo sobre jogo novo, o que esperar do console/game |
+| 7 | Review | Misto | Review completo, vale a pena comprar |
+| 8 | Guia | Misto | Guia completo de console/jogo, o que comprar |
 
-ApÃ³s a 5Âª, volta para a 1Âª (cÃ­clico).
+ApÃ³s a 8Âª, volta para a 1Âª (cÃ­clico).
 
 ## ManutenÃ§Ã£o
 

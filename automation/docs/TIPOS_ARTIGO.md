@@ -4,20 +4,21 @@
 
 | Tipo | Modo | Conteúdo | Imagens | Produtos |
 |------|------|----------|---------|----------|
-| **Informativo puro** | `informativo` | Conteúdo editorial (FAQ, lista, curiosidades) | RAWG inline (`<img class="article-game-img">`) | ❌ Nenhum |
+| **Informativo (com produtos)** | `informativo` | Conteúdo editorial (FAQ, lista, curiosidades) + seção "Produtos Recomendados" no final | RAWG inline (`<img class="article-game-img">`) | ✅ Afiliados apenas na seção final (se encontrar produtos) |
+| **Informativo puro** | `informativo` | Conteúdo editorial (FAQ, lista, curiosidades) | RAWG inline (`<img class="article-game-img">`) | ❌ Nenhum (fallback quando ML não encontra produtos) |
 | **Produto — Melhores** | `melhores` | ## Tópico → Imagem → Texto → Botão + tabela comparativa | Fotos reais do produto (`<img class="article-game-img">`) | ✅ Afiliados, ordenado do MAIS CARO para o mais barato |
 | **Produto — Custo-Benefício** | `custo-beneficio` | ## Tópico → Imagem → Texto → Botão + tabela comparativa | Fotos reais do produto (`<img class="article-game-img">`) | ✅ Afiliados, ordenado do MAIS BARATO para o mais caro |
 | **Misto** | `misto` | Conteúdo informativo + seção "Produtos Recomendados" no final | RAWG inline no conteúdo + fotos reais nos tópicos de produto | ✅ Afiliados apenas na seção final |
 
 ## Detalhamento
 
-### 1. Informativo Puro (`mode: informativo`)
+### 1. Informativo (`mode: informativo`)
 
 - **Para que serve**: rankings, curiosidades, história dos games, listas de jogos, notícias
 - **Conteúdo**: texto puro com seções, FAQ, conclusão, fontes
 - **Imagens**: cada jogo citado em **negrito** recebe automaticamente um `<img class="article-game-img">` via RAWG API
-- **Produtos**: NUNCA incluir produtos, preços ou links de afiliado
-- **Frontmatter**: `affiliate: false`
+- **Produtos**: se o Mercado Livre retornar produtos para `ml_query`, o artigo ganha a seção final "## Produtos Recomendados" com estrutura `## Nome → Imagem → Texto → Botão afiliado` (`affiliate: true`). Se não houver produtos, cai para informativo puro (`affiliate: false`)
+- **Frontmatter**: `affiliate: true` (com produtos) ou `affiliate: false` (sem produtos)
 
 ### 2. Produto — Melhores (`mode: melhores`)
 
@@ -58,7 +59,7 @@
 
 O `generate_article.py` usa `TOPIC_SEEDS` (linha 106) para selecionar o tema do dia. Cada seed já tem `mode` definido:
 
-- `mode: informativo` → tópicos editoriais puros
+- `mode: informativo` → tópicos editoriais (com produtos no final se o ML retornar resultados)
 - `mode: melhores` → produtos premium
 - `mode: custo-beneficio` → produtos econômicos
 - `mode: misto` → análises com recomendações

@@ -2,10 +2,12 @@ import "dotenv/config";
 import fs from "fs";
 import path from "path";
 import { searchMLviaGoogle, generateAffiliateLink } from "./ml_affiliate.mjs";
+import { gerarCapaOpenAI } from "./openai-cover.mjs";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const ML_CLIENT_ID = process.env.ML_CLIENT_ID;
 const ML_CLIENT_SECRET = process.env.ML_CLIENT_SECRET;
 const ML_COOKIES_B64 = process.env.ML_COOKIES_B64;
@@ -389,6 +391,25 @@ No final ## Fontes com links.`;
   const fp = path.join(ARTIGOS_DIR, `${slug}.md`);
 
   if (fs.existsSync(fp)) fs.unlinkSync(fp);
+
+  // Capa IA contextual: troca a capa de thumbnail de produto por capa gerada por IA
+  log("INFO", "Gerando capa IA contextual...");
+  if (OPENAI_API_KEY) {
+    const todosProdutos = [...produtosPorSecao.values()].flat();
+    const capaIA = await gerarCapaOpenAI({
+      mlProducts: todosProdutos,
+      category: "guia",
+      slug,
+      context: "setup gamer completo: pc, placa de video, monitor e perifericos",
+    });
+    if (capaIA) {
+      const capaPath = capaIA.startsWith("/") && !capaIA.startsWith("/blog-gamer") ? "/blog-gamer" + capaIA : capaIA;
+      finalArticle = finalArticle.replace(/^image:\s*".*"$/m, `image: "${capaPath}"`);
+      log("INFO", `Capa IA: ${capaPath}`);
+    } else {
+      log("WARN", "Capa IA falhou — mantendo capa original");
+    }
+  }
 
   fs.writeFileSync(fp, finalArticle, "utf-8");
   log("INFO", `Salvo: ${slug}.md`);
