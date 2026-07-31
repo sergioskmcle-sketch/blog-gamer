@@ -42,6 +42,7 @@ VER NO MERCADO LIVRE
 ```
 
 A DT3 Rhino é a escolha ideal para quem busca o que há de melhor em cadeiras gamers. Com encosto reclinável até 180°, você pode até tirar um cochilo entre uma partida e outra. O apoio de braço 4D permite ajustes de altura, profundidade, largura e rotação — um nível de personalização raro mesmo entre cadeiras premium.
+<a href="https://meli.la/247dACh" class="product-btn product-btn-amarelo" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
 
 **Destaques:**
 
