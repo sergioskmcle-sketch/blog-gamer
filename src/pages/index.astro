@@ -42,7 +42,7 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
       })();
     </script>
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-xl my-xl">
-      <section class="lg:col-span-8 space-y-xl">
+      <section class="space-y-xl" style="grid-column: span var(--main-cols, 8) / span var(--main-cols, 8)">
         {destaque && (
           <HeroSection
             title={destaque.title}
@@ -84,7 +84,7 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
         </div>
       </section>
 
-      <aside class="lg:col-span-4">
+      <aside style="grid-column: span var(--sidebar-cols, 4) / span var(--sidebar-cols, 4)">
         <Sidebar artigos={artigos} currentSlug={destaque?.slug} />
       </aside>
     </div>

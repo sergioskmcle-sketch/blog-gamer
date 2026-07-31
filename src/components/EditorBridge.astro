@@ -1,0 +1,224 @@
+---
+const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
+---
+
+<script>
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("edit") !== "true") return;
+
+  const BASE_URL = document.querySelector("base")?.getAttribute("href") || window.__base__ || "/blog-gamer/";
+  const root = document.documentElement;
+
+  function addDataAttributes() {
+    document.querySelectorAll("[data-editable]").forEach(el => {
+      el.classList.add("editable-highlight");
+    });
+  }
+
+  function getEditableElements() {
+    const elements = [];
+    document.querySelectorAll("[data-editable]").forEach(el => {
+      const rect = el.getBoundingClientRect();
+      elements.push({
+        id: el.dataset.editable,
+        tag: el.tagName.toLowerCase(),
+        rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
+      });
+    });
+    return elements;
+  }
+
+  function applyStyle(payload) {
+    const { property, value } = payload;
+    if (property === "body-bg-image" && value) {
+      const existingBg = getComputedStyle(document.body).backgroundImage;
+      if (existingBg && existingBg !== "none") {
+        document.body.style.backgroundImage = `url('${value}'), ${existingBg}`;
+      } else {
+        document.body.style.backgroundImage = `url('${value}')`;
+      }
+      return;
+    }
+    if (property === "body-bg-color") {
+      document.body.style.backgroundColor = value;
+      return;
+    }
+    if (property === "nav-height") {
+      root.style.setProperty("--nav-height", value);
+      return;
+    }
+    if (property === "logo-height") {
+      root.style.setProperty("--logo-height", value);
+      return;
+    }
+    if (property === "logo-src") {
+      const logo = document.querySelector('[data-editable="logo"]');
+      if (logo) logo.src = value;
+      return;
+    }
+    if (property === "main-cols") {
+      root.style.setProperty("--main-cols", value);
+      return;
+    }
+    if (property === "sidebar-cols") {
+      root.style.setProperty("--sidebar-cols", value);
+      return;
+    }
+    if (property === "font-size-h1") {
+      root.style.setProperty("--font-size-h1", value);
+      return;
+    }
+    if (property === "font-size-h2") {
+      root.style.setProperty("--font-size-h2", value);
+      return;
+    }
+    if (property === "font-size-h3") {
+      root.style.setProperty("--font-size-h3", value);
+      return;
+    }
+    if (property === "font-size-body") {
+      root.style.setProperty("--font-size-body", value);
+      return;
+    }
+    if (property === "font-size-label") {
+      root.style.setProperty("--font-size-label", value);
+      return;
+    }
+    if (property.startsWith("color-")) {
+      const colorName = property.replace("color-", "color-").replace(/-/g, "-");
+      root.style.setProperty(`--${property}`, value);
+      return;
+    }
+    root.style.setProperty(`--${property}`, value);
+  }
+
+  function getCSSValue(property) {
+    if (property === "nav-height") return getComputedStyle(root).getPropertyValue("--nav-height").trim() || "6rem";
+    if (property === "logo-height") return getComputedStyle(root).getPropertyValue("--logo-height").trim() || "7rem";
+    if (property === "main-cols") return getComputedStyle(root).getPropertyValue("--main-cols").trim() || "8";
+    if (property === "sidebar-cols") return getComputedStyle(root).getPropertyValue("--sidebar-cols").trim() || "4";
+    if (property === "body-bg-color") return getComputedStyle(document.body).backgroundColor || "#050505";
+    if (property.startsWith("color-")) return getComputedStyle(root).getPropertyValue(`--${property}`).trim();
+    if (property === "font-size-h1") return getComputedStyle(root).getPropertyValue("--font-size-h1").trim() || "2.5rem";
+    if (property === "font-size-h2") return getComputedStyle(root).getPropertyValue("--font-size-h2").trim() || "1.75rem";
+    if (property === "font-size-h3") return getComputedStyle(root).getPropertyValue("--font-size-h3").trim() || "1.35rem";
+    if (property === "font-size-body") return getComputedStyle(root).getPropertyValue("--font-size-body").trim() || "1.125rem";
+    if (property === "font-size-label") return getComputedStyle(root).getPropertyValue("--font-size-label").trim() || "0.75rem";
+    return getComputedStyle(root).getPropertyValue(`--${property}`).trim();
+  }
+
+  function getAllCSSValues() {
+    const props = [
+      "nav-height", "logo-height", "main-cols", "sidebar-cols",
+      "body-bg-color", "font-size-h1", "font-size-h2", "font-size-h3",
+      "font-size-body", "font-size-label",
+    ];
+    const colors = [
+      "color-primary", "color-primary-dim", "color-secondary",
+      "color-surface", "color-surface-container",
+      "color-on-surface", "color-on-surface-variant",
+      "color-outline", "color-outline-variant",
+      "color-error", "color-bg-card", "color-border",
+    ];
+    const result = {};
+    props.forEach(p => result[p] = getCSSValue(p));
+    colors.forEach(p => result[p] = getCSSValue(p));
+    return result;
+  }
+
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest("[data-editable]");
+    if (!el) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = el.getBoundingClientRect();
+    window.parent.postMessage({
+      type: "editor-select",
+      element: el.dataset.editable,
+      rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
+      tag: el.tagName.toLowerCase(),
+    }, "*");
+  }, true);
+
+  document.addEventListener("mouseover", (e) => {
+    const el = e.target.closest("[data-editable]");
+    document.querySelectorAll(".editable-hover").forEach(h => h.classList.remove("editable-hover"));
+    if (el) el.classList.add("editable-hover");
+  }, true);
+  document.addEventListener("mouseout", (e) => {
+    const el = e.target.closest("[data-editable]");
+    if (el) el.classList.remove("editable-hover");
+  }, true);
+
+  window.addEventListener("message", (event) => {
+    const msg = event.data;
+    if (!msg || !msg.type) return;
+
+    if (msg.type === "editor-apply-style") {
+      applyStyle(msg.payload);
+      window.parent.postMessage({ type: "editor-style-applied", payload: msg.payload }, "*");
+    }
+    if (msg.type === "editor-get-state") {
+      window.parent.postMessage({
+        type: "editor-state",
+        elements: getEditableElements(),
+        cssValues: getAllCSSValues(),
+      }, "*");
+    }
+    if (msg.type === "editor-get-elements") {
+      window.parent.postMessage({
+        type: "editor-elements",
+        elements: getEditableElements(),
+      }, "*");
+    }
+    if (msg.type === "editor-apply-css") {
+      const { css } = msg;
+      if (css) {
+        let styleEl = document.getElementById("editor-override-css");
+        if (!styleEl) {
+          styleEl = document.createElement("style");
+          styleEl.id = "editor-override-css";
+          document.head.appendChild(styleEl);
+        }
+        styleEl.textContent = css;
+      }
+      window.parent.postMessage({ type: "editor-css-applied" }, "*");
+    }
+    if (msg.type === "editor-ready") {
+      window.parent.postMessage({
+        type: "editor-loaded",
+        elements: getEditableElements(),
+        cssValues: getAllCSSValues(),
+        url: window.location.href,
+      }, "*");
+    }
+  });
+
+  setTimeout(() => {
+    window.parent.postMessage({
+      type: "editor-loaded",
+      elements: getEditableElements(),
+      cssValues: getAllCSSValues(),
+      url: window.location.href,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+    }, "*");
+  }, 500);
+})();
+</script>
+
+<style>
+  [data-editable] {
+    outline: 2px solid transparent;
+    cursor: crosshair;
+    transition: outline-color 0.15s ease;
+    position: relative;
+  }
+  [data-editable].editable-hover {
+    outline-color: rgba(168, 85, 247, 0.5);
+  }
+  [data-editable].editable-selected {
+    outline-color: #A855F7;
+    outline-width: 3px;
+  }
+</style>

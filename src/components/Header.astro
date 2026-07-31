@@ -14,9 +14,9 @@ const navLinks = [
 ---
 
 <header id="siteHeader" class="fixed top-0 w-full z-50 glass-nav border-b border-outline-variant/30 shadow-[0_4px_20px_-2px_rgba(168,85,247,0.15)]">
-  <nav class="flex items-center justify-between h-24 px-gutter max-w-page mx-auto">
+  <nav class="flex items-center justify-between px-gutter max-w-page mx-auto" style="height: var(--nav-height, 6rem)" data-editable="nav">
     <a href={base} class="no-underline hover:no-underline flex items-center">
-      <img src={`${base}images/logo-blog.webp`} alt="Blog Gamer" class="h-28 w-auto object-contain" />
+      <img src={`${base}images/logo-blog.webp`} alt="Blog Gamer" class="w-auto object-contain" style="height: var(--logo-height, 7rem)" data-editable="logo" />
     </a>
     <div class="hidden md:flex items-center gap-lg font-label text-label">
       {navLinks.map((link, i) => (

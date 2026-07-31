@@ -50,6 +50,13 @@
 
   --transition: 0.2s ease;
   --transition-slow: 0.35s ease;
+
+  --body-bg-color: #050505;
+  --nav-height: 6rem;
+  --logo-height: 7rem;
+  --main-cols: 8;
+  --sidebar-cols: 4;
+  --header-bg-opacity: 0.88;
 }
 
 * {
@@ -64,7 +71,7 @@ html {
 
 body {
   font-family: var(--font-sans);
-  background: #050505;
+  background: var(--body-bg-color, #050505);
   background-image:
     linear-gradient(45deg, rgba(255, 255, 255, 0.012) 25%, transparent 25%),
     linear-gradient(-45deg, rgba(255, 255, 255, 0.012) 25%, transparent 25%),

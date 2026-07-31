@@ -620,6 +620,9 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
     <div class="nav-item" data-tab="settings" onclick="switchTab('settings')">
       <span class="icon">⚙️</span><span>Configurações</span>
     </div>
+    <div class="nav-item" data-tab="layout" onclick="switchTab('layout')">
+      <span class="icon">🎨</span><span>Layout</span>
+    </div>
   </div>
   <div style="padding:12px 8px;border-top:1px solid var(--border)">
     <div class="nav-item" onclick="doLogout()" style="color:var(--text-muted)">
@@ -808,6 +811,81 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
     💾 Salvar alterações
   </button>
 </div>
+
+<!-- Layout Editor -->
+<div id="section-layout" class="section">
+  <div id="layoutEditor">
+    <div id="layoutToolbar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+      <span id="layoutElementInfo" style="font-size:0.85rem;color:var(--text-muted);flex:1">Clique em um elemento no preview para editar</span>
+      <button class="btn btn-secondary btn-sm" onclick="layoutRefresh()">🔄 Recarregar Preview</button>
+      <button class="btn btn-primary btn-sm" onclick="layoutSaveTheme()">💾 Salvar Tema</button>
+    </div>
+    <div id="layoutBody" style="display:flex;gap:16px;height:calc(100vh - 180px);min-height:500px">
+      <div id="layoutPreview" style="flex:1;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:#000;position:relative">
+        <iframe id="layoutIframe" style="width:100%;height:100%;border:none" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+      </div>
+      <div id="layoutTools" style="width:320px;min-width:320px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-right:4px">
+        <div class="card" style="padding:16px">
+          <div class="card-title" style="margin-bottom:8px">🎨 Cores</div>
+
+          <div id="colorPropertySelector" style="margin-top:8px">
+            <select id="colorPropSelect" class="form-control" onchange="updateColorSwatches()" style="font-size:0.75rem;padding:6px 8px">
+            </select>
+          </div>
+          <div id="colorSwatches" style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:6px;max-height:120px;overflow-y:auto"></div>
+        </div>
+        <div class="card" style="padding:16px">
+          <div class="card-title" style="margin-bottom:8px">📐 Layout</div>
+          <div class="layout-slider"><label>Altura do Nav</label><input type="range" min="48" max="144" value="96" data-prop="nav-height" data-unit="px" oninput="layoutSliderChange(this)"/><span class="layout-val">96px</span></div>
+          <div class="layout-slider"><label>Altura da Logo</label><input type="range" min="32" max="200" value="112" data-prop="logo-height" data-unit="px" oninput="layoutSliderChange(this)"/><span class="layout-val">112px</span></div>
+          <div class="layout-slider"><label>Colunas do Conteúdo</label><input type="range" min="6" max="10" value="8" data-prop="main-cols" data-unit="" oninput="layoutSliderChange(this)"/><span class="layout-val">8</span></div>
+          <div class="layout-slider"><label>Colunas da Sidebar</label><input type="range" min="2" max="6" value="4" data-prop="sidebar-cols" data-unit="" oninput="layoutSliderChange(this)"/><span class="layout-val">4</span></div>
+        </div>
+        <div class="card" style="padding:16px">
+          <div class="card-title" style="margin-bottom:8px">🔤 Fontes</div>
+          <div class="layout-slider"><label>Título H1</label><input type="range" min="16" max="64" value="40" data-prop="font-size-h1" data-unit="px" oninput="layoutSliderChange(this)"/><span class="layout-val">40px</span></div>
+          <div class="layout-slider"><label>Título H2</label><input type="range" min="14" max="48" value="28" data-prop="font-size-h2" data-unit="px" oninput="layoutSliderChange(this)"/><span class="layout-val">28px</span></div>
+          <div class="layout-slider"><label>Título H3</label><input type="range" min="12" max="36" value="22" data-prop="font-size-h3" data-unit="px" oninput="layoutSliderChange(this)"/><span class="layout-val">22px</span></div>
+          <div class="layout-slider"><label>Corpo do Texto</label><input type="range" min="10" max="28" value="18" data-prop="font-size-body" data-unit="px" oninput="layoutSliderChange(this)"/><span class="layout-val">18px</span></div>
+          <div class="layout-slider"><label>Labels/Menus</label><input type="range" min="8" max="20" value="12" data-prop="font-size-label" data-unit="px" oninput="layoutSliderChange(this)"/><span class="layout-val">12px</span></div>
+        </div>
+        <div class="card" style="padding:16px">
+          <div class="card-title" style="margin-bottom:8px">🖼️ Fundo</div>
+          <div class="layout-slider"><label>Cor de Fundo</label>
+            <div id="bgColorSwatches" style="display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-top:4px"></div>
+          </div>
+          <div style="margin-top:8px">
+            <label style="font-size:0.75rem;color:var(--text-muted);display:block;margin-bottom:4px">Imagem de Fundo</label>
+            <div style="display:flex;gap:4px">
+              <input type="text" id="bgImageUrl" class="form-control" placeholder="URL da imagem..." style="font-size:0.75rem;padding:6px 8px;flex:1"/>
+              <button class="btn btn-secondary btn-sm" onclick="applyBgImage()">Aplicar</button>
+            </div>
+            <button class="btn btn-secondary btn-sm" style="margin-top:4px" onclick="document.getElementById('bgImageUpload').click()">📁 Upload</button>
+            <input type="file" id="bgImageUpload" accept="image/*" style="display:none" onchange="handleBgUpload(event)"/>
+          </div>
+          <button class="btn btn-secondary btn-sm" style="margin-top:6px;width:100%" onclick="resetBgImage()">Remover Fundo Personalizado</button>
+        </div>
+        <div class="card" style="padding:16px">
+          <div class="card-title" style="margin-bottom:8px">🖌️ Logo</div>
+          <button class="btn btn-secondary btn-sm" style="width:100%" onclick="document.getElementById('logoUpload').click()">📁 Upload Nova Logo</button>
+          <input type="file" id="logoUpload" accept="image/*" style="display:none" onchange="handleLogoUpload(event)"/>
+          <button class="btn btn-secondary btn-sm" style="margin-top:4px;width:100%" onclick="resetLogo()">Restaurar Logo Original</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.layout-slider { margin-bottom:10px; }
+.layout-slider label { display:block; font-size:0.72rem; color:var(--text-muted); margin-bottom:2px; font-weight:600; text-transform:uppercase; letter-spacing:0.03em; }
+.layout-slider input[type="range"] { width:calc(100% - 44px); vertical-align:middle; -webkit-appearance:none; appearance:none; height:4px; border-radius:2px; background:var(--border); outline:none; }
+.layout-slider input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:14px; height:14px; border-radius:50%; background:var(--primary); cursor:pointer; border:2px solid var(--bg-card); }
+.layout-slider .layout-val { display:inline-block; width:36px; text-align:right; font-size:0.7rem; color:var(--text-sec); vertical-align:middle; }
+.color-swatch { width:100%; aspect-ratio:1; border-radius:4px; cursor:pointer; border:2px solid transparent; transition:all 0.15s; }
+.color-swatch:hover { transform:scale(1.15); z-index:2; }
+.color-swatch.active { border-color:#fff; box-shadow:0 0 0 2px var(--primary); }
+</style>
 
 <!-- Settings -->
 <div id="section-settings" class="section">
@@ -1115,11 +1193,12 @@ function switchTab(tab) {
   document.getElementById('section-' + tab)?.classList.add('active');
   document.querySelectorAll('.nav-item[data-tab]').forEach(n => n.classList.remove('active'));
   document.querySelector(`.nav-item[data-tab="${tab}"]`)?.classList.add('active');
-  const titles = { dashboard: '📊 Dashboard', articles: '📝 Artigos', editor: '✏️ Editor', settings: '⚙️ Configurações' };
+  const titles = { dashboard: '📊 Dashboard', articles: '📝 Artigos', editor: '✏️ Editor', settings: '⚙️ Configurações', layout: '🎨 Layout' };
   document.getElementById('pageTitle').textContent = titles[tab] || 'Admin';
   if (tab === 'dashboard') loadDashboard();
   if (tab === 'articles') loadArticles();
   if (tab === 'settings') loadSettings();
+  if (tab === 'layout') initLayoutEditor();
   showFloatingSave(tab === 'editor');
 }
 
@@ -1794,5 +1873,6 @@ async function savePalette() {
   }
 })();
 </script>
+<script src="editor.js"></script>
 </body>
 </html>
