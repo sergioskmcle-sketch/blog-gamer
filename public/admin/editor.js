@@ -439,25 +439,22 @@ function injectThemeVars(originalContent, themeCSS) {
   if (!themeCSS) return originalContent;
 
   const marker = '/* --- EDITOR THEME OVERRIDES --- */';
-  const markerRegex = new RegExp(`\\/\\* --- EDITOR THEME OVERRIDES --- \\*\\/[\\s\\S]*?\\/\\* --- END EDITOR THEME --- \\*\\/`, 'g');
+  const markerRegex = /\/\* --- EDITOR THEME OVERRIDES --- \*\/[\s\S]*?\/\* --- END EDITOR THEME --- \*\//;
+  const block = `${marker}\n${themeCSS}\n/* --- END EDITOR THEME --- */\n`;
 
-  if (markerRegex.test(originalContent)) {
-    return originalContent.replace(markerRegex, `${marker}\n${themeCSS}\n/* --- END EDITOR THEME --- */`);
-  }
+  let content = originalContent.replace(markerRegex, '').trim();
 
-  const rootEnd = originalContent.indexOf(':root');
+  const rootEnd = content.indexOf(':root');
   if (rootEnd === -1) {
-    return originalContent + `\n\n${marker}\n${themeCSS}\n/* --- END EDITOR THEME --- */\n`;
+    return content + '\n\n' + block;
   }
 
-  const rootClose = originalContent.indexOf('}', rootEnd);
+  const rootClose = content.indexOf('}', rootEnd);
   if (rootClose === -1) {
-    return originalContent + `\n\n${marker}\n${themeCSS}\n/* --- END EDITOR THEME --- */\n`;
+    return content + '\n\n' + block;
   }
 
-  return originalContent.substring(0, rootClose) +
-    `\n${marker}\n${themeCSS}\n/* --- END EDITOR THEME --- */\n` +
-    originalContent.substring(rootClose);
+  return content.substring(0, rootClose + 1) + '\n\n' + block + content.substring(rootClose + 1);
 }
 
 /* === DEPLOY PREVIEW OVERLAY === */
