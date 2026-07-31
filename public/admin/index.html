@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Blog Gamer — Admin</title>
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="marked.min.js"></script>
 <style>
 :root {
   --bg: #0d0d17;
@@ -208,6 +208,16 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
 }
 .modal h2 { margin-bottom: 16px; }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+.btn-colors { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn-color-opt { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.8rem; color: var(--text-sec); padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; }
+.btn-color-opt:has(input:checked) { border-color: var(--accent); color: var(--text); }
+.swatch { width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.15); }
+.swatch-verde { background: #2ff801; }
+.swatch-amarelo { background: #fde047; }
+.swatch-vermelho { background: #ef4444; }
+.swatch-azul { background: #3b82f6; }
+.swatch-laranja { background: #f97316; }
+.swatch-roxo { background: #a855f7; }
 
 .empty { text-align: center; padding: 40px; color: var(--text-muted); }
 .empty .icon { font-size: 2.5rem; margin-bottom: 8px; }
@@ -466,6 +476,13 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
 .blog-preview-body .product-card-img { width: 100%; aspect-ratio: 4/3; object-fit: contain; background: #020203; padding: 1rem; display: block; }
 .blog-preview-body .product-card-body { padding: 1.5rem; }
 .blog-preview-body .product-price { color: #A855F7; font-size: 1.1rem; font-weight: 700; margin-bottom: 0.75rem; }
+.blog-preview-body .product-btn { display: block; width: 100%; padding: 0.875rem 1.5rem; background: #2ff801; color: #000; font-family: "Public Sans", sans-serif; font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; text-align: center; border-radius: 10px; text-decoration: none; margin: 1rem 0 0; border: none; cursor: pointer; transition: all 0.3s ease; }
+.blog-preview-body .product-btn-amarelo { background: #fde047; color: #1c1917; }
+.blog-preview-body .product-btn-vermelho { background: #ef4444; color: #fff; }
+.blog-preview-body .product-btn-azul { background: #3b82f6; color: #fff; }
+.blog-preview-body .product-btn-verde { background: #2ff801; color: #000; }
+.blog-preview-body .product-btn-laranja { background: #f97316; color: #fff; }
+.blog-preview-body .product-btn-roxo { background: #a855f7; color: #fff; }
 .blog-preview-body:focus { background: #080810; }
 .blog-preview-body [contenteditable]:focus { outline: 2px solid rgba(168,85,247,0.4); border-radius: 4px; }
 .blog-preview-body h1[contenteditable]:focus,
@@ -681,6 +698,7 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
   <div class="editor-tabs">
     <div class="editor-tab active" data-etab="meta" onclick="switchEditorTab('meta')">Metadados</div>
     <div class="editor-tab" data-etab="content" onclick="switchEditorTab('content')">Conteúdo</div>
+    <div class="editor-tab" data-etab="products" onclick="switchEditorTab('products')">Produtos</div>
     <div class="editor-tab" data-etab="preview" onclick="switchEditorTab('preview')">Prévia</div>
   </div>
 
@@ -744,6 +762,17 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
     </div>
   </div>
 
+  <div id="editor-products" class="etab-content" style="display:none">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <span style="font-size:0.85rem;color:var(--text-sec);flex:1">Links dos botões de compra (product-btn). Edite abaixo e clique em "Aplicar links" para atualizar o conteúdo.</span>
+      <button class="btn btn-secondary btn-sm" onclick="renderProductButtons()">🔄 Recarregar</button>
+      <button class="btn btn-primary btn-sm" onclick="applyProductLinks()">✔️ Aplicar links</button>
+    </div>
+    <div id="productsList">
+      <div style="padding:24px;text-align:center;color:var(--text-muted);font-size:0.85rem">Carregando botões de produto...</div>
+    </div>
+  </div>
+
   <div id="editor-preview" class="etab-content" style="display:none">
     <div class="wysiwyg-toolbar" id="wysiwygToolbar">
       <select id="wysiFont" onchange="wysiwygCmd('fontName',this.value)" title="Fonte">
@@ -782,6 +811,7 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
       <button class="upload-btn" onclick="document.getElementById('wysiUpload').click()" title="Upload de imagem">📷 Upload</button>
       <input type="file" id="wysiUpload" accept="image/*" style="display:none" onchange="handleImageUpload(event)"/>
       <button class="upload-btn" onclick="wysiwygImageUrl()" title="Inserir imagem por URL">🖼️ URL</button>
+      <button class="upload-btn" onclick="wysiwygProductBtn()" title="Inserir botão de compra (texto, cor e link)">🛒 Botão</button>
       <div class="sep"></div>
       <button onclick="wysiwygCmd('undo')" title="Desfazer">↩</button>
       <button onclick="wysiwygCmd('redo')" title="Refazer">↪</button>
@@ -926,6 +956,29 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
   </div>
 </div>
 
+<div id="buttonModal" class="modal-overlay">
+  <div class="modal">
+    <h2>Inserir Botão de Compra</h2>
+    <div class="form-group"><label>Texto do botão</label><input id="btnText" class="form-control" placeholder="VER NO MERCADO LIVRE"/></div>
+    <div class="form-group"><label>Link (URL de redirecionamento)</label><input id="btnHref" class="form-control" placeholder="https://meli.la/..."/></div>
+    <div class="form-group">
+      <label>Cor do botão</label>
+      <div class="btn-colors" id="btnColors">
+        <label class="btn-color-opt"><input type="radio" name="btnColor" value="verde" checked/><span class="swatch swatch-verde"></span>Verde</label>
+        <label class="btn-color-opt"><input type="radio" name="btnColor" value="amarelo"/><span class="swatch swatch-amarelo"></span>Amarelo</label>
+        <label class="btn-color-opt"><input type="radio" name="btnColor" value="vermelho"/><span class="swatch swatch-vermelho"></span>Vermelho</label>
+        <label class="btn-color-opt"><input type="radio" name="btnColor" value="azul"/><span class="swatch swatch-azul"></span>Azul</label>
+        <label class="btn-color-opt"><input type="radio" name="btnColor" value="laranja"/><span class="swatch swatch-laranja"></span>Laranja</label>
+        <label class="btn-color-opt"><input type="radio" name="btnColor" value="roxo"/><span class="swatch swatch-roxo"></span>Roxo</label>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeBtnModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="insertProductBtn()">Inserir</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast"></div>
 
 <script>
@@ -959,6 +1012,55 @@ function showModal(title, body, onConfirm) {
 }
 function closeModal() {
   document.getElementById('confirmModal').classList.remove('active');
+}
+
+let savedBtnRange = null;
+
+function wysiwygProductBtn() {
+  const sel = window.getSelection();
+  const body = document.getElementById('previewBody');
+  savedBtnRange = (sel.rangeCount && body.contains(sel.getRangeAt(0).startContainer)) ? sel.getRangeAt(0).cloneRange() : null;
+  document.getElementById('btnText').value = 'VER NO MERCADO LIVRE';
+  document.getElementById('btnHref').value = '';
+  document.querySelector('input[name="btnColor"][value="verde"]').checked = true;
+  document.getElementById('buttonModal').classList.add('active');
+  setTimeout(() => document.getElementById('btnText').focus(), 50);
+}
+
+function closeBtnModal() {
+  document.getElementById('buttonModal').classList.remove('active');
+}
+
+function insertProductBtn() {
+  const text = document.getElementById('btnText').value.trim() || 'VER NO MERCADO LIVRE';
+  const href = document.getElementById('btnHref').value.trim();
+  if (!href) { toast('Informe o link do botão', 'error'); return; }
+  const color = document.querySelector('input[name="btnColor"]:checked')?.value || 'verde';
+  const body = document.getElementById('previewBody');
+  const a = document.createElement('a');
+  a.href = href;
+  a.className = 'product-btn product-btn-' + color;
+  a.target = '_blank';
+  a.rel = 'nofollow';
+  a.textContent = text;
+  const p = document.createElement('p');
+  p.style.margin = '1rem 0';
+  p.appendChild(a);
+  if (savedBtnRange && body.contains(savedBtnRange.startContainer)) {
+    const range = savedBtnRange;
+    range.collapse(false);
+    range.insertNode(p);
+    range.setStartAfter(p);
+    range.collapse(true);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  } else {
+    body.focus();
+    body.appendChild(p);
+  }
+  closeBtnModal();
+  toast('Botão de compra inserido!');
 }
 
 function setLoading(btnId, loading) {
@@ -1207,6 +1309,9 @@ function switchEditorTab(tab) {
   document.getElementById('editor-' + tab).style.display = 'block';
   document.querySelectorAll('.editor-tab').forEach(t => t.classList.remove('active'));
   document.querySelector(`.editor-tab[data-etab="${tab}"]`)?.classList.add('active');
+  if (tab === 'products') {
+    renderProductButtons();
+  }
   if (tab === 'preview') {
     renderPreview();
     document.getElementById('wysiwygToolbar').style.display = 'flex';
@@ -1589,7 +1694,12 @@ function renderPreview() {
   }
 
   document.getElementById('previewHeader').innerHTML = headerHtml;
-  const bodyHtml = (marked.parse(body || '*Nenhum conteúdo ainda...*')) + tagsHtml;
+  let bodyHtml;
+  try {
+    bodyHtml = (marked.parse(body || '*Nenhum conteúdo ainda...*')) + tagsHtml;
+  } catch (e) {
+    bodyHtml = `<p style="color:#ef4444;border:1px solid #ef4444;border-radius:10px;padding:16px">Erro ao renderizar a prévia: ${e.message}. Verifique o conteúdo do artigo.</p>`;
+  }
   document.getElementById('previewBody').innerHTML = bodyHtml;
   document.querySelectorAll('#previewBody img').forEach(img => {
     img.className = 'blog-preview-img-editable';
@@ -1611,6 +1721,10 @@ function htmlToMarkdown(el) {
       else if (tag === 'strong' || tag === 'b') md += `**${htmlToMarkdown(node).trim()}**`;
       else if (tag === 'em' || tag === 'i') md += `*${htmlToMarkdown(node).trim()}*`;
       else if (tag === 'code') md += `\`${node.textContent.trim()}\``;
+      else if (tag === 'a' && node.classList.contains('product-btn')) {
+        const href = node.getAttribute('href') || '#';
+        md += `<a href="${href}" class="${node.className.trim()}" target="_blank" rel="nofollow">${node.textContent.trim()}</a>`;
+      }
       else if (tag === 'a') md += `[${htmlToMarkdown(node).trim()}](${node.href || node.getAttribute('href') || ''})`;
       else if (tag === 'img') md += `![${node.getAttribute('alt') || ''}](${node.src || node.getAttribute('src') || ''})\n\n`;
       else if (tag === 'ul') {
@@ -1746,6 +1860,71 @@ async function putFileRaw(path, base64Content, message, sha = null) {
 function removeCoverImage() {
   document.getElementById('fieldImage').value = '';
   document.getElementById('coverPreview').style.display = 'none';
+}
+
+// ===== PRODUCT BUTTONS =====
+function escapeHtml(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function findProductBtnAnchors(md) {
+  const anchors = [];
+  const re = /<a\s[^>]*class="[^"]*\bproduct-btn\b[^"]*"[\s\S]*?<\/a>/gi;
+  let m;
+  while ((m = re.exec(md))) {
+    const hrefMatch = m[0].match(/href="([^"]*)"/);
+    anchors.push({ index: m.index, end: m.index + m[0].length, href: hrefMatch ? hrefMatch[1] : '' });
+  }
+  return anchors;
+}
+
+function renderProductButtons() {
+  const md = document.getElementById('fieldBody').value;
+  const listEl = document.getElementById('productsList');
+  const anchors = findProductBtnAnchors(md);
+  if (anchors.length === 0) {
+    listEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:0.85rem">Nenhum botão de produto (product-btn) encontrado neste artigo.</div>';
+    return;
+  }
+  listEl.innerHTML = anchors.map((a, i) => {
+    const before = md.substring(0, a.index);
+    const h3s = before.match(/<h3[^>]*>[\s\S]*?<\/h3>/gi);
+    const title = h3s ? h3s[h3s.length - 1].replace(/<[^>]+>/g, '').trim() : 'Produto ' + (i + 1);
+    return `
+      <div class="form-group" style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px">
+        <label style="display:block;font-size:0.85rem;font-weight:600;color:var(--text)">${i + 1}. ${escapeHtml(title)}</label>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <input id="productLink_${i}" class="form-control" value="${escapeHtml(a.href)}" placeholder="https://..." style="flex:1"/>
+          <button class="btn btn-secondary btn-sm" onclick="pickProductLink(${i})" title="Inserir link">🔗</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function pickProductLink(i) {
+  const current = document.getElementById('productLink_' + i).value;
+  const url = prompt('URL do botão:', current || 'https://');
+  if (url) document.getElementById('productLink_' + i).value = url.trim();
+}
+
+function applyProductLinks() {
+  const md = document.getElementById('fieldBody').value;
+  const anchors = findProductBtnAnchors(md);
+  if (anchors.length === 0) { toast('Nenhum botão de produto encontrado', 'error'); return; }
+  let next = md;
+  for (let i = anchors.length - 1; i >= 0; i--) {
+    const input = document.getElementById('productLink_' + i);
+    if (!input) continue;
+    const href = input.value.trim();
+    if (!href) continue;
+    const anchor = anchors[i];
+    const raw = next.substring(anchor.index, anchor.end);
+    const updated = raw.replace(/href="[^"]*"/, `href="${href.replace(/"/g, '&quot;')}"`);
+    next = next.substring(0, anchor.index) + updated + next.substring(anchor.end);
+  }
+  document.getElementById('fieldBody').value = next;
+  renderProductButtons();
+  toast('Links dos botões atualizados no conteúdo!');
 }
 
 async function saveArticle() {
