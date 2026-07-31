@@ -31,15 +31,15 @@ Antes de mergulharmos nos modelos, vale entender por que uma cadeira gamer de qu
 
 ## [PRODUTO:1] — A Melhor Cadeira Gamer Premium
 
-![Cadeira Gamer DT3 Rhino](https://acdn-us.mitiendanube.com/stores/002/007/282/products/01-2fcaac24b88ea6295f17725416014914-1024-1024.png)
-
-### Cadeira Gamer DT3 Rhino
-
-```
-R$ 3559.00
-A DT3 Rhino é uma cadeira premium com encosto reclinável até 180°, apoio de braço 4D e espuma de alta densidade. Design imponente e máximo conforto para longas sessões de jogo.
-VER NO MERCADO LIVRE
-```
+<div class="product-card">
+  <img src="https://acdn-us.mitiendanube.com/stores/002/007/282/products/01-2fcaac24b88ea6295f17725416014914-1024-1024.png" alt="Cadeira Gamer DT3 Rhino" class="product-card-img" loading="lazy" decoding="async">
+  <div class="product-card-body">
+    <h3>Cadeira Gamer DT3 Rhino</h3>
+    <div class="product-price">R$ 3559.00</div>
+    <p class="product-desc">A DT3 Rhino é uma cadeira premium com encosto reclinável até 180°, apoio de braço 4D e espuma de alta densidade. Design imponente e máximo conforto para longas sessões de jogo.</p>
+    <a href="https://www.mercadolivre.com.br/cadeira-gamer-dt3-rhino/p/MLB27651414" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+  </div>
+</div>
 
 A DT3 Rhino é a escolha ideal para quem busca o que há de melhor em cadeiras gamers. Com encosto reclinável até 180°, você pode até tirar um cochilo entre uma partida e outra. O apoio de braço 4D permite ajustes de altura, profundidade, largura e rotação — um nível de personalização raro mesmo entre cadeiras premium.
 <a href="https://meli.la/247dACh" class="product-btn product-btn-amarelo" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
@@ -54,16 +54,15 @@ A DT3 Rhino é a escolha ideal para quem busca o que há de melhor em cadeiras g
 
 ## [PRODUTO:2] — Melhor Custo-Benefício Premium
 
-![Cadeira Gamer ThunderX3 Yama](https://m.media-amazon.com/images/I/51W9FnH1Q1L._AC_UF894,1000_QL80_.jpg)
-
-### Cadeira Gamer ThunderX3 Yama
-
-```
-R$ 1599.00
-A ThunderX3 Yama combina design esportivo com ergonomia de ponta. Revestimento em couro sintético, almofadas lombar e cervical, e estrutura reforçada para até 150kg.
-
-[VER NO MERCADO LIVRE](https://www.mercadolivre.com.br/cadeira-gamer-thunderx3-yama/p/MLB28809216)
-```
+<div class="product-card">
+  <img src="https://m.media-amazon.com/images/I/51W9FnH1Q1L._AC_UF894,1000_QL80_.jpg" alt="Cadeira Gamer ThunderX3 Yama" class="product-card-img" loading="lazy" decoding="async">
+  <div class="product-card-body">
+    <h3>Cadeira Gamer ThunderX3 Yama</h3>
+    <div class="product-price">R$ 1599.00</div>
+    <p class="product-desc">A ThunderX3 Yama combina design esportivo com ergonomia de ponta. Revestimento em couro sintético, almofadas lombar e cervical, e estrutura reforçada para até 150kg.</p>
+    <a href="https://www.mercadolivre.com.br/cadeira-gamer-thunderx3-yama/p/MLB28809216" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+  </div>
+</div>
 
 A ThunderX3 Yama é uma das cadeiras mais equilibradas do mercado. Ela entrega qualidade de construção impressionante por um preço mais acessível que as concorrentes diretas. O design esportivo com detalhes em vermelho ou azul combina com qualquer setup gamer.
 
@@ -77,16 +76,15 @@ A ThunderX3 Yama é uma das cadeiras mais equilibradas do mercado. Ela entrega q
 
 ## [PRODUTO:3] — Melhor Custo-Benefício
 
-![Cadeira Gamer Husky Storm](https://images9.kabum.com.br/produtos/fotos/92719/92719_1507729573_index_gg.jpg)
-
-### Cadeira Gamer Husky Storm
-
-```
-R$ 1097.00
-A Husky Storm oferece excelente custo-benefício com reclinação ajustável, apoio de braço 3D e espuma injetada. Ideal para gamers que buscam qualidade sem gastar muito.
-
-[VER NO MERCADO LIVRE](https://www.mercadolivre.com.br/cadeira-gamer-husky-storm/p/MLB28696875)
-```
+<div class="product-card">
+  <img src="https://images9.kabum.com.br/produtos/fotos/92719/92719_1507729573_index_gg.jpg" alt="Cadeira Gamer Husky Storm" class="product-card-img" loading="lazy" decoding="async">
+  <div class="product-card-body">
+    <h3>Cadeira Gamer Husky Storm</h3>
+    <div class="product-price">R$ 1097.00</div>
+    <p class="product-desc">A Husky Storm oferece excelente custo-benefício com reclinação ajustável, apoio de braço 3D e espuma injetada. Ideal para gamers que buscam qualidade sem gastar muito.</p>
+    <a href="https://www.mercadolivre.com.br/cadeira-gamer-husky-storm/p/MLB28696875" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+  </div>
+</div>
 
 A Husky Storm prova que não precisa gastar uma fortuna para ter uma cadeira gamer de qualidade. Com um preço mais acessível, ela entrega o essencial: conforto, ajustes e durabilidade. É a escolha certa para quem está montando o primeiro setup gamer ou tem orçamento limitado.
 
@@ -100,16 +98,15 @@ A Husky Storm prova que não precisa gastar uma fortuna para ter uma cadeira gam
 
 ## [PRODUTO:4] — Melhor em Tecido Respirável
 
-![Cadeira Gamer Corsair T3 Rush](https://m.media-amazon.com/images/I/713go1sVomL.jpg)
-
-### Cadeira Gamer Corsair T3 Rush
-
-```
-R$ 2199.00
-A Corsair T3 Rush é feita com tecido respirável, ideal para climas quentes. Estrutura de aço, espuma moldada e suporte lombar ajustável para conforto durante horas.
-
-[VER NO MERCADO LIVRE](https://www.mercadolivre.com.br/cadeira-gamer-corsair-t3-rush/p/MLB23996215)
-```
+<div class="product-card">
+  <img src="https://m.media-amazon.com/images/I/713go1sVomL.jpg" alt="Cadeira Gamer Corsair T3 Rush" class="product-card-img" loading="lazy" decoding="async">
+  <div class="product-card-body">
+    <h3>Cadeira Gamer Corsair T3 Rush</h3>
+    <div class="product-price">R$ 2199.00</div>
+    <p class="product-desc">A Corsair T3 Rush é feita com tecido respirável, ideal para climas quentes. Estrutura de aço, espuma moldada e suporte lombar ajustável para conforto durante horas.</p>
+    <a href="https://www.mercadolivre.com.br/cadeira-gamer-corsair-t3-rush/p/MLB23996215" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+  </div>
+</div>
 
 A Corsair T3 Rush se destaca por usar tecido respirável em vez de couro sintético. Para quem mora em regiões quentes ou soa muito durante as partidas, essa é a melhor opção. O tecido permite maior circulação de ar, mantendo você fresco mesmo após horas de jogo.
 
@@ -123,16 +120,15 @@ A Corsair T3 Rush se destaca por usar tecido respirável em vez de couro sintét
 
 ## [PRODUTO:5] — Melhor Design Elegante
 
-![Cadeira Gamer LuvinCo Genebra G500](https://http2.mlstatic.com/D_NQ_NP_2X_980291-MLA97021306639_112025-F.webp)
-
-### Cadeira Gamer LuvinCo Genebra G500
-
-```
-R$ 2199.00
-A LuvinCo Genebra G500 é uma cadeira executiva com design gamer elegante. Encosto alto, braços ajustáveis e estofamento premium. Perfeita para jogar e trabalhar.
-
-[VER NO MERCADO LIVRE](https://www.mercadolivre.com.br/cadeira-gamer-luvinco-genebra-g500/p/MLB27545452)
-```
+<div class="product-card">
+  <img src="https://http2.mlstatic.com/D_NQ_NP_2X_980291-MLA97021306639_112025-F.webp" alt="Cadeira Gamer LuvinCo Genebra G500" class="product-card-img" loading="lazy" decoding="async">
+  <div class="product-card-body">
+    <h3>Cadeira Gamer LuvinCo Genebra G500</h3>
+    <div class="product-price">R$ 2199.00</div>
+    <p class="product-desc">A LuvinCo Genebra G500 é uma cadeira executiva com design gamer elegante. Encosto alto, braços ajustáveis e estofamento premium. Perfeita para jogar e trabalhar.</p>
+    <a href="https://www.mercadolivre.com.br/cadeira-gamer-luvinco-genebra-g500/p/MLB27545452" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+  </div>
+</div>
 
 A LuvinCo Genebra G500 é a opção perfeita para quem quer uma cadeira que funcione tanto para jogar quanto para trabalhar. Seu design é mais discreto que as cadeiras gamers tradicionais, mas sem abrir mão do conforto e da ergonomia.
 
@@ -146,16 +142,15 @@ A LuvinCo Genebra G500 é a opção perfeita para quem quer uma cadeira que func
 
 ## [PRODUTO:6] — A Inovadora em Mesh
 
-![Cadeira Gamer DT3 Vita](https://a-static.mlcdn.com.br/420x420/cadeira-de-escritorio-ergonomica-dt3-vita-super-ate-120kg-espuma-preto-14243-4-dt3-office/kabum/547359/238a35e0a6dae186756c530b26b9390b.jpeg)
-
-### Cadeira Gamer DT3 Vita
-
-```
-R$ 2499.00
-A DT3 Vita é a evolução em cadeiras gamers, com design moderno, encosto em mesh respirável e sistema de suporte lombar inovador. Conforto premium para jogadores exigentes.
-
-[VER NO MERCADO LIVRE](https://www.mercadolivre.com.br/cadeira-gamer-dt3-vita/p/MLB34923880)
-```
+<div class="product-card">
+  <img src="https://a-static.mlcdn.com.br/420x420/cadeira-de-escritorio-ergonomica-dt3-vita-super-ate-120kg-espuma-preto-14243-4-dt3-office/kabum/547359/238a35e0a6dae186756c530b26b9390b.jpeg" alt="Cadeira Gamer DT3 Vita" class="product-card-img" loading="lazy" decoding="async">
+  <div class="product-card-body">
+    <h3>Cadeira Gamer DT3 Vita</h3>
+    <div class="product-price">R$ 2499.00</div>
+    <p class="product-desc">A DT3 Vita é a evolução em cadeiras gamers, com design moderno, encosto em mesh respirável e sistema de suporte lombar inovador. Conforto premium para jogadores exigentes.</p>
+    <a href="https://www.mercadolivre.com.br/cadeira-gamer-dt3-vita/p/MLB34923880" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+  </div>
+</div>
 
 A DT3 Vita representa a nova geração de cadeiras gamers, com encosto em mesh (tela respirável) que proporciona ventilação superior. O sistema de suporte lombar inovador se adapta aos movimentos do corpo, oferecendo conforto ativo durante o uso.
 
