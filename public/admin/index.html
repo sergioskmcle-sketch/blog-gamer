@@ -818,7 +818,7 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
     <div id="layoutToolbar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
       <span id="layoutElementInfo" style="font-size:0.85rem;color:var(--text-muted);flex:1">Clique em um elemento no preview para editar</span>
       <button class="btn btn-secondary btn-sm" onclick="layoutRefresh()">🔄 Recarregar Preview</button>
-      <button class="btn btn-primary btn-sm" onclick="layoutSaveTheme()">💾 Salvar Tema</button>
+      <button class="btn btn-primary btn-sm" onclick="layoutSaveTheme()" id="btnSaveTheme">💾 Salvar Tema</button>
     </div>
     <div id="layoutBody" style="display:flex;gap:16px;height:calc(100vh - 180px);min-height:500px">
       <div id="layoutPreview" style="flex:1;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:#000;position:relative">

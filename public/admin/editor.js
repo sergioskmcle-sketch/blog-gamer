@@ -69,12 +69,46 @@ function initLayoutEditor() {
   iframe.src = getPreviewUrl();
 
   window.addEventListener('message', handleEditorMessage);
+  window.addEventListener('resize', updateIframeScale);
 
   initColorSelector();
   initBgColorSwatches();
   populateColorSwatches(COLOR_MAP[0].key);
 
-  setTimeout(refreshIframeConnection, 1000);
+  const iframe = document.getElementById('layoutIframe');
+  iframe.addEventListener('load', () => {
+    setTimeout(() => {
+      updateIframeScale();
+      refreshIframeConnection();
+    }, 500);
+  });
+
+  setTimeout(() => {
+    updateIframeScale();
+    refreshIframeConnection();
+  }, 1000);
+}
+
+function updateIframeScale() {
+  const preview = document.getElementById('layoutPreview');
+  const iframe = document.getElementById('layoutIframe');
+  if (!preview || !iframe) return;
+
+  const containerWidth = preview.clientWidth;
+  const targetWidth = 1440;
+
+  if (containerWidth > 0 && containerWidth < targetWidth) {
+    const scale = containerWidth / targetWidth;
+    iframe.style.width = targetWidth + 'px';
+    iframe.style.height = (preview.clientHeight / scale) + 'px';
+    iframe.style.transformOrigin = 'top left';
+    iframe.style.transform = `scale(${scale})`;
+    iframe.style.position = 'relative';
+  } else {
+    iframe.style.width = '100%';
+    iframe.style.transform = 'none';
+    iframe.style.height = '100%';
+  }
 }
 
 function handleEditorMessage(event) {
@@ -338,7 +372,7 @@ async function layoutSaveTheme() {
     const existingCSS = await getFile('src/styles/global.css');
     if (existingCSS) {
       const newContent = injectThemeVars(existingCSS.content, css);
-      await putFile('src/styles/global.css', newContent, 'cms: update visual theme');
+      await putFile('src/styles/global.css', newContent, 'cms: update visual theme', existingCSS.sha);
       toast('Tema salvo! O deploy será disparado.');
     }
   } catch (e) {
@@ -422,8 +456,8 @@ function injectThemeVars(originalContent, themeCSS) {
     #layoutTools .card { margin-bottom:0; }
     #layoutTools .card + .card { margin-top:0; }
     #layoutBody { gap:16px; }
-    #layoutPreview { position:relative; }
-    #layoutIframe { background:#050505; }
+    #layoutPreview { position:relative; overflow:hidden; }
+    #layoutIframe { background:#050505; border:none; transform-origin:top left; }
     .color-swatch { position:relative; }
     .color-swatch:hover::after {
       content:attr(title);
