@@ -367,16 +367,25 @@ async function layoutSaveTheme() {
     return;
   }
 
+  const css = generateThemeCSS();
+  if (!css) return;
+
   toast('Salvando tema...', 'success');
   setLoading('btnSaveTheme', true);
 
   try {
-    const css = generateThemeCSS();
     const existingCSS = await getFile('src/styles/global.css');
     if (existingCSS) {
       const newContent = injectThemeVars(existingCSS.content, css);
       await putFile('src/styles/global.css', newContent, 'cms: update visual theme', existingCSS.sha);
-      toast('Tema salvo! O deploy será disparado.');
+
+      fetch(`${GH_API}/repos/${REPO}/actions/workflows/deploy.yml/dispatches`, {
+        method: 'POST',
+        headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ref: 'main' }),
+      }).catch(() => {});
+
+      toast('Tema salvo! Deploy em andamento 🚀', 'success');
     }
   } catch (e) {
     toast('Erro ao salvar tema: ' + e.message, 'error');
