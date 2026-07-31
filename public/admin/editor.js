@@ -61,6 +61,7 @@ function getPreviewUrl() {
 function initLayoutEditor() {
   if (layoutEditorInitialized) {
     refreshIframeConnection();
+    updateIframeScale();
     return;
   }
   layoutEditorInitialized = true;
@@ -75,18 +76,14 @@ function initLayoutEditor() {
   initBgColorSwatches();
   populateColorSwatches(COLOR_MAP[0].key);
 
-  const iframe = document.getElementById('layoutIframe');
   iframe.addEventListener('load', () => {
-    setTimeout(() => {
-      updateIframeScale();
-      refreshIframeConnection();
-    }, 500);
+    updateIframeScale();
+    setTimeout(refreshIframeConnection, 300);
   });
 
-  setTimeout(() => {
+  requestAnimationFrame(() => {
     updateIframeScale();
-    refreshIframeConnection();
-  }, 1000);
+  });
 }
 
 function updateIframeScale() {
@@ -95,19 +92,25 @@ function updateIframeScale() {
   if (!preview || !iframe) return;
 
   const containerWidth = preview.clientWidth;
+  const containerHeight = preview.clientHeight;
+
+  if (containerWidth <= 0 || containerHeight <= 0) {
+    requestAnimationFrame(updateIframeScale);
+    return;
+  }
+
   const targetWidth = 1440;
 
-  if (containerWidth > 0 && containerWidth < targetWidth) {
+  if (containerWidth < targetWidth) {
     const scale = containerWidth / targetWidth;
     iframe.style.width = targetWidth + 'px';
-    iframe.style.height = (preview.clientHeight / scale) + 'px';
+    iframe.style.height = Math.round(containerHeight / scale) + 'px';
     iframe.style.transformOrigin = 'top left';
     iframe.style.transform = `scale(${scale})`;
-    iframe.style.position = 'relative';
   } else {
     iframe.style.width = '100%';
-    iframe.style.transform = 'none';
     iframe.style.height = '100%';
+    iframe.style.transform = 'none';
   }
 }
 
