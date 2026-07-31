@@ -54,9 +54,11 @@
   --body-bg-color: #050505;
   --nav-height: 6rem;
   --logo-height: 7rem;
+  --logo-offset: 0;
   --main-cols: 8;
   --sidebar-cols: 4;
   --header-bg-opacity: 0.88;
+  --content-top: var(--nav-height);
 }
 
 /* --- EDITOR THEME OVERRIDES --- */

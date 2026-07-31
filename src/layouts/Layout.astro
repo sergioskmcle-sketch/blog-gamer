@@ -102,7 +102,7 @@ const searchArticles = Object.entries(import.meta.glob("../content/artigos/*.md"
     <CursorEffect />
     <Header />
 
-    <main>
+    <main style="padding-top: var(--content-top, var(--nav-height))">
       <slot />
     </main>
 

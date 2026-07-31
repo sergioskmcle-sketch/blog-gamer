@@ -14,11 +14,11 @@ const navLinks = [
 ---
 
 <header id="siteHeader" class="fixed top-0 w-full z-50 glass-nav border-b border-outline-variant/30 shadow-[0_4px_20px_-2px_rgba(168,85,247,0.15)]">
-  <nav class="flex items-center justify-between px-gutter max-w-page mx-auto" style="height: var(--nav-height, 6rem)" data-editable="nav">
-    <a href={base} class="no-underline hover:no-underline flex items-center">
+  <nav class="flex items-center justify-between px-gutter max-w-page mx-auto relative" style="height: var(--nav-height, 6rem)" data-editable="nav">
+    <a href={base} class="no-underline hover:no-underline flex items-center" style="transform: translateX(var(--logo-offset, 0));">
       <img src={`${base}images/logo-blog.webp`} alt="Blog Gamer" class="w-auto object-contain" style="height: var(--logo-height, 7rem)" data-editable="logo" />
     </a>
-    <div class="hidden md:flex items-center gap-lg font-label text-label">
+    <div class="hidden md:flex items-center gap-lg font-label text-label absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
       {navLinks.map((link, i) => (
         <a
           href={link.slug ? `${base}categoria/${link.slug}/` : base}

@@ -317,6 +317,8 @@ function applyCssValuesToUI(values) {
   const sliderMap = {
     'nav-height': 'nav-height',
     'logo-height': 'logo-height',
+    'logo-offset': 'logo-offset',
+    'content-top': 'content-top',
     'main-cols': 'main-cols',
     'sidebar-cols': 'sidebar-cols',
     'font-size-h1': 'font-size-h1',
@@ -421,6 +423,8 @@ function generateThemeCSS() {
   const sliderMap = {
     'nav-height': 'nav-height',
     'logo-height': 'logo-height',
+    'logo-offset': 'logo-offset',
+    'content-top': 'content-top',
     'main-cols': 'main-cols',
     'sidebar-cols': 'sidebar-cols',
     'font-size-h1': 'font-size-h1',
