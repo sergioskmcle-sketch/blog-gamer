@@ -15,11 +15,11 @@ O blog se auto-gerencia. Para verificar a saúde do sistema, abra o [`status.jso
 ```json
 {
   "saudavel": true,
-  "ultimo_artigo": "2026-07-29",
-  "ultimo_deploy": "2026-07-29T12:40:00Z",
-  "total_artigos": 34,
+  "ultimo_artigo": "2026-07-30",
+  "ultimo_deploy": "2026-07-31T00:00:00Z",
+  "total_artigos": 13,
   "erros_recentes": [],
-  "apis": { "gemini": "ok", "groq": "ok", "tavily": "ok", "rawg": "ok" }
+  "apis": { "groq": "ok", "tavily": "ok", "rawg": "ok" }
 }
 ```
 
@@ -31,26 +31,45 @@ Se `saudavel: false` ou `ultimo_artigo` está muito antigo, verifique os secrets
 
 ```
 .github/workflows/
-  gerar-conteudo.yml      → Geração automática diária (schedule + manual)
+  gerar-conteudo.yml      → Geração automática (schedule a cada 2 dias + manual)
   gerar-artigo-pilar.yml  → Artigo pilar manual (3000+ palavras, 1x/mês)
+  regenerar-capa.yml      → Regenera a capa IA de um artigo (manual)
   deploy.yml              → Deploy GitHub Pages (push + manual)
 
 scripts/
   gerar-artigo.mjs          → Pipeline principal (trending → Tavily → Google ML → Gemini/Groq → RAWG → injeção de produtos → validação)
   gerar-artigo-pilar.mjs    → Artigo pilar (3 passes: pesquisa → draft → refino + injeção mecânica de produtos)
+  gerar-cadeiras.mjs        → Script dedicado: artigo de cadeiras gamer + capa OpenAI
   gerar-placas-video.mjs    → Pipeline dedicada para artigos sobre placas de vídeo
   gerar-lista-monitores.mjs → Pipeline dedicada para artigos sobre monitores gamer
-  ml_affiliate.mjs          → API ML (cookies de sessão → CSRF → meli.la), OAuth OAuth
+  ml_affiliate.mjs          → API ML (cookies de sessão → CSRF → meli.la)
+  openai-cover.mjs          → Capa IA (gpt-image-2) usando imagens dos produtos como referência
+  stability-cover.mjs       → Refinamento/fallback de capas via Stability AI (sd3)
   fix-article-links.mjs     → Script manual: substitui links diretos ML por meli.la em artigo existente
+  regenerate-*-cover.mjs    → Regenera a capa de artigos específicos (cadeiras, fones, monitores, psplus, xbox)
   gerar-status.cjs          → Gera status.json a cada deploy
   test-injecao.mjs          → Testes de validação (87 asserts): cards, TOC, fontes
   download-images.mjs       → Baixa imagens dos produtos para o repo
   convert-banners.mjs       → Converter banners PNG → WebP
 
+automation/                 → Suíte Python (pipelines locais/servidor)
+  generate_article.py       → Gera artigos (modos: informativo/melhor/custo-beneficio/misto + capa IA + ml_query seed)
+  scheduler.py              → Agenda 1 artigo/dia (roda generate_article.py com seeds circulares)
+  heartbeat_watchdog.py     → Watchdog do serviço systemd `blog-gamer.service` (reinicia se o heartbeat parar)
+  cookie_keepalive.py       → Desativado (não visitar o ML com cookies: entrega fingerprint e causa bloqueio global)
+  admin_api.py              → Painel de controle do blog (FastAPI)
+  force_article.py          → Força a geração manual de um tópico
+  fix_article_links.py      → Versão Python do fix-article-links
+  ml_affiliate.py           → API ML (versão Python)
+  docs/TIPOS_ARTIGO.md      → Tipos/modos de artigo e regras de imagens
+
+admin/ + public/admin/      → Painel admin: layout editor (sliders de CSS/cores/logo) + CRUD de artigos, com deploy automático
+
 src/content/artigos/   → Artigos em markdown com frontmatter
+docs/                  → Estrutura de artigo (ARTICLE_STRUCTURE_DRAFT.md)
 state.json             → Estado da geração (cooldown, falhas, tópicos recentes)
 public/status.json     → Status público gerado a cada deploy
-public/images/         → Banners Telegram (WebP), logo SVG, imagens de produtos
+public/images/         → Banners Telegram (WebP), logo (logo-blog.webp), capas IA (capas/) e imagens de produtos
 ```
 
 ---
@@ -187,6 +206,7 @@ O sistema **nunca pede para a IA gerar imagens**. Em vez disso:
 A capa do artigo (hero image e thumbnail) é gerada via **OpenAI** com as imagens dos produtos como referência. O pipeline está em `scripts/openai-cover.mjs`:
 
 - **Endpoint:** `POST /v1/images/edits` com modelo `gpt-image-2` (fallback: `gpt-image-1`)
+- **Refinamento alternativo:** `scripts/stability-cover.mjs` refina/gera capas via Stability AI (`stable-image/generate/sd3`, secret `STABILITY_API_KEY`) quando o resultado da OpenAI precisa de retoque
 - **Referências:** todas as imagens dos produtos são enviadas no campo `image[]` (multipart FormData)
 - **Fallback de imagem:** se URL direta falha (404/timeout), busca automaticamente via Tavily (`include_images: true`)
 - **Contraste automático:** `analyzeProductBrightness()` mede a luminância média via sharp (resize 10×10, skip pixels >200) — produtos escuros ganham fundo claro, produtos claros ganham fundo escuro
@@ -354,11 +374,12 @@ Fallback: se o Google não encontrar, tenta a API interna do ML.
 - **Progress Bar** — Barra de leitura neon green no topo dos artigos
 - **Lightbox** — Clique em qualquer imagem para expandir em tela cheia (ESC para fechar)
 - **Texto justificado** — Parágrafos e listas com alinhamento justificado para melhor legibilidade
-- **Logo** — Ícone SVG + fonte Orbitron (display gamer)
+- **Logo** — Imagem WebP (`logo-blog.webp`) com altura e posição lateral configuráveis (itens do nav permanecem centralizados)
 - **Background** — Hex grid roxo sutil (opacidade 1.5%)
 - **Ícones** — SVGs inline (sem dependência de fonte externa Material Symbols)
 - **Banners** — WebP otimizados (4.5 MB → 470 KB)
 - **Layout** — Container 1280px, conteúdo 780px, fonte 1.05rem com line-height 1.85
+- **Painel Admin** — `/admin/`: editor de layout visual (sliders de altura do nav, altura/posição lateral da logo, colunas do conteúdo/sidebar, altura do conteúdo, fontes e cores; upload de logo; salvamento em `global.css` + deploy automático), CRUD de artigos e gerenciamento de imagens
 
 ---
 
@@ -386,6 +407,8 @@ Arquivos em `public/images/`.
 | `ML_CLIENT_SECRET` | Client Secret do app ML |
 | `ML_COOKIES_B64` | Cookies ML em base64 (de `ml_cookies.json`, ~600+ cookies, para links `meli.la`) |
 | `RAWG_API_KEY` | API key do RAWG.io (imagens de jogos) |
+| `OPENAI_API_KEY` | API key da OpenAI (fallback de texto `gpt-4o-mini` + capas IA `gpt-image-2`) |
+| `STABILITY_API_KEY` | API key da Stability AI (refinamento/fallback de capas, modelo sd3) |
 
 ---
 
@@ -395,7 +418,8 @@ Arquivos em `public/images/`.
 |-----|--------|--------|
 | Gemini | Geração de texto (primário, gemini-flash-latest) | Free tier (30 RPM, 1M input, 8K output) |
 | Groq | Geração de texto (fallback, openai/gpt-oss-120b) | Free tier (200K tokens/dia) |
-| OpenAI | Geração de texto + Capas AI (fallback + gpt-image-1-mini) | Pago (~$0.005/imagem) |
+| OpenAI | Geração de texto (fallback, gpt-4o-mini) + Capas IA (gpt-image-2) | Pago (~$0.005/imagem) |
+| Stability AI | Capas IA (fallback/refino, stable-image sd3) | Pago |
 | Tavily | Busca de fontes + busca Google de produtos ML + imagens não-jogos | 1000 consultas/mês free |
 | ML OAuth | Links de afiliado (client_credentials) | Free |
 | ML (scraping) | Extração de título, preço e imagem de produtos | Sem limite |
@@ -418,6 +442,7 @@ ML_CLIENT_ID=...
 ML_CLIENT_SECRET=...
 RAWG_API_KEY=...
 OPENAI_API_KEY=sk-proj-...
+STABILITY_API_KEY=sk-...
 ```
 
 ---
@@ -431,12 +456,24 @@ npm run preview      # Preview do build
 
 node scripts/gerar-artigo.mjs          # Gerar artigo diário (manual)
 node scripts/gerar-artigo-pilar.mjs    # Gerar artigo pilar (manual)
+node scripts/gerar-cadeiras.mjs        # Gerar o artigo de cadeiras gamer (+ capa OpenAI)
 node scripts/gerar-status.cjs          # Gerar status.json
 node scripts/download-images.mjs       # Baixar imagens dos produtos
 node scripts/convert-banners.mjs       # Converter banners PNG → WebP
 
+# — Capas IA —
+node scripts/regenerate-cadeiras-cover.mjs   # Regenerar capa de um artigo (ex: cadeiras)
+# (regenerar-capa.yml também dispara isso via Actions)
+
 # — Afiliados ML —
 node scripts/fix-article-links.mjs     # Regenerar links meli.la em artigo existente (editar SLUG antes)
+
+# — Suíte Python (automation/) —
+python automation/generate_article.py  # Gerar artigo (modo definido pelo seed)
+python automation/scheduler.py         # Agendador diário (1 artigo/dia)
+python automation/force_article.py     # Forçar geração manual de um tópico
+python automation/fix_article_links.py # Regenerar links meli.la (versão Python)
+python automation/admin_api.py         # Painel de controle (FastAPI)
 ```
 
 ---
@@ -455,8 +492,9 @@ node scripts/fix-article-links.mjs     # Regenerar links meli.la em artigo exist
 
 | Workflow | Gatilho | Função |
 |----------|---------|--------|
-| **Gerar Conteudo Automatico** | Cron (2 dias) + manual | Artigo a cada 2 dias com trending, produtos e deploy |
+| **Gerar Conteudo Automatico** | Cron (a cada 2 dias) + manual | Artigo com trending, produtos e deploy |
 | **Gerar Artigo Pilar** | Manual | Guia completo 3000+ palavras com 12+ produtos |
+| **Regenerar Capa** | Manual | Regenera a capa IA de um artigo |
 | **Deploy Blog Gamer** | Push na main + manual | Build e deploy GitHub Pages |
 
 ---
