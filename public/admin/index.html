@@ -1622,7 +1622,7 @@ async function handleImageUpload(event) {
   }
 }
 
-function compressImage(file, maxDim, quality) {
+function compressImage(file, maxDim, quality, forceExt = null) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -1638,8 +1638,8 @@ function compressImage(file, maxDim, quality) {
       canvas.height = h;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, w, h);
-      const mime = file.type === 'image/png' ? 'image/png' : file.type === 'image/webp' ? 'image/webp' : 'image/jpeg';
-      const ext = mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg';
+      const mime = forceExt === 'webp' ? 'image/webp' : file.type === 'image/png' ? 'image/png' : file.type === 'image/webp' ? 'image/webp' : 'image/jpeg';
+      const ext = forceExt || (mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg');
       canvas.toBlob(blob => {
         if (blob) {
           const out = new File([blob], file.name.replace(/\.[^.]+$/, '.' + ext), { type: mime });

@@ -45,6 +45,7 @@ let iframeReady = false;
 let layoutEditorInitialized = false;
 let selectedElement = null;
 let pendingChanges = {};
+let pendingLogoFile = null;
 
 function getBlogBase() {
   const path = window.location.pathname;
@@ -277,8 +278,8 @@ function handleLogoUpload(event) {
   reader.onload = (e) => {
     const dataUrl = e.target.result;
     applyStyle('logo-src', dataUrl);
-    toast('Logo atualizada!');
-    saveLogoToRepo(file);
+    pendingLogoFile = file;
+    toast('Logo carregada! Clique em "Salvar Tema" para publicar.');
   };
   reader.readAsDataURL(file);
 }
@@ -286,21 +287,26 @@ function handleLogoUpload(event) {
 async function saveLogoToRepo(file) {
   if (typeof token === 'undefined' || !token) {
     toast('Faça login no GitHub para salvar a logo permanentemente.', 'error');
-    return;
+    return false;
   }
   try {
-    const compressed = await compressImage(file, 400, 0.85);
+    const compressed = await compressImage(file, 400, 0.85, 'webp');
     const b64 = await fileToBase64(compressed);
-    const ext = compressed._ext || 'webp';
-    await putFileRaw(`public/images/logo-blog.${ext}`, b64, `cms: update logo`);
-    toast(`Logo salva no repositório como logo-blog.${ext}!`);
+    const path = 'public/images/logo-blog.webp';
+    const existing = await getFile(path);
+    await putFileRaw(path, b64, 'cms: update logo', existing ? existing.sha : null);
+    toast('Logo salva no repositório como logo-blog.webp!');
+    return true;
   } catch (e) {
     toast('Erro ao salvar logo: ' + e.message, 'error');
+    return false;
   }
 }
 
 function resetLogo() {
   const base = getBlogBase();
+  pendingLogoFile = null;
+  delete pendingChanges['logo-src'];
   applyStyle('logo-src', window.location.origin + base + 'images/logo-blog.webp');
   toast('Logo original restaurada');
 }
@@ -368,27 +374,43 @@ async function layoutSaveTheme() {
   }
 
   const css = generateThemeCSS();
-  if (!css) return;
+  let savedSomething = false;
 
-  toast('Salvando tema...', 'success');
+  toast('Salvando...', 'success');
   setLoading('btnSaveTheme', true);
 
   try {
-    const existingCSS = await getFile('src/styles/global.css');
-    if (existingCSS) {
-      const newContent = injectThemeVars(existingCSS.content, css);
-      await putFile('src/styles/global.css', newContent, 'cms: update visual theme', existingCSS.sha);
+    if (css) {
+      const existingCSS = await getFile('src/styles/global.css');
+      if (existingCSS) {
+        const newContent = injectThemeVars(existingCSS.content, css);
+        await putFile('src/styles/global.css', newContent, 'cms: update visual theme', existingCSS.sha);
+        savedSomething = true;
+      }
+    }
 
+    if (pendingLogoFile) {
+      const ok = await saveLogoToRepo(pendingLogoFile);
+      if (ok) {
+        pendingLogoFile = null;
+        delete pendingChanges['logo-src'];
+        savedSomething = true;
+      }
+    }
+
+    if (savedSomething) {
       fetch(`${GH_API}/repos/${REPO}/actions/workflows/deploy.yml/dispatches`, {
         method: 'POST',
         headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({ ref: 'main' }),
       }).catch(() => {});
 
-      toast('Tema salvo! Deploy em andamento 🚀', 'success');
+      toast('Alterações salvas! Deploy em andamento 🚀', 'success');
+    } else {
+      toast('Nenhuma alteração para salvar.', 'error');
     }
   } catch (e) {
-    toast('Erro ao salvar tema: ' + e.message, 'error');
+    toast('Erro ao salvar: ' + e.message, 'error');
   } finally {
     setLoading('btnSaveTheme', false);
   }
@@ -425,7 +447,6 @@ function generateThemeCSS() {
   }
 
   if (vars.length === 0) {
-    toast('Nenhuma alteração para salvar.', 'error');
     return null;
   }
 
