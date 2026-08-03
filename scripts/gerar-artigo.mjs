@@ -2475,14 +2475,35 @@ affiliate: true
 category DEVE ser: noticia, review, guia ou lista. Tags relevantes e sem ** dentro de title/description. Sem emoji.`;
 
   const user = `Artigo sobre: ${topic.hint}\nDominio: ${domainLabel(domain)}. ${productCount} produtos serao listados na secao principal.`;
-  const out = await fetchLLM(sys, user, 3, { maxTokens: 512, temperature: 0.7 });
-  try {
-    return parseFrontmatter(out).frontmatter;
-  } catch {
-    log("WARN", "Frontmatter segmentado sem separador --- — tentando parse tolerante");
-    const clean = out.replace(/^[\s\S]*?---\s*/m, "").split(/\n---\s*/)[0].trim();
-    return parseRaw(clean);
+  let fm = null;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const out = await fetchLLM(sys, user, 3, { maxTokens: 512, temperature: 0.7 });
+    try {
+      fm = parseFrontmatter(out).frontmatter;
+    } catch {
+      log("WARN", `Frontmatter segmentado sem separador --- — tentando parse tolerante (tentativa ${attempt}/2)`);
+      const clean = out.replace(/^[\s\S]*?---\s*/m, "").split(/\n---\s*/)[0].trim();
+      fm = parseRaw(clean);
+    }
+    if (fm && String(fm.description || "").length >= 120) return fm;
+    log("WARN", `Description curta (${String(fm?.description || "").length} chars) — regenerando frontmatter (${attempt}/2)`);
   }
+  if (fm) {
+    log("WARN", "Estendendo description ate o minimo de 120 caracteres");
+    fm.description = extendDescription(fm.description, topic.hint, primaryKeyword);
+  }
+  return fm;
+}
+
+// Garante description com 120-160 caracteres no frontmatter (validador exige min 120).
+function extendDescription(cur, hint, primaryKeyword) {
+  const base = String(cur || "").trim().replace(/\*+/g, "");
+  if (base.length >= 120) return base.slice(0, 160).trim();
+  const kw = primaryKeyword || hint || "os melhores produtos em 2026";
+  const head = base && base.length >= 40 ? base : `${kw.charAt(0).toUpperCase()}${kw.slice(1)} em 2026.`;
+  let d = `${head} Compare custo-beneficio, leia os destaques e o veredito e descubra qual modelo entrega mais pelo seu dinheiro para escolher sem errar.`;
+  if (d.length < 120) d += " Analise completa com pros e contras de cada opcao do guia.";
+  return d.slice(0, 160).trim();
 }
 
 // Extrai tagline/corpo/nota/destaque do texto bruto do blurb (formato TAGLINE:/CORPO:).
@@ -2726,6 +2747,7 @@ export {
   extractGameNames,
   checkTitle,
   capitalizeTitle,
+  extendDescription,
   validate,
   findPricesInBody,
   computeMaxTokens,

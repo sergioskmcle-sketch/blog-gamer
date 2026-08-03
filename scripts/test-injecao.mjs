@@ -9,6 +9,7 @@ import {
   computeMaxTokens, buildProductButtonHtml, productButtonLabel, buildProductImageTag, injectTableOfContents, validateSourceCoverage,
   formatProductPriceForPrompt, findPricesInBody,
   sanitizeProducts, splitMainBody, parseBlurb, buildComparativoTable, buildItemSection, injectSegmentedItems,
+  extendDescription,
 } from "./gerar-artigo.mjs";
 import { parsePriceBRL } from "./google_shopping.mjs";
 
@@ -118,6 +119,14 @@ igual(parsePriceBRL(""), 0, "parsePriceBRL vazio -> 0");
 const imgTag = buildProductImageTag({ title: "Persona 5 Tactica", thumbnail: "http://img/9.jpg" });
 ok(imgTag.includes('class="article-game-img"') && imgTag.includes("http://img/9.jpg"), "foto do item usa article-game-img + thumbnail");
 igual(buildProductImageTag({ title: "X", thumbnail: "" }), "", "sem imagem nao gera tag");
+
+// extendDescription: garante description entre 120 e 160 caracteres
+const extCurta = extendDescription("Placa de video gamer.", "placas de video", "placa de video");
+ok(extCurta.length >= 120 && extCurta.length <= 160, "description curta estendida para 120-160 (" + extCurta.length + ")");
+ok(!extCurta.includes("*"), "description sem markdown apos extensao");
+igual(extendDescription(null, "placas de video", null).length >= 120, true, "description vazia ganha base a partir do hint");
+igual(extendDescription(extCurta, "x", "y"), extCurta, "description ja valida nao muda");
+
 
 // nao duplica foto quando a secao do item ja comeca com <img>
 const comImgJa = `## Headset Gamer HyperX Cloud II lidera
