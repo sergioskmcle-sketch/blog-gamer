@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { pathToFileURL } from "url";
 import Parser from "rss-parser";
-import { generateAffiliateLink, searchMLviaGoogle, searchMLDirect } from "./ml_affiliate.mjs";
+import { searchMLviaGoogle, searchMLDirect } from "./ml_affiliate.mjs";
 import { gerarCapaStability } from "./stability-cover.mjs";
 import { gerarCapaOpenAI, downloadImage, searchTavilyImage } from "./openai-cover.mjs";
 
@@ -13,7 +13,6 @@ const rssParser = new Parser({
 });
 
 const ARTIGOS_DIR = path.resolve("src/content/artigos");
-const ML_COOKIES_PATH = path.resolve("ml_cookies.json");
 const STATE_FILE = path.resolve("state.json");
 const PROD_IMAGES_DIR = path.resolve("public/images/produtos");
 
@@ -457,7 +456,6 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const RAWG_API_KEY = process.env.RAWG_API_KEY;
-const ML_COOKIES_B64 = process.env.ML_COOKIES_B64;
 const ML_CLIENT_ID = process.env.ML_CLIENT_ID;
 const ML_CLIENT_SECRET = process.env.ML_CLIENT_SECRET;
 
@@ -1120,16 +1118,6 @@ async function getBestCoverImage(products, articleBody, trendingKeyword, markedG
     if (p.thumbnail && p.thumbnail.startsWith("http")) return p.thumbnail;
   }
   return "";
-}
-
-const cookiesB64 = ML_COOKIES_B64 || (fs.existsSync(path.resolve("ml_cookies_base64.txt")) ? fs.readFileSync(path.resolve("ml_cookies_base64.txt"), "utf-8").trim() : null);
-if (cookiesB64) {
-  try {
-    fs.writeFileSync(ML_COOKIES_PATH, Buffer.from(cookiesB64, "base64"), "utf-8");
-    log("INFO", "Cookies ML carregados");
-  } catch (e) {
-    log("WARN", `Erro ao salvar cookies: ${e.message}`);
-  }
 }
 
 async function fetchTavily(query) {
@@ -1795,7 +1783,7 @@ async function main() {
   log("INFO", `GEMINI_API_KEY definida: ${!!GEMINI_API_KEY}`);
   log("INFO", `GROQ_API_KEY definida: ${!!GROQ_API_KEY}`);
   log("INFO", `TAVILY_API_KEY definida: ${!!TAVILY_API_KEY}`);
-  log("INFO", `ML_COOKIES_PATH existe: ${fs.existsSync(ML_COOKIES_PATH)}`);
+  log("INFO", `ML_CLIENT_ID definida: ${!!ML_CLIENT_ID}`);
 
   if (!GEMINI_API_KEY && !GROQ_API_KEY) { log("ERROR", "Nenhuma chave de IA configurada (GEMINI_API_KEY ou GROQ_API_KEY)"); process.exit(1); }
   if (!TAVILY_API_KEY) log("WARN", "TAVILY_API_KEY nao definida — artigo seguira sem fontes pesquisadas");
@@ -1893,7 +1881,7 @@ async function main() {
       const seen = new Set();
       for (const query of searchQueries) {
         try {
-          const results = await searchMLviaGoogle(query, ML_COOKIES_PATH, TAVILY_API_KEY, 4);
+          const results = await searchMLviaGoogle(query, null, TAVILY_API_KEY, 4);
           for (const p of results) {
             if (!seen.has(p.permalink)) {
               seen.add(p.permalink);
@@ -1944,18 +1932,7 @@ async function main() {
       }
 
       for (const p of mlProducts) {
-        if (fs.existsSync(ML_COOKIES_PATH)) {
-          try {
-            const linkResult = await generateAffiliateLink(p.permalink, ML_COOKIES_PATH);
-            p.affiliate_link = linkResult?.short_url || linkResult?.link || linkResult?.url || p.permalink;
-            log("INFO", `Link afiliado gerado: ${p.title?.slice(0, 40)}`);
-          } catch (e) {
-            log("WARN", `Falha link afiliado: ${e.message}`);
-            p.affiliate_link = p.permalink;
-          }
-        } else {
-          p.affiliate_link = p.permalink;
-        }
+        p.affiliate_link = p.permalink;
       }
     } catch (err) {
       log("WARN", `ML Search: ${err.message}`);

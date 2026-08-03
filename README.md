@@ -42,7 +42,7 @@ scripts/
   gerar-cadeiras.mjs        → Script dedicado: artigo de cadeiras gamer + capa OpenAI
   gerar-placas-video.mjs    → Pipeline dedicada para artigos sobre placas de vídeo
   gerar-lista-monitores.mjs → Pipeline dedicada para artigos sobre monitores gamer
-  ml_affiliate.mjs          → API ML (cookies de sessão → CSRF → meli.la)
+  ml_affiliate.mjs          → API ML (busca produtos via Tavily/Google; scraping e API OAuth estão bloqueados/restritos)
   openai-cover.mjs          → Capa IA (gpt-image-2) usando imagens dos produtos como referência
   stability-cover.mjs       → Refinamento/fallback de capas via Stability AI (sd3)
   fix-article-links.mjs     → Script manual: substitui links diretos ML por meli.la em artigo existente
@@ -226,39 +226,21 @@ Para artigos automáticos (pipeline diário), a capa é gerada durante o `gerar-
 Os artigos **não dependem da IA** incluir produtos no texto. Após a IA gerar o artigo, o sistema injeta um botão de afiliado no final de cada tópico de produto:
 
 1. **Busca de produtos** (`searchMLviaGoogle`): até 4 queries usando trending keywords (ex: `"resident evil jogo ps5 xbox pc"`). Fallback para API interna do ML.
-2. **Link de afiliado** (`generateAffiliateLink`): visita a página do produto para obter CSRF token, chama API de afiliados — resultado: `https://meli.la/XXXXXX`
+2. **Link de afiliado**: sem cookies ativos, o botão aponta direto para a URL do produto no ML (`p.permalink`). Links `meli.la` voltam quando houver credenciais de app válidas.
 3. **Filtro** (`isGamerProduct`): bloqueia itens não-gamer (whey, parafusadeira, roupas, cosméticos, utensílios de cozinha, etc.)
 4. **Posição**: o botão é injetado **no final de cada tópico de produto**, após o texto que descreve o produto.
 
-### Link de Afiliado — Como Funciona
+### Link de Afiliado — Status Atual (ago/2026)
 
-O ML tem **dois** mecanismos de autenticação para gerar links `meli.la`:
+O ML **não usa mais cookies de sessão** neste projeto (visitar o ML com cookies entrega fingerprint e causa bloqueio global). O estado dos mecanismos de autenticação do ML:
 
 | Método | Status | Detalhe |
 |--------|--------|---------|
-| **OAuth** (`client_credentials`) | ❌ Bloqueado | `ML_CLIENT_ID` + `ML_CLIENT_SECRET` retornam `invalid_client`. App pode ter sido revogado. |
-| **Cookie de sessão** | ✅ Funciona | Navegador logado no ML → exporta cookies → usa para visitar produto + chamar API afiliada. |
+| **Cookie de sessão** | ❌ Aposentado | Não usar: entrega fingerprint e causa bloqueio global (cookies deletados do projeto). |
+| **OAuth** (`client_credentials`) | ❌ Bloqueado | `ML_CLIENT_ID` + `ML_CLIENT_SECRET` retornam `invalid_client` (local) e `/sites/MLB/search` está restrito para apps não aprovadas (403). |
+| **Scraping de página de produto** | ❌ Bloqueado | Todo conteúdo profundo do ML (produto, listagem, busca) cai em `account-verification`. |
 
-O fluxo do `generateAffiliateLink(productUrl, cookiePath)`:
-
-1. **Carrega cookies** de um arquivo JSON exportado pelo [Cookie-Editor](https://cookie-editor.com/)
-2. **Visita a página do produto** com os cookies (obtém CSRF token + canonical URL)
-3. **Chama a API afiliada** com o CSRF e a URL canônica → retorna `meli.la/XXXXXX`
-4. Se o CSRF não for encontrado na página, busca no cookie `_csrf` ou `csrf_token`
-
-**Requisito crítico:** o arquivo de cookies deve ter **muitos cookies** (~600+) exportados de uma sessão ML ativa. Com poucos cookies (< 50) a API retorna `401 Unauthorized` com redirect de login.
-
-### De Onde Vêm os Cookies
-
-O cookie file que **funciona** está em outro projeto:
-```
-C:\Users\sismais\Documents\Projetos Pessoais\monitor-telegram\ml_cookies_fresh.json
-```
-(613 cookies, exportado em 2026-07-29, sessão do nick `COMPROUBARATO2025`)
-
-No pipeline GitHub Actions, os cookies são passados via secret `ML_COOKIES_B64` (base64 do JSON). O script `gerar-artigo.mjs` decodifica para `ml_cookies.json` antes de usar.
-
-**⚠️ Este secret precisa ser atualizado manualmente quando os cookies expirarem.**
+Como não há fonte de produtos confiável no momento, os artigos saem com `affiliate: false` (sem botões/links de afiliado). Para reativar a monetização é preciso **credenciais de app ML válidas e aprovadas** para usar os endpoints de catálogo que ainda funcionam (`/products/{MLB...}` + `/products/{MLB...}/items`, descoberta via Tavily/Google).
 
 ### Regenerar Links de um Artigo Existente
 
@@ -270,7 +252,7 @@ Use o script `fix-article-links.mjs`:
 node --env-file .env scripts/fix-article-links.mjs
 ```
 
-O script lê o `.md`, chama `generateAffiliateLink()` para cada URL e substitui por `meli.la/XXXXXX`.
+O script lê o `.md`, chama `generateAffiliateLink()` para cada URL e substitui por `meli.la/XXXXXX`. **Atenção:** esse fluxo depende de cookies de sessão, que foram aposentados — inativo até existirem credenciais de app válidas.
 
 ### Formato do Botão
 
@@ -338,11 +320,10 @@ Isso garante que os produtos encontrados sejam **relacionados ao conteúdo real*
 Cooldown por horas reais, não por data UTC. Se o último artigo foi gerado há menos de 20h, o sistema pula. Workflow manual tem checkbox **Force** para ignorar o cooldown.
 
 ### Degradação elegante
-- **ML sem produtos** → modo informativo (conteúdo puro, sem links de afiliado)
+- **ML sem produtos / fonte bloqueada** → artigo sem produtos (`affiliate: false`), modo informativo
 - **OpenAI indisponível** → capa via RAWG (fallback: sem capa AI)
 - **Tavily offline** → artigo sem fontes de pesquisa + sem imagens Tavily (ainda gera conteúdo)
 - **RAWG offline** → artigo sem imagens de jogos (fallback: sem imagens)
-- **Cookies ML expirados** → links diretos do ML (sem tracking de afiliado)
 - **RSS/Reddit offline** → fallback para lista estática de temas
 - **Google não acha produtos** → fallback para API interna do ML
 
@@ -353,16 +334,18 @@ Cooldown por horas reais, não por data UTC. Se o último artigo foi gerado há 
 
 ## Busca de Produtos via Google
 
-O sistema usa **Tavily/Google** para encontrar produtos no Mercado Livre (não a API interna do ML, que é limitada para hardware). O fluxo:
+O sistema usa **Tavily/Google** para encontrar produtos no Mercado Livre. O fluxo:
 
 1. Tavily busca `"resident evil jogo ps5"` + `"site:mercadolivre.com.br"`
 2. Extrai URLs de produtos do ML dos resultados — só páginas de produto real (blog/categoria/listagem/variante são descartadas por `isProductPageUrl`)
 3. Faz scraping da página do produto (título, preço, imagem) exigindo MLB id
 4. `sanitizeMLProducts()` deduplica, exige preço e ordena por relevância ao tópico
-5. Gera link de afiliado via `generateAffiliateLink()`
+5. Gera o link do produto para o botão
 6. Monta o artigo de forma **segmentada**: 1 chamada LLM por item (blurb) + 1 chamada para o corpo; itens, tabela comparativa e botões são montados em código
 
 Fallback: se o Google não encontrar, tenta a API interna do ML.
+
+> **⚠️ Status atual (ago/2026):** o scraping das páginas de produto está bloqueado pelo ML (`account-verification` em todo conteúdo profundo) e a API interna está restrita (403 para apps não aprovadas). Enquanto isso, os artigos são gerados sem produtos (`affiliate: false`). O caminho previsto é usar os endpoints de catálogo (`/products/{MLB...}` + `/products/{MLB...}/items`) com credenciais de app válidas.
 
 ---
 
@@ -406,7 +389,6 @@ Arquivos em `public/images/`.
 | `TAVILY_API_KEY` | API key do Tavily (1000 consultas/mês free, busca fontes + produtos Google) |
 | `ML_CLIENT_ID` | Client ID do app ML (OAuth client_credentials) |
 | `ML_CLIENT_SECRET` | Client Secret do app ML |
-| `ML_COOKIES_B64` | Cookies ML em base64 (de `ml_cookies.json`, ~600+ cookies, para links `meli.la`) |
 | `RAWG_API_KEY` | API key do RAWG.io (imagens de jogos) |
 | `OPENAI_API_KEY` | API key da OpenAI (fallback de texto `gpt-4o-mini` + capas IA `gpt-image-2`) |
 | `STABILITY_API_KEY` | API key da Stability AI (refinamento/fallback de capas, modelo sd3) |
@@ -422,8 +404,8 @@ Arquivos em `public/images/`.
 | OpenAI | Geração de texto (fallback, gpt-4o-mini) + Capas IA (gpt-image-2) | Pago (~$0.005/imagem) |
 | Stability AI | Capas IA (fallback/refino, stable-image sd3) | Pago |
 | Tavily | Busca de fontes + busca Google de produtos ML + imagens não-jogos | 1000 consultas/mês free |
-| ML OAuth | Links de afiliado (client_credentials) | Free |
-| ML (scraping) | Extração de título, preço e imagem de produtos | Sem limite |
+| ML OAuth | Links de afiliado (client_credentials) | Restrito (403 p/ apps não aprovadas) |
+| ML (scraping) | Extração de título, preço e imagem de produtos | Bloqueado (account-verification) |
 | RAWG | Imagens de jogos | Free tier |
 | Reddit | Trending topics (r/gaming, r/gamesEcultura) | Grátis, sem API key |
 | RSS Feeds | Trending topics (MeuPlayStation, GameVicio, etc.) | Grátis, sem API key |
@@ -512,15 +494,13 @@ python automation/admin_api.py         # Painel de controle (FastAPI)
 6. **Push falhando com conflito:** o workflow agora faz rebase na branch atual em vez de forçar `origin main`.
 7. Verifique se as chaves dos secrets ainda são válidas (`GEMINI_API_KEY`, `GROQ_API_KEY`, `TAVILY_API_KEY`, etc.)
 
-### Links de afiliado não viram `meli.la`
+### Artigos sem produtos de afiliado
 
-Os artigos ficam com links diretos do ML em vez de `meli.la`:
+Os artigos saem com `affiliate: false` (sem botões de produto):
 
-1. **Cookies expirados:** o secret `ML_COOKIES_B64` pode estar desatualizado. Renove seguindo o procedimento em [Renovar cookies do ML](#renovar-cookies-do-ml).
-2. **Poucos cookies:** o arquivo precisa ter ~600+ cookies. Com < 50 a API retorna `401`.
-3. **OAuth não funciona:** o método `client_credentials` está quebrado (`invalid_client`). Só o método por cookie de sessão funciona atualmente.
-4. **Permalink reciclado:** se o ID do produto (MLBXXXXX) foi reutilizado pra outro item, a URL canônica aponta pro produto errado. É necessário [encontrar a URL correta](#) e atualizar manualmente.
-5. **Produto removido:** se a página do ML retorna 404, o produto não está mais disponível.
+1. **Fonte de produtos bloqueada (ago/2026):** o scraping de páginas do ML está bloqueado (`account-verification` em todo conteúdo profundo) e a API `/sites/MLB/search` está restrita para apps não aprovadas (403). Sem credenciais de app válidas/ aprovadas, não há produtos — comportamento atual e esperado.
+2. **Permalink reciclado:** se o ID do produto (MLBXXXXX) foi reutilizado pra outro item, a URL canônica aponta pro produto errado. É necessário [encontrar a URL correta](#) e atualizar manualmente.
+3. **Produto removido:** se a página do ML retorna 404, o produto não está mais disponível.
 
 ### Consumo do GROQ
 
@@ -538,52 +518,23 @@ Se o total se aproximar do limite, considere uma conta GROQ separada para o blog
 
 ## Manutenção
 
-### Renovar cookies do ML
+### Reativar produtos de afiliado (ML)
 
-Os cookies do Mercado Livre expiram periodicamente (semanas a meses). Sem cookies frescos a API afiliada retorna **`401 Unauthorized`** e o pipeline gera links diretos sem tracking.
+Cookies de sessão foram **aposentados** (visitar o ML com cookies entrega fingerprint e causa bloqueio global). O caminho para voltar a ter produtos com botões é via **API oficial**:
 
-**Sintoma de cookies expirados:** links `meli.la` não aparecem nos artigos — apenas URLs diretas de produto.
+1. **Crie/valide um app no [DevCenter do ML](https://developers.mercadolivre.com.br)** com as permissões de leitura de itens/produtos (apps novas precisam de aprovação para alguns endpoints).
+2. **Atualize** `ML_CLIENT_ID` e `ML_CLIENT_SECRET` no `.env` local e nos GitHub Secrets.
+3. O pipeline usará os endpoints de catálogo que ainda funcionam para apps aprovadas:
+   - `GET /products/{MLB...}` (nome, imagens)
+   - `GET /products/{MLB...}/items` (preço, vendedor)
+   - Descoberta dos MLB ids continua via Tavily/Google (`isProductPageUrl` + `sanitizeMLProducts`).
+4. **Teste local:**
+   ```powershell
+   node --env-file .env -e "const {getMLToken}=await import('./scripts/ml_affiliate.mjs'); const t=await getMLToken(process.env.ML_CLIENT_ID, process.env.ML_CLIENT_SECRET); const r=await fetch('https://api.mercadolibre.com/products/MLB6082547816',{headers:{Authorization:'Bearer '+t}}); console.log(r.status, (await r.text()).slice(0,120))"
+   ```
+   Deve retornar `200` (não `400 invalid_client` nem `403`).
 
-#### Procedimento
-
-1. **Abra o navegador** logado em `mercadolivre.com.br` com a conta `sergioskm` (nick `COMPROUBARATO2025`)
-2. **Instale a extensão** [Cookie-Editor](https://cookie-editor.com/) se não tiver
-3. **Exporte cookies:** Cookie-Editor → Export → formato JSON (copia pra área de transferência)
-4. **Salve localmente e envie pro GitHub Secrets:**
-
-```powershell
-# Salvar como arquivo
-[System.IO.File]::WriteAllText("ml_cookies.json", $clipboard_content)
-# ^^^ Use WriteAllText, NÃO Set-Content (evita BOM do PowerShell)
-
-# Codificar em base64
-$b64 = [Convert]::ToBase64String([IO.File]::ReadAllBytes("ml_cookies.json"))
-
-# Atualizar o secret no GitHub
-gh secret set ML_COOKIES_B64 --body $b64 --repo sergioskmcle-sketch/blog-gamer
-```
-
-5. **Teste local** com o cookie file novo:
-
-```powershell
-node --env-file .env -e "const {generateAffiliateLink}=await import('./scripts/ml_affiliate.mjs'); console.log(await generateAffiliateLink('https://www.mercadolivre.com.br/console-xbox-series-x-1tb-standard-cor-preto/p/MLB37335939', 'ml_cookies.json'))"
-```
-
-Deve retornar algo como `{"short_url":"https://meli.la/XXXXXX",...}`. Se retornar `401` ou `Login required`, os cookies não têm permissão de afiliado.
-
-#### Cookie alternativo (monitor-telegram)
-
-Enquanto o secret `ML_COOKIES_B64` não for atualizado, é possível gerar links localmente usando o cookie file do projeto irmão:
-
-```
-C:\Users\sismais\Documents\Projetos Pessoais\monitor-telegram\ml_cookies_fresh.json
-```
-
-Basta apontar o `cookiePath` para esse arquivo nos scripts locais.
-
-#### ⚠️ Regra de ouro
-
-> O arquivo JSON deve ter **~600+ cookies** pra funcionar. Com < 50 cookies (como o antigo `ml_cookies_base64.txt`) a API retorna 401. Use a exportação completa do Cookie-Editor, não uma exportação parcial.
+> **Regra de ouro:** não reativar cookies de sessão — o uso deles causou bloqueio global do ML.
 
 ### Recriar chave do Groq
 
