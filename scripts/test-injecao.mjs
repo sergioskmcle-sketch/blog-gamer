@@ -104,6 +104,9 @@ igual(productButtonLabel({ source: "Pichau" }), "VER NA PICHAU", "label pichau: 
 igual(productButtonLabel({ source: "Mercado Livre" }), "VER NO MERCADO LIVRE", "label mercado livre especial");
 igual(productButtonLabel({ source: "magazineluiza.com.br" }), "VER NA MAGAZINELUIZA", "label normaliza .com.br");
 igual(productButtonLabel({ source: "AliExpress" }), "VER NO ALIEXPRESS", "label sem source no mapa usa no");
+igual(productButtonLabel({ source: "KaBuM!" }), "VER NA KABUM", "label real serper: kabum! com pontuacao");
+igual(productButtonLabel({ source: "Amazon.com.br - Retail" }), "VER NA AMAZON", "label real serper: sufixo - retail");
+igual(productButtonLabel({ source: "Magazine Luiza" }), "VER NA MAGAZINELUIZA", "label real serper: espaco no nome");
 igual(productButtonLabel({}), "VER NO MERCADO LIVRE", "label fallback sem source");
 ok(buildProductButtonHtml({ title: "X", permalink: "http://k/k", source: "Kabum" }).includes("VER NA KABUM"), "botao usa label da loja");
 

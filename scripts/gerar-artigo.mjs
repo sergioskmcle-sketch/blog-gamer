@@ -878,17 +878,26 @@ function buildProductImageTag(p) {
 }
 
 // Lojas cujo nome pede "NA" (feminino) em portugues. Padrao: "NO".
+// Chaves normalizadas (sem pontuacao/espaços).
 const NA_STORES = new Set([
   "kabum", "amazon", "magalu", "magazineluiza", "shopee", "pichau", "terabyte", "americanas",
-  "fastshop", "mercadolivre", "mercadolivre.com", "mercadolibre", "submarino",
-  "casas bahia", "extra", "wish", "netshoes", "centauro", "kalunga",
+  "fastshop", "mercadolivre", "mercadolibre", "submarino", "casasbahia", "extra", "wish",
+  "netshoes", "centauro", "kalunga",
 ]);
 
+function normalizeStoreName(s) {
+  let v = String(s || "").toLowerCase().trim();
+  v = v.replace(/\s*-\s*.+$/, "");
+  v = v.replace(/\.(com\.br|com|br)$/, "");
+  v = v.replace(/[^\p{L}\p{N}]+/gu, "");
+  return v.trim();
+}
+
 function productButtonLabel(p) {
-  const src = String(p?.source || "").trim().toLowerCase().replace(/\.com\.br$/, "").replace(/\.com$/, "").trim();
+  const src = normalizeStoreName(p?.source);
   if (!src) return "VER NO MERCADO LIVRE";
+  if (src === "mercadolivre" || src === "mercadolibre") return "VER NO MERCADO LIVRE";
   const store = src.toUpperCase();
-  if (src === "mercadolivre" || src === "mercado livre" || src === "mercadolibre") return "VER NO MERCADO LIVRE";
   return NA_STORES.has(src) ? `VER NA ${store}` : `VER NO ${store}`;
 }
 
