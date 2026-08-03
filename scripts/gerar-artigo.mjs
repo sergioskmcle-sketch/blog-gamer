@@ -797,6 +797,70 @@ function isGamerProduct(title) {
   return true;
 }
 
+// URLs que so podem ter sido confundidas com produto (blog, categoria, listagem,
+// verificacao, ofertas, variante de vendedor).
+const ML_NON_PRODUCT_URL = /(\/blog\/|lista\.mercadolivre|\/c\/|\/gz\/|\/ofertas|\/publica|\/mais-vendidos|\/up\b\/?)/i;
+// Titulos que parecem artigo em vez de produto.
+const ML_ARTICLE_TITLE = /(mais\s+vendidos(\s+de)?\s*\d{4}|mais\s+vendidos|^\s*guia\s+(de|do|dos|das)|melhores\s+[\wà-ÿ-]+\s+de\s+\d{4})/i;
+
+const ML_STOPWORDS = new Set([
+  "que", "para", "com", "uma", "uma", "sobre", "entre", "nas", "nos", "dos", "das", "num", "numa",
+  "mais", "melhor", "melhores", "muito", "ser", "sao", "voce", "tudo", "todos", "todas", "outro",
+  "antes", "depois", "nesta", "neste", "esta", "este", "aos", "nao", "sem", "ate", "cada",
+]);
+
+function mlTopicTokens(topic) {
+  const src = [topic?.hint, topic?.ml_query, ...(topic?.trending_keywords || [])]
+    .filter(Boolean).join(" ").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const tokens = new Set();
+  for (const w of src.match(/[a-z0-9]+/g) || []) {
+    if (w.length >= 3 && !ML_STOPWORDS.has(w)) tokens.add(w);
+  }
+  return [...tokens];
+}
+
+function mlProductRelevanceScore(p, tokens) {
+  const title = normalizeForMatch(p.title || "");
+  let score = 0;
+  for (const t of tokens) {
+    if (title.includes(t)) score += 1;
+  }
+  return score;
+}
+
+// Portao de sanidade aplicado a TODA fonte de produtos: blog/categoria/listagem
+// nunca viram item; exige MLB id e preco; prefere itens relevantes ao topico.
+function sanitizeMLProducts(products, topic) {
+  if (!Array.isArray(products) || products.length === 0) return [];
+  const seen = new Set();
+  const candidates = [];
+  for (const p of products) {
+    if (!p || typeof p !== "object") continue;
+    const url = String(p.permalink || "");
+    const title = String(p.title || "");
+    if (ML_NON_PRODUCT_URL.test(url)) continue;
+    if (ML_ARTICLE_TITLE.test(title)) continue;
+    const id = p.id || (url.match(/MLB\d{8,}/) || [])[0] || "";
+    if (!id) continue;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    candidates.push(p);
+  }
+
+  const priced = candidates.filter((p) => p.price > 0);
+  let out = priced.length > 0 ? priced : candidates;
+  if (out !== candidates && out.length < candidates.length) {
+    log("WARN", `${candidates.length - out.length} produto(s) sem preco descartados — tabela comparativa exige preco`);
+  }
+
+  const tokens = mlTopicTokens(topic);
+  if (out.length > 1 && tokens.length > 0) {
+    out = out.slice().sort((a, b) => mlProductRelevanceScore(b, tokens) - mlProductRelevanceScore(a, tokens));
+  }
+  return out;
+}
+
 // Detecta a extensao real pelo magic bytes do buffer baixado.
 function imageExtension(buf) {
   if (!buf || buf.length < 4) return ".jpg";
@@ -1517,25 +1581,26 @@ function validate(fm, body, ctx = {}) {
   const wc = body.split(/\s+/).filter(Boolean).length;
   const min = MIN_WORDS[ctx.category] || 650;
   const floor = ctx.lastAttempt ? ABSOLUTE_MIN_WORDS : min;
-  if (wc < floor) hard.push(`Conteudo muito curto: ${wc} palavras (minimo ${min})`);
+  if (wc < floor && !ctx.relaxedWordCount) hard.push(`Conteudo muito curto: ${wc} palavras (minimo ${min})`);
   else if (wc < min) soft.push(`Conteudo abaixo do alvo: ${wc} palavras (minimo ${min})`);
 
   if (!/^##\s+/m.test(body)) hard.push("Artigo sem headings ##");
 
   // Verifica se o artigo mistura games e hardware no mesmo texto
   // Nas primeiras tentativas e um alerta (soft) para dar feedback a IA; na ultima e bloqueante (hard)
+  const domainBlocking = ctx.lastAttempt && !ctx.softMixedDomain;
   if (isMixedDomain(fm.title)) {
     const { gameMatches, hardwareMatches } = explainMixedDomain(fm.title);
     const msg = `Titulo mistura dominios: games=[${gameMatches.join(", ")}], hardware=[${hardwareMatches.join(", ")}]`;
-    ctx.lastAttempt ? hard.push(msg) : soft.push(msg);
+    domainBlocking ? hard.push(msg) : soft.push(msg);
   }
   if (isMixedDomain(body)) {
     const { gameMatches, hardwareMatches } = explainMixedDomain(body);
     const msg = `Corpo mistura dominios: games=[${gameMatches.join(", ")}], hardware=[${hardwareMatches.join(", ")}]`;
-    ctx.lastAttempt ? hard.push(msg) : soft.push(msg);
+    domainBlocking ? hard.push(msg) : soft.push(msg);
   }
 
-  if (ctx.productCount > 0) {
+  if (ctx.productCount > 0 && !ctx.segmented) {
     const used = new Set([...body.matchAll(PRODUCT_MARKER_REGEX)].map((m) => Number(m[1])));
     const valid = [...used].filter((n) => n >= 1 && n <= ctx.productCount);
     if (valid.length === 0) {
@@ -1558,6 +1623,42 @@ function validate(fm, body, ctx = {}) {
     }
   }
 
+  // Fluxo segmentado: cada produto DEVE virar um item "## Nome" e aparecer na
+  // tabela comparativa. Se a montagem quebrou, o artigo nao pode publicar.
+  if (ctx.segmented && ctx.productCount > 0) {
+    const headings = [...body.matchAll(/^##\s+([^\n]+)$/gm)].map((m) => m[1].trim());
+    const tableRows = body.split("\n").filter((l) => /^\|.*\|$/.test(l)).join("\n");
+    const missingAsHeading = [];
+    const missingInTable = [];
+    for (const p of ctx.products || []) {
+      if (!p?.title) continue;
+      if (!headings.some((h) => h === p.title || h.startsWith(`${p.title} — `))) {
+        missingAsHeading.push(p.title.slice(0, 60));
+      }
+      if (!tableRows.includes(p.title)) missingInTable.push(p.title.slice(0, 60));
+    }
+    if (missingAsHeading.length > 0) hard.push(`Itens sem secao ## propria (montagem quebrou): ${missingAsHeading.join(" | ")}`);
+    if (missingInTable.length > 0) hard.push(`Produtos ausentes da tabela comparativa: ${missingInTable.join(" | ")}`);
+  }
+
+  // Secao ## sem conteudo abaixo dela (heading "guarda-chuva" vazio).
+  const h2s = [...body.matchAll(/^##\s+([^\n]+)$/gm)];
+  for (let i = 0; i < h2s.length; i++) {
+    const title = h2s[i][1].trim();
+    // No fluxo segmentado o heading da lista e secao-pai dos itens: seu
+    // "conteudo" sao os proprio sub-headings ## (validados separadamente).
+    if (ctx.segmented && ctx.listHeading && title === ctx.listHeading) continue;
+    const start = h2s[i].index + h2s[i][0].length;
+    const end = h2s[i + 1] ? h2s[i + 1].index : body.length;
+    const content = body.slice(start, end).replace(/^\s*\n*/, "").trim();
+    if (!content) hard.push(`Secao ## vazia: "${title.slice(0, 60)}"`);
+  }
+
+  // Vocabulario da estrutura antiga ("card") nao existe mais.
+  if (/(confira o preco atual no card|no card do produto|no card de produto|veja o card|preco no card)/i.test(body)) {
+    hard.push('Texto menciona "card" — a estrutura nova usa botao "VER NO MERCADO LIVRE" e tabela comparativa');
+  }
+
   if (extractImageMarkers(body).length === 0) {
     soft.push("Nenhum marcador [IMG:Nome do Jogo] usado — artigo ficara sem imagens no corpo");
   }
@@ -1567,7 +1668,7 @@ function validate(fm, body, ctx = {}) {
   if (ctx.productPrices?.length) {
     const prosePrices = findPricesInBody(body, ctx.productPrices);
     if (prosePrices.length > 0) {
-      soft.push(`Corpo contem preco de produto em prosa (R$ ${prosePrices.join(", R$ ")}) — preco fica so no card, nunca no texto`);
+      soft.push(`Corpo contem preco de produto em prosa (R$ ${prosePrices.join(", R$ ")}) — preco fica so na tabela comparativa, nunca no texto`);
     }
   }
 
@@ -1863,7 +1964,7 @@ async function main() {
     log("WARN", "TAVILY_API_KEY nao configurada — pulando busca de produtos ML");
   }
 
-  mlProducts = mlProducts.filter((p) => isGamerProduct(p.title));
+  mlProducts = sanitizeMLProducts(mlProducts.filter((p) => isGamerProduct(p.title)), topic);
 
   const productBlock = mlProducts.length > 0
     ? `\nPRODUTOS DISPONIVEIS (cada um vira um item da secao de Itens):\n${mlProducts.map((p, i) =>
@@ -1971,7 +2072,7 @@ ${estiloOpinativo ? "8. Giria e humor sao tempero, nao estrutura: no maximo 1 gi
 - Inventar URL de imagem (wikipedia, google, unsplash) ou link de compra.
 - Temas de cassino, slots, caça-níqueis, roleta, apostas, poker, bingo ou qualquer jogo de dinheiro real. O blog não cobre isso.
 - Escrever preco, imagem ou botao dos produtos listados — isso e do card. NUNCA escreva "R$" seguido de valor que coincida com produto da lista.
-- Produto sem preco na lista (Preco: NAO DISPONIVEL): nunca afirme preco, nunca diga que e gratis, gratuito, preco zero ou de graca; refira-se a ele como "confira o preco atual no card".
+- Produto sem preco na lista (Preco: NAO DISPONIVEL): nunca afirme preco, nunca diga que e gratis, gratuito, preco zero ou de graca; refira-se a ele como "confira o preco atual no Mercado Livre".
 - Emojis, voz passiva, mencionar que e IA, termos corporativos ("desta forma", "outrossim", "vale ressaltar que").
 - Markdown (** ou *) dentro do title e da description do frontmatter.
 - REGRA DA CAPA: a imagem de capa (campo "image" do frontmatter) deve ser EXCLUSIVA — NUNCA repita a mesma imagem da capa dentro do corpo do artigo. Se uma secao usa o mesmo jogo da capa, use uma imagem diferente desse jogo (outra screenshot, outra arte). A capa e unica.
@@ -2012,8 +2113,10 @@ Checklist antes de responder:
 9. 2 a 3 links internos usando SOMENTE slugs da lista ARTIGOS EXISTENTES acima, colocados SOMENTE na secao final "## Continue Explorando".`;
 
   // Encolhe a pesquisa ate sobrar espaco de saida suficiente dentro do TPM.
+  // So para o fluxo de chamada unica (sem produtos): no segmentado a pesquisa
+  // vai inteira para a chamada do corpo principal.
   let userPrompt = buildUserPrompt(researchContext);
-  while (computeMaxTokens(systemPrompt, userPrompt) < MIN_OUTPUT && researchContext.length > 800) {
+  while (mlProducts.length === 0 && computeMaxTokens(systemPrompt, userPrompt) < MIN_OUTPUT && researchContext.length > 800) {
     researchContext = researchContext.slice(0, Math.floor(researchContext.length * 0.75));
     userPrompt = buildUserPrompt(researchContext);
     log("WARN", `Pesquisa reduzida para caber no limite de ${TOKEN_BUDGET} TPM`);
@@ -2030,8 +2133,33 @@ Checklist antes de responder:
 
   let fm = null;
   let body = null;
+  let parts = null;
   let feedback = "";
 
+  if (mlProducts.length > 0) {
+    // FLUXO SEGMENTADO: a LLM escreve frontmatter, blurbs e corpo em chamadas
+    // separadas; itens, tabela e ordem sao decididos em codigo (assembleArticle).
+    log("INFO", `Geracao SEGMENTADA: ${mlProducts.length} produtos (blurb por item + corpo) + montagem deterministica em codigo`);
+    try {
+      const seg = await generateSegmentedArticle({
+        mlProducts, topic, domain, categoria, primaryKeyword,
+        researchContext, internalLinksBlock, today, minWords,
+      });
+      fm = seg.fm;
+      parts = seg.parts;
+      body = [parts.intro, `## ${parts.listHeading}`, parts.rest].filter(Boolean).join("\n\n");
+      log("INFO", "Corpo segmentado montado — itens e tabela serao injetados apos baixar as fotos");
+    } catch (err) {
+      log("ERROR", `Falha na geracao segmentada: ${err?.message || String(err)}`);
+      log("DEBUG", (err?.stack || String(err)).slice(0, 500));
+      state.last_error = (err?.message || String(err)).slice(0, 200);
+      state.last_error_date = today;
+      state.consecutive_failures = (state.consecutive_failures || 0) + 1;
+      saveState(state);
+      generateStatusFile(state);
+      process.exit(1);
+    }
+  } else {
   for (let attempt = 1; attempt <= MAX_GEN_ATTEMPTS; attempt++) {
     const lastAttempt = attempt === MAX_GEN_ATTEMPTS;
     log("INFO", `Gerando artigo com LLM (tentativa ${attempt}/${MAX_GEN_ATTEMPTS})...`);
@@ -2094,6 +2222,7 @@ Checklist antes de responder:
       ? `\n\nREGRA DE DOMINIO VIOLADA: voce misturou games e hardware no mesmo texto. Escolha APENAS UM dos lados e remova TODO o outro. Se o artigo for sobre jogos/consoles, remova qualquer mencao a mouse, teclado, headset, monitor, placa de video, processador, fonte, SSD, gabinete, cadeira, setup gamer. Se for sobre hardware, remova qualquer mencao a jogos especificos, lancamentos de jogos, eventos de games, gameplay.`
       : "";
     feedback = `\n\nA versao anterior foi rejeitada. Corrija TUDO isto e reescreva o artigo inteiro:\n- ${[...hard, ...soft].join("\n- ")}${domainFeedback}`;
+  }
   }
 
   // Ultimo recurso pro titulo: uma chamada curta so pra reescrever o titulo.
@@ -2181,8 +2310,29 @@ Checklist antes de responder:
     log("INFO", `Baixando imagens dos ${mlProducts.length} itens (ML -> web -> IA)...`);
     await ensureProductImages(mlProducts);
   }
-  body = injectProductCards(body, mlProducts);
-  log("INFO", `${mlProducts.length} produtos injetados no corpo do artigo`);
+  if (parts) {
+    body = injectSegmentedItems(body, parts.listHeading, mlProducts);
+    log("INFO", `${mlProducts.length} itens segmentados (foto local + blurb + botao) e tabela comparativa injetados`);
+    const { hard: segHard, soft: segSoft } = validate(fm, body, {
+      ...validationCtx,
+      segmented: true,
+      listHeading: parts.listHeading,
+      products: mlProducts,
+      productCount: mlProducts.length,
+      productPrices: [],
+      relaxedWordCount: true,
+      softMixedDomain: true,
+      lastAttempt: true,
+    });
+    if (segHard.length > 0) {
+      log("ERROR", `Corpo segmentado reprovado:\n- ${segHard.join("\n- ")}`);
+      process.exit(1);
+    }
+    if (segSoft.length > 0) log("WARN", `Ressalvas de qualidade:\n  - ${segSoft.join("\n  - ")}`);
+  } else {
+    body = injectProductCards(body, mlProducts);
+    log("INFO", `${mlProducts.length} produtos injetados no corpo do artigo`);
+  }
 
   body = stripLeftoverMarkers(body);
 
@@ -2275,6 +2425,278 @@ async function generateStatusFile(state) {
   log("INFO", "status.json gerado");
 }
 
+// ============================================================================
+// GERACAO SEGMENTADA (Fase 2): em vez de uma chamada unica que decide tudo, o
+// artigo de produtos e montado por partes deterministicas:
+//   - generateArticleFrontmatter  -> titulo/descricao/tags/categoria
+//   - generateProductBlurb        -> 1 chamada POR produto (texto do item)
+//   - generateMainBody            -> 1 chamada (intro + secoes finais)
+//   - assembleArticle              -> montagem em codigo (itens + tabela)
+// Isso impede a LLM de juntar modelos, reescrever estrutura ou colocar botao
+// apontando para pagina errada: o sistema decide os itens, a ordem e o botao.
+// ============================================================================
+
+const SEG_STYLE_OPINATIVO = `PERSONA: Voce e o "Mano Gamer", narrador raiz do Blog Gamer — gamer brasileiro que escreve como se estivesse trocando ideia com os amigos no Discord.
+- OPINIAO FORTE: tome lado. Critique quando erram, elogie quando acertam. Ex: "A Capcom lancou mais um remake. Surpresa: zero."
+- HUMOR: metaforas do mundo gamer ("mais dificil que matar Malenia no level 1", "preco de scalper", "nao tankei").
+- GIRIAS NATURAIS e DOSADAS: "ta on", "brabo", "tankar", "o bagulho", "mermao", "ta ligado", "rage quit" (maximo 1 giria marcante a cada 2-3 paragrafos).
+- FALE COM O LEITOR: "voce", "teu setup", "bora ver?", "vai encarar?". Faca perguntas retoricas.
+- NUNCA: voz passiva, emojis, "Alem disso...", "E importante notar que...", termos corporativos.`;
+
+const SEG_STYLE_FACTUAL = `PERSONA: redator tecnico especializado em {{DOMINIO}} do Blog Gamer. Guias e reviews com precisao e profundidade.
+- OBJETIVIDADE: direto e informativo. Compare specs, mostre dados, explique o "por que" de cada recomendacao.
+- ESTRUTURA: tabelas, pros/contras, passos numerados.
+- TOM: profissional mas acessivel. Ex: "A RTX 4060 entrega 60 fps estaveis em 1080p." (e nao "apresenta desempenho satisfatorio no que tange a...").
+- HUMOR SECO DOSADO: no maximo 1 toque ironico a cada 3 paragrafos ("mais exigente que boss de soulslike"). Nunca giria de boteco.
+- NUNCA: "mermao", "ta ligado", voz passiva, emojis, termos corporativos.`;
+
+function segStyle(categoria, domain) {
+  if (categoria === "noticia" || categoria === "lista") return SEG_STYLE_OPINATIVO;
+  return SEG_STYLE_FACTUAL.replace(/\{\{DOMINIO\}\}/g, domainLabel(domain));
+}
+
+function formatPriceBRL(price) {
+  if (!(price > 0)) return "Ver no ML";
+  return `R$ ${price.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+// Frontmatter via chamada curta e dedicada: titulo/descricao nao podem ser
+// decididos junto com o corpo (la a LLM burlava a regra de estrutura).
+async function generateArticleFrontmatter({ topic, domain, categoria, primaryKeyword, productCount, today }) {
+  const estilo = segStyle(categoria, domain);
+  const sys = `Voce e redator senior de um blog gamer brasileiro de alto trafego. Responda APENAS com YAML de frontmatter, sem markdown e sem comentario.
+
+${estilo}
+
+## DOMINIO UNICO
+Este artigo e APENAS sobre ${domainLabel(domain)}. Nunca misture games e hardware no titulo/description/tags.
+
+## REGRAS DE TITULO
+- 55 a 65 caracteres.
+- ${primaryKeyword ? `A palavra-chave "${primaryKeyword}" DEVE aparecer nos primeiros 40% do titulo.` : "A palavra-chave principal (jogo, produto ou evento) deve aparecer nos primeiros 40%."}
+- PROIBIDO: "Tudo que voce precisa saber", "Novidades que vao bombar", "Fique por dentro", "Imperdivel", "Revolucionario", "O que esperar".
+- Use numero, data ou beneficio concreto: "10 Melhores X em 2026", "X vs Y: Qual Vale a Pena".
+- Nada de clickbait vazio.
+
+## SAIDA (somente este bloco, nao escreva o artigo)
+---
+title: "Titulo SEO (55-65 caracteres)"
+description: "Descricao persuasiva (120-160 caracteres, sem markdown)"
+pubDate: ${today}
+tags: [tag1, tag2, tag3, tag4, tag5]
+category: "${categoria}"
+affiliate: true
+---
+
+category DEVE ser: noticia, review, guia ou lista. Tags relevantes e sem ** dentro de title/description. Sem emoji.`;
+
+  const user = `Artigo sobre: ${topic.hint}\nDominio: ${domainLabel(domain)}. ${productCount} produtos serao listados na secao principal.`;
+  const out = await fetchLLM(sys, user, 3, { maxTokens: 512, temperature: 0.7 });
+  try {
+    return parseFrontmatter(out).frontmatter;
+  } catch {
+    log("WARN", "Frontmatter segmentado sem separador --- — tentando parse tolerante");
+    const clean = out.replace(/^[\s\S]*?---\s*/m, "").split(/\n---\s*/)[0].trim();
+    return parseRaw(clean);
+  }
+}
+
+// Extrai tagline/corpo/nota/destaque do texto bruto do blurb (formato TAGLINE:/CORPO:).
+function parseBlurb(out) {
+  const tagline = (out.match(/^TAGLINE:\s*(.+)$/m) || [])[1]?.trim() || "";
+  let nota = Number((out.match(/^NOTA:\s*(\d+(?:[.,]\d+)?)/m) || [])[1]?.replace(",", "."));
+  if (!Number.isFinite(nota) || nota < 1 || nota > 10) nota = null;
+  const destaque = (out.match(/^DESTAQUE:\s*(.+)$/m) || [])[1]?.trim() || "";
+  let text = "";
+  const corpoMatch = out.match(/CORPO:\s*([\s\S]*?)(?=\n\s*(?:NOTA|DESTAQUE):|$)/);
+  if (corpoMatch) text = corpoMatch[1].trim();
+  if (!text) {
+    text = out
+      .replace(/^TAGLINE:[^\n]*\n?/m, "")
+      .replace(/\n\s*(?:NOTA|DESTAQUE):[\s\S]*$/m, "")
+      .replace(/^\s*CORPO:\s*\n?/, "")
+      .trim();
+  }
+  text = text
+    .split("\n")
+    .map((l) => l.trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return { tagline, text, nota, destaque };
+}
+
+// 1 chamada POR produto: descreve SO este item, sem preco, sem heading, sem botao.
+async function generateProductBlurb({ product, topic, domain, categoria, index }) {
+  const estilo = segStyle(categoria, domain);
+  const sys = `Voce escreve a descricao de UM UNICO produto para um blog gamer brasileiro. ${estilo}
+
+## O QUE VOCE GERA (somente texto, sem heading)
+1. "TAGLINE:" — uma frase curta (2-6 palavras) que vira o subtitulo do item. Destaque o diferencial do produto com a persona escolhida. Nao use aspas.
+2. "CORPO:" — 2 a 3 paragrafos curtos (60-110 palavras no total) sobre APENAS este produto. Sem lista, sem bullets.
+3. "NOTA:" — nota de 1 a 10 (numero inteiro ou decimal), justificada indiretamente pelo texto.
+4. "DESTAQUE:" — o diferencial do produto em ate 8 palavras.
+
+## REGRAS ABSOLUTAS
+- NUNCA escreva preco, "R$", card, botao, "confira o preco", nem mencione tabela ou comparativo.
+- NUNCA use "#" nem markdown de titulo. Paragrafos separados por linha em branco.
+- NUNCA compare com outros produtos nem fale de marcas concorrentes.
+- NUNCA invente especificacao numerica (GHz, GB, W, fps, cores) que nao esteja no nome do produto. Fale de categoria, uso, publico-alvo e do que o proprio nome afirma.
+- Nao repita o nome do produto mais de 2 vezes.
+- O nome do produto citado no texto precisa bater com o titulo recebido (mesmo modelo).`;
+
+  const user = `Produto ${index}: ${product.title}\nTopico do artigo: ${topic.hint}`;
+  try {
+    const out = await fetchLLM(sys, user, 3, { maxTokens: 900, temperature: 0.8 });
+    const parsed = parseBlurb(out);
+    if (!parsed.text) log("WARN", `Blurb vazio para "${product.title?.slice(0, 40)}"`);
+    return parsed;
+  } catch (e) {
+    log("WARN", `Blurb falhou para "${product.title?.slice(0, 40)}": ${e.message}`);
+    return {
+      tagline: "",
+      text: `O ${product.title} aparece entre os destaques desta lista — vale o seu tempo se bater com o que voce busca.`,
+      nota: null,
+      destaque: "",
+    };
+  }
+}
+
+// 1 chamada: intro SEM H2, o heading da lista, e as secoes finais. Nao escreve
+// os itens (o sistema monta) nem a tabela comparativa (o sistema monta).
+async function generateMainBody({ mlProducts, topic, domain, categoria, researchContext, internalLinksBlock, primaryKeyword, mainMinWords }) {
+  const estilo = segStyle(categoria, domain);
+  const productLines = mlProducts
+    .map((p, i) => `${i + 1}. ${p.title}${p.price ? ` (${formatPriceBRL(p.price)})` : ""}`)
+    .join("\n");
+  const sys = `Voce e redator senior de um blog gamer brasileiro. Escreve UMA PARTE de um artigo de produtos: a introducao, o heading da lista e as secoes finais. O sistema monta os itens e a tabela comparativa.
+
+${estilo}
+
+## DOMINIO UNICO
+Este artigo e APENAS sobre ${domainLabel(domain)}. Nunca misture games e hardware.
+
+## ESTRUTURA EXATA (em ordem)
+1. INTRODUCAO SEM H2: 1-2 paragrafos com gancho direto. Nos primeiros 2-3 paragrafos, resuma em 2 frases os criterios que definem os itens (o que diferencia um bom item). NAO crie secao ## para isso.
+2. A LINHA "## Os ${mlProducts.length} Melhores {tipo} em 2026" — a PRIMEIRA linha ## do seu texto. Apos essa linha, NAO escreva mais nada na secao: o sistema insere os itens e a tabela ali.
+3. "## Veredito" (ou "## Qual X Escolher?"): bullets por perfil de usuario — nunca "depende do orcamento".
+4. "## FAQ": 3-4 perguntas que as pessoas pesquisam no Google sobre o tema.
+5. "## Quer mais ofertas?": "Entre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e receba ofertas diarias de ${domain === "hardware" ? "perifericos e hardware gamer" : "games e consoles"}!"
+6. "## Fontes": os links da pesquisa fornecida.
+7. "## Continue Explorando": 2-3 links internos SOMENTE dos slugs fornecidos, formato [texto](/blog-gamer/blog/slug-do-artigo/).
+
+## MARCADORES DE IMAGEM
+- [IMG:Nome] em linha sozinha ANTES de cada heading ## das secoes 3 a 7 (pelo menos 2 delas). Ex: [IMG:Setup Gamer], [IMG:Perguntas Frequentes]. NUNCA em linhas de itens (nao existem no seu texto) nem antes de "## Os ... Melhores".
+
+## REGRAS DE CONTEUDO
+- GROUNDING: todo dado concreto (spec, data, numero, nota) vem da pesquisa fornecida. Se nao esta la, use "segundo rumores"/"ainda sem confirmacao".
+- Minimo ${mainMinWords} palavras no total do que voce escreve. Paragrafos com frases de tamanhos variados.
+- Voce pode citar um produto pelo nome no texto corrido, mas NUNCA com preco e NUNCA como heading ##.
+- NUNCA escreva "R$" nem preco de produto listado.
+- NUNCA diga "confira no card" — os itens tem botao "VER NO MERCADO LIVRE". Se precisar, diga "confira o preco atual no Mercado Livre".
+- NUNCA deixe secao ## vazia ou sem conteudo abaixo dela.
+- NUNCA escreva "## Comparativo" nem "## Os ${mlProducts.length} Melhores" duas vezes, nem use [PRODUTO:N].
+- Jogos/produtos citados pela primeira vez em **negrito**.
+- Emojis, voz passiva, termos corporativos: proibido.
+
+## PRODUTOS (cite naturalmente; nunca como heading, nunca com preco)
+${productLines}
+
+## SAIDA
+Somente o markdown das secoes acima, na ordem. Sem frontmatter, sem comentario.`;
+
+  const user = `${topic.hint ? `Escreva a parte do artigo sobre: ${topic.hint}\n\n` : ""}${
+    researchContext ? `PESQUISA (use estes fatos — nao invente dados fora daqui):\n${researchContext}\n\n` : "SEM PESQUISA DISPONIVEL: escreva so conhecimento consolidado, sem inventar numeros, datas ou precos.\n\n"
+  }${internalLinksBlock}`;
+  return fetchLLM(sys, user, 3, { maxTokens: 6000, temperature: 0.7 });
+}
+
+// Separa o corpo principal em intro / heading da lista / resto.
+function splitMainBody(mainBody) {
+  if (typeof mainBody !== "string" || !mainBody.trim()) return null;
+  const m = mainBody.match(/^##\s+([^\n]+)\n([\s\S]*)$/m);
+  if (!m) return null;
+  const listHeading = m[1].trim();
+  if (/^(veredito|qual\s|faq|perguntas\s+frequentes|fontes|quer\s+mais|continue\s+explorando|comparativo|conclus)/i.test(listHeading)) {
+    return null;
+  }
+  return {
+    intro: mainBody.slice(0, m.index).trim(),
+    listHeading,
+    rest: m[2].trim(),
+  };
+}
+
+function buildComparativoTable(mlProducts) {
+  const rows = mlProducts
+    .map((p) => `| ${p.title} | ${formatPriceBRL(p.price)} | ${p.destaque || "—"} | ${p.nota ? `${p.nota}/10` : "—"} |`)
+    .join("\n");
+  return `## Comparativo\n\n| Produto | Preco | Destaque | Nota |\n|---|---|---|---|\n${rows}\n`;
+}
+
+function buildItemSection(p) {
+  const img = buildProductImageTag(p);
+  const btn = buildProductButtonHtml(p);
+  const tagline = p.tagline ? ` — ${p.tagline}` : "";
+  const text = p.blurbText || `O ${p.title} aparece entre os destaques desta lista.`;
+  const imgBlock = img ? `${img}\n\n` : "";
+  const btnBlock = btn ? `\n\n${btn}` : "";
+  return `## ${p.title}${tagline}\n\n${imgBlock}${text}${btnBlock}`;
+}
+
+// Injeta os itens (foto local + paragrafos + botao) e a tabela comparativa logo
+// apos o heading da lista. Deterministico: nada fica a criterio da LLM.
+function injectSegmentedItems(body, listHeading, mlProducts) {
+  const itemBlock = mlProducts.map((p) => buildItemSection(p)).join("\n\n");
+  const table = buildComparativoTable(mlProducts);
+  const marker = `## ${listHeading}`;
+  const idx = body.indexOf(marker);
+  if (idx === -1) {
+    log("WARN", "Heading da lista nao encontrado no corpo — itens anexados no fim");
+    return `${body}\n\n${itemBlock}\n\n${table}`;
+  }
+  const after = idx + marker.length;
+  return `${body.slice(0, after)}\n\n${itemBlock}\n\n${table}${body.slice(after)}`;
+}
+
+// Pipeline segmentado completo: frontmatter + blurbs + corpo + assembleia.
+async function generateSegmentedArticle({ mlProducts, topic, domain, categoria, primaryKeyword, researchContext, internalLinksBlock, today, minWords }) {
+  const fm = await generateArticleFrontmatter({ topic, domain, categoria, primaryKeyword, productCount: mlProducts.length, today });
+  if (!fm) throw new Error("Frontmatter segmentado falhou");
+
+  for (let i = 0; i < mlProducts.length; i++) {
+    const b = await generateProductBlurb({ product: mlProducts[i], topic, domain, categoria, index: i + 1 });
+    mlProducts[i].tagline = b.tagline;
+    mlProducts[i].blurbText = b.text;
+    mlProducts[i].nota = b.nota;
+    mlProducts[i].destaque = b.destaque;
+    log("INFO", `Blurb ok (${i + 1}/${mlProducts.length}): "${mlProducts[i].title?.slice(0, 45)}"`);
+  }
+
+  const mainMinWords = Math.max(350, Math.round(minWords * 0.75));
+  let parts = null;
+  for (let attempt = 1; attempt <= 2 && !parts; attempt++) {
+    try {
+      const raw = await generateMainBody({ mlProducts, topic, domain, categoria, researchContext, internalLinksBlock, primaryKeyword, mainMinWords });
+      parts = splitMainBody(raw);
+      if (!parts) log("WARN", `Corpo principal sem estrutura valida (tentativa ${attempt}/2)`);
+    } catch (e) {
+      log("WARN", `Corpo principal falhou (tentativa ${attempt}/2): ${e.message}`);
+    }
+  }
+  if (!parts) {
+    const fallbackKw = (topic.hint || primaryKeyword || "").split(" ").slice(0, 3).join(" ");
+    parts = {
+      intro: `Fala, gamer! Bora conferir quais ${fallbackKw} valem a pena em 2026 — a lista considera o que entrega mais por real, o que segura o tranco no dia a dia e o que a galera anda comprando.`,
+      listHeading: `Os ${mlProducts.length} Melhores ${fallbackKw || "Itens"} em 2026`,
+      rest: "",
+    };
+    log("WARN", "Usando corpo principal fallback (estrutura minima)");
+  }
+
+  return { fm, parts };
+}
+
 // So roda o pipeline quando o arquivo e executado direto (node scripts/gerar-artigo.mjs).
 // Importado como modulo (pelos testes), apenas expoe as funcoes puras abaixo.
 const executadoDireto = process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url;
@@ -2306,6 +2728,12 @@ export {
   buildProductButtonHtml,
   buildProductImageTag,
   imageExtension,
+  sanitizeMLProducts,
+  splitMainBody,
+  parseBlurb,
+  buildComparativoTable,
+  buildItemSection,
+  injectSegmentedItems,
   injectTableOfContents,
   validateSourceCoverage,
   formatProductPriceForPrompt,

@@ -48,7 +48,7 @@ scripts/
   fix-article-links.mjs     → Script manual: substitui links diretos ML por meli.la em artigo existente
   regenerate-*-cover.mjs    → Regenera a capa de artigos específicos (cadeiras, fones, monitores, psplus, xbox)
   gerar-status.cjs          → Gera status.json a cada deploy
-  test-injecao.mjs          → Testes de validação (87 asserts): cards, TOC, fontes
+  test-injecao.mjs          → Testes de validação (124 asserts): itens, TOC, fontes, portão de produtos e montagem segmentada
   download-images.mjs       → Baixa imagens dos produtos para o repo
   convert-banners.mjs       → Converter banners PNG → WebP
 
@@ -356,10 +356,11 @@ Cooldown por horas reais, não por data UTC. Se o último artigo foi gerado há 
 O sistema usa **Tavily/Google** para encontrar produtos no Mercado Livre (não a API interna do ML, que é limitada para hardware). O fluxo:
 
 1. Tavily busca `"resident evil jogo ps5"` + `"site:mercadolivre.com.br"`
-2. Extrai URLs de produtos do ML dos resultados
-3. Faz scraping da página do produto (título, preço, imagem)
-4. Gera link de afiliado via `generateAffiliateLink()`
-5. Injeta product cards no artigo
+2. Extrai URLs de produtos do ML dos resultados — só páginas de produto real (blog/categoria/listagem/variante são descartadas por `isProductPageUrl`)
+3. Faz scraping da página do produto (título, preço, imagem) exigindo MLB id
+4. `sanitizeMLProducts()` deduplica, exige preço e ordena por relevância ao tópico
+5. Gera link de afiliado via `generateAffiliateLink()`
+6. Monta o artigo de forma **segmentada**: 1 chamada LLM por item (blurb) + 1 chamada para o corpo; itens, tabela comparativa e botões são montados em código
 
 Fallback: se o Google não encontrar, tenta a API interna do ML.
 

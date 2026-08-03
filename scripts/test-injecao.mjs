@@ -1,5 +1,6 @@
 // Testes das funcoes puras do gerador de artigo: posicionamento de produtos,
-// posicionamento de imagens, matching RAWG e gates de qualidade.
+// posicionamento de imagens, matching RAWG, gates de qualidade, portao de
+// produtos sanitizados (Fase 1) e montagem segmentada (Fases 2/3).
 // Rodar com: npm test
 import assert from "assert";
 import {
@@ -7,6 +8,7 @@ import {
   stripLeftoverMarkers, validate, checkTitle, capitalizeTitle, similarity, nameSimilarity,
   computeMaxTokens, buildProductButtonHtml, buildProductImageTag, injectTableOfContents, validateSourceCoverage,
   formatProductPriceForPrompt, findPricesInBody,
+  sanitizeMLProducts, splitMainBody, parseBlurb, buildComparativoTable, buildItemSection, injectSegmentedItems,
 } from "./gerar-artigo.mjs";
 
 let passou = 0;
@@ -324,5 +326,78 @@ warnings = validateSourceCoverage(corpoSemFontes, fontes);
 ok(warnings.some((w) => /2027/.test(w)), "detecta ano nao suportado pelas fontes");
 ok(warnings.some((w) => /15\/10/.test(w)), "detecta nota nao suportada pelas fontes");
 ok(warnings.some((w) => /Secao ## Fontes ausente/.test(w)), "detecta secao Fontes ausente");
+
+// --- Fase 1: portao sanitizeMLProducts ---
+const topicProd = { hint: "placas de video amd 2026", ml_query: "placa de video gamer", trending_keywords: ["rx 580"] };
+const candidatos = [
+  { id: "MLB1", title: "Placa de Video RTX 4060 8GB", price: 1800, permalink: "https://www.mercadolivre.com.br/rtx/p/MLB12345678" },
+  { id: "MLB2", title: "Os mais vendidos de 2024", price: 10, permalink: "https://www.mercadolivre.com.br/blog/mais-vendidos/placas-video" },
+  { id: "MLB3", title: "Listagem de categoria", price: 5, permalink: "https://lista.mercadolivre.com.br/placas-video" },
+  { id: "MLB4", title: "Placa de Video RX 580 8GB", price: 900, permalink: "https://www.mercadolivre.com.br/rx580/p/MLB87654321" },
+  { id: "MLB5", title: "Variante de vendedor", price: 50, permalink: "https://www.mercadolivre.com.br/vende/MLB99999/up" },
+  { id: "MLB6", title: "Sem preco", price: 0, permalink: "https://www.mercadolivre.com.br/np/p/MLB11111" },
+  { id: "MLB1", title: "Duplicado", price: 1, permalink: "https://www.mercadolivre.com.br/dup/p/MLB12345678" },
+];
+const limpos = sanitizeMLProducts(candidatos, topicProd);
+igual(limpos.map((p) => p.title), ["Placa de Video RX 580 8GB", "Placa de Video RTX 4060 8GB"], "sanitize tira blog/lista/up, deduplica e ordena por relevancia");
+igual(sanitizeMLProducts([], topicProd), [], "sanitize lista vazia");
+igual(sanitizeMLProducts(null, topicProd), [], "sanitize null");
+
+// --- Fase 2: splitMainBody ---
+const corpoEx = "Fala! Bora ver as placas.\n\nCriterio: entrega por real.\n\n## Os 2 Melhores Placas de Video em 2026\n\n## Veredito\n\nVale.\n\n## FAQ\n\nP1";
+const partes = splitMainBody(corpoEx);
+igual(partes.listHeading, "Os 2 Melhores Placas de Video em 2026", "split: heading da lista");
+ok(partes.intro.startsWith("Fala!") && !/^##/m.test(partes.intro), "split: intro sem H2");
+ok(partes.rest.startsWith("## Veredito"), "split: resto comeca na primeira secao final");
+igual(splitMainBody("## Veredito\n\nx"), null, "split rejeita heading final como 1a linha");
+igual(splitMainBody("so texto"), null, "split rejeita texto sem heading");
+igual(splitMainBody(null), null, "split rejeita null");
+
+// --- Fase 2: parseBlurb ---
+const blurbOk = parseBlurb("TAGLINE: melhor custo-beneficio\n\nCORPO:\nParagrafo um.\n\nParagrafo dois.\n\nNOTA: 8.5\nDESTAQUE: 60fps estaveis");
+igual(blurbOk.tagline, "melhor custo-beneficio", "blurb: tagline extraida");
+ok(blurbOk.text.includes("Paragrafo dois."), "blurb: corpo preserva os dois paragrafos");
+igual(blurbOk.nota, 8.5, "blurb: nota decimal");
+igual(blurbOk.destaque, "60fps estaveis", "blurb: destaque extraido");
+igual(parseBlurb("CORPO:\ntexto sem nota").nota, null, "blurb sem nota");
+igual(parseBlurb("texto avulso").text, "texto avulso", "blurb fora do formato cai no fallback");
+
+// --- Fase 2: buildComparativoTable ---
+const tab = buildComparativoTable([
+  { title: "P1", price: 1234.5, nota: 8, destaque: "legal" },
+  { title: "P2", price: 0, nota: null, destaque: "" },
+]);
+ok(tab.startsWith("## Comparativo"), "tabela tem heading");
+ok(tab.includes("| P1 | R$ 1.234,50 | legal | 8/10 |"), "tabela: preco pt-BR e nota");
+ok(tab.includes("| P2 | Ver no ML | — | — |"), "tabela: sem preco/nota usa placeholder");
+
+// --- Fase 2: buildItemSection (montagem deterministica) ---
+const sec = buildItemSection({ title: "Placa de Video RTX 4060", tagline: "60fps", blurbText: "Texto do item.", nota: 8, local_thumbnail: "/blog-gamer/images/produtos/x.png", affiliate_link: "http://ml/x" });
+ok(sec.startsWith("## Placa de Video RTX 4060 — 60fps"), "item: heading com tagline");
+ok(sec.includes('src="/blog-gamer/images/produtos/x.png"'), "item: foto local do produto");
+ok(sec.includes("VER NO MERCADO LIVRE") && sec.includes("http://ml/x"), "item: botao aponta para o produto real");
+ok(!sec.includes("R$"), "item: sem preco no texto");
+
+// --- Fase 2: injectSegmentedItems ---
+const prodsSeg = [
+  { title: "Produto A", price: 10, blurbText: "texto A", nota: 8, destaque: "dA", local_thumbnail: "/x/a.png", affiliate_link: "http://ml/a" },
+  { title: "Produto B", price: 20, blurbText: "texto B", nota: 7, destaque: "dB", local_thumbnail: "/x/b.png", affiliate_link: "http://ml/b" },
+];
+const injSeg = injectSegmentedItems("Intro.\n\n## Lista Principal\n\n## Veredito\n\nVale.", "Lista Principal", prodsSeg);
+ok(injSeg.indexOf("## Lista Principal") < injSeg.indexOf("## Produto A"), "inject: itens apos o heading da lista");
+ok(injSeg.indexOf("## Produto A") < injSeg.indexOf("## Produto B"), "inject: ordem dos itens preservada");
+ok(injSeg.indexOf("## Produto B") < injSeg.indexOf("## Comparativo"), "inject: tabela depois dos itens");
+ok(injSeg.indexOf("## Comparativo") < injSeg.indexOf("## Veredito"), "inject: veredito depois da tabela");
+
+// --- Fase 3: validate endurecido (modo segmentado) ---
+const fmSeg = { title: "Os 2 Melhores Produtos em 2026", description: "x".repeat(130), pubDate: "2026-08-03", tags: ["a", "b", "c", "d", "e"], category: "lista", affiliate: true };
+r = validate(fmSeg, injSeg, { category: "lista", segmented: true, listHeading: "Lista Principal", products: prodsSeg, productCount: 2, relaxedWordCount: true, lastAttempt: true });
+igual(r.hard, [], "segmentado: artigo montado passa sem bloqueantes");
+const quebrado = validate(fmSeg, "Intro.\n\n## Lista Principal\n\n## Veredito\n\nVale.", { category: "lista", segmented: true, listHeading: "Lista Principal", products: prodsSeg, productCount: 2, relaxedWordCount: true, lastAttempt: true });
+ok(quebrado.hard.some((e) => /secao ## propria/.test(e)), "segmentado: item sem heading bloqueia");
+const secVazia = validate(fmSeg, "Intro.\n\n## Secao Vazia\n\n## Outra\n\ntexto.", { category: "lista", segmented: true, listHeading: "Lista Principal", products: prodsSeg, productCount: 2, relaxedWordCount: true, lastAttempt: true });
+ok(secVazia.hard.some((e) => /vazia/.test(e)), "segmentado: secao ## vazia bloqueia");
+const refCard = validate(fmSeg, "Intro.\n\n## X\n\nconfira o preco atual no card", { category: "lista", segmented: true, listHeading: "Lista Principal", products: prodsSeg, productCount: 2, relaxedWordCount: true, lastAttempt: true });
+ok(refCard.hard.some((e) => /card/.test(e)), "segmentado: vocabulario antigo 'card' bloqueia");
 
 console.log(`${passou} asserts OK`);

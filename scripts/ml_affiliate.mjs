@@ -213,10 +213,40 @@ function extractMLProductData(html, url) {
 
   let permalink = canonical;
   if (!permalink.startsWith("http")) permalink = ML_BASE + permalink;
-  const pidMatch = permalink.match(/(MLB\d+)/);
-  const pid = pidMatch ? pidMatch[1] : "";
+  let pid = (permalink.match(/(MLB\d{8,})/) || [])[1] || "";
+
+  // Paginas com URL SEO (sem id no path) carregam o id em og:url / JSON-LD.
+  if (!pid) {
+    const ogUrl = html.match(/<meta[^>]+property="og:url"[^>]+content="([^"]+)"/)?.[1] || "";
+    pid = (ogUrl.match(/(MLB\d{8,})/) || [])[1] || "";
+  }
+  if (!pid) {
+    const jsonScript = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/);
+    if (jsonScript) {
+      try {
+        const ld = JSON.parse(jsonScript[1]);
+        const ldUrl = String(ld.url || ld.mainEntity?.url || ld.itemListElement?.[0]?.url || "");
+        pid = (ldUrl.match(/(MLB\d{8,})/) || [])[1] || "";
+      } catch {}
+    }
+  }
+  if (!pid) {
+    const bodyPid = html.match(/(?:MLB-(\d{8,})|\/p\/(MLB\d{8,}))/);
+    if (bodyPid) pid = bodyPid[1] || bodyPid[2] || "";
+  }
 
   return { title, price, thumbnail: ogImg, permalink, id: pid };
+}
+
+// URLs que NAO sao paginas de produto real: blog, categoria, listagem,
+// verificacao de conta, ofertas, variantes de vendedor (/up/).
+function isProductPageUrl(url) {
+  const u = String(url || "").toLowerCase();
+  if (!u.includes("mercadolivre")) return false;
+  if (/\/blog\//.test(u)) return false;
+  if (u.includes("lista.mercadolivre")) return false;
+  if (/\/c\/|\/gz\/|\/ofertas|\/publica|\/mais-vendidos|\/up\b\/?/.test(u)) return false;
+  return true;
 }
 
 export async function searchMLviaGoogle(query, cookiePath, tavilyKey, limit = 4) {
@@ -271,6 +301,12 @@ export async function searchMLviaGoogle(query, cookiePath, tavilyKey, limit = 4)
     if (seen.has(result.url)) continue;
     seen.add(result.url);
 
+    // So pagina de produto real (blog/categoria/listagem/variante sao ignorados).
+    if (!isProductPageUrl(result.url)) {
+      log("INFO", `Ignorando URL nao-produto: ${result.url.slice(0, 70)}`);
+      continue;
+    }
+
     try {
       log("INFO", `Visitando: ${result.url.slice(0, 80)}`);
       const pageRes = await fetch(result.url, {
@@ -282,6 +318,12 @@ export async function searchMLviaGoogle(query, cookiePath, tavilyKey, limit = 4)
 
       const productData = extractMLProductData(html, result.url);
       if (!productData.title) continue;
+      // Artigo de blog pode citar MLB ids de widget embutido; o id no canonical
+      // ou na propria URL e o sinal confiavel de pagina de produto.
+      if (!productData.id) {
+        log("INFO", `Sem MLB id (provavel artigo/blog): ${result.url.slice(0, 70)}`);
+        continue;
+      }
 
       products.push({
         id: productData.id,
