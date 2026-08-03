@@ -380,7 +380,7 @@ Existem **duas formas** de gerar artigos:
 │  PIPELINE PRINCIPAL              │  PIPELINE SECUNDÁRIA             │
 │  (a completa)                    │  (a simples)                     │
 ├──────────────────────────────────┼──────────────────────────────────┤
-│  Roda a cada 2 dias              │  Roda todo dia                   │
+│  Roda todo dia                  │  Roda todo dia                   │
 │  Roda no GitHub Actions          │  Roda em um servidor (VM)        │
 │                                  │  no Google Cloud                 │
 ├──────────────────────────────────┼──────────────────────────────────┤
@@ -1350,10 +1350,10 @@ O blog usa poucas chamadas de API comparado a outros projetos:
 
 | Serviço | Uso típico do blog | Limite |
 |---------|-------------------|--------|
-| Gemini | 3–9 chamadas a cada 2 dias (3 tentativas × 3 gerações) | 30 RPM free |
-| GROQ | 2–3 chamadas a cada 2 dias (fallback) | 200K tokens/dia |
-| Tavily | 1–2 buscas a cada 2 dias | 1000 consultas/mês |
-| RAWG | 5–10 buscas a cada 2 dias | Free tier |
+| Gemini | 3–9 chamadas por dia (3 tentativas × 3 gerações) | 30 RPM free |
+| GROQ | 2–3 chamadas por dia (fallback) | 200K tokens/dia |
+| Tavily | 1–2 buscas por dia | 1000 consultas/mês |
+| RAWG | 5–10 buscas por dia | Free tier |
 
 O Gemini é sempre tentado primeiro. Se ele falha (comum no free tier por rate limit), o sistema cai para Groq, que é mais estável mas tem limite menor de tokens.
 

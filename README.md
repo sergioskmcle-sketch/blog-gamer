@@ -31,7 +31,7 @@ Se `saudavel: false` ou `ultimo_artigo` está muito antigo, verifique os secrets
 
 ```
 .github/workflows/
-  gerar-conteudo.yml      → Geração automática (schedule a cada 2 dias + manual)
+  gerar-conteudo.yml      → Geração automática (schedule diário + manual)
   gerar-artigo-pilar.yml  → Artigo pilar manual (3000+ palavras, 1x/mês)
   regenerar-capa.yml      → Regenera a capa IA de um artigo (manual)
   deploy.yml              → Deploy GitHub Pages (push + manual)
@@ -492,7 +492,7 @@ python automation/admin_api.py         # Painel de controle (FastAPI)
 
 | Workflow | Gatilho | Função |
 |----------|---------|--------|
-| **Gerar Conteudo Automatico** | Cron (a cada 2 dias) + manual | Artigo com trending, produtos e deploy |
+| **Gerar Conteudo Automatico** | Cron (diário 09:30 UTC) + manual | Artigo com trending, produtos e deploy |
 | **Gerar Artigo Pilar** | Manual | Guia completo 3000+ palavras com 12+ produtos |
 | **Regenerar Capa** | Manual | Regenera a capa IA de um artigo |
 | **Deploy Blog Gamer** | Push na main + manual | Build e deploy GitHub Pages |
@@ -523,7 +523,7 @@ Os artigos ficam com links diretos do ML em vez de `meli.la`:
 
 ### Consumo do GROQ
 
-O blog faz poucas chamadas ao GROQ (geralmente 2–3 por artigo, a cada 2 dias). Se você usa a mesma conta do GROQ em outros projetos, o consumo compartilhado pode chegar ao limite gratuito:
+O blog faz poucas chamadas ao GROQ (geralmente 2–3 por artigo, diariamente). Se você usa a mesma conta do GROQ em outros projetos, o consumo compartilhado pode chegar ao limite gratuito:
 
 | Projeto | Chamadas/24h |
 |---------|-------------|

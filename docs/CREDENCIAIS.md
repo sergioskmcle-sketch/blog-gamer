@@ -15,7 +15,7 @@
 
 | Workflow | Arquivo | Gatilho |
 |----------|---------|---------|
-| Gerar artigo | `.github/workflows/gerar-conteudo.yml` | Schedule (cron: `30 9 */2 * *`) + manual |
+| Gerar artigo | `.github/workflows/gerar-conteudo.yml` | Schedule (cron: `30 9 * * *`, diário) + manual |
 | Deploy | `.github/workflows/deploy.yml` | Push + manual |
 
 ## URLs
