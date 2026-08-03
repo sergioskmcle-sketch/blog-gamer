@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { pathToFileURL } from "url";
 import Parser from "rss-parser";
-import { searchMLviaGoogle, searchMLDirect } from "./ml_affiliate.mjs";
+import { searchGoogleShopping } from "./google_shopping.mjs";
 import { gerarCapaStability } from "./stability-cover.mjs";
 import { gerarCapaOpenAI, downloadImage, searchTavilyImage } from "./openai-cover.mjs";
 
@@ -456,8 +456,8 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const RAWG_API_KEY = process.env.RAWG_API_KEY;
-const ML_CLIENT_ID = process.env.ML_CLIENT_ID;
-const ML_CLIENT_SECRET = process.env.ML_CLIENT_SECRET;
+const SERPER_API_KEY = process.env.SERPER_API_KEY;
+const MAX_PRODUCTS = 5;
 
 const GAME_IMAGE_CACHE = {};
 
@@ -828,8 +828,8 @@ function mlProductRelevanceScore(p, tokens) {
 }
 
 // Portao de sanidade aplicado a TODA fonte de produtos: blog/categoria/listagem
-// nunca viram item; exige MLB id e preco; prefere itens relevantes ao topico.
-function sanitizeMLProducts(products, topic) {
+// nunca viram item; exige id ou permalink real e preco; prefere itens relevantes ao topico.
+function sanitizeProducts(products, topic) {
   if (!Array.isArray(products) || products.length === 0) return [];
   const seen = new Set();
   const candidates = [];
@@ -840,9 +840,10 @@ function sanitizeMLProducts(products, topic) {
     if (ML_NON_PRODUCT_URL.test(url)) continue;
     if (ML_ARTICLE_TITLE.test(title)) continue;
     const id = p.id || (url.match(/MLB\d{8,}/) || [])[0] || "";
-    if (!id) continue;
-    if (seen.has(id)) continue;
-    seen.add(id);
+    if (!id && !url.startsWith("http")) continue;
+    const dedupeKey = id || url;
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
     candidates.push(p);
   }
 
@@ -876,10 +877,26 @@ function buildProductImageTag(p) {
   return `<img src="${url}" alt="${title}" class="article-game-img" loading="lazy" decoding="async">`;
 }
 
+// Lojas cujo nome pede "NA" (feminino) em portugues. Padrao: "NO".
+const NA_STORES = new Set([
+  "kabum", "amazon", "magalu", "magazineluiza", "shopee", "pichau", "terabyte", "americanas",
+  "fastshop", "mercadolivre", "mercadolivre.com", "mercadolibre", "submarino",
+  "casas bahia", "extra", "wish", "netshoes", "centauro", "kalunga",
+]);
+
+function productButtonLabel(p) {
+  const src = String(p?.source || "").trim().toLowerCase().replace(/\.com\.br$/, "").replace(/\.com$/, "").trim();
+  if (!src) return "VER NO MERCADO LIVRE";
+  const store = src.toUpperCase();
+  if (src === "mercadolivre" || src === "mercado livre" || src === "mercadolibre") return "VER NO MERCADO LIVRE";
+  return NA_STORES.has(src) ? `VER NA ${store}` : `VER NO ${store}`;
+}
+
 function buildProductButtonHtml(p) {
   const link = p.affiliate_link || p.permalink || "";
   if (!link) return "";
-  return `<a href="${link}" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>`;
+  const label = productButtonLabel(p);
+  return `<a href="${link}" class="product-btn" target="_blank" rel="nofollow">${label}</a>`;
 }
 
 // Ultimo recurso de imagem do item: gera uma foto de catalogo via OpenAI.
@@ -1783,7 +1800,7 @@ async function main() {
   log("INFO", `GEMINI_API_KEY definida: ${!!GEMINI_API_KEY}`);
   log("INFO", `GROQ_API_KEY definida: ${!!GROQ_API_KEY}`);
   log("INFO", `TAVILY_API_KEY definida: ${!!TAVILY_API_KEY}`);
-  log("INFO", `ML_CLIENT_ID definida: ${!!ML_CLIENT_ID}`);
+  log("INFO", `SERPER_API_KEY definida: ${!!SERPER_API_KEY}`);
 
   if (!GEMINI_API_KEY && !GROQ_API_KEY) { log("ERROR", "Nenhuma chave de IA configurada (GEMINI_API_KEY ou GROQ_API_KEY)"); process.exit(1); }
   if (!TAVILY_API_KEY) log("WARN", "TAVILY_API_KEY nao definida — artigo seguira sem fontes pesquisadas");
@@ -1865,10 +1882,10 @@ async function main() {
   }
 
   let mlProducts = [];
-  if (TAVILY_API_KEY) {
+  if (SERPER_API_KEY) {
     try {
       const trendingKws = topic.trending_keywords || [];
-      // Queries de ML seguem o dominio do artigo: games -> jogos; hardware -> perifericos
+      // Queries seguem o dominio do artigo: games -> jogos; hardware -> perifericos
       const searchQueries = [
         ...trendingKws.slice(0, 2).flatMap((kw) =>
           effectiveDomain === "hardware"
@@ -1876,12 +1893,12 @@ async function main() {
             : [`${kw} jogo ps5`, `${kw} jogo xbox`]
         ),
         topic.ml_query,
-      ].slice(0, 4);
+      ].slice(0, MAX_PRODUCTS);
 
       const seen = new Set();
       for (const query of searchQueries) {
         try {
-          const results = await searchMLviaGoogle(query, null, TAVILY_API_KEY, 4);
+          const results = await searchGoogleShopping(query, SERPER_API_KEY, MAX_PRODUCTS);
           for (const p of results) {
             if (!seen.has(p.permalink)) {
               seen.add(p.permalink);
@@ -1889,41 +1906,22 @@ async function main() {
             }
           }
         } catch (e) {
-          log("WARN", `ML search "${query}": ${e.message}`);
+          log("WARN", `Shopping search "${query}": ${e.message}`);
         }
-        if (mlProducts.length >= 4) break;
-      }
-
-      if (mlProducts.length === 0) {
-        log("INFO", "Nenhum produto encontrado via Google/Tavily, tentando API direta do ML...");
-        const directQueries = [
-          ...trendingKws.slice(0, 2),
-          topic.ml_query,
-          effectiveDomain === "games" ? "console game acessorio" : "periferico gamer",
-        ].filter(Boolean);
-        for (const dq of directQueries) {
-          const directResults = await searchMLDirect(dq, ML_CLIENT_ID, ML_CLIENT_SECRET, 4);
-          for (const p of directResults) {
-            if (!seen.has(p.permalink)) {
-              seen.add(p.permalink);
-              mlProducts.push(p);
-            }
-          }
-          if (mlProducts.length >= 4) break;
-        }
+        if (mlProducts.length >= MAX_PRODUCTS) break;
       }
 
       if (mlProducts.length === 0 && effectiveDomain === "games") {
         log("INFO", "Fallback final: produtos fixos gaming");
         const gamingProducts = [
-          { title: "Console Sony PlayStation 5 Slim 1TB + GTA 6", price: 4499, thumbnail: "https://store.sony.com.au/dw/image/v2/ABBC_PRD/on/demandware.static/-/Sites-sony-master-catalog/default/dwf11f74b4/images/PLAYSTATION5WSLIM/PLAYSTATION5WSLIM.png", permalink: "https://www.mercadolivre.com.br/console-sony-playstation-5-edico-slim-disk-1tb-branco-controle-sem-fio-dualsense-ps5-branco/p/MLB52897777" },
-          { title: "Console Xbox Series X 1TB", price: 4399, thumbnail: "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/6048892_Image-Buy-Box-0_2000x2000-1?wid=1253&hei=705&fmt=jpg", permalink: "https://www.mercadolivre.com.br/console-xbox-series-x-1tb-standard-cor-preto/p/MLB37335939" },
-          { title: "Console Nintendo Switch 2", price: 3299, thumbnail: "https://assets.nintendo.com/image/upload/c_fill,w_1200/q_auto:best/f_auto/dpr_2.0/ncom/My%20Nintendo%20Store/EN-US/Nintendo%20Switch%202/Hardware/123669-nintendo-switch-2-package-front-2000x2000", permalink: "https://www.mercadolivre.com.br/nintendo-switch-2/p/MLB41884906" },
-          { title: "Controle Sem Fio DualSense PS5", price: 429, thumbnail: "https://gmedia.playstation.com/is/image/SIEPDC/dualsense-controller-product-thumbnail-01-en-14sep21", permalink: "https://www.mercadolivre.com.br/controle-sem-fio-sony-dualsense-ps5-com-cabo-de-carregamento-usb-cor-branco/p/MLB26725576" },
-          { title: "Headset Gamer Astro A50 Wireless PS5/PC", price: 1799, thumbnail: "https://http2.mlstatic.com/D_NQ_NP_2X_697790-MLB75680571995_052024-F.webp", permalink: "https://www.mercadolivre.com.br/headset-gamer-astro-a50-wireless-base-station-ps5-pc/p/MLB29785062" },
-          { title: "Controle Xbox Series Wireless", price: 449, thumbnail: "https://http2.mlstatic.com/D_NQ_NP_2X_823063-MLB73535292701_122023-F.webp", permalink: "https://www.mercadolivre.com.br/controle-sem-fio-microsoft-xbox-series-carbon-black/p/MLB26813017" },
+          { title: "Console Sony PlayStation 5 Slim 1TB + GTA 6", price: 4499, thumbnail: "https://store.sony.com.au/dw/image/v2/ABBC_PRD/on/demandware.static/-/Sites-sony-master-catalog/default/dwf11f74b4/images/PLAYSTATION5WSLIM/PLAYSTATION5WSLIM.png", permalink: "https://www.mercadolivre.com.br/console-sony-playstation-5-edico-slim-disk-1tb-branco-controle-sem-fio-dualsense-ps5-branco/p/MLB52897777", source: "Mercado Livre" },
+          { title: "Console Xbox Series X 1TB", price: 4399, thumbnail: "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/6048892_Image-Buy-Box-0_2000x2000-1?wid=1253&hei=705&fmt=jpg", permalink: "https://www.mercadolivre.com.br/console-xbox-series-x-1tb-standard-cor-preto/p/MLB37335939", source: "Mercado Livre" },
+          { title: "Console Nintendo Switch 2", price: 3299, thumbnail: "https://assets.nintendo.com/image/upload/c_fill,w_1200/q_auto:best/f_auto/dpr_2.0/ncom/My%20Nintendo%20Store/EN-US/Nintendo%20Switch%202/Hardware/123669-nintendo-switch-2-package-front-2000x2000", permalink: "https://www.mercadolivre.com.br/nintendo-switch-2/p/MLB41884906", source: "Mercado Livre" },
+          { title: "Controle Sem Fio DualSense PS5", price: 429, thumbnail: "https://gmedia.playstation.com/is/image/SIEPDC/dualsense-controller-product-thumbnail-01-en-14sep21", permalink: "https://www.mercadolivre.com.br/controle-sem-fio-sony-dualsense-ps5-com-cabo-de-carregamento-usb-cor-branco/p/MLB26725576", source: "Mercado Livre" },
+          { title: "Headset Gamer Astro A50 Wireless PS5/PC", price: 1799, thumbnail: "https://http2.mlstatic.com/D_NQ_NP_2X_697790-MLB75680571995_052024-F.webp", permalink: "https://www.mercadolivre.com.br/headset-gamer-astro-a50-wireless-base-station-ps5-pc/p/MLB29785062", source: "Mercado Livre" },
+          { title: "Controle Xbox Series Wireless", price: 449, thumbnail: "https://http2.mlstatic.com/D_NQ_NP_2X_823063-MLB73535292701_122023-F.webp", permalink: "https://www.mercadolivre.com.br/controle-sem-fio-microsoft-xbox-series-carbon-black/p/MLB26813017", source: "Mercado Livre" },
         ];
-        for (const gp of gamingProducts.slice(0, 4)) {
+        for (const gp of gamingProducts.slice(0, MAX_PRODUCTS)) {
           if (!seen.has(gp.permalink)) {
             seen.add(gp.permalink);
             mlProducts.push(gp);
@@ -1935,13 +1933,13 @@ async function main() {
         p.affiliate_link = p.permalink;
       }
     } catch (err) {
-      log("WARN", `ML Search: ${err.message}`);
+      log("WARN", `Shopping Search: ${err.message}`);
     }
   } else {
-    log("WARN", "TAVILY_API_KEY nao configurada — pulando busca de produtos ML");
+    log("WARN", "SERPER_API_KEY nao configurada — pulando busca de produtos");
   }
 
-  mlProducts = sanitizeMLProducts(mlProducts.filter((p) => isGamerProduct(p.title)), topic);
+  mlProducts = sanitizeProducts(mlProducts.filter((p) => isGamerProduct(p.title)), topic);
 
   const productBlock = mlProducts.length > 0
     ? `\nPRODUTOS DISPONIVEIS (cada um vira um item da secao de Itens):\n${mlProducts.map((p, i) =>
@@ -2703,9 +2701,10 @@ export {
   injectGameImages,
   injectProductCards,
   buildProductButtonHtml,
+  productButtonLabel,
   buildProductImageTag,
   imageExtension,
-  sanitizeMLProducts,
+  sanitizeProducts,
   splitMainBody,
   parseBlurb,
   buildComparativoTable,

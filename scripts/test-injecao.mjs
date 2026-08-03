@@ -6,10 +6,11 @@ import assert from "assert";
 import {
   injectProductCards, injectGameImages, extractImageMarkers, repositionImageMarkers,
   stripLeftoverMarkers, validate, checkTitle, capitalizeTitle, similarity, nameSimilarity,
-  computeMaxTokens, buildProductButtonHtml, buildProductImageTag, injectTableOfContents, validateSourceCoverage,
+  computeMaxTokens, buildProductButtonHtml, productButtonLabel, buildProductImageTag, injectTableOfContents, validateSourceCoverage,
   formatProductPriceForPrompt, findPricesInBody,
-  sanitizeMLProducts, splitMainBody, parseBlurb, buildComparativoTable, buildItemSection, injectSegmentedItems,
+  sanitizeProducts, splitMainBody, parseBlurb, buildComparativoTable, buildItemSection, injectSegmentedItems,
 } from "./gerar-artigo.mjs";
+import { parsePriceBRL } from "./google_shopping.mjs";
 
 let passou = 0;
 function ok(cond, msg) {
@@ -95,6 +96,22 @@ ok(btn.includes("http://ml/x"), "link de afiliado presente");
 ok(!btn.includes("R$") && !btn.includes("product-card"), "botao simples nao carrega preco nem card");
 ok(buildProductButtonHtml({ title: "X", permalink: "http://ml/y" }).includes("http://ml/y"), "usa permalink quando nao ha affiliate");
 igual(buildProductButtonHtml({ title: "X" }), "", "sem link nao gera botao");
+
+// botao com nome da loja (Serper): source -> VER NA KABUM / VER NO MERCADO LIVRE
+igual(productButtonLabel({ source: "Kabum" }), "VER NA KABUM", "label loja feminina: na");
+igual(productButtonLabel({ source: "Amazon" }), "VER NA AMAZON", "label loja feminina: na amazon");
+igual(productButtonLabel({ source: "Pichau" }), "VER NA PICHAU", "label pichau: na");
+igual(productButtonLabel({ source: "Mercado Livre" }), "VER NO MERCADO LIVRE", "label mercado livre especial");
+igual(productButtonLabel({ source: "magazineluiza.com.br" }), "VER NA MAGAZINELUIZA", "label normaliza .com.br");
+igual(productButtonLabel({ source: "AliExpress" }), "VER NO ALIEXPRESS", "label sem source no mapa usa no");
+igual(productButtonLabel({}), "VER NO MERCADO LIVRE", "label fallback sem source");
+ok(buildProductButtonHtml({ title: "X", permalink: "http://k/k", source: "Kabum" }).includes("VER NA KABUM"), "botao usa label da loja");
+
+igual(parsePriceBRL("R$ 1.299,90"), 1299.9, "parsePriceBRL com R$ e milhar");
+igual(parsePriceBRL("R$ 249"), 249, "parsePriceBRL inteiro");
+igual(parsePriceBRL("1.234,56"), 1234.56, "parsePriceBRL sem R$");
+igual(parsePriceBRL(null), 0, "parsePriceBRL null -> 0");
+igual(parsePriceBRL(""), 0, "parsePriceBRL vazio -> 0");
 const imgTag = buildProductImageTag({ title: "Persona 5 Tactica", thumbnail: "http://img/9.jpg" });
 ok(imgTag.includes('class="article-game-img"') && imgTag.includes("http://img/9.jpg"), "foto do item usa article-game-img + thumbnail");
 igual(buildProductImageTag({ title: "X", thumbnail: "" }), "", "sem imagem nao gera tag");
@@ -327,7 +344,7 @@ ok(warnings.some((w) => /2027/.test(w)), "detecta ano nao suportado pelas fontes
 ok(warnings.some((w) => /15\/10/.test(w)), "detecta nota nao suportada pelas fontes");
 ok(warnings.some((w) => /Secao ## Fontes ausente/.test(w)), "detecta secao Fontes ausente");
 
-// --- Fase 1: portao sanitizeMLProducts ---
+// --- Fase 1: portao sanitizeProducts ---
 const topicProd = { hint: "placas de video amd 2026", ml_query: "placa de video gamer", trending_keywords: ["rx 580"] };
 const candidatos = [
   { id: "MLB1", title: "Placa de Video RTX 4060 8GB", price: 1800, permalink: "https://www.mercadolivre.com.br/rtx/p/MLB12345678" },
@@ -337,11 +354,14 @@ const candidatos = [
   { id: "MLB5", title: "Variante de vendedor", price: 50, permalink: "https://www.mercadolivre.com.br/vende/MLB99999/up" },
   { id: "MLB6", title: "Sem preco", price: 0, permalink: "https://www.mercadolivre.com.br/np/p/MLB11111" },
   { id: "MLB1", title: "Duplicado", price: 1, permalink: "https://www.mercadolivre.com.br/dup/p/MLB12345678" },
+  { id: "GB1", title: "Placa de Video RTX 5060 Kabum", price: 2500, permalink: "https://www.kabum.com.br/rtx5060", source: "Kabum" },
+  { id: "", title: "Placa sem id mas com permalink", price: 3000, permalink: "https://www.amazon.com.br/rtx", source: "Amazon" },
 ];
-const limpos = sanitizeMLProducts(candidatos, topicProd);
-igual(limpos.map((p) => p.title), ["Placa de Video RX 580 8GB", "Placa de Video RTX 4060 8GB"], "sanitize tira blog/lista/up, deduplica e ordena por relevancia");
-igual(sanitizeMLProducts([], topicProd), [], "sanitize lista vazia");
-igual(sanitizeMLProducts(null, topicProd), [], "sanitize null");
+const limpos = sanitizeProducts(candidatos, topicProd);
+igual(limpos.map((p) => p.title), ["Placa de Video RX 580 8GB", "Placa de Video RTX 4060 8GB", "Placa de Video RTX 5060 Kabum", "Placa sem id mas com permalink"], "sanitize tira blog/lista/up, deduplica, aceita lojas sem MLB e ordena por relevancia");
+igual(sanitizeProducts([], topicProd), [], "sanitize lista vazia");
+igual(sanitizeProducts(null, topicProd), [], "sanitize null");
+igual(sanitizeProducts([{ title: "X", price: 1, permalink: "" }], topicProd), [], "sanitize rejeita produto sem id e sem permalink");
 
 // --- Fase 2: splitMainBody ---
 const corpoEx = "Fala! Bora ver as placas.\n\nCriterio: entrega por real.\n\n## Os 2 Melhores Placas de Video em 2026\n\n## Veredito\n\nVale.\n\n## FAQ\n\nP1";

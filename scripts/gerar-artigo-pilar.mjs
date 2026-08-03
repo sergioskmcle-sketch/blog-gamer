@@ -1,17 +1,14 @@
 import "dotenv/config";
 import fs from "fs";
 import path from "path";
-import { searchMLviaGoogle, generateAffiliateLink } from "./ml_affiliate.mjs";
+import { searchGoogleShopping } from "./google_shopping.mjs";
 import { gerarCapaOpenAI } from "./openai-cover.mjs";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const ML_CLIENT_ID = process.env.ML_CLIENT_ID;
-const ML_CLIENT_SECRET = process.env.ML_CLIENT_SECRET;
-const ML_COOKIES_B64 = process.env.ML_COOKIES_B64;
-const ML_COOKIES_PATH = path.resolve("ml_cookies.json");
+const SERPER_API_KEY = process.env.SERPER_API_KEY;
 
 function log(level, msg) {
   const ts = new Date().toISOString().replace(/T/, " ").replace(/\..+/, "");
@@ -196,21 +193,29 @@ const SEÇÕES = [
   },
 ];
 
+const NA_STORES = new Set([
+  "kabum", "amazon", "magalu", "magazineluiza", "shopee", "pichau", "terabyte", "americanas",
+  "fastshop", "submarino", "casas bahia", "netshoes", "centauro", "kalunga",
+]);
+
+function productButtonLabel(p) {
+  const src = String(p?.source || "").trim().toLowerCase().replace(/\.com\.br$/, "").replace(/\.com$/, "").trim();
+  if (!src) return "VER NO MERCADO LIVRE";
+  const store = src.toUpperCase();
+  if (src === "mercadolivre" || src === "mercado livre" || src === "mercadolibre") return "VER NO MERCADO LIVRE";
+  return NA_STORES.has(src) ? `VER NA ${store}` : `VER NO ${store}`;
+}
+
 async function buscarProdutosML(secao) {
-  if (!secao.ml_query || !ML_CLIENT_ID || !ML_CLIENT_SECRET) return [];
+  if (!secao.ml_query || !SERPER_API_KEY) return [];
   try {
-    const produtos = await searchMLviaGoogle(secao.ml_query, ML_COOKIES_PATH, TAVILY_API_KEY, 2);
+    const produtos = await searchGoogleShopping(secao.ml_query, SERPER_API_KEY, 2);
     for (const p of produtos) {
-      if (fs.existsSync(ML_COOKIES_PATH)) {
-        try {
-          const linkResult = await generateAffiliateLink(p.permalink, ML_COOKIES_PATH);
-          p.affiliate_link = linkResult?.url || linkResult?.link || p.permalink;
-        } catch { p.affiliate_link = p.permalink; }
-      } else { p.affiliate_link = p.permalink; }
+      p.affiliate_link = p.permalink;
     }
     return produtos;
   } catch (e) {
-    log("WARN", `ML erro "${secao.titulo.slice(0, 30)}": ${e.message}`);
+    log("WARN", `Shopping erro "${secao.titulo.slice(0, 30)}": ${e.message}`);
     return [];
   }
 }
@@ -237,14 +242,15 @@ function injectProducts(article, produtosPorSecao) {
       const img = p.thumbnail && p.thumbnail.startsWith("http") ? p.thumbnail : "";
       const link = p.affiliate_link || p.permalink || "";
       const preco = p.price ? `R$ ${p.price.toFixed(2)}` : "Consulte no site";
+      const label = productButtonLabel(p);
       return `<div class="product-card">
   ${img ? `<img src="${img}" alt="${p.title}" class="product-card-img" loading="lazy" decoding="async">` : ""}
   <div class="product-card-body">
     <h3>${p.title}</h3>
     <div class="product-price">${preco}</div>
-    <p class="product-desc">${p.title} — adquira no Mercado Livre com link de afiliado.</p>
+    <p class="product-desc">${p.title} — veja na loja e confira a disponibilidade.</p>
     <div class="product-pros"><strong>Destaque:</strong> Excelente custo-benefício para sua categoria.</div>
-    ${link ? `<a href="${link}" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>` : ""}
+    ${link ? `<a href="${link}" class="product-btn" target="_blank" rel="nofollow">${label}</a>` : ""}
   </div>
 </div>`;
     }).join("\n\n");
@@ -258,15 +264,9 @@ function injectProducts(article, produtosPorSecao) {
 // ====== MAIN ======
 
 async function main() {
-  log("INFO", "=== GERANDO ARTIGO PILAR C/ PRODUTOS ML ===");
+  log("INFO", "=== GERANDO ARTIGO PILAR C/ PRODUTOS ===");
 
   if (!GEMINI_API_KEY && !GROQ_API_KEY) { log("ERROR", "Nenhuma chave de IA configurada (GEMINI_API_KEY ou GROQ_API_KEY)"); process.exit(1); }
-
-  const cookiesB64 = ML_COOKIES_B64 || (fs.existsSync(path.resolve("ml_cookies_base64.txt")) ? fs.readFileSync(path.resolve("ml_cookies_base64.txt"), "utf-8").trim() : null);
-  if (cookiesB64) {
-    try { fs.writeFileSync(ML_COOKIES_PATH, Buffer.from(cookiesB64, "base64"), "utf-8"); log("INFO", "Cookies ML carregados"); }
-    catch (e) { log("WARN", `Erro cookies: ${e.message}`); }
-  }
 
   const today = new Date().toISOString().split("T")[0];
   let pesquisaCompleta = "";
@@ -302,7 +302,7 @@ async function main() {
   const totalProdutos = [...produtosPorSecao.values()].flat().length;
   let productInstructions = "";
   if (produtosPorSecao.size > 0) {
-    productInstructions = `\nPRODUTOS DO MERCADO LIVRE (${totalProdutos} produtos, use APENAS estes):\n`;
+    productInstructions = `\nPRODUTOS DISPONIVEIS (${totalProdutos} produtos, use APENAS estes):\n`;
     for (const [secao, prods] of produtosPorSecao) {
       productInstructions += `\nSeção "${secao}":\n${prods.map((p, i) =>
         `  ${i + 1}. ${p.title} (R$ ${p.price?.toFixed(2) || "N/A"}) — Imagem: ${p.thumbnail} — Link: ${p.affiliate_link || p.permalink}`
@@ -324,7 +324,7 @@ REGRAS:
 - Inclua TABELAS COMPARATIVAS em markup
 - Inclua precos em reais (R$)
 - NUNCA invente URLs de imagens — o sistema injeta os produtos automaticamente depois. Voce so precisa mencionar os nomes dos produtos no texto.
-- ${produtosPorSecao.size > 0 ? `MENCIONE os produtos do Mercado Livre no corpo do texto pelo nome (ex: "A **RTX 4060** por R$ 1.899..."). O sistema inserira as imagens e botoes depois.` : ""}
+- ${produtosPorSecao.size > 0 ? `MENCIONE os produtos listados no corpo do texto pelo nome (ex: "A **RTX 4060** por R$ 1.899..."). O sistema inserira as imagens e botoes depois.` : ""}
 - Inclua links internos para: /blog-gamer/blog/as-10-melhores-placas-de-video-custo-beneficio-do-mercado-livre-em-2026/ e /blog-gamer/blog/os-10-melhores-monitores-gamer-custo-beneficio-do-mercado-livre-em-2026/
 - Ao final: ## Quer montar seu setup?\\n\\nEntre no [grupo VIP do Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) para ofertas diarias de hardware!
 - NUNCA mencione IA. Sem emojis.
@@ -332,7 +332,7 @@ REGRAS:
 
 Frontmatter:
 title: "Guia Definitivo do Setup Gamer 2026: Monte o PC Ideal do Econômico ao High-End"
-description: "Guia completo para montar seu PC gamer em 2026. CPUs, GPUs, monitores e periféricos com recomendações, preços e links do Mercado Livre."
+description: "Guia completo para montar seu PC gamer em 2026. CPUs, GPUs, monitores e periféricos com recomendações, preços e links das lojas."
 pubDate: ${today}
 tags: ["setup gamer", "pc gamer", "placa de video", "monitor gamer", "guia"]
 category: "guia"

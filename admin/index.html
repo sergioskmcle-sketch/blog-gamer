@@ -764,9 +764,9 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
 
   <div id="editor-products" class="etab-content" style="display:none">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-      <span style="font-size:0.85rem;color:var(--text-sec);flex:1">Links dos botões de compra (product-btn). Edite abaixo e clique em "Aplicar links" para atualizar o conteúdo.</span>
+      <span style="font-size:0.85rem;color:var(--text-sec);flex:1">Botões de compra (product-btn). Edite o <b>texto</b> e o <b>link</b> de cada um e clique em "Aplicar botões". (Duplo-clique no botão da prévia também edita.)</span>
       <button class="btn btn-secondary btn-sm" onclick="renderProductButtons()">🔄 Recarregar</button>
-      <button class="btn btn-primary btn-sm" onclick="applyProductLinks()">✔️ Aplicar links</button>
+      <button class="btn btn-primary btn-sm" onclick="applyProductLinks()">✔️ Aplicar botões</button>
     </div>
     <div id="productsList">
       <div style="padding:24px;text-align:center;color:var(--text-muted);font-size:0.85rem">Carregando botões de produto...</div>
@@ -960,7 +960,7 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
 
 <div id="buttonModal" class="modal-overlay">
   <div class="modal">
-    <h2>Inserir Botão de Compra</h2>
+    <h2 id="btnModalTitle">Inserir Botão de Compra</h2>
     <div class="form-group"><label>Texto do botão</label><input id="btnText" class="form-control" placeholder="VER NO MERCADO LIVRE"/></div>
     <div class="form-group"><label>Link (URL de redirecionamento)</label><input id="btnHref" class="form-control" placeholder="https://meli.la/..."/></div>
     <div class="form-group">
@@ -1017,11 +1017,14 @@ function closeModal() {
 }
 
 let savedBtnRange = null;
+let editingBtnAnchor = null;
 
 function wysiwygProductBtn() {
   const sel = window.getSelection();
   const body = document.getElementById('previewBody');
   savedBtnRange = (sel.rangeCount && body.contains(sel.getRangeAt(0).startContainer)) ? sel.getRangeAt(0).cloneRange() : null;
+  editingBtnAnchor = null;
+  document.getElementById('btnModalTitle').textContent = 'Inserir Botão de Compra';
   document.getElementById('btnText').value = 'VER NO MERCADO LIVRE';
   document.getElementById('btnHref').value = '';
   document.querySelector('input[name="btnColor"][value="verde"]').checked = true;
@@ -1029,7 +1032,21 @@ function wysiwygProductBtn() {
   setTimeout(() => document.getElementById('btnText').focus(), 50);
 }
 
+function editProductBtn(a) {
+  editingBtnAnchor = a;
+  document.getElementById('btnModalTitle').textContent = 'Editar Botão de Compra';
+  document.getElementById('btnText').value = a.textContent.trim();
+  document.getElementById('btnHref').value = a.getAttribute('href') || '';
+  const cls = a.className || '';
+  const color = ['verde', 'amarelo', 'vermelho', 'azul', 'laranja', 'roxo'].find(c => cls.includes('product-btn-' + c)) || 'verde';
+  const radio = document.querySelector('input[name="btnColor"][value="' + color + '"]');
+  if (radio) radio.checked = true;
+  document.getElementById('buttonModal').classList.add('active');
+  setTimeout(() => document.getElementById('btnText').focus(), 50);
+}
+
 function closeBtnModal() {
+  editingBtnAnchor = null;
   document.getElementById('buttonModal').classList.remove('active');
 }
 
@@ -1038,6 +1055,15 @@ function insertProductBtn() {
   const href = document.getElementById('btnHref').value.trim();
   if (!href) { toast('Informe o link do botão', 'error'); return; }
   const color = document.querySelector('input[name="btnColor"]:checked')?.value || 'verde';
+  if (editingBtnAnchor) {
+    editingBtnAnchor.href = href;
+    editingBtnAnchor.className = 'product-btn product-btn-' + color;
+    editingBtnAnchor.textContent = text;
+    editingBtnAnchor = null;
+    closeBtnModal();
+    toast('Botão atualizado!');
+    return;
+  }
   const body = document.getElementById('previewBody');
   const a = document.createElement('a');
   a.href = href;
@@ -1064,6 +1090,14 @@ function insertProductBtn() {
   closeBtnModal();
   toast('Botão de compra inserido!');
 }
+
+document.addEventListener('dblclick', function (e) {
+  const a = e.target && e.target.closest ? e.target.closest('a.product-btn') : null;
+  if (a && document.getElementById('previewBody').contains(a)) {
+    e.preventDefault();
+    editProductBtn(a);
+  }
+});
 
 function setLoading(btnId, loading) {
   const btn = document.getElementById(btnId);
@@ -1875,7 +1909,15 @@ function findProductBtnAnchors(md) {
   let m;
   while ((m = re.exec(md))) {
     const hrefMatch = m[0].match(/href="([^"]*)"/);
-    anchors.push({ index: m.index, end: m.index + m[0].length, href: hrefMatch ? hrefMatch[1] : '' });
+    const textMatch = m[0].match(/>([^<]*)<\/a>/);
+    const classMatch = m[0].match(/class="([^"]*\bproduct-btn\b[^"]*)"/);
+    anchors.push({
+      index: m.index,
+      end: m.index + m[0].length,
+      href: hrefMatch ? hrefMatch[1] : '',
+      text: textMatch ? textMatch[1] : '',
+      className: classMatch ? classMatch[1] : 'product-btn',
+    });
   }
   return anchors;
 }
@@ -1890,13 +1932,20 @@ function renderProductButtons() {
   }
   listEl.innerHTML = anchors.map((a, i) => {
     const before = md.substring(0, a.index);
-    const h3s = before.match(/<h3[^>]*>[\s\S]*?<\/h3>/gi);
-    const title = h3s ? h3s[h3s.length - 1].replace(/<[^>]+>/g, '').trim() : 'Produto ' + (i + 1);
+    let title = 'Produto ' + (i + 1);
+    const mdHeadings = before.match(/^#{2,3}\s.+$/gm);
+    if (mdHeadings && mdHeadings.length > 0) {
+      title = mdHeadings[mdHeadings.length - 1].replace(/^#{2,3}\s*/, '').replace(/[#*_]/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').trim();
+    } else {
+      const htmlHeadings = before.match(/<h[23][^>]*>[\s\S]*?<\/h[23]>/gi);
+      title = htmlHeadings ? htmlHeadings[htmlHeadings.length - 1].replace(/<[^>]+>/g, '').trim() : title;
+    }
     return `
       <div class="form-group" style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px">
         <label style="display:block;font-size:0.85rem;font-weight:600;color:var(--text)">${i + 1}. ${escapeHtml(title)}</label>
-        <div style="display:flex;gap:6px;margin-top:6px">
-          <input id="productLink_${i}" class="form-control" value="${escapeHtml(a.href)}" placeholder="https://..." style="flex:1"/>
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+          <input id="productText_${i}" class="form-control" value="${escapeHtml(a.text)}" placeholder="VER NA LOJA" title="Texto do botão" style="flex:1;min-width:150px"/>
+          <input id="productLink_${i}" class="form-control" value="${escapeHtml(a.href)}" placeholder="https://..." title="Link do botão" style="flex:2;min-width:220px"/>
           <button class="btn btn-secondary btn-sm" onclick="pickProductLink(${i})" title="Inserir link">🔗</button>
         </div>
       </div>`;
@@ -1915,18 +1964,21 @@ function applyProductLinks() {
   if (anchors.length === 0) { toast('Nenhum botão de produto encontrado', 'error'); return; }
   let next = md;
   for (let i = anchors.length - 1; i >= 0; i--) {
-    const input = document.getElementById('productLink_' + i);
-    if (!input) continue;
-    const href = input.value.trim();
-    if (!href) continue;
+    const linkInput = document.getElementById('productLink_' + i);
+    const textInput = document.getElementById('productText_' + i);
+    if (!linkInput && !textInput) continue;
+    const href = linkInput ? linkInput.value.trim() : '';
+    const text = textInput ? textInput.value.trim() : '';
+    if (!href && !text) continue;
     const anchor = anchors[i];
-    const raw = next.substring(anchor.index, anchor.end);
-    const updated = raw.replace(/href="[^"]*"/, `href="${href.replace(/"/g, '&quot;')}"`);
+    let updated = next.substring(anchor.index, anchor.end);
+    if (href) updated = updated.replace(/href="[^"]*"/, `href="${href.replace(/"/g, '&quot;')}"`);
+    if (text) updated = updated.replace(/>([^<]*)<\/a>/, `>${text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</a>`);
     next = next.substring(0, anchor.index) + updated + next.substring(anchor.end);
   }
   document.getElementById('fieldBody').value = next;
   renderProductButtons();
-  toast('Links dos botões atualizados no conteúdo!');
+  toast('Botões (texto + link) atualizados no conteúdo!');
 }
 
 async function saveArticle() {

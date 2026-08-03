@@ -221,26 +221,26 @@ Para artigos automáticos (pipeline diário), a capa é gerada durante o `gerar-
 
 ## Como os Produtos do Mercado Livre São Inseridos
 
-### Injeção de Botão de Afiliado
+### Injeção de Botão de Produto
 
-Os artigos **não dependem da IA** incluir produtos no texto. Após a IA gerar o artigo, o sistema injeta um botão de afiliado no final de cada tópico de produto:
+Os artigos **não dependem da IA** incluir produtos no texto. Após a IA gerar o artigo, o sistema injeta um botão de compra no final de cada tópico de produto:
 
-1. **Busca de produtos** (`searchMLviaGoogle`): até 4 queries usando trending keywords (ex: `"resident evil jogo ps5 xbox pc"`). Fallback para API interna do ML.
-2. **Link de afiliado**: sem cookies ativos, o botão aponta direto para a URL do produto no ML (`p.permalink`). Links `meli.la` voltam quando houver credenciais de app válidas.
-3. **Filtro** (`isGamerProduct`): bloqueia itens não-gamer (whey, parafusadeira, roupas, cosméticos, utensílios de cozinha, etc.)
-4. **Posição**: o botão é injetado **no final de cada tópico de produto**, após o texto que descreve o produto.
+1. **Busca de produtos** (`searchGoogleShopping`): até 5 queries usando trending keywords (ex: `"resident evil jogo ps5 xbox pc"`). A fonte é a **API de Google Shopping da Serper.dev** (`gl=br`, retorna produto + preço + imagem + link da loja: Mercado Livre, Kabum, Amazon, etc.).
+2. **Link direto**: o botão aponta para a URL do produto na loja (`p.permalink`). Sem comissão até você cadastrar um programa de afiliado (Amazon Associates, AliExpress).
+3. **Texto do botão**: usa o nome da loja (ex.: `VER NA KABUM`, `VER NO MERCADO LIVRE`). Editável depois no painel `/admin/`.
+4. **Filtro** (`isGamerProduct`): bloqueia itens não-gamer (whey, parafusadeira, roupas, cosméticos, utensílios de cozinha, etc.)
+5. **Posição**: o botão é injetado **no final de cada tópico de produto**, após o texto que descreve o produto.
 
-### Link de Afiliado — Status Atual (ago/2026)
+### Produtos — Status Atual (ago/2026)
 
-O ML **não usa mais cookies de sessão** neste projeto (visitar o ML com cookies entrega fingerprint e causa bloqueio global). O estado dos mecanismos de autenticação do ML:
+| Fonte | Status | Detalhe |
+|-------|--------|---------|
+| **Google Shopping (Serper.dev)** | ✅ Ativo | Produto + preço + imagem + link de lojas brasileiras (ML, Kabum, Amazon, Magalu). 2.500 buscas grátis; depois $50/50k (~anos de blog). |
+| **Cookie de sessão ML** | ❌ Aposentado | Não usar: entrega fingerprint e causa bloqueio global (cookies deletados do projeto). |
+| **OAuth ML** (`client_credentials`) | ❌ Bloqueado | `ML_CLIENT_ID` + `ML_CLIENT_SECRET` retornam `invalid_client` (local) e `/sites/MLB/search` está restrito para apps não aprovadas (403). |
+| **Scraping de página ML** | ❌ Bloqueado | Todo conteúdo profundo do ML (produto, listagem, busca) cai em `account-verification`. |
 
-| Método | Status | Detalhe |
-|--------|--------|---------|
-| **Cookie de sessão** | ❌ Aposentado | Não usar: entrega fingerprint e causa bloqueio global (cookies deletados do projeto). |
-| **OAuth** (`client_credentials`) | ❌ Bloqueado | `ML_CLIENT_ID` + `ML_CLIENT_SECRET` retornam `invalid_client` (local) e `/sites/MLB/search` está restrito para apps não aprovadas (403). |
-| **Scraping de página de produto** | ❌ Bloqueado | Todo conteúdo profundo do ML (produto, listagem, busca) cai em `account-verification`. |
-
-Como não há fonte de produtos confiável no momento, os artigos saem com `affiliate: false` (sem botões/links de afiliado). Para reativar a monetização é preciso **credenciais de app ML válidas e aprovadas** para usar os endpoints de catálogo que ainda funcionam (`/products/{MLB...}` + `/products/{MLB...}/items`, descoberta via Tavily/Google).
+Os artigos com produtos saem com `affiliate: true` e botões apontando para as lojas reais. Links com comissão (Amazon Associates, AliExpress) podem ser adicionados depois via painel ou API dedicada.
 
 ### Regenerar Links de um Artigo Existente
 
@@ -332,20 +332,19 @@ Cooldown por horas reais, não por data UTC. Se o último artigo foi gerado há 
 
 ---
 
-## Busca de Produtos via Google
+## Busca de Produtos (Google Shopping / Serper)
 
-O sistema usa **Tavily/Google** para encontrar produtos no Mercado Livre. O fluxo:
+O sistema usa a **API de Google Shopping da Serper.dev** (geo Brasil) para encontrar produtos reais em várias lojas. O fluxo:
 
-1. Tavily busca `"resident evil jogo ps5"` + `"site:mercadolivre.com.br"`
-2. Extrai URLs de produtos do ML dos resultados — só páginas de produto real (blog/categoria/listagem/variante são descartadas por `isProductPageUrl`)
-3. Faz scraping da página do produto (título, preço, imagem) exigindo MLB id
-4. `sanitizeMLProducts()` deduplica, exige preço e ordena por relevância ao tópico
-5. Gera o link do produto para o botão
-6. Monta o artigo de forma **segmentada**: 1 chamada LLM por item (blurb) + 1 chamada para o corpo; itens, tabela comparativa e botões são montados em código
+1. `searchGoogleShopping(query)` → `POST google.serper.dev/shopping` com `{q, gl:"br", hl:"pt-br"}`
+2. Retorna por item: título, preço, imagem, link e nome da loja (`source`: Mercado Livre, Kabum, Amazon, Magalu…)
+3. `isGamerProduct()` + `sanitizeProducts()` descartam não-gamer, blog/listagem/artigo, deduplicam, exigem preço e ordenam por relevância ao tópico
+4. Gera o botão com o nome da loja (`VER NA KABUM`, `VER NO MERCADO LIVRE`) apontando para a URL real
+5. Monta o artigo de forma **segmentada**: 1 chamada LLM por item (blurb) + 1 chamada para o corpo; itens, tabela comparativa e botões são montados em código
 
-Fallback: se o Google não encontrar, tenta a API interna do ML.
+Fallback para tópicos de games: lista fixa de consoles/periféricos (com link real do ML).
 
-> **⚠️ Status atual (ago/2026):** o scraping das páginas de produto está bloqueado pelo ML (`account-verification` em todo conteúdo profundo) e a API interna está restrita (403 para apps não aprovadas). Enquanto isso, os artigos são gerados sem produtos (`affiliate: false`). O caminho previsto é usar os endpoints de catálogo (`/products/{MLB...}` + `/products/{MLB...}/items`) com credenciais de app válidas.
+> **⚠️ Status atual (ago/2026):** scraping e API do Mercado Livre continuam bloqueados (cookies aposentados, `account-verification`, `/search` 403). A fonte de produtos ativa é o **Google Shopping via Serper** — configure `SERPER_API_KEY` para os artigos saírem com produtos (`affiliate: true`).
 
 ---
 
@@ -386,9 +385,8 @@ Arquivos em `public/images/`.
 |--------|-----------|
 | `GEMINI_API_KEY` | API key do Google Gemini (primário, modelo `gemini-flash-latest`) |
 | `GROQ_API_KEY` | API key do Groq (fallback, não expira) |
-| `TAVILY_API_KEY` | API key do Tavily (1000 consultas/mês free, busca fontes + produtos Google) |
-| `ML_CLIENT_ID` | Client ID do app ML (OAuth client_credentials) |
-| `ML_CLIENT_SECRET` | Client Secret do app ML |
+| `TAVILY_API_KEY` | API key do Tavily (1000 consultas/mês free, busca fontes de pesquisa + imagens de produtos) |
+| `SERPER_API_KEY` | API key da Serper.dev (Google Shopping BR — produto, preço, imagem, link da loja; 2.500 buscas grátis) |
 | `RAWG_API_KEY` | API key do RAWG.io (imagens de jogos) |
 | `OPENAI_API_KEY` | API key da OpenAI (fallback de texto `gpt-4o-mini` + capas IA `gpt-image-2`) |
 | `STABILITY_API_KEY` | API key da Stability AI (refinamento/fallback de capas, modelo sd3) |
@@ -421,8 +419,7 @@ Copie `.env.example` para `.env` e preencha:
 GEMINI_API_KEY=AIzaSy...
 GROQ_API_KEY=gsk_...
 TAVILY_API_KEY=tvly-...
-ML_CLIENT_ID=...
-ML_CLIENT_SECRET=...
+SERPER_API_KEY=...
 RAWG_API_KEY=...
 OPENAI_API_KEY=sk-proj-...
 STABILITY_API_KEY=sk-...
@@ -494,13 +491,13 @@ python automation/admin_api.py         # Painel de controle (FastAPI)
 6. **Push falhando com conflito:** o workflow agora faz rebase na branch atual em vez de forçar `origin main`.
 7. Verifique se as chaves dos secrets ainda são válidas (`GEMINI_API_KEY`, `GROQ_API_KEY`, `TAVILY_API_KEY`, etc.)
 
-### Artigos sem produtos de afiliado
+### Artigos sem produtos
 
-Os artigos saem com `affiliate: false` (sem botões de produto):
+Artigos de tópicos que não encontram produto (ou sem `SERPER_API_KEY` configurada) saem com `affiliate: false`:
 
-1. **Fonte de produtos bloqueada (ago/2026):** o scraping de páginas do ML está bloqueado (`account-verification` em todo conteúdo profundo) e a API `/sites/MLB/search` está restrita para apps não aprovadas (403). Sem credenciais de app válidas/ aprovadas, não há produtos — comportamento atual e esperado.
-2. **Permalink reciclado:** se o ID do produto (MLBXXXXX) foi reutilizado pra outro item, a URL canônica aponta pro produto errado. É necessário [encontrar a URL correta](#) e atualizar manualmente.
-3. **Produto removido:** se a página do ML retorna 404, o produto não está mais disponível.
+1. **Fonte de produtos sem resultados:** o Google Shopping (Serper) pode não retornar produto para o tópico, ou a `SERPER_API_KEY` não está configurada. Confirmar o secret e tentar de novo.
+2. **Link quebrado:** se a loja removeu o produto, a URL retorna 404. Corrigir no painel `/admin/` (aba Produtos) ou gerar de novo.
+3. **Produto errado (permalloc reciclado):** se um marketplace reutilizou o ID/URL de outro produto, atualize o link manualmente no painel.
 
 ### Consumo do GROQ
 
@@ -518,23 +515,19 @@ Se o total se aproximar do limite, considere uma conta GROQ separada para o blog
 
 ## Manutenção
 
-### Reativar produtos de afiliado (ML)
+### Reativar produtos no pipeline (Serper)
 
-Cookies de sessão foram **aposentados** (visitar o ML com cookies entrega fingerprint e causa bloqueio global). O caminho para voltar a ter produtos com botões é via **API oficial**:
+Os produtos vêm do **Google Shopping via Serper.dev** (sem cookies, sem OAuth). Para ativar:
 
-1. **Crie/valide um app no [DevCenter do ML](https://developers.mercadolivre.com.br)** com as permissões de leitura de itens/produtos (apps novas precisam de aprovação para alguns endpoints).
-2. **Atualize** `ML_CLIENT_ID` e `ML_CLIENT_SECRET` no `.env` local e nos GitHub Secrets.
-3. O pipeline usará os endpoints de catálogo que ainda funcionam para apps aprovadas:
-   - `GET /products/{MLB...}` (nome, imagens)
-   - `GET /products/{MLB...}/items` (preço, vendedor)
-   - Descoberta dos MLB ids continua via Tavily/Google (`isProductPageUrl` + `sanitizeMLProducts`).
-4. **Teste local:**
-   ```powershell
-   node --env-file .env -e "const {getMLToken}=await import('./scripts/ml_affiliate.mjs'); const t=await getMLToken(process.env.ML_CLIENT_ID, process.env.ML_CLIENT_SECRET); const r=await fetch('https://api.mercadolibre.com/products/MLB6082547816',{headers:{Authorization:'Bearer '+t}}); console.log(r.status, (await r.text()).slice(0,120))"
-   ```
-   Deve retornar `200` (não `400 invalid_client` nem `403`).
+1. **Crie uma conta grátis em [serper.dev](https://serper.dev)** (2.500 buscas, sem cartão).
+2. **Copie a API key** do dashboard e configure:
+   - Local: `SERPER_API_KEY=...` no `.env`
+   - GitHub: `gh secret set SERPER_API_KEY`
+3. O pipeline busca até 5 produtos por artigo (`searchGoogleShopping`) e gera botões com o nome da loja (`VER NA KABUM`, `VER NO MERCADO LIVRE`). Links são diretos (sem comissão).
+4. **Editar botões depois**: no painel `/admin/`, aba **Produtos** — altere o texto e o link de cada botão (ex.: troque o link ML pelo seu link de afiliado) e salve.
+5. **Monetização futura**: cadastre-se no Amazon Associates ou no AliExpress Affiliate e troque os links no painel, ou integre a API dedicada.
 
-> **Regra de ouro:** não reativar cookies de sessão — o uso deles causou bloqueio global do ML.
+> **Regra de ouro:** não reativar cookies de sessão do ML — o uso deles causou bloqueio global.
 
 ### Recriar chave do Groq
 
