@@ -5,7 +5,7 @@ import assert from "assert";
 import {
   injectProductCards, injectGameImages, extractImageMarkers, repositionImageMarkers,
   stripLeftoverMarkers, validate, checkTitle, capitalizeTitle, similarity, nameSimilarity,
-  computeMaxTokens, buildProductCardHtml, injectTableOfContents, validateSourceCoverage,
+  computeMaxTokens, buildProductButtonHtml, buildProductImageTag, injectTableOfContents, validateSourceCoverage,
   formatProductPriceForPrompt, findPricesInBody,
 } from "./gerar-artigo.mjs";
 
@@ -59,15 +59,18 @@ const semImg = injectGameImages(corpo, {}, true);
 ok(!semImg.includes("[IMG:"), "marcador sem imagem no RAWG e removido");
 ok(semImg.includes("Mais um paragrafo"), "texto ao redor preservado");
 
-// --- cards de produto ---
+// --- produtos: botao no marcador e foto apos o heading do item ---
 out = injectProductCards(out, produtos);
 const posBtn1 = out.indexOf('href="http://ml/1"');
 const posBtn2 = out.indexOf('href="http://ml/2"');
 const posSecMira = out.indexOf("## Mouses que ajudam na mira");
-ok(posBtn1 > 0 && posBtn2 > 0, "dois cards injetados");
-ok(posBtn1 < posSecMira, "card 1 no trecho sobre audio");
-ok(posBtn2 > posSecMira, "card 2 no trecho sobre mira");
+const posImg1 = out.indexOf('<img src="http://img/1.jpg"');
+ok(posBtn1 > 0 && posBtn2 > 0, "dois botoes injetados");
+ok(posImg1 < out.indexOf("Paragrafo falando do **Headset"), "foto do item apos o heading da secao");
+ok(posBtn1 < posSecMira, "botao 1 no trecho sobre audio");
+ok(posBtn2 > posSecMira, "botao 2 no trecho sobre mira");
 ok(!out.includes("[PRODUTO:"), "marcadores de produto consumidos");
+ok(!out.includes("product-card") && !out.includes("product-price"), "sem card visual (item simples: foto + botao)");
 
 // fallback: IA esqueceu os marcadores -> ninguem perde link de afiliado
 const semMarcador = corpo.replace(/\[PRODUTO:\d\]\n\n/g, "");
@@ -81,12 +84,39 @@ const injParcial = injectProductCards(parcial, produtos);
 ok(injParcial.includes('href="http://ml/1"'), "produto com marcador injetado");
 ok(!injParcial.includes('href="http://ml/2"'), "produto omitido pela IA nao e reinserido");
 
-// --- product-btn ---
+// --- item simples: botao + foto ---
 igual(formatProductPriceForPrompt({ price: 349.9 }), "R$ 349.90", "preco formatado com R$");
 igual(formatProductPriceForPrompt({}), "NAO DISPONIVEL", "sem preco nao emite R$ solto");
-const cardSemPreco = buildProductCardHtml({ title: "Persona 5 Tactica", affiliate_link: "http://ml/x" });
-ok(cardSemPreco.includes("product-btn"), "gera botao de afiliado");
-ok(cardSemPreco.includes("http://ml/x"), "link de afiliado presente");
+const btn = buildProductButtonHtml({ title: "Persona 5 Tactica", affiliate_link: "http://ml/x" });
+ok(btn.includes("product-btn"), "gera botao de afiliado");
+ok(btn.includes("http://ml/x"), "link de afiliado presente");
+ok(!btn.includes("R$") && !btn.includes("product-card"), "botao simples nao carrega preco nem card");
+ok(buildProductButtonHtml({ title: "X", permalink: "http://ml/y" }).includes("http://ml/y"), "usa permalink quando nao ha affiliate");
+igual(buildProductButtonHtml({ title: "X" }), "", "sem link nao gera botao");
+const imgTag = buildProductImageTag({ title: "Persona 5 Tactica", thumbnail: "http://img/9.jpg" });
+ok(imgTag.includes('class="article-game-img"') && imgTag.includes("http://img/9.jpg"), "foto do item usa article-game-img + thumbnail");
+igual(buildProductImageTag({ title: "X", thumbnail: "" }), "", "sem imagem nao gera tag");
+
+// nao duplica foto quando a secao do item ja comeca com <img>
+const comImgJa = `## Headset Gamer HyperX Cloud II lidera
+
+<img src="http://x/existente.jpg">
+
+Texto do item.
+
+[PRODUTO:1]`;
+const semDupProduto = injectProductCards(comImgJa, produtos.slice(0, 1));
+ok(semDupProduto.includes("http://x/existente.jpg") && !semDupProduto.includes("http://img/1.jpg"), "nao insere foto duplicada em item com imagem");
+
+// marcador fora da secao de Itens: foto nao entra em secao excluida
+const foraSecao = `## Fontes
+
+Fonte tal.
+
+[PRODUTO:1]`;
+const injFora = injectProductCards(foraSecao, produtos.slice(0, 1));
+ok(!injFora.includes("http://img/1.jpg"), "foto nao entra em secao excluida (Fontes)");
+ok(injFora.includes('href="http://ml/1"'), "botao ainda injetado no marcador");
 
 // --- capa nao duplicada no corpo ---
 const capaUrl = "http://rawg/cover.jpg";
@@ -226,26 +256,13 @@ for (const chars of [1000, 10000, 20000]) {
 ok(computeMaxTokens("oi", "oi") <= 8192, "max_tokens respeita o teto de saida");
 ok(computeMaxTokens("x".repeat(210000), "") < 0, "prompt absurdo resulta em orcamento negativo (falha explicita)");
 
-// --- cards visuais de produto (v1.1) ---
-const cardVisual = buildProductCardHtml({
-  title: "Headset Gamer HyperX Cloud II",
-  price: 349.9,
-  thumbnail: "http://img/1.jpg",
-  affiliate_link: "http://ml/1",
-});
-ok(cardVisual.includes("product-card"), "card visual gera container product-card");
-ok(cardVisual.includes("product-card-img"), "card visual inclui imagem");
-ok(cardVisual.includes("product-price"), "card visual inclui preco");
-ok(cardVisual.includes("Headset Gamer HyperX Cloud II"), "card visual inclui titulo");
-ok(cardVisual.includes("VER NO MERCADO LIVRE"), "card visual mantem botao");
-
-const cardSemImagem = buildProductCardHtml({
-  title: "Produto sem imagem",
-  price: 199.9,
-  affiliate_link: "http://ml/x",
-});
-ok(cardSemImagem.includes("product-card"), "card sem imagem gera container");
-ok(!cardSemImagem.includes("product-card-img"), "card sem imagem nao inclui tag img");
+// --- bloco simples do item (v1.2) ---
+const btnVisual = buildProductButtonHtml({ title: "Headset Gamer HyperX Cloud II", affiliate_link: "http://ml/1" });
+ok(btnVisual.includes("product-btn"), "botao do item presente");
+ok(btnVisual.includes("VER NO MERCADO LIVRE"), "botao mantem CTA");
+ok(!btnVisual.includes("product-card") && !btnVisual.includes("product-price"), "item simples nao usa card com preco");
+const imgVisual = buildProductImageTag({ title: "Headset Gamer HyperX Cloud II", thumbnail: "http://img/1.jpg" });
+ok(imgVisual.includes("article-game-img") && imgVisual.includes("http://img/1.jpg"), "foto do item com thumbnail");
 
 // --- sumario/indice (v1.1) ---
 const corpoComHeadings = `## Introducao

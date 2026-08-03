@@ -482,7 +482,7 @@ python automation/admin_api.py         # Painel de controle (FastAPI)
 
 | Funcionalidade | Descrição |
 |----------------|-----------|
-| **Cards visuais de produto** | `buildProductCardHtml()` gera card com imagem, preço e botão de afiliado (substitui o antigo botão simples) |
+| **Blocos de produto** | `buildProductButtonHtml()` + `buildProductImageTag()` geram foto do item + botão de afiliado (sem card/preço; preço só na tabela comparativa) |
 | **Índice automático** | `injectTableOfContents()` gera `## Índice` com links âncora para cada seção |
 | **Validação de fontes** | `validateSourceCoverage()` verifica se cada tópico tem fonte citada |
 | **Gemini primário** | `gemini-flash-latest` como IA principal, Groq como fallback |

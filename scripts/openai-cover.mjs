@@ -139,7 +139,7 @@ function buildEditPrompt(products, category, backgroundTone, contentType, contex
   return `Create a professional banner featuring the following gaming product(s) from the reference images: ${productNames}. Arrange them in a visually appealing layout on ${sceneDescription}${tone}${contextLine} The products must be integrated naturally into the scene — correct perspective, realistic shadows and lighting that match the environment, as if they were photographed in place. Photorealistic, high detail, professional catalog quality. No text, no watermarks.`;
 }
 
-async function downloadImage(url) {
+export async function downloadImage(url) {
   if (!url) return null;
   const res = await fetch(url, {
     signal: AbortSignal.timeout(15000),
@@ -161,7 +161,7 @@ async function downloadImage(url) {
   return buf;
 }
 
-async function searchTavilyImage(productName) {
+export async function searchTavilyImage(productName) {
   const apiKey = process.env.TAVILY_API_KEY;
   if (!apiKey) return null;
 

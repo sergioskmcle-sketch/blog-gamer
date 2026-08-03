@@ -33,46 +33,39 @@ Renderizada pelo `[...slug].astro`. Ordem fixa:
 
 Tudo que está no `.md` depois do `---` do frontmatter.
 
-### Estrutura Geral
+### Estrutura Geral (v1.2 — seção de Itens logo após a intro)
 
 ```
-## Introdução
-   TEXTO (sem imagem, sem botão)
+INTRODUÇÃO (SEM H2, texto direto)
+   TEXTO com gancho + resumo dos critérios que definem a lista
 
-## [Tópico do jogo/produto 1]
-   TEXTO
-   [IMAGEM] (nova, diferente da capa)
-   [BOTÃO] afiliado
+## Os {N} Melhores {Itens} em 2026   ← PRIMEIRA seção ## (a principal)
+   ## [Nome do Item] — [Subtítulo]
+      [IMAGEM] (foto do produto, injetada automaticamente)
+      TEXTO (detalhes do item)
+      [BOTÃO] afiliado (editável pelo painel)
 
-## [Tópico do jogo/produto 2]
-   TEXTO
-   [IMAGEM] (nova, diferente da capa)
-   [BOTÃO] afiliado
-
-## [Tópico do jogo/produto N]  ← repete N vezes
-   TEXTO
-   [IMAGEM] (nova, diferente da capa)
-   [BOTÃO] afiliado
+   ## [Nome do Item 2] — [Subtítulo]  ← repete N vezes
+      ...
 
 ## Comparativo (tabela)
-## Pros e Contras
+## Veredito (bullets por perfil) — ou "Qual X Escolher?"
 ## FAQ
-## Conclusão
 ## Quer mais ofertas? (Telegram)
 ## Fontes
-## Continue Explorando (2 artigos + "Mais Artigos")
+## Continue Explorando (2 artigos + "Mais Artigos") ← ÚNICO lugar com links internos
 ```
 
 ### Estrutura de cada tópico de jogo/produto (repete N vezes)
 
 ```
-## [Nome do Tópico]
+## [Nome do Item] — [Subtítulo]
 
-TEXTO (parágrafos descritivos)
+[IMAGEM] (foto do produto — ML local, web ou IA; injetada automaticamente)
 
-[IMAGEM] (nova, diferente da capa)
+TEXTO (2-3 parágrafos com os principais detalhes)
 
-[BOTÃO] afiliado
+[BOTÃO] afiliado (editável pelo painel admin)
 ```
 
 ### Regras de Botões de Afiliado
@@ -86,14 +79,16 @@ TEXTO (parágrafos descritivos)
 
 | Posição | Origem | Regra |
 |---------|--------|-------|
-| Capa | frontmatter.image | RAWG ou ML. Deve ser única no artigo |
-| Tópico de jogo/produto | RAWG API (ou ML) | Deve ser DIFERENTE da capa |
+| Capa | frontmatter.image | RAWG, ML ou IA. Deve ser única no artigo |
+| Item da lista | foto do produto | Cadeia: thumbnail ML baixada (local) → busca web (Tavily) → IA (último recurso). Diferente da capa |
+| Tópico de jogo (modo informativo) | RAWG API | Deve ser DIFERENTE da capa |
 | Artigos relacionados | frontmatter.image do artigo relacionado | Clicável |
 
 ### Regras de Texto
 
-- **Introdução:** Sem imagem, sem botão. Apenas texto.
-- **Tópicos de jogo/produto:** Texto + imagem + botão (sempre nessa ordem).
+- **Introdução:** Sem H2, sem imagem, sem botão. Gancho + resumo dos critérios da lista (não vira seção própria).
+- **Tópicos de jogo/produto:** Título + imagem + texto + botão (nessa ordem).
+- **Links internos:** SOMENTE na seção final "Continue Explorando". Nunca no meio do artigo.
 - **Mínimo de palavras:** 800 (ideal: 1500+)
 
 ---
@@ -101,18 +96,14 @@ TEXTO (parágrafos descritivos)
 ## SEÇÕES PADRÃO (depois dos tópicos)
 
 ### Comparativo
-- Tabela Markdown com todos os itens comparados
+- Tabela Markdown com todos os itens comparados (Produto | Preço | Destaque | Nota 1-10)
 
-### Pros e Contras
-- Subseção (###) para cada item
-- **Prós** (3 itens) + **Contras** (2 itens)
+### Veredito (ou "Qual X Escolher?")
+- Bullets por perfil de usuário — nunca "depende do orçamento"
 
 ### FAQ
 - 3-5 perguntas e respostas
 - Formato: **1. Pergunta?** Resposta...
-
-### Conclusão
-- 1-2 parágrafos + CTA
 
 ### Quer mais ofertas?
 - Link para grupo Telegram
@@ -135,7 +126,7 @@ TEXTO (parágrafos descritivos)
 - Mínimo 1200 palavras
 
 ### Modo Custo-Benefício (`affiliate: true`)
-- Cards de produto (do mais barato ao mais caro)
+- Itens com foto + botão (bloco simples, do mais barato ao mais caro)
 - Mínimo 1500 palavras
 
 ### Modo Misto (`affiliate: true`)

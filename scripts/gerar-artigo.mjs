@@ -5,7 +5,7 @@ import { pathToFileURL } from "url";
 import Parser from "rss-parser";
 import { generateAffiliateLink, searchMLviaGoogle, searchMLDirect } from "./ml_affiliate.mjs";
 import { gerarCapaStability } from "./stability-cover.mjs";
-import { gerarCapaOpenAI } from "./openai-cover.mjs";
+import { gerarCapaOpenAI, downloadImage, searchTavilyImage } from "./openai-cover.mjs";
 
 const rssParser = new Parser({
   timeout: 15000,
@@ -15,6 +15,7 @@ const rssParser = new Parser({
 const ARTIGOS_DIR = path.resolve("src/content/artigos");
 const ML_COOKIES_PATH = path.resolve("ml_cookies.json");
 const STATE_FILE = path.resolve("state.json");
+const PROD_IMAGES_DIR = path.resolve("public/images/produtos");
 
 function loadState() {
   try {
@@ -796,23 +797,112 @@ function isGamerProduct(title) {
   return true;
 }
 
-function buildProductCardHtml(p) {
+// Detecta a extensao real pelo magic bytes do buffer baixado.
+function imageExtension(buf) {
+  if (!buf || buf.length < 4) return ".jpg";
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return ".png";
+  if (buf[0] === 0xff && buf[1] === 0xd8) return ".jpg";
+  if (buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46) return ".webp";
+  if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) return ".gif";
+  return ".jpg";
+}
+
+function buildProductImageTag(p) {
+  const url = p.local_thumbnail || (p.thumbnail && p.thumbnail.startsWith("http") ? p.thumbnail : "");
+  if (!url) return "";
+  const title = p.title || "Produto no Mercado Livre";
+  return `<img src="${url}" alt="${title}" class="article-game-img" loading="lazy" decoding="async">`;
+}
+
+function buildProductButtonHtml(p) {
   const link = p.affiliate_link || p.permalink || "";
   if (!link) return "";
+  return `<a href="${link}" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>`;
+}
 
-  const img = p.thumbnail && p.thumbnail.startsWith("http") ? p.thumbnail : "";
-  const preco = p.price ? `R$ ${p.price.toFixed(2)}` : "Consulte no site";
-  const title = p.title || "Produto no Mercado Livre";
+// Ultimo recurso de imagem do item: gera uma foto de catalogo via OpenAI.
+async function gerarImagemItemIA(title, slug) {
+  if (!OPENAI_API_KEY || !title) return null;
+  try {
+    const res = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${OPENAI_API_KEY}` },
+      body: JSON.stringify({
+        model: "gpt-image-1",
+        prompt: `Foto de catalogo profissional de produto gamer: ${title}. Produto grande e nítido sobre mesa de madeira com luz ambiente de setup RGB, fundo levemente desfocado com bokeh. Fotorrealista, alta qualidade, sem texto, sem marca d'agua.`,
+        n: 1,
+        size: "1024x1024",
+      }),
+    });
+    if (!res.ok) {
+      log("WARN", `IA imagem item ${res.status} para "${title.slice(0, 40)}"`);
+      return null;
+    }
+    const data = await res.json();
+    const url = data?.data?.[0]?.url;
+    if (!url) return null;
+    const buf = await downloadImage(url);
+    if (buf) {
+      log("INFO", `IA imagem item gerada para "${title.slice(0, 40)}" (${(buf.length / 1024).toFixed(1)} KB)`);
+      return buf;
+    }
+  } catch (e) {
+    log("WARN", `IA imagem item erro: ${e.message}`);
+  }
+  return null;
+}
 
-  return `<div class="product-card">
-  ${img ? `<img src="${img}" alt="${title}" class="product-card-img" loading="lazy" decoding="async">` : ""}
-  <div class="product-card-body">
-    <h3>${title}</h3>
-    <div class="product-price">${preco}</div>
-    <p class="product-desc">${title} — adquira no Mercado Livre com link de afiliado.</p>
-    <a href="${link}" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
-  </div>
-</div>`;
+// Baixa e salva a foto de cada item em public/images/produtos/.
+// Cadeia de prioridade: thumbnail do ML -> busca web (Tavily) -> IA (ultimo recurso).
+async function ensureProductImages(mlProducts) {
+  if (!mlProducts || mlProducts.length === 0) return;
+  if (!fs.existsSync(PROD_IMAGES_DIR)) fs.mkdirSync(PROD_IMAGES_DIR, { recursive: true });
+
+  for (const p of mlProducts) {
+    const slug = slugify(p.title || `produto-${mlProducts.indexOf(p) + 1}`);
+
+    if (fs.existsSync(path.join(PROD_IMAGES_DIR, `${slug}.png`))) {
+      p.local_thumbnail = `/blog-gamer/images/produtos/${slug}.png`;
+      continue;
+    }
+    if (fs.existsSync(path.join(PROD_IMAGES_DIR, `${slug}.jpg`))) {
+      p.local_thumbnail = `/blog-gamer/images/produtos/${slug}.jpg`;
+      continue;
+    }
+    if (fs.existsSync(path.join(PROD_IMAGES_DIR, `${slug}.webp`))) {
+      p.local_thumbnail = `/blog-gamer/images/produtos/${slug}.webp`;
+      continue;
+    }
+
+    let buf = null;
+    const directUrl = p.thumbnail && p.thumbnail.startsWith("http") ? p.thumbnail : "";
+    if (directUrl) {
+      try {
+        const b = await downloadImage(directUrl);
+        if (b && b.length > 2048) buf = b;
+      } catch {}
+    }
+    if (buf) {
+      log("INFO", `Thumbnail ML OK para "${p.title?.slice(0, 40)}"`);
+    } else {
+      log("WARN", `Sem imagem valida do ML para "${p.title?.slice(0, 40)}" — buscando na web...`);
+      try {
+        buf = await searchTavilyImage(p.title || "");
+      } catch {}
+    }
+    if (!buf) {
+      buf = await gerarImagemItemIA(p.title, slug);
+    }
+
+    if (buf) {
+      const ext = imageExtension(buf);
+      fs.writeFileSync(path.join(PROD_IMAGES_DIR, `${slug}${ext}`), buf);
+      p.local_thumbnail = `/blog-gamer/images/produtos/${slug}${ext}`;
+      log("INFO", `Imagem do item salva: ${p.local_thumbnail} (${(buf.length / 1024).toFixed(1)} KB)`);
+    } else {
+      log("WARN", `Nenhuma imagem obtida para "${p.title?.slice(0, 40)}" — item sem foto`);
+    }
+  }
 }
 
 // Gera um sumário/índice com links âncora a partir dos headings ## do artigo
@@ -822,7 +912,7 @@ function injectTableOfContents(body) {
   const headings = [...body.matchAll(/^(## )([^\n]+)$/gm)];
   if (headings.length < 3) return body;
 
-  const excluded = /^(fontes|conclus[aã]o|quer mais ofertas\?|faq|perguntas frequentes|resumo r[áa]pido|veredito)/i;
+  const excluded = /^(fontes|conclus[aã]o|quer mais ofertas\?|faq|perguntas frequentes|resumo r[áa]pido|veredito|continue explorando)/i;
 
   const items = headings
     .filter((m) => !excluded.test(m[2].trim()))
@@ -870,31 +960,59 @@ function injectTableOfContents(body) {
   return `${toc}\n${result}`;
 }
 
-// Substitui [PRODUTO:N] pelo card. Fallback posicional so quando a IA ignorou
+// Substitui [PRODUTO:N] pelo botao e injeta a foto do produto logo apos o
+// heading ## da secao do item. Fallback posicional so quando a IA ignorou
 // o mecanismo inteiro (nenhum marcador); se usou algum, omissao e editorial.
 function injectProductCards(body, mlProducts) {
   if (!mlProducts || mlProducts.length === 0) return body;
 
+  const excludedHeading = /(?:fontes|conclus[aã]o|quer mais ofertas\?|faq|perguntas frequentes|veredito|continue explorando|índice|indice|resumo r[áa]pido)/i;
+
+  // 1. Foto do produto: insere logo apos o heading ## mais proximo que antecede
+  //    o marcador (a secao do item), sem duplicar quando ja existe um <img>.
   let result = body;
+  mlProducts.forEach((p, i) => {
+    const imgTag = buildProductImageTag(p);
+    if (!imgTag) return;
+    const marker = new RegExp(`^[ \\t]*\\[PRODUTO:\\s*${i + 1}\\s*\\][ \\t]*$`, "m");
+    if (!marker.test(result)) return;
+
+    const markerIndex = result.search(marker);
+    const headingMatch = [...result.slice(0, markerIndex).matchAll(/^##\s+([^\n]+)$/gm)]
+      .reverse()
+      .find((m) => !excludedHeading.test(m[1].trim()));
+    if (!headingMatch) return;
+
+    const afterHeading = result.slice(headingMatch.index + headingMatch[0].length);
+    const nextContent = afterHeading.match(/^\s*\n{0,}(<img[^>]*>|\S)/);
+    if (nextContent && nextContent[1].startsWith("<img")) return;
+
+    const insertAt = headingMatch.index + headingMatch[0].length;
+    result = result.slice(0, insertAt) + `\n\n${imgTag}\n` + result.slice(insertAt);
+  });
+
+  // 2. Botao no lugar do marcador.
   const orphans = [];
   let markersUsed = 0;
-
   mlProducts.forEach((p, i) => {
-    const html = buildProductCardHtml(p);
+    const btn = buildProductButtonHtml(p);
+    if (!btn) return;
     const marker = new RegExp(`^[ \\t]*\\[PRODUTO:\\s*${i + 1}\\s*\\][ \\t]*$`, "m");
     if (marker.test(result)) {
-      result = result.replace(marker, () => `\n${html}\n`);
+      result = result.replace(marker, () => `\n${btn}\n`);
       markersUsed++;
     } else {
-      orphans.push(html);
+      orphans.push(p);
     }
   });
 
   if (orphans.length > 0) {
     if (markersUsed === 0) {
       log("WARN", `${orphans.length}/${mlProducts.length} produtos sem marcador — usando posicionamento automatico`);
-      const block = `\n\n${orphans.join("\n\n")}\n`;
-      const headings = [...result.matchAll(/## (?!Fontes|Quer mais ofertas\?|Conclus[aã]o\b)[^\n]+/gi)];
+      const block = "\n\n" + orphans
+        .map((p) => [buildProductImageTag(p), buildProductButtonHtml(p)].filter(Boolean).join("\n\n"))
+        .join("\n\n") + "\n";
+      const headings = [...result.matchAll(/## (?!Fontes|Quer mais ofertas\?|Conclus[aã]o\b|Continue Explorando|Índice|Indice)[^\n]+/gi)];
       if (headings.length >= 2) {
         result = result.slice(0, headings[1].index) + block + "\n" + result.slice(headings[1].index);
       } else {
@@ -1425,6 +1543,19 @@ function validate(fm, body, ctx = {}) {
     } else if (valid.length < Math.min(2, ctx.productCount)) {
       soft.push(`So ${valid.length} de ${ctx.productCount} produtos posicionados com [PRODUTO:N]`);
     }
+    if (valid.length > 0) {
+      const excluded = /(?:fontes|conclus[aã]o|quer mais ofertas\?|faq|perguntas frequentes|veredito|continue explorando|índice|indice)/i;
+      const markers = [...body.matchAll(PRODUCT_MARKER_REGEX)];
+      const fora = markers.filter((m) => {
+        const before = body.slice(0, m.index);
+        const lastHeading = [...before.matchAll(/^##\s+([^\n]+)$/gm)].pop();
+        if (!lastHeading) return true;
+        return excluded.test(lastHeading[1].trim());
+      });
+      if (fora.length > 0) {
+        soft.push(`${fora.length} marcador(es) [PRODUTO:N] fora da secao de Itens (introducao ou secoes finais) — todos devem ficar na lista logo apos a intro`);
+      }
+    }
   }
 
   if (extractImageMarkers(body).length === 0) {
@@ -1735,11 +1866,11 @@ async function main() {
   mlProducts = mlProducts.filter((p) => isGamerProduct(p.title));
 
   const productBlock = mlProducts.length > 0
-    ? `\nPRODUTOS DISPONIVEIS (use o marcador indicado para posicionar cada card):\n${mlProducts.map((p, i) =>
+    ? `\nPRODUTOS DISPONIVEIS (cada um vira um item da secao de Itens):\n${mlProducts.map((p, i) =>
         `Marcador: [PRODUTO:${i + 1}]\n` +
         `Nome: ${p.title}\n` +
         `Preco: ${formatProductPriceForPrompt(p)}\n`
-      ).join("\n")}\nO sistema monta o card (imagem, preco, botao de compra) no lugar do marcador. Voce NAO escreve preco, link nem imagem desses produtos — so decide ONDE cada card entra. NUNCA escreva "R$ X" no texto para produtos listados — o card ja mostra o preco.\nREGRA DE PRECO AUSENTE: se o produto estiver marcado como "Preco: NAO DISPONIVEL", voce NAO escreve preco, NUNCA diz gratis, gratuito, preco zero ou de graca, e orienta o leitor a conferir o preco atual no card.`
+      ).join("\n")}\nO sistema monta a foto e o botao de compra do item no lugar do marcador. Voce NAO escreve preco, link nem imagem desses produtos — so decide ONDE cada item entra. O nome do item vira o heading "## Nome do Produto — Subtitulo". NUNCA escreva "R$ X" no texto para produtos listados — o preco fica so na tabela comparativa.\nREGRA DE PRECO AUSENTE: se o produto estiver marcado como "Preco: NAO DISPONIVEL", voce NAO escreve preco, NUNCA diz gratis, gratuito, preco zero ou de graca, e orienta o leitor a conferir o preco atual na tabela.`
     : "";
 
   const internalLinksBlock = buildInternalLinksBlock();
@@ -1800,8 +1931,8 @@ ${personaPrompt}${trendingNote}
 
 ## MARCADORES DE POSICIONAMENTO (OBRIGATORIO)
 Voce nao renderiza imagens nem cards de produto — voce decide ONDE eles entram, com marcadores que o sistema substitui depois.
-- [IMG:Nome] — OBRIGATORIO em cada secao ## do artigo. Coloque em uma linha sozinha, logo ANTES do titulo ##. Para secoes sobre um jogo, use o nome do jogo (ex: [IMG:God of War Laufey]). Para secoes gerais (setup, comparativos, FAQ, lancamentos), use uma descricao curta do topico (ex: [IMG:Setup Gamer], [IMG:Comparativo de Consoles], [IMG:Perguntas Frequentes]). O sistema busca imagens automaticamente via web. SEMPRE use um marcador — nao existe secao sem imagem.
-- ${mlProducts.length > 0 ? `[PRODUTO:N] — em uma linha sozinha, logo APOS a secao que descreve o produto (depois do texto que fala dele). NAO empilhe todos no comeco. Use o numero exato indicado na lista de produtos.` : "Nao ha produtos nesta rodada — nao use [PRODUTO:N]."}
+- [IMG:Nome] — OBRIGATORIO em cada secao ## EXCETO nos itens da secao de lista de produtos (nesses itens a foto do produto e injetada automaticamente). Coloque em uma linha sozinha, logo ANTES do titulo ##. Para secoes sobre um jogo, use o nome do jogo (ex: [IMG:God of War Laufey]). Para secoes gerais (setup, comparativos, FAQ, lancamentos), use uma descricao curta do topico (ex: [IMG:Setup Gamer], [IMG:Comparativo de Consoles], [IMG:Perguntas Frequentes]). O sistema busca imagens automaticamente via web. SEMPRE use um marcador — nao existe secao sem imagem.
+- ${mlProducts.length > 0 ? `[PRODUTO:N] — um marcador por item, na secao de Itens (a primeira secao ## do artigo, logo apos a introducao), cada um na linha sozinha e logo APOS o texto que descreve aquele item. NAO empilhe todos no comeco. Use o numero exato indicado na lista de produtos.` : "Nao ha produtos nesta rodada — nao use [PRODUTO:N]."}
 - Nunca coloque dois marcadores seguidos sem texto entre eles. Se um jogo ou produto nao tem relevancia real em nenhum trecho, omita o marcador — melhor faltar do que forcar.
 - Se o sistema nao achar imagem para um [IMG:...], ele remove o marcador. Entao o paragrafo tem que fazer sentido sozinho, sem depender da imagem.
 
@@ -1822,19 +1953,19 @@ Voce nao renderiza imagens nem cards de produto — voce decide ONDE eles entram
 7. Frases curtas alternadas com uma ou duas mais longas. Paragrafos com frases todas do mesmo tamanho denunciam texto de IA.
 ${estiloOpinativo ? "8. Giria e humor sao tempero, nao estrutura: no maximo 1 giria marcante a cada 2-3 paragrafos, nunca empilhadas." : "8. Tom tecnico com humor seco dosado: no maximo 1 toque ironico a cada 3 paragrafos, sem giria de boteco."}
 
-## ESTRUTURA (adapte a categoria — nao force todos os blocos sempre)
+## ESTRUTURA (ordem obrigatoria — adapte so o conteudo de cada bloco)
+- INTRODUCAO SEM H2: 1-2 paragrafos diretos com gancho concreto. Nos primeiros 2-3 paragrafos, resuma os criterios/requisitos que definem os itens da lista (o que diferencia um bom item, em 2 frases no maximo) — NAO crie secao ## separada para esse contexto.
+- PRIMEIRA SECAO ## (a principal): a lista de Itens. ${mlProducts.length > 0 ? `Titulo tipo: "## Os ${mlProducts.length} Melhores {Itens} em 2026". Um bloco por item, nesta ordem: "## Nome do Produto — Subtitulo" (SEM [IMG:] — a foto e injetada automaticamente), 2-3 paragrafos com os principais detalhes do item, e [PRODUTO:N] numa linha sozinha logo apos o texto.` : `Titulo tipo: "## Os Melhores {Jogos/Itens} em 2026". Um bloco por item: "## Nome — Subtitulo" com [IMG:Nome] na linha imediatamente anterior, 2-3 paragrafos de detalhes, sem botao de compra.`}
+- Depois da lista, secoes curtas nesta ordem (omita o que nao se aplica):
+  - ${mlProducts.length > 0 ? "Tabela comparativa dos produtos (Produto | Preco | Destaque | Nota 1-10) com notas que realmente diferenciam." : "Tabela quando houver o que comparar (jogos, specs, edicoes)."}
+  - "## Veredito" (ou "## Qual X Escolher?") com bullets por perfil de usuario — nunca "depende do orcamento".
+  - "## FAQ" com 3-4 perguntas que as pessoas realmente pesquisam no Google sobre o tema.
+  - "## Quer mais ofertas?" com: Entre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e receba ofertas diarias de ${domain === "hardware" ? "perifericos e hardware gamer" : "games e consoles"}!
+  - "## Fontes" com os links da pesquisa.
+- LINKS INTERNOS: 2 a 3, SOMENTE na ultima secao "## Continue Explorando" (formato [texto](/blog-gamer/blog/slug-do-artigo/), usando SOMENTE slugs da lista de artigos existentes fornecida). NUNCA coloque links internos no meio do artigo.
 - Headings ## em toda secao principal (### para subsecoes). Subtitulos que dizem algo, nao "Analise" ou "Detalhes".
-- Cada secao ## DEVE comecar com um marcador [IMG:Nome] na linha imediatamente anterior ao titulo. Isso e OBRIGATORIO — nao existe secao sem imagem.
-- Introducao com gancho concreto (um fato especifico, nao pergunta retorica generica).
-- Corpo com os marcadores posicionados conforme as regras acima.
 - Jogos citados pela PRIMEIRA vez em **negrito**: "**EA Sports FC 26** chegou..."
 - Bullets ou passos numerados nas secoes onde ajudam a leitura (nao em todas a forca).
-- ${mlProducts.length > 0 ? "Tabela comparativa dos produtos (Produto | Preco | Destaque | Nota 1-10) com notas que realmente diferenciam, e uma secao ## Pros e Contras especifica de cada item (nada de pro generico)." : "Tabela quando houver o que comparar (jogos, specs, edicoes)."}
-- ## FAQ com 3-4 perguntas que as pessoas realmente pesquisam no Google sobre o tema.
-- Conclusao com recomendacao clara: pra quem vale a pena e pra quem nao vale.
-- 2 a 3 links internos no formato [texto](/blog-gamer/blog/slug-do-artigo/) — use SOMENTE slugs da lista de artigos existentes fornecida.
-- "## Quer mais ofertas?" com: Entre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e receba ofertas diarias de ${domain === "hardware" ? "perifericos e hardware gamer" : "games e consoles"}!
-- "## Fontes" com os links da pesquisa.
 
 ## PROIBIDO
 - Inventar URL de imagem (wikipedia, google, unsplash) ou link de compra.
@@ -1873,12 +2004,12 @@ Checklist antes de responder:
 1. Titulo com 55-65 chars${primaryKeyword ? `, com "${primaryKeyword}" no comeco` : ""}, sem frase generica.
 2. Description 120-160 chars, sem ** e sem exagero promocional.
 3. Minimo ${minWords} palavras de conteudo real (alvo ${alvoWords}).
-4. ${mlProducts.length > 0 ? `Marcadores [PRODUTO:1]..[PRODUTO:${mlProducts.length}] distribuidos ao longo do texto, cada um perto do trecho que fala daquele produto.` : "Sem produtos nesta rodada."}
-5. 2 a 4 marcadores [IMG:Nome do Jogo], cada um apos o paragrafo que descreve o jogo.
+4. ${mlProducts.length > 0 ? `Marcadores [PRODUTO:1]..[PRODUTO:${mlProducts.length}] TODOS dentro da secao de Itens (a primeira secao ## apos a introducao), um por item, cada um em linha sozinha logo apos o texto do item.` : "Sem produtos nesta rodada — os itens sao jogos e usam [IMG:]."}
+5. 2 a 4 marcadores [IMG:Nome], um antes de cada secao ## que NAO seja item de produto (itens com produto NAO usam [IMG:] — a foto e injetada automaticamente).
 6. Cada dado concreto rastreavel ate a pesquisa acima.
 7. 5 tags relevantes.
 8. ${estiloOpinativo ? "Voz Mano Gamer: opiniao com lado tomado, giria dosada, sem enrolacao." : "Voz tecnica hibrida: precisao, comparacao de specs, humor seco dosado (max 1 a cada 3 paragrafos)."}
-9. 2 a 3 links internos usando SOMENTE slugs da lista ARTIGOS EXISTENTES acima.`;
+9. 2 a 3 links internos usando SOMENTE slugs da lista ARTIGOS EXISTENTES acima, colocados SOMENTE na secao final "## Continue Explorando".`;
 
   // Encolhe a pesquisa ate sobrar espaco de saida suficiente dentro do TPM.
   let userPrompt = buildUserPrompt(researchContext);
@@ -2046,6 +2177,10 @@ Checklist antes de responder:
   }
 
   log("INFO", "Injetando produtos do Mercado Livre no artigo...");
+  if (mlProducts.length > 0) {
+    log("INFO", `Baixando imagens dos ${mlProducts.length} itens (ML -> web -> IA)...`);
+    await ensureProductImages(mlProducts);
+  }
   body = injectProductCards(body, mlProducts);
   log("INFO", `${mlProducts.length} produtos injetados no corpo do artigo`);
 
@@ -2168,7 +2303,9 @@ export {
   repositionImageMarkers,
   injectGameImages,
   injectProductCards,
-  buildProductCardHtml,
+  buildProductButtonHtml,
+  buildProductImageTag,
+  imageExtension,
   injectTableOfContents,
   validateSourceCoverage,
   formatProductPriceForPrompt,

@@ -1,5 +1,24 @@
 # Estrutura de Artigo — Blog Gamer
 
+## Ordem do artigo (v1.2 — seção de Itens logo após a intro)
+
+```
+INTRODUÇÃO (sem H2): gancho + resumo dos critérios que definem a lista
+## Os {N} Melhores {Itens} em 2026      ← PRIMEIRA seção (a principal)
+   ## Nome do Produto — Subtítulo
+   [IMAGEM]  ← foto real do produto (injetada automaticamente)
+   [TEXTO]   ← 2-3 parágrafos sobre o produto
+   [BOTÃO]   ← <a class="product-btn"> (afiliado, simples, sem card)
+   ## Nome do Produto 2 — Subtítulo    ← repete N vezes
+   ...
+## Comparativo (tabela)
+## Veredito / Qual X Escolher?
+## FAQ
+## Quer mais ofertas? (Telegram)
+## Fontes
+## Continue Explorando                 ← ÚNICO lugar com links internos
+```
+
 ## Ordem de cada tópico (seção com produto)
 
 ```
@@ -9,10 +28,11 @@
 [BOTÃO]     ← <a class="product-btn"> (afiliado, simples, sem card)
 ```
 
-## Imagens
+## Imagens dos itens
 
 - Usar fotos REAIS do produto (headset, teclado, mouse, etc.)
 - NUNCA usar screenshots de jogos ou imagens genéricas
+- Cadeia de prioridade por item: thumbnail do ML (baixada para `public/images/produtos/`) → busca web (Tavily) → IA (último recurso)
 - CSS: `object-fit: contain` (adapta ao formato natural da imagem)
 - Removido: `aspect-ratio: 16/9` fixo (causava corte em imagens quadradas)
 - A imagem é exibida ANTES do texto que descreve o produto

@@ -321,7 +321,7 @@ O artigo deve cumprir exatamente o que promete. Exemplo: se o título menciona H
 
 ## Estrutura de Lista
 
-Cada item deve possuir:
+A seção de Itens é a PRIMEIRA seção `##` do artigo, logo após a introdução (que resume os critérios da lista, sem virar H2). Cada item deve possuir:
 - nome completo
 - descrição exclusiva
 - principais características
@@ -331,6 +331,8 @@ Cada item deve possuir:
 - perfil indicado
 - faixa de preço
 - motivo para estar na lista
+
+Ordem do item: `## Nome — Subtítulo`, foto real do produto, texto, botão `product-btn`. Links internos SOMENTE na seção final "Continue Explorando".
 
 Nunca repetir produtos. No final faça uma comparação geral.
 
