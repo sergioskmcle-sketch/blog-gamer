@@ -52,3 +52,10 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# ExpxAgents
+.mcp.json
+*.tmp
+squads/*/state.json
+squads/*/state.json.tmp
+squads/*/output/

@@ -8,12 +8,7 @@ affiliate: false
 image: "https://media.rawg.io/media/crop/600/400/screenshots/9bb/9bbfe3487d34adbdd5d642ec49545030.jpg?auto=format&fit=crop&w=800&h=450"
 ---
 
-## Índice
-
-1. [Pré-venda de GTA 6 chega com preço lá embaixo](#pre-venda-de-gta-6-chega-com-preco-la-embaixo)
-2. [PS5 Slim Digital despenca de preço no Prime Day 2026](#ps5-slim-digital-despenca-de-preco-no-prime-day-2026)
-3. [Jogos em promoção e o bônus do GTA+](#jogos-em-promocao-e-o-bonus-do-gta)
-4. [Comparativo das principais promoções de games em 2026](#comparativo-das-principais-promocoes-de-games-em-2026)
+## Introdução
 
 Fala, gamer! Se a sua carteira achou que ia ter sossego em meados de 2026, pode esquecer porque a bagunça começou de verdade. A corrida pelas ofertas do meio de ano tá pegando fogo e as varejistas resolveram chacoalhar a comunidade de um jeito insano. O destaque da vez é a pré-venda de **Grand Theft Auto VI**, que simplesmente derrubou os preços no Brasil e virou a principal atração da temporada de descontos.
 

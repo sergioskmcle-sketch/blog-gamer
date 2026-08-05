@@ -1,6 +1,9 @@
 
- astro  v5.18.2 ready in 39 ms
+> blog-gamer@1.0.0 preview
+> astro preview --host 127.0.0.1
 
-┃ Local    http://localhost:4321/blog-gamer
-┃ Network  http://10.142.0.2:4321/blog-gamer
+
+[42m[1m astro [22m[49m [32mv5.18.2[39m [2mready in[22m 65 [2mms[22m
+
+[2m┃[22m Local    [36mhttp://127.0.0.1:4321/blog-gamer[39m
 

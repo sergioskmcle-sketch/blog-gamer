@@ -4,7 +4,27 @@
 
 ---
 
-## Sessão 5 — 2026-07-02 (atual)
+## Sessão 6 — 2026-08-05 (atual)
+
+**Cards por Seção + TOC no Topo + Sidebar Padrão + Alinhamento à Esquerda**
+
+### Pipeline de Markdown (Astro)
+- `remark-heading-blocks.mjs` criado: move a imagem do topo do bloco para antes do `h2` e adiciona link-âncora `#id` em seções sem âncora
+- `rehype-article-sections.mjs` criado: agrupa conteúdo entre `##` em `<section class="article-section">` separadas por divisores
+- Ambos registrados no `astro.config.mjs`; validados em todos os artigos (14 seções no artigo de headsets, 12 nas cadeiras, 0 `##` literais no `dist`)
+- `src/lib/headings.ts` com `tagSlug` para extração de H2/H3 do TOC
+
+### Layout do Artigo
+- Texto alinhado à esquerda (removida justificação) no README e artigos
+- TOC "Neste artigo" recolhível no topo do corpo do artigo, **todas as telas** — variante `sidebar` do `TableOfContents.astro` removida
+- Sidebar do artigo agora reutiliza `Sidebar.astro` da home (banner 9:16 → Populares da Semana → Categorias → Comunidade), grid `340px`
+- Capa nunca fica sob o header fixo: `<main>` usa `padding-top: calc(max(var(--content-top, var(--nav-height)), var(--nav-height)) + 8px)` no `Layout.astro`
+- `--measure` definido no `:root` (`min(720px, 100%)`) — usado por TOC/ShareButtons
+- Build OK (100 páginas), 145 asserts OK, preview HTTP 200
+
+---
+
+## Sessão 5 — 2026-07-02
 
 **Design System + Watchdog + Upload Completo**
 
@@ -91,21 +111,4 @@
 
 ---
 
-## Sessão 1 — 2026-06-25
 
-**Setup Inicial do Projeto**
-
-### Criação
-- Projeto `blog-gamer` iniciado em `C:\Users\Sérgio PC\Documents\Expxagents\blog-gamer`
-- Frontend Astro 5 criado em `C:\Users\Sérgio PC\Documents\blog-gamer-frontend`
-- Repositório GitHub criado: `sergioskmcle-sketch/blog-gamer`
-- `astro.config.mjs`: site `https://sergioskmcle-sketch.github.io`, base `/blog-gamer`, output static
-- GitHub Actions configurado para deploy automático no GitHub Pages
-- `docs/ORIENTACOES_EDITORIAIS.md` com diretrizes editoriais e regras de tom gamer
-
-### APIs
-- Groq API key obtida (modelo `llama-3.3-70b-versatile`)
-- Tavily API key obtida (1000 consultas/mês free)
-- Conta ML do usuário criada (`sergioskm` / `COMPROUBARATO2025`)
-- App OAuth do ML registrado (Client ID + Secret)
-- Cookies de sessão do ML exportados (`ml_cookies.json`)

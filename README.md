@@ -1,6 +1,6 @@
 # Blog Gamer
 
-Blog estático sobre o mundo gamer com links de afiliado do Mercado Livre. Geração automática de artigos via GitHub Actions.
+Blog estático sobre o mundo gamer com produtos de várias lojas (Google Shopping via Serper). Geração automática de artigos via GitHub Actions.
 
 **URL:** https://sergioskmcle-sketch.github.io/blog-gamer
 
@@ -37,18 +37,19 @@ Se `saudavel: false` ou `ultimo_artigo` está muito antigo, verifique os secrets
   deploy.yml              → Deploy GitHub Pages (push + manual)
 
 scripts/
-  gerar-artigo.mjs          → Pipeline principal (trending → Tavily → Google ML → Gemini/Groq → RAWG → injeção de produtos → validação)
+  gerar-artigo.mjs          → Pipeline principal (trending → Tavily → Google Shopping/Serper → Gemini/Groq → RAWG → injeção de produtos → validação)
   gerar-artigo-pilar.mjs    → Artigo pilar (3 passes: pesquisa → draft → refino + injeção mecânica de produtos)
   gerar-cadeiras.mjs        → Script dedicado: artigo de cadeiras gamer + capa OpenAI
   gerar-placas-video.mjs    → Pipeline dedicada para artigos sobre placas de vídeo
   gerar-lista-monitores.mjs → Pipeline dedicada para artigos sobre monitores gamer
-  ml_affiliate.mjs          → API ML (busca produtos via Tavily/Google; scraping e API OAuth estão bloqueados/restritos)
+  google_shopping.mjs        → Busca de produtos via API Google Shopping da Serper.dev (geo BR)
+  ml_affiliate.mjs          → LEGADO (API ML com cookies — aposentado/removido, não usar)
   openai-cover.mjs          → Capa IA (gpt-image-2) usando imagens dos produtos como referência
   stability-cover.mjs       → Refinamento/fallback de capas via Stability AI (sd3)
-  fix-article-links.mjs     → Script manual: substitui links diretos ML por meli.la em artigo existente
+  fix-article-links.mjs     → LEGADO (meli.la com cookies do ML — inativo)
   regenerate-*-cover.mjs    → Regenera a capa de artigos específicos (cadeiras, fones, monitores, psplus, xbox)
   gerar-status.cjs          → Gera status.json a cada deploy
-  test-injecao.mjs          → Testes de validação (124 asserts): itens, TOC, fontes, portão de produtos e montagem segmentada
+  test-injecao.mjs          → Testes de validação (145 asserts): itens, TOC, fontes, portão de produtos, labels de loja e montagem segmentada
   download-images.mjs       → Baixa imagens dos produtos para o repo
   convert-banners.mjs       → Converter banners PNG → WebP
 
@@ -85,9 +86,9 @@ public/images/         → Banners Telegram (WebP), logo (logo-blog.webp), capas
 │ 2. PESQUISA     Tavily: 6 resultados (search_depth: advanced)       │
 │                 → Contexto de ~600 words por fonte injetado         │
 ├─────────────────────────────────────────────────────────────────────┤
-│ 3. PRODUTOS ML  Google (Tavily) → scraping → affiliate link         │
-│                 Até 4 queries usando trending keywords              │
-│                 Filtro isGamerProduct + dedup por permalink         │
+│ 3. PRODUTOS     Google Shopping (Serper.dev, geo BR)                │
+│                 Até 5 produtos por artigo (max)                      │
+│                 Filtro isGamerProduct + dedup por id/url             │
 ├─────────────────────────────────────────────────────────────────────┤
 │ 4. GEMINI IA    gemini-flash-latest (primário, 64K budget)          │
 │                 Fallback: Groq (openai/gpt-oss-120b) → OpenAI       │
@@ -219,7 +220,7 @@ Para artigos automáticos (pipeline diário), a capa é gerada durante o `gerar-
 
 ---
 
-## Como os Produtos do Mercado Livre São Inseridos
+## Como os Produtos São Inseridos
 
 ### Injeção de Botão de Produto
 
@@ -242,23 +243,19 @@ Os artigos **não dependem da IA** incluir produtos no texto. Após a IA gerar o
 
 Os artigos com produtos saem com `affiliate: true` e botões apontando para as lojas reais. Links com comissão (Amazon Associates, AliExpress) podem ser adicionados depois via painel ou API dedicada.
 
-### Regenerar Links de um Artigo Existente
+### Editar Botões de um Artigo Publicado
 
-Use o script `fix-article-links.mjs`:
+Edite no painel `/admin/` (aba **Produtos**): o painel lista cada `product-btn` do artigo e permite alterar o **texto** e o **link** do botão (ex.: trocar o link da loja pelo seu link de afiliado). Salve e o deploy é automático.
 
-```bash
-# 1. Editar SLUG e productUrls no script
-# 2. Executar:
-node --env-file .env scripts/fix-article-links.mjs
-```
-
-O script lê o `.md`, chama `generateAffiliateLink()` para cada URL e substitui por `meli.la/XXXXXX`. **Atenção:** esse fluxo depende de cookies de sessão, que foram aposentados — inativo até existirem credenciais de app válidas.
+> Os scripts legados `fix-article-links.mjs` / `automation/fix_article_links.py` (geração de `meli.la` com cookies do ML) estão **inativos** — os cookies de sessão foram aposentados.
 
 ### Formato do Botão
 
 ```html
-<a href="https://meli.la/XXXXX" class="product-btn" target="_blank" rel="nofollow">VER NO MERCADO LIVRE</a>
+<a href="https://www.kabum.com.br/p/..." class="product-btn" target="_blank" rel="nofollow">VER NA KABUM</a>
 ```
+
+O texto usa o nome da loja retornada pelo Google Shopping (`VER NA KABUM`, `VER NO MERCADO LIVRE`, `VER NA AMAZON`...).
 
 ### A IA e os Produtos
 
@@ -325,7 +322,7 @@ Cooldown por horas reais, não por data UTC. Se o último artigo foi gerado há 
 - **Tavily offline** → artigo sem fontes de pesquisa + sem imagens Tavily (ainda gera conteúdo)
 - **RAWG offline** → artigo sem imagens de jogos (fallback: sem imagens)
 - **RSS/Reddit offline** → fallback para lista estática de temas
-- **Google não acha produtos** → fallback para API interna do ML
+- **Google Shopping não acha produtos** → fallback para lista fixa de produtos
 
 ### Concorrência isolada
 `gerar-conteudo.yml`, `gerar-artigo-pilar.yml` e `deploy.yml` usam grupos de concorrência separados, evitando filas e deploys redundantes.
@@ -342,7 +339,7 @@ O sistema usa a **API de Google Shopping da Serper.dev** (geo Brasil) para encon
 4. Gera o botão com o nome da loja (`VER NA KABUM`, `VER NO MERCADO LIVRE`) apontando para a URL real
 5. Monta o artigo de forma **segmentada**: 1 chamada LLM por item (blurb) + 1 chamada para o corpo; itens, tabela comparativa e botões são montados em código
 
-Fallback para tópicos de games: lista fixa de consoles/periféricos (com link real do ML).
+Fallback para tópicos de games: lista fixa de produtos (com `source: "Mercado Livre"`).
 
 > **⚠️ Status atual (ago/2026):** scraping e API do Mercado Livre continuam bloqueados (cookies aposentados, `account-verification`, `/search` 403). A fonte de produtos ativa é o **Google Shopping via Serper** — configure `SERPER_API_KEY` para os artigos saírem com produtos (`affiliate: true`).
 
@@ -356,7 +353,9 @@ Fallback para tópicos de games: lista fixa de consoles/periféricos (com link r
 - **Ofertas** — `/ofertas/` agrega artigos com links de afiliado
 - **Progress Bar** — Barra de leitura neon green no topo dos artigos
 - **Lightbox** — Clique em qualquer imagem para expandir em tela cheia (ESC para fechar)
-- **Texto justificado** — Parágrafos e listas com alinhamento justificado para melhor legibilidade
+- **Texto alinhado à esquerda** — Parágrafos e listas com alinhamento à esquerda (sem justificação) para melhor legibilidade
+- **"Neste artigo" (TOC)** — Sumário recolhível no topo do corpo do artigo (todas as telas); itens ancoram nas seções do texto
+- **Seções em cards** — Cada `##` do artigo vira um card visual (`article-section`) com imagem no topo, separado por divisores; imagem da capa nunca fica sob o header fixo
 - **Logo** — Imagem WebP (`logo-blog.webp`) com altura e posição lateral configuráveis (itens do nav permanecem centralizados)
 - **Background** — Hex grid roxo sutil (opacidade 1.5%)
 - **Ícones** — SVGs inline (sem dependência de fonte externa Material Symbols)
@@ -401,9 +400,8 @@ Arquivos em `public/images/`.
 | Groq | Geração de texto (fallback, openai/gpt-oss-120b) | Free tier (200K tokens/dia) |
 | OpenAI | Geração de texto (fallback, gpt-4o-mini) + Capas IA (gpt-image-2) | Pago (~$0.005/imagem) |
 | Stability AI | Capas IA (fallback/refino, stable-image sd3) | Pago |
-| Tavily | Busca de fontes + busca Google de produtos ML + imagens não-jogos | 1000 consultas/mês free |
-| ML OAuth | Links de afiliado (client_credentials) | Restrito (403 p/ apps não aprovadas) |
-| ML (scraping) | Extração de título, preço e imagem de produtos | Bloqueado (account-verification) |
+| Tavily | Busca de fontes + busca de imagens não-jogos | 1000 consultas/mês free |
+| Serper | Produtos via Google Shopping BR (título, preço, imagem, link, loja) | 2500 buscas grátis na criação; depois $50/50k |
 | RAWG | Imagens de jogos | Free tier |
 | Reddit | Trending topics (r/gaming, r/gamesEcultura) | Grátis, sem API key |
 | RSS Feeds | Trending topics (MeuPlayStation, GameVicio, etc.) | Grátis, sem API key |
@@ -445,14 +443,14 @@ node scripts/convert-banners.mjs       # Converter banners PNG → WebP
 node scripts/regenerate-cadeiras-cover.mjs   # Regenerar capa de um artigo (ex: cadeiras)
 # (regenerar-capa.yml também dispara isso via Actions)
 
-# — Afiliados ML —
-node scripts/fix-article-links.mjs     # Regenerar links meli.la em artigo existente (editar SLUG antes)
+# — Afiliados ML (LEGADO, inativo) —
+node scripts/fix-article-links.mjs     # Regenerar links meli.la (requer cookies do ML — aposentados)
 
 # — Suíte Python (automation/) —
 python automation/generate_article.py  # Gerar artigo (modo definido pelo seed)
 python automation/scheduler.py         # Agendador diário (1 artigo/dia)
 python automation/force_article.py     # Forçar geração manual de um tópico
-python automation/fix_article_links.py # Regenerar links meli.la (versão Python)
+python automation/fix_article_links.py # Regenerar links meli.la (LEGADO, inativo)
 python automation/admin_api.py         # Painel de controle (FastAPI)
 ```
 

@@ -27,8 +27,6 @@
 | Tavily API | `https://api.tavily.com/search` |
 | Serper (Shopping) | `https://google.serper.dev/shopping` |
 | RAWG API | `https://api.rawg.io/api/` |
-| ML listing | `https://lista.mercadolivre.com.br/{query}` |
-| ML produto | `https://www.mercadolivre.com.br/p/{MLB_ID}` |
 
 ## APIs Gratuitas
 

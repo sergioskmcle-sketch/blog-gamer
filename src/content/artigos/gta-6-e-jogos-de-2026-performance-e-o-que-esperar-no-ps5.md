@@ -8,12 +8,7 @@ affiliate: true
 image: "/blog-gamer/images/capas/gta-6-e-jogos-de-2026-performance-e-o-que-esperar-no-ps5.png"
 ---
 
-## Índice
-
-1. [O Que Esperar de GTA 6 e dos Grandes Titulos de 2026](#o-que-esperar-de-gta-6-e-dos-grandes-titulos-de-2026)
-2. [Performance nos Consoles: 60 FPS vs Estabilidade Visual](#performance-nos-consoles-60-fps-vs-estabilidade-visual)
-3. [Titanicos que Continuam No Topo das Vendas](#titanicos-que-continuam-no-topo-das-vendas)
-4. [Prós e Contras das Tendencias de Jogos em 2026](#pros-e-contras-das-tendencias-de-jogos-em-2026)
+## Introdução
 
 Fala, gamer! Se voce ta ligado na movimentacao da industria este ano, ja percebeu que a briga pelo seu tempo de jogatina ta insana. A gente ta vendo gigantes da industria prometendo mundos abertos gigantescos, graficos de babar e taxas de quadros lisinhas no console. Mas sera que as empresas entregam tudo o que prometem ou e so conversa fiada de marketing?
 

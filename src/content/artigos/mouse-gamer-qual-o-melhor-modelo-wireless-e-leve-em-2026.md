@@ -8,12 +8,7 @@ affiliate: true
 image: "/blog-gamer/images/capas/mouse-gamer-qual-o-melhor-modelo-wireless-e-leve-em-2026.png"
 ---
 
-## Índice
-
-1. [Mouses Wireless de Elite: O Hype Vale Cada Tostao?](#mouses-wireless-de-elite-o-hype-vale-cada-tostao)
-2. [DELUX e a Opcao Custo-Beneficio no Setup](#delux-e-a-opcao-custo-beneficio-no-setup)
-3. [Tabela Comparativa: Peso, Sensor e Grip](#tabela-comparativa-peso-sensor-e-grip)
-4. [Pros e Contras dos Principais Modelos](#pros-e-contras-dos-principais-modelos)
+## Introdução
 
 Fala, gamer! Se a tua mira ta vacilando e o mouse antigo parece um tijolo pesado arrastando no mousepad, o problema nao e a tua habilidade: o teu periferico e que ta pedindo aposentadoria. O mercado de hardware gamer virou uma verdadeira corrida armamentista de gramas a menos e sensores de alta precisao.
 

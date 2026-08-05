@@ -1,6 +1,27 @@
 # Plano de Versões — Blog Gamer
 
+> ⚠️ **Atualização (ago/2026):** a v1.2 (cookies de sessão do ML) está **aposentada** — os cookies foram removidos do projeto (`88c9127`) e o ML foi fechado como fonte. A versão atual é a **v1.4 (Serper)** descrita abaixo. As seções antigas ficam como histórico.
+
 Este documento registra as versões do pipeline de geração de artigos, explica o que muda em cada uma e fornece os comandos para alternar entre elas.
+
+---
+
+## Versão 1.4 — Produtos via Google Shopping (Serper)
+
+**Data:** 2026-08-03
+
+### O que mudou
+
+- Fonte de produtos: **API de Google Shopping da Serper.dev** (`searchGoogleShopping`, `gl=br`) substituiu scraping e OAuth do Mercado Livre.
+- **Até 5 produtos por artigo** (`MAX_PRODUCTS = 5`), de várias lojas (Kabum, Amazon, Magalu, Pichau, ML…).
+- Botão de compra com o **nome da loja** (`VER NA KABUM`, `VER NO MERCADO LIVRE`).
+- **Painel `/admin/`** (aba Produtos): editar **texto e link** de cada botão depois do deploy.
+- Cookies de sessão do ML **aposentados** (não reativar).
+
+### Configuração
+
+- Secret `SERPER_API_KEY` (conta grátis em serper.dev, 2.500 buscas).
+- Sem a chave, artigos saem sem produtos (`affiliate: false`).
 
 ---
 
@@ -72,7 +93,7 @@ O OAuth do ML (`client_credentials`) parou de funcionar — retorna `invalid_cli
 
 ### Quando usar
 
-Use a v1.2 para gerar links `meli.la` localmente. No pipeline GitHub Actions, só funcionará após renovar o `ML_COOKIES_B64`.
+~~Use a v1.2 para gerar links `meli.la` localmente. No pipeline GitHub Actions, só funcionará após renovar o `ML_COOKIES_B64`.~~ **Obsoleta (ago/2026):** cookies aposentados e ML fechado como fonte. Use a v1.4 (Serper).
 
 ## Versão 1.3 — ideia arquivada (multi-source)
 

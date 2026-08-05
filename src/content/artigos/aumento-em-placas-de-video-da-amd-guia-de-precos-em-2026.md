@@ -8,13 +8,7 @@ affiliate: true
 image: "/blog-gamer/images/capas/aumento-em-placas-de-video-da-amd-guia-de-precos-em-2026.png"
 ---
 
-## Índice
-
-1. [Os Principais Equipamentos de Vídeo em 2026](#os-principais-equipamentos-de-video-em-2026)
-2. [Placas de vídeo mais vendidos de 2024: RTX 4060 e RX580 dominam o mercado! — Desempenho e Custo-Benefício](#placas-de-video-mais-vendidos-de-2024-rtx-4060-e-rx580-domin)
-3. [Placas de captura de vídeo mais vendidos de 2024: Gllai Y01 e Streaming em 4K! — Solução para Transmissão](#placas-de-captura-de-video-mais-vendidos-de-2024-gllai-y01-e)
-4. [Por que as Placas de Vídeo Ficaram Mais Caras em 2026?](#por-que-as-placas-de-video-ficaram-mais-caras-em-2026)
-5. [Qual Placa de Vídeo Escolher Frente às Altas?](#qual-placa-de-video-escolher-frente-as-altas)
+## Introdução
 
 Montar ou atualizar um computador em 2026 tornou-se um desafio de planejamento financeiro para qualquer entusiasta de tecnologia. A forte pressão da indústria de Inteligência Artificial sobre a cadeia de suprimentos de semicondutores encareceu os componentes mais vitais do setup gamer.
 

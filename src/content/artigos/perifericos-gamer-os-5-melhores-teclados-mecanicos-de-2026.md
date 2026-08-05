@@ -8,15 +8,7 @@ affiliate: false
 image: "https://wooting.io/_next/image?url=https%3A%2F%2Fwooting-website.ams3.cdn.digitaloceanspaces.com%2Fproducts%2Fkeyboards%2F80HE%2F80HE-front-view-main.webp&w=3840&q=75"
 ---
 
-## Índice
-
-1. [Wooting 80HE — Precisão Magnética Absoluta](#wooting-80he-precisao-magnetica-absoluta)
-2. [ATK x QK HEX80 TKL — Desempenho Extremo e Construção de Elite](#atk-x-qk-hex80-tkl-desempenho-extremo-e-construcao-de-elite)
-3. [AULA F75 — O Custo-Benefício Imbatível do Momento](#aula-f75-o-custo-beneficio-imbativel-do-momento)
-4. [Keychron Q5 Max — O Monstro Premium para Trabalho e Play](#keychron-q5-max-o-monstro-premium-para-trabalho-e-play)
-5. [Redragon Kumara Pro V2 — A Porta de Entrada para os Magnéticos](#redragon-kumara-pro-v2-a-porta-de-entrada-para-os-magneticos)
-6. [Comparativo de Especificações dos Teclados](#comparativo-de-especificacoes-dos-teclados)
-7. [Qual Teclado Escolher?](#qual-teclado-escolher)
+## Introdução
 
 Fala, gamer! Se a tua digitação tá travando na hora do combate ou tua tecla tá dando double click no meio do clutch, para tudo porque o problema tá na tua mesa. Mudar de teclado mecânico parece frescura até você testar um modelo que realmente responde no milissegundo certo.
 

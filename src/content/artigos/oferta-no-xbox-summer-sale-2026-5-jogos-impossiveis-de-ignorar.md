@@ -8,14 +8,7 @@ affiliate: true
 image: "/blog-gamer/images/capas/oferta-no-xbox-summer-sale-2026-5-jogos-impossiveis-de-ignorar.png"
 ---
 
-## Índice
-
-1. [A Avalanche de Ofertas no Xbox Summer Sale 2026](#a-avalanche-de-ofertas-no-xbox-summer-sale-2026)
-2. [Onde Jogar: A Batalha dos Consoles em 2026](#onde-jogar-a-batalha-dos-consoles-em-2026)
-3. [Game Pass e Gamescom 2026: O Que Vem Por Ai](#game-pass-e-gamescom-2026-o-que-vem-por-ai)
-4. [Comparativo das Melhores Ofertas e Consoles](#comparativo-das-melhores-ofertas-e-consoles)
-5. [Pros e Contras das Principais Opcoes](#pros-e-contras-das-principais-opcoes)
-6. [Vale a Pena Aproveitar as Ofertas Agora?](#vale-a-pena-aproveitar-as-ofertas-agora)
+## Introdução
 
 Fala, gamer! A carteira que se cuide, porque a Microsoft resolveu botar fogo no mercado de vez. A Xbox Summer Sale 2026 chegou chutando a porta com mais de 2.000 jogos em promocao, cortando os precos na metade e oferecendo pechinchas que chegam a 90% de desconto. E se voce achava que era so isso, o ecossistema do Xbox ainda esta recheado de novidades com a proximidade da Gamescom 2026, que vai contar com dezenas de estacoes de teste para jogos pesados.
 

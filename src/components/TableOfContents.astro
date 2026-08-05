@@ -9,73 +9,70 @@ export interface Heading {
 
 export interface Props {
   headings: Heading[];
-  /** "sidebar" = sticky no desktop; "inline" = <details> recolhível no mobile */
-  variant?: "sidebar" | "inline";
 }
 
-const { headings, variant = "sidebar" } = Astro.props;
+const { headings } = Astro.props;
+
+interface Topic extends Heading {
+  subs: Heading[];
+}
+
+const stripNumber = (text: string) => text.replace(/^\d+\.\s+/, "");
+
+const tree: Topic[] = [];
+let lastTopic: Topic | null = null;
+for (const h of headings) {
+  if (h.depth === 2) {
+    lastTopic = { ...h, subs: [] };
+    tree.push(lastTopic);
+  } else if (h.depth === 3) {
+    if (!lastTopic) {
+      lastTopic = { depth: 2, slug: h.slug, text: h.text, subs: [] };
+      tree.push(lastTopic);
+    }
+    lastTopic.subs.push(h);
+  }
+}
 ---
 
 {headings.length >= 3 && (
-  variant === "sidebar" ? (
-    <nav class="toc-sidebar card-depth hidden lg:block p-md" aria-labelledby="tocTitle">
-      <h2
-        id="tocTitle"
-        class="font-label text-label text-primary uppercase tracking-widest mb-md flex items-center gap-sm"
-      >
-        <span class="w-8 h-px bg-primary" />
-        NESTE ARTIGO
-      </h2>
-      <ol class="toc-list space-y-1 list-none p-0 m-0">
-        {headings.map((h, i) => (
-          <li class="m-0">
-            <a
-              href={`#${h.slug}`}
-              class="toc-link"
-              data-toc-target={h.slug}
-            >
-              <span class="toc-num">{String(i + 1).padStart(2, "0")}</span>
-              <span>{h.text}</span>
+  <details class="toc-inline">
+    <summary>
+      <Icon name="list" size={18} />
+      <span>Neste artigo</span>
+      <span class="toc-count">{headings.length}</span>
+    </summary>
+    <ol class="toc-list list-none p-0">
+      {tree.map((topic, ti) => {
+        const topicNum = String(ti + 1).padStart(2, "0");
+        return (
+          <li class="toc-topic">
+            <a href={`#${topic.slug}`} class="toc-link toc-link-topic">
+              <span class="toc-num">{topicNum}</span>
+              <span>{topic.text}</span>
             </a>
+            {topic.subs.length > 0 && (
+              <ol class="toc-sublist list-none p-0">
+                {topic.subs.map((sub, si) => (
+                  <li>
+                    <a href={`#${sub.slug}`} class="toc-link toc-link-sub">
+                      <span class="toc-num">
+                        {topicNum}.{si + 1}
+                      </span>
+                      <span>{stripNumber(sub.text)}</span>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            )}
           </li>
-        ))}
-      </ol>
-    </nav>
-  ) : (
-    <details class="toc-inline lg:hidden">
-      <summary>
-        <Icon name="list" size={18} />
-        <span>Neste artigo</span>
-        <span class="toc-count">{headings.length}</span>
-      </summary>
-      <ol class="toc-list list-none p-0">
-        {headings.map((h, i) => (
-          <li class="m-0">
-            <a href={`#${h.slug}`} class="toc-link">
-              <span class="toc-num">{String(i + 1).padStart(2, "0")}</span>
-              <span>{h.text}</span>
-            </a>
-          </li>
-        ))}
-      </ol>
-    </details>
-  )
+        );
+      })}
+    </ol>
+  </details>
 )}
 
 <style>
-  /*
-   * O elemento sticky é o wrapper na página do artigo (sumário + CTA juntos),
-   * então aqui só limitamos a altura para o conjunto caber na viewport.
-   */
-  .toc-sidebar {
-    max-height: calc(100vh - 22rem);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
-  .toc-sidebar:hover {
-    transform: none;
-  }
-
   .toc-link {
     display: flex;
     gap: 0.625rem;
@@ -107,22 +104,28 @@ const { headings, variant = "sidebar" } = Astro.props;
     letter-spacing: 0.04em;
   }
 
-  /* Estado ativo controlado pelo scroll-spy */
-  .toc-link[aria-current="true"] {
-    color: var(--accent);
-    background: rgba(168, 85, 247, 0.08);
-    border-left-color: var(--accent);
-    font-weight: 600;
+  .toc-topic {
+    border-bottom: 1px solid var(--border);
   }
 
-  .toc-link[aria-current="true"] .toc-num {
-    color: var(--accent);
+  .toc-topic:last-child {
+    border-bottom: none;
   }
 
-  /* --- Variante mobile --- */
+  .toc-sublist {
+    margin: 0 0 0.25rem 1.25rem;
+    border-left: 1px solid var(--border);
+  }
+
+  .toc-link-sub {
+    min-height: 32px;
+    padding: 0.375rem 0.625rem;
+    font-size: 0.8125rem;
+  }
+
   .toc-inline {
     margin: 0 auto 2rem;
-    max-width: var(--measure);
+    max-width: min(720px, 100%);
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
@@ -171,56 +174,3 @@ const { headings, variant = "sidebar" } = Astro.props;
     padding: 0.75rem 0.625rem;
   }
 </style>
-
-<script>
-  // Scroll-spy: marca a seção visível no sumário da sidebar.
-  const links = Array.from(
-    document.querySelectorAll<HTMLAnchorElement>("[data-toc-target]")
-  );
-
-  if (links.length > 0) {
-    const targets = links
-      .map((link) => document.getElementById(link.dataset.tocTarget!))
-      .filter((el): el is HTMLElement => el !== null);
-
-    let activeSlug: string | null = null;
-
-    const setActive = (slug: string | null) => {
-      if (slug === activeSlug) return;
-      activeSlug = slug;
-      links.forEach((link) => {
-        if (link.dataset.tocTarget === slug) {
-          link.setAttribute("aria-current", "true");
-        } else {
-          link.removeAttribute("aria-current");
-        }
-      });
-    };
-
-    // A seção ativa é a última cujo topo já passou da linha de leitura.
-    const update = () => {
-      const line = window.innerHeight * 0.28;
-      let current: string | null = null;
-      for (const el of targets) {
-        if (el.getBoundingClientRect().top <= line) current = el.id;
-      }
-      setActive(current ?? targets[0]?.id ?? null);
-    };
-
-    let ticking = false;
-    window.addEventListener(
-      "scroll",
-      () => {
-        if (ticking) return;
-        ticking = true;
-        requestAnimationFrame(() => {
-          update();
-          ticking = false;
-        });
-      },
-      { passive: true }
-    );
-
-    update();
-  }
-</script>

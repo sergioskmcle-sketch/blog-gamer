@@ -8,12 +8,7 @@ affiliate: false
 image: "/blog-gamer/images/capas/monitores-gamer-guia-completo-de-modelos-100hz-a-165hz-em-2026.png"
 ---
 
-## Índice
-
-1. [Samsung Odyssey G5: Desempenho Competitivo com 165Hz e FreeSync](#samsung-odyssey-g5-desempenho-competitivo-com-165hz-e-freesy)
-2. [LG 27MS500: Entrada Eficiente para a Categoria de 100Hz](#lg-27ms500-entrada-eficiente-para-a-categoria-de-100hz)
-3. [Superframe Ace: A Alternativa de 27 Polegadas Custo-Benefício](#superframe-ace-a-alternativa-de-27-polegadas-custo-beneficio)
-4. [Tabela Comparativa de Especificações Técnicas](#tabela-comparativa-de-especificacoes-tecnicas)
+## Introdução
 
 Escolher o monitor certo para seu setup exige analisar taxa de atualização, tempo de resposta e fidelidade de cores sem ceder ao apelo comercial simplista. Em um mercado saturado por siglas técnicas, entender o impacto real de cada especificação na exibição de quadros é a única garantia de um investimento preciso.
 

@@ -8,12 +8,7 @@ affiliate: false
 image: "https://media.rawg.io/media/crop/600/400/games/26d/26d4437715bee60138dab4a7c8c59c92.jpg?auto=format&fit=crop&w=800&h=450"
 ---
 
-## Índice
-
-1. [Xbox Summer Sale 2026: Descontos que Valem o Pulo](#xbox-summer-sale-2026-descontos-que-valem-o-pulo)
-2. [Bundles Imperdíveis da Xbox Ultimate Sale](#bundles-imperdiveis-da-xbox-ultimate-sale)
-3. [Game Pass July Wave: Títulos que Chegam Grátis](#game-pass-july-wave-titulos-que-chegam-gratis)
-4. [Indie Picks: Cynthia e Outros Achados Baratos](#indie-picks-cynthia-e-outros-achados-baratos)
+## Introdução
 
 Fala, gamer! A **Xbox Summer Sale 2026** acabou de abrir a porta e já tá tirando o fôlego da galera. Mais de 2 000 jogos com preço de banana, bundles que juntam DLCs e edições especiais, e ainda um monte de título novo entrando no Game Pass. Se tu curte economizar e ainda sair com a biblioteca cheia, fica ligado que o bagulho aqui é quente.
 

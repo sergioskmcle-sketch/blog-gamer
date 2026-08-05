@@ -45,8 +45,8 @@ const titulo = isFirst ? "Blog Gamer" : `Blog Gamer — página ${page.currentPa
   nextPage={urlNext}
 >
   <div class="max-w-page mx-auto px-gutter">
-    <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-xl lg:gap-[40px] my-xl">
-      <section class="min-w-0 space-y-xl">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-xl my-xl">
+      <section class="min-w-0 space-y-xl" style="grid-column: span var(--main-cols, 8) / span var(--main-cols, 8)">
         {isFirst && destaque && (
           <HeroSection
             title={destaque.title}
@@ -110,7 +110,7 @@ const titulo = isFirst ? "Blog Gamer" : `Blog Gamer — página ${page.currentPa
         </div>
       </section>
 
-      <aside class="min-w-0">
+      <aside class="min-w-0" style="grid-column: span var(--sidebar-cols, 4) / span var(--sidebar-cols, 4)">
         <Sidebar artigos={todos} currentSlug={isFirst ? destaque?.slug : undefined} />
       </aside>
     </div>
