@@ -10,6 +10,8 @@ image: "/blog-gamer/images/capas/monitores-gamer-guia-completo-de-modelos-100hz-
 
 ## Introdução
 
+Analise detalhada dos monitores Samsung Odyssey G5, LG 27MS500 e Superframe Ace. Compare taxa de atualização, painel e tempo de resposta para seu setup.
+
 Escolher o monitor certo para seu setup exige analisar taxa de atualização, tempo de resposta e fidelidade de cores sem ceder ao apelo comercial simplista. Em um mercado saturado por siglas técnicas, entender o impacto real de cada especificação na exibição de quadros é a única garantia de um investimento preciso.
 
 A busca por fluidez visual e menor latência de entrada transformou o mercado de telas nos últimos anos. Enquanto modelos de entrada estabelecem novos padrões básicos com taxas de 100Hz, equipamentos intermediários consolidam frequências de 165Hz com suporte a sincronização dinâmica de quadros. Analisamos detalhadamente três modelos populares para identificar qual atende melhor às exigências da sua placa de vídeo e do seu orçamento.

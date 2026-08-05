@@ -98,11 +98,6 @@ const todosArtigos = Object.entries(import.meta.glob("../../content/artigos/*.md
         <TableOfContents headings={headings} />
 
         <div class="font-body text-body text-on-surface-variant leading-relaxed" id="articleBody">
-          {frontmatter.description && (
-            <p class="first-letter:text-5xl first-letter:font-black first-letter:text-primary first-letter:mr-3 first-letter:float-left">
-              {frontmatter.description}
-            </p>
-          )}
           <Content />
         </div>
 

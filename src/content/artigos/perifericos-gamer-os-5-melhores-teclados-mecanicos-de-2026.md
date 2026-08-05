@@ -10,6 +10,8 @@ image: "https://wooting.io/_next/image?url=https%3A%2F%2Fwooting-website.ams3.cd
 
 ## Introdução
 
+Confira os melhores teclados mecânicos e magnéticos para elevar seu nível no game em 2026. Escolha o modelo ideal para seu setup!
+
 Fala, gamer! Se a tua digitação tá travando na hora do combate ou tua tecla tá dando double click no meio do clutch, para tudo porque o problema tá na tua mesa. Mudar de teclado mecânico parece frescura até você testar um modelo que realmente responde no milissegundo certo.
 
 A tecnologia no mundo dos periféricos gamer deu um salto absurdo recentemente. Pra separar o joio do trigo nessa lista, nós consideramos critérios cruciais como o tipo de switch (focando forte na revolução dos magnéticos Hall Effect), a taxa de polling rate, a latência de resposta e a qualidade de construção do gabinete.

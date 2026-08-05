@@ -10,6 +10,8 @@ image: "/blog-gamer/images/capas/aumento-em-placas-de-video-da-amd-guia-de-preco
 
 ## Introdução
 
+Entenda por que os preços de placas de vídeo AMD e NVIDIA estão subindo em 2026 devido à demanda por IA e saiba como escolher seu hardware gamer.
+
 Montar ou atualizar um computador em 2026 tornou-se um desafio de planejamento financeiro para qualquer entusiasta de tecnologia. A forte pressão da indústria de Inteligência Artificial sobre a cadeia de suprimentos de semicondutores encareceu os componentes mais vitais do setup gamer.
 
 Para definir qual placa de vídeo vale o investimento atual, você deve analisar o custo por quadro entregue, a quantidade de memória VRAM dedicada e a largura de banda dos módulos GDDR6 ou GDDR7. O equilíbrio entre o consumo energético e a capacidade de manter taxas de quadros estáveis em resoluções altas determina o verdadeiro custo-benefício de um componente no cenário atual.

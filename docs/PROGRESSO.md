@@ -30,7 +30,7 @@
 | Gradiente hero blue/green | ✅ Substituído o neon roxo/verde |
 | Tabelas, FAQ, affiliate-box | ✅ Estilizados no CSS global |
 | Cards por seção no artigo | ✅ `remark-heading-blocks` + `rehype-article-sections` (cada `##` vira `article-section`, imagem no topo) |
-| TOC "Neste artigo" | ✅ Sumário recolhível no topo do artigo (todas as telas), extração via `src/lib/headings.ts` |
+| TOC "Neste artigo" | ✅ Acordeão por tópico no topo do artigo (todas as telas): tópicos `##` sempre visíveis numerados `1`, `2`, … e subtópicos `###` expandíveis via `<details>` (chevrão); roxo `--accent`, alinhado à esquerda, fonte do tamanho do texto — `src/components/TableOfContents.astro` + extração via `src/lib/headings.ts` |
 | Sidebar padrão no artigo | ✅ Reutiliza `Sidebar.astro` da home (banner 9:16 → Populares → Categorias → Comunidade) |
 | Capa sob header fixo | ✅ `padding-top` com `calc(max(...) + 8px)` no `Layout.astro` |
 | Texto alinhado à esquerda | ✅ Removida justificação nos artigos |

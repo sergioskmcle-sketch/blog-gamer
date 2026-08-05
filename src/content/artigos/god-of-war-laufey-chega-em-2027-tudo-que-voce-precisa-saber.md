@@ -13,6 +13,10 @@ affiliate: true
 image: "/blog-gamer/images/capas/god-of-war-laufey-chega-em-2027-tudo-que-voce-precisa-saber.webp"
 ---
 
+## Introdução
+
+Descubra a data de lançamento de God of War Laufey, o que muda para quem tem Ragnarok e como garantir seu próximo título na PS5. Tudo com análise sincera.
+
 Fala, gamer! Segura essa, galera: a Sony acabou de soltar a data oficial de God of War Laufey – fevereiro de 2027, revelada na SDCC 2026. O anúncio chegou junto com a polêmica decisão de acabar com discos físicos a partir de 2028, o que já divide a comunidade. Se você curte Kratos, tem que entender o que isso significa pro teu setup e pro bolso.
 
 ## Laufey chega com data fixa e promessas ousadas

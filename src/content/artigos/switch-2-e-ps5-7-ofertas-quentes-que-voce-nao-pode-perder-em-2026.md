@@ -8,6 +8,10 @@ affiliate: false
 image: "https://assets.nintendo.com/image/upload/ar_16:9,b_auto:border,c_lpad/b_white/f_auto/q_auto/dpr_1.5/c_scale,w_500/ncom/My%20Nintendo%20Store/EN-US/Nintendo%20Switch%202/Hardware/123669-nintendo-switch-2-handheld-1200x675"
 ---
 
+## Introdução
+
+Descubra as promoções imperdíveis do PS5, os jogos do PS Plus e por que o Switch 2 domina as conversas dos gamers agora.
+
 Fala, gamer! Enquanto a Nintendo solta o **Switch 2** e a comunidade já tá virando meme, a Sony explode com descontos que parecem cheat code. Segura essa lista de ofertas que vai deixar teu bolso menos vazio e tua jogatina mais braba.
 
 ## Switch 2: Por que a galera tá pirando?
@@ -20,15 +24,25 @@ A Nintendo acabou de confirmar que o **Switch 2** vai continuar nas prateleiras 
 
 A PlayStation Store lançou a Summer Sale expandida e trouxe mais de noventa títulos com descontos de até 90%. Entre os achados que merecem destaque:
 
-- **Darksiders 3 Whips & Blades Edition** chegou a apenas **$8**. Normalmente custa $80, então a queda é de 90%. Se você curte ação sacada, ainda pode pagar a taxa de upgrade de $10 e garantir a versão Warmastered sem gastar mais de $20 no total.
-- **Lies of P Overture** está por **$58**, um desconto de 27% sobre o bundle original de $80. O jogo mistura hack‑and‑slash com narrativa noir, perfeito pra quem quer algo diferente do padrão AAA.
-- **Avatar From the Ashes** baixa para **$28**, vindo de $40. É um RPG de mundo aberto que ainda não recebeu muita atenção, mas a promoção deixa ele tão barato que vale a tentativa.
+### Darksiders 3 Whips & Blades Edition — $8 (90% off)
+
+**Darksiders 3 Whips & Blades Edition** chegou a apenas **$8**. Normalmente custa $80, então a queda é de 90%. Se você curte ação sacada, ainda pode pagar a taxa de upgrade de $10 e garantir a versão Warmastered sem gastar mais de $20 no total.
+
+### Lies of P Overture — $58 (27% off)
+
+**Lies of P Overture** está por **$58**, um desconto de 27% sobre o bundle original de $80. O jogo mistura hack‑and‑slash com narrativa noir, perfeito pra quem quer algo diferente do padrão AAA.
+
+### Avatar From the Ashes — $28
+
+**Avatar From the Ashes** baixa para **$28**, vindo de $40. É um RPG de mundo aberto que ainda não recebeu muita atenção, mas a promoção deixa ele tão barato que vale a tentativa.
 
 Essas três ofertas já pagam a entrada na sale, e ainda restam dezenas de títulos indie e lançamentos de 2024 que caem em 50% ou mais. A estratégia da Sony parece simples: encher o carrinho dos usuários antes que o hype do Switch 2 consuma todo o orçamento. Se tu ainda não tem um PS5, agora é a hora de garantir a máquina e encher a biblioteca sem precisar de cheat.
 
 <img src="https://media.rawg.io/media/crop/600/400/screenshots/492/4929a57952a2f9bcec3cf6d37230103e.jpg?auto=format&fit=crop&w=800&h=450" alt="PlayStation Plus" class="article-game-img" loading="lazy" decoding="async">
 
 ## PlayStation Plus June 2026: RPG aberto que chegou
+
+### Black Desert (2025)
 
 <img src="https://media.rawg.io/media/crop/600/400/games/651/651ae84f2d5e36206aad90976a453329.jpg?auto=format&fit=crop&w=800&h=450" alt="Black Desert" class="article-game-img" loading="lazy" decoding="async">
 
@@ -40,24 +54,32 @@ Julho trouxe a seleção Essential com três títulos que mostram a diversidade 
 
 <img src="https://media.rawg.io/media/crop/600/400/games/e9c/e9c042d14515eb3ff7cb4db9fe78e435.jpg?auto=format&fit=crop&w=800&h=450" alt="Call of Duty Modern Warfare 3" class="article-game-img" loading="lazy" decoding="async">
 
-1. **Call of Duty: Modern Warfare 3** – A versão PS5 entrega ray‑tracing e 60fps, transformando o clássico em experiência de tiro que ainda faz a galera rage quit nos servidores.
-2. **For the King II** – Um híbrido de estratégia e RPG que mistura board‑game com turn‑based combat. Ideal pra quem curte sessões de coop com a galera no Discord.
-3. **CrossCode** – Um indie de ação‑RPG com pixel art refinado e puzzles que lembram *The Legend of Zelda*. Mesmo sendo um título mais antigo, a inclusão no Essential dá nova vida ao jogo.
+### Call of Duty: Modern Warfare 3
+
+A versão PS5 entrega ray‑tracing e 60fps, transformando o clássico em experiência de tiro que ainda faz a galera rage quit nos servidores.
+
+### For the King II
+
+Um híbrido de estratégia e RPG que mistura board‑game com turn‑based combat. Ideal pra quem curte sessões de coop com a galera no Discord.
+
+### CrossCode
+
+Um indie de ação‑RPG com pixel art refinado e puzzles que lembram *The Legend of Zelda*. Mesmo sendo um título mais antigo, a inclusão no Essential dá nova vida ao jogo.
 
 Essas três opções mostram que a Sony não está focada só em blockbusters; ela quer que o PS Plus sirva como “café da manhã” diário para todo tipo de gamer. Enquanto o Switch 2 promete exclusividades de plataforma, o PS5 entrega um leque de experiências que vão do hardcore ao casual, tudo dentro de um mesmo plano de assinatura.
 
 ## FAQ
 
-**Qual a melhor oferta da Summer Sale para quem ainda não tem PS5?**
+### Qual a melhor oferta da Summer Sale para quem ainda não tem PS5?
 Se o teu orçamento está apertado, **Darksiders 3 Whips & Blades Edition** por $8 + $10 de upgrade é a escolha mais barata para um título de ação completo.
 
-**O Switch 2 vai substituir o Switch original ainda este ano?**
+### O Switch 2 vai substituir o Switch original ainda este ano?
 A Nintendo confirmou que o Switch original continuará em produção até 2026, então ainda dá tempo de comprar o modelo antigo antes que desapareça das lojas.
 
-**Vale a pena assinar o PlayStation Plus Premium?**
+### Vale a pena assinar o PlayStation Plus Premium?
 Sim, porque além dos lançamentos mensais, o Premium inclui o catálogo de jogos de PS5 que normalmente custariam $60 cada. Se tu joga 3 ou mais títulos por mês, a assinatura paga a si mesma.
 
-**Como comparar o desempenho do PS5 com o Switch 2 nos jogos de ação?**
+### Como comparar o desempenho do PS5 com o Switch 2 nos jogos de ação?
 O PS5 entrega 4K a 60fps em títulos como *Call of Duty* e *Black Desert*, enquanto o Switch 2 foca em portabilidade e 1080p. Se a prioridade é visual e fluidez, o PS5 ainda lidera.
 
 ## Conclusão

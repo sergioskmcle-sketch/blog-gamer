@@ -8,6 +8,10 @@ affiliate: false
 image: "/blog-gamer/images/capas/xbox-game-pass-julho-2026-10-jogos-forza-6-e-cloud-gaming.png"
 ---
 
+## Introdução
+
+Descubra os 10 novos títulos do Xbox Game Pass de julho, a estreia de Forza Horizon 6 e como o Xbox Cloud Gaming permite jogar sem console.
+
 Fala, gamer! Julho chegou com a enxurrada de novidades que a Microsoft prometeu, e a primeira leva do Game Pass tá parecendo presente de Natal adiantado. Se você curte ficar de olho nos lançamentos e ainda economizar, prepara o fone que o bagulho vai ser quente.
 
 ## Game Pass Julho 2026 traz 10 jogos que valem o upgrade

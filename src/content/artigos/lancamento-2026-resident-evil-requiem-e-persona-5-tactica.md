@@ -8,6 +8,10 @@ affiliate: true
 image: "https://media.rawg.io/media/crop/600/400/games/ed6/ed613937e113a4d43fa0db771e527a2f.jpg?auto=format&fit=crop&w=800&h=450"
 ---
 
+## Introdução
+
+Descubra o que a Capcom trouxe com Resident Evil Requiem, os detalhes da nova Persona 5 Tactica e se vale a pena investir nos lançamentos de 2026.
+
 ## Fala, gamer! O que a Capcom e a Atlus estão aprontando?
 
 A primeira metade de 2026 já mostrou que o calendário de lançamentos não perdoa ninguém. Enquanto a Xbox despediu milhares de funcionários, a Capcom soltou o trailer de **Resident Evil Requiem**, e a Atlus anunciou duas versões diferentes de **Persona 5 Tactica**. O bagulho tá tão quente que até o Discord do nosso server entrou em modo “raid”. Vai ser que esses lançamentos vão sustentar a hype ou vão acabar virando mais um “zero” no portfólio das gigantes?

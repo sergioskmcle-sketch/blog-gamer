@@ -21,6 +21,7 @@
 
 - Listas de produtos usam **um tópico `##` agrupador + cada produto como `###`**. Artigos informativos (não-listas) usam `##` para cada seção e `###` para perguntas de FAQ, dicas e subtópicos.
 - `## Índice` manual **não existe mais** — foi removido de todos os artigos; o TOC é renderizado automaticamente.
+- A `description` do frontmatter é o **primeiro parágrafo dentro da `## Introdução`** (lead). Não existe mais parágrafo solto de descrição abaixo do TOC (evita duplicação).
 - Hierarquia visual: `##` = tópico (`section.article-section`, título roxo); `###` = sub-card (`section.article-subsection`, borda lateral verde `#2ff801`).
 
 ## Ordem de cada tópico (item de lista)
@@ -99,8 +100,10 @@ Tabelas recebem zebra sutil (`tr:nth-child(even)`) via CSS em `[...slug].astro`.
 
 ## Sumário "Neste artigo"
 
-- TOC recolhível no topo do corpo do artigo, **em todas as telas** (desktop e mobile) — componente `src/components/TableOfContents.astro`, chamado como `<TableOfContents headings={headings} />`.
-- **Hierárquico**: tópicos `##` numerados `01`, `02`, … e subtópicos `###` numerados `02.1`, `02.2`, … (classes `toc-topic`, `toc-sublist`, `toc-link-sub`).
+- TOC no topo do corpo do artigo, **em todas as telas** (desktop e mobile) — componente `src/components/TableOfContents.astro`, chamado como `<TableOfContents headings={headings} />`.
+- **Alinhado à esquerda, cor roxa `--accent`, fonte do tamanho do texto** (tópicos `1.2rem`, subtópicos `1.05rem`). Cabeçalho fixo "Neste artigo" com badge `toc-count` (roxo) mostrando o total de tópicos.
+- **Acordeão por tópico**: tópicos `##` sempre visíveis, numerados `1`, `2`, `3`… (sem zero à esquerda). Tópicos com subtópicos `###` são `<details class="toc-topic-details">` — o clique expande/recolhe os subtópicos (numerados `2.1`, `2.2`, … por tópico) e rotaciona o chevron (`toc-chevron`). Tópicos sem subtópicos são links simples.
+- Numeração: tópicos `String(ti + 1)`; subtópicos `String(topicNum.si + 1)` (reinicia em cada tópico).
 - Prefixos de numeração em títulos de `###` (ex.: `1. Altura e peso`) são removidos do texto exibido via `stripNumber()`.
 - Os slugs vêm de `src/lib/headings.ts` (exclui `/^índice$/i`); cada link do TOC resolve para o `id` de um heading real (gerado pelo plugin ou pela âncora manual).
 - A página do artigo reutiliza a mesma estrutura de layout da Home: wrapper `max-w-page mx-auto px-gutter` → `grid grid-cols-1 lg:grid-cols-12 gap-xl my-xl` com colunas `span var(--main-cols, 8)` e `span var(--sidebar-cols, 4)` (larguras controladas pelo painel admin em `global.css` — nunca hardcodar `340px`/`col-span-*`). Sidebar = `Sidebar.astro` (banner 9:16 → Populares → Categorias → Comunidade).

@@ -8,6 +8,10 @@ affiliate: false
 image: "/blog-gamer/images/capas/playstation-julho-2026-guia-de-jogos-ps-plus-e-acessorios.png"
 ---
 
+## Introdução
+
+Confira os lançamentos de julho 2026 no PS Plus Essential, os novos RPGs no Extra/Premium e os acessórios que vão melhorar seu setup PlayStation.
+
 ## PS Plus Essential de Julho 2026: O que vale a pena baixar
 
 A partir de 7 de julho, a Sony disponibiliza três títulos no PS Plus Essential. A seleção traz um shooter de grande porte, um jogo de estratégia leve e um RPG indie que tem ganhado notoriedade nos fóruns.

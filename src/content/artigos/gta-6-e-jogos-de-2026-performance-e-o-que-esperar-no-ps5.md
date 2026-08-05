@@ -10,6 +10,8 @@ image: "/blog-gamer/images/capas/gta-6-e-jogos-de-2026-performance-e-o-que-esper
 
 ## Introdução
 
+Confira a analise dos jogos mais aguardados de 2026, performance no PS5 e consoles, e o que esperar dos grandes lancamentos do ano. Veja os detalhes!
+
 Fala, gamer! Se voce ta ligado na movimentacao da industria este ano, ja percebeu que a briga pelo seu tempo de jogatina ta insana. A gente ta vendo gigantes da industria prometendo mundos abertos gigantescos, graficos de babar e taxas de quadros lisinhas no console. Mas sera que as empresas entregam tudo o que prometem ou e so conversa fiada de marketing?
 
 Bora analisar o que realmente esta pegando nos games mais quentes da temporada, entender a real performance nos consoles da atual geracao e ver se vale a pena gastar suas economias nesses lancamentos brutos.

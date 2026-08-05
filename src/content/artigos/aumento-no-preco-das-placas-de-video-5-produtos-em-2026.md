@@ -8,16 +8,9 @@ affiliate: true
 image: "/blog-gamer/images/capas/aumento-no-preco-das-placas-de-video-5-produtos-em-2026.png"
 ---
 
-## Índice
+## Introdução
 
-1. [Os 5 Melhores Modelos de Placas de Vídeo em 2026](#os-5-melhores-modelos-de-placas-de-video-em-2026)
-2. [Placa de Vídeo Pcyes Nvidia Geforce RTX 3050 6GB Gddr6 — Poder gráfico sem quebrar o bolso](#placa-de-video-pcyes-nvidia-geforce-rtx-3050-6gb-gddr6-poder)
-3. [Placa de Vídeo Gigabyte Radeon RX 9070 Gaming OC — A potência que seu setup merece](#placa-de-video-gigabyte-radeon-rx-9070-gaming-oc-a-potencia-)
-4. [Placa de Vídeo Galax GeForce RTX 3050 EX V2 6GB GDDR6 — desempenho brabo sem furar o bolso](#placa-de-video-galax-geforce-rtx-3050-ex-v2-6gb-gddr6-desemp)
-5. [Placa de Video Palit GeForce RTX 5060 Ti Infinity 3 — Potência que não decepciona](#placa-de-video-palit-geforce-rtx-5060-ti-infinity-3-potencia)
-6. [Placa de Video PNY GeForce RTX 5060 Ti Dual OC 16GB GDDR7 128-bit — performance bruta sem escalper](#placa-de-video-pny-geforce-rtx-5060-ti-dual-oc-16gb-gddr7-12)
-7. [Comparativo](#comparativo)
-8. [Qual Placa Escolher?](#qual-placa-escolher)
+Saiba como o aumento no preço das placas de vídeo impacta os gamers e confira 5 produtos que podem ser a solução para o teu setup.
 
 A maré não tá fácil pra quem quer montar ou atualizar a máquina para rodar os lançamentos mais pesados. Se você achava que o mercado de hardware tinha estabilizado, a realidade deu um reset violento na gente. O custo dos módulos de memória DRAM GDDR6 e GDDR7 subiu entre 19 e 20 dólares por unidade no atacado, com a escassez desses componentes elevando os custos de memória em até 10 vezes. Com isso, NVIDIA e AMD começaram a repassar essa conta salgada para fabricantes parceiras como ASUS, MSI, Colorful e Inno3D, o que reflete diretamente na ponta final para o consumidor. Para fechar o pacote do terror, até a Adata confirmou que peças para RAM e SSD podem ficar até 40% mais caras. Não deu pra tankar essa notícia sem tomar um baque, mermão!
 

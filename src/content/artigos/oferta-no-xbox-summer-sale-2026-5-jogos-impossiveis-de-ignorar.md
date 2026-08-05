@@ -10,6 +10,8 @@ image: "/blog-gamer/images/capas/oferta-no-xbox-summer-sale-2026-5-jogos-impossi
 
 ## Introdução
 
+Confira as melhores ofertas do Xbox Summer Sale 2026, com ate 90% de desconto em grandes jogos, novidades no Game Pass e novidades da Gamescom 2026.
+
 Fala, gamer! A carteira que se cuide, porque a Microsoft resolveu botar fogo no mercado de vez. A Xbox Summer Sale 2026 chegou chutando a porta com mais de 2.000 jogos em promocao, cortando os precos na metade e oferecendo pechinchas que chegam a 90% de desconto. E se voce achava que era so isso, o ecossistema do Xbox ainda esta recheado de novidades com a proximidade da Gamescom 2026, que vai contar com dezenas de estacoes de teste para jogos pesados.
 
 Bora conferir o que esta valendo a pena de verdade nessa onda de descontos e como garantir a melhor jogatina no teu console.

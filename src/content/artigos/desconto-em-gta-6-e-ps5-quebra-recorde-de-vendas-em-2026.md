@@ -10,6 +10,8 @@ image: "https://media.rawg.io/media/crop/600/400/screenshots/9bb/9bbfe3487d34adb
 
 ## Introdução
 
+Confira as melhores ofertas de pré-venda do GTA 6 no Brasil, cortes no preço do PS5 e promoções de jogos para consoles em julho de 2026.
+
 Fala, gamer! Se a sua carteira achou que ia ter sossego em meados de 2026, pode esquecer porque a bagunça começou de verdade. A corrida pelas ofertas do meio de ano tá pegando fogo e as varejistas resolveram chacoalhar a comunidade de um jeito insano. O destaque da vez é a pré-venda de **Grand Theft Auto VI**, que simplesmente derrubou os preços no Brasil e virou a principal atração da temporada de descontos.
 
 Com a dona Rockstar Games confirmando a chegada do título para novembro de 2026, quem quer garantir a jogatina no primeiro segundo sem estourar o orçamento precisa ficar de olho nas estratégias que tão rolando agora. Mermão, a disputa entre as lojas tá tão pesada que até o hardware da Sony entrou no rolo pra garantir que ninguém fique de fora do mapa de Vice City.
