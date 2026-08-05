@@ -45,7 +45,15 @@ for (const h of headings) {
     <ol class="toc-list list-none p-0">
       {tree.map((topic, ti) => {
         const topicNum = String(ti + 1);
-        const topicLink = (
+        const topicLabel = (
+          <span class="toc-link toc-link-topic">
+            <span class="toc-num">{topicNum}</span>
+            <span>{topic.text}</span>
+          </span>
+        );
+        const topicLink = topic.subs.length > 0 ? (
+          topicLabel
+        ) : (
           <a href={`#${topic.slug}`} class="toc-link toc-link-topic">
             <span class="toc-num">{topicNum}</span>
             <span>{topic.text}</span>
