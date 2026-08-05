@@ -111,7 +111,7 @@ function lastMeaningfulChild(container) {
 function takeTrailingImg(container) {
   const last = lastMeaningfulChild(container);
   if (last && isImg(last)) {
-    container.children.pop();
+    container.children.splice(container.children.indexOf(last), 1);
     return last;
   }
   return null;
