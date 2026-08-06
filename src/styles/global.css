@@ -75,6 +75,9 @@
 
 
 
+
+
+
 /* Layout centralizado: conteúdo + sidebar mantêm o bloco total centralizado
    mesmo quando --main-cols/--sidebar-cols são reduzidos no painel admin. */
 @media (min-width: 1024px) {
