@@ -10,8 +10,10 @@ import {
   formatProductPriceForPrompt, findPricesInBody,
   sanitizeProducts, splitMainBody, parseBlurb, buildComparativoTable, buildItemSection, injectSegmentedItems,
   extendDescription,
+  buildOfferButtonsHtml,
 } from "./gerar-artigo.mjs";
 import { parsePriceBRL } from "./google_shopping.mjs";
+import { normalizarProdutoRemoto } from "./monitor_api.mjs";
 
 let passou = 0;
 function ok(cond, msg) {
@@ -431,5 +433,40 @@ const secVazia = validate(fmSeg, "Intro.\n\n## Secao Vazia\n\n## Outra\n\ntexto.
 ok(secVazia.hard.some((e) => /vazia/.test(e)), "segmentado: secao ## vazia bloqueia");
 const refCard = validate(fmSeg, "Intro.\n\n## X\n\nconfira o preco atual no card", { category: "lista", segmented: true, listHeading: "Lista Principal", products: prodsSeg, productCount: 2, relaxedWordCount: true, lastAttempt: true });
 ok(refCard.hard.some((e) => /card/.test(e)), "segmentado: vocabulario antigo 'card' bloqueia");
+
+// ---- Frente 4: botao duplo ----
+const produtoDuasLojas = {
+  offers: {
+    mercadolivre: { affiliate_link: "https://meli.la/abc", permalink: "https://ml.com/x", price: 100 },
+    shopee: { affiliate_link: "https://s.shopee.com.br/xyz", permalink: "https://shopee.com.br/y", price: 90 },
+  },
+};
+const htmlDuplo = buildOfferButtonsHtml(produtoDuasLojas);
+igual((htmlDuplo.match(/<a /g) || []).length, 2, "duas lojas geram dois botoes");
+ok(htmlDuplo.includes("product-btns"), "duas lojas usam o wrapper");
+ok(htmlDuplo.includes("product-btn--ml"), "botao do ML tem a classe certa");
+ok(htmlDuplo.includes("product-btn--shopee"), "botao da Shopee tem a classe certa");
+ok(htmlDuplo.includes('rel="nofollow sponsored"'), "link de afiliado marcado como sponsored");
+
+const htmlUma = buildOfferButtonsHtml({
+  offers: { shopee: { affiliate_link: "https://s.shopee.com.br/z", price: 50 } },
+});
+igual((htmlUma.match(/<a /g) || []).length, 1, "uma loja gera um botao");
+ok(!htmlUma.includes("product-btns"), "uma loja nao usa wrapper");
+
+igual(buildOfferButtonsHtml({}), "", "sem offers cai no caminho antigo");
+igual(buildOfferButtonsHtml({ offers: { amazon: { affiliate_link: "x" } } }), "",
+      "loja desconhecida e ignorada");
+
+// ---- Frente 4: cliente remoto ----
+const bruto = {
+  id: "MLB1", title: "Headset Gamer", price: 181, thumbnail: "http://img/x.jpg",
+  offers: { mercadolivre: { affiliate_link: "https://meli.la/a", permalink: "http://ml/x", price: 181 } },
+};
+const norm = normalizarProdutoRemoto(bruto);
+ok(norm !== null, "produto valido e aceito");
+igual(norm.sources.length, 1, "sources vem de offers");
+igual(normalizarProdutoRemoto({ title: "" }), null, "produto sem titulo e descartado");
+igual(normalizarProdutoRemoto({ title: "X", offers: {} }), null, "produto sem oferta e descartado");
 
 console.log(`${passou} asserts OK`);
