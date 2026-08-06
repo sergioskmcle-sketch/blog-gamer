@@ -6,6 +6,10 @@ Blog estático sobre o mundo gamer com produtos de várias lojas (Google Shoppin
 
 **Status:** https://sergioskmcle-sketch.github.io/blog-gamer/status.json
 
+> 💰 **Monetização em andamento (Frente 4).** Hoje os botões apontam para links **sem comissão**.
+> O serviço que fornece produtos **com link de afiliado** (Mercado Livre + Shopee) já está no ar;
+> falta ligar o blog nele. Instruções passo a passo: **[`FRENTE_4_RETOMADA.md`](FRENTE_4_RETOMADA.md)**.
+
 ---
 
 ## Monitoramento (Zero-Touch)
@@ -173,6 +177,35 @@ Todo artigo, independente da persona, deve conter:
 
 ---
 
+## Frente 4 — Produtos com Comissão
+
+O dono mantém um segundo projeto, o **monitor-telegram**, que descobre produtos e gera links de
+afiliado do Mercado Livre e da Shopee o dia inteiro, em três "frentes" (grupos do Telegram,
+buscador automático e painel manual). A **Frente 4 é o blog**: em vez de buscar por conta
+própria, ele consome o que essas frentes já descobriram e já afiliaram.
+
+```
+GitHub Actions (gerar-artigo.mjs)
+   ├─ Frente 4  ──HTTP :8086──►  VM monitor (34.29.27.155)
+   │                              └─ banco SQLite alimentado pelas Frentes 1/2/3
+   └─ Google Shopping (Serper) ── fallback, quando a Frente 4 não responde
+```
+
+**Regra permanente:** o blog **nunca** consulta nem afilia diretamente no Mercado Livre.
+Produtos do ML vêm apenas do banco, com o link já pronto.
+
+| Item | Estado |
+|---|---|
+| Serviço `blog-produtos-api` (porta 8086) | ✅ no ar |
+| Banco com 792 produtos afiliados, coletor a cada 10 min | ✅ |
+| Cliente no blog + botão duplo ML/Shopee | ⏳ falta |
+
+Documentação: [`FRENTE_4_RETOMADA.md`](FRENTE_4_RETOMADA.md) ·
+[`infra/blog-produtos-api/`](infra/blog-produtos-api/) ·
+[`docs/MONITOR_API_AUDITORIA.md`](docs/MONITOR_API_AUDITORIA.md)
+
+---
+
 ## Como as Imagens São Inseridas
 
 ### Imagens de Jogos (RAWG.io)
@@ -237,7 +270,8 @@ Os artigos **não dependem da IA** incluir produtos no texto. Após a IA gerar o
 | Fonte | Status | Detalhe |
 |-------|--------|---------|
 | **Google Shopping (Serper.dev)** | ✅ Ativo | Produto + preço + imagem + link de lojas brasileiras (ML, Kabum, Amazon, Magalu). 2.500 buscas grátis; depois $50/50k (~anos de blog). |
-| **Cookie de sessão ML** | ❌ Aposentado | Não usar: entrega fingerprint e causa bloqueio global (cookies deletados do projeto). |
+| **Cookie de sessão ML** | ⛔ Proibido no blog | A sessão é compartilhada com o monitor-telegram e **não suporta um segundo consumidor**. Usá-la derruba a operação do dono — já aconteceu (06/08/2026). Ver `docs/TROUBLESHOOTING.md`. |
+| **Frente 4 (banco de afiliados)** | 🟡 Servidor pronto, blog não ligado | Produtos do ML e da Shopee **com link de afiliado já gerado** pelas frentes do monitor. Custo em requisições ao ML: zero. Ver `FRENTE_4_RETOMADA.md`. |
 | **OAuth ML** (`client_credentials`) | ❌ Bloqueado | `ML_CLIENT_ID` + `ML_CLIENT_SECRET` retornam `invalid_client` (local) e `/sites/MLB/search` está restrito para apps não aprovadas (403). |
 | **Scraping de página ML** | ❌ Bloqueado | Todo conteúdo profundo do ML (produto, listagem, busca) cai em `account-verification`. |
 

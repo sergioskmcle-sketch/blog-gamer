@@ -102,7 +102,7 @@ Tabelas recebem zebra sutil (`tr:nth-child(even)`) via CSS em `[...slug].astro`.
 
 - TOC no topo do corpo do artigo, **em todas as telas** (desktop e mobile) — componente `src/components/TableOfContents.astro`, chamado como `<TableOfContents headings={headings} />`.
 - **Alinhado à esquerda, cor roxa `--accent`, fonte do tamanho do texto** (tópicos `1.2rem`, subtópicos `1.05rem`). Cabeçalho fixo "Neste artigo" com badge `toc-count` (roxo) mostrando o total de tópicos.
-- **Acordeão por tópico**: tópicos `##` sempre visíveis, numerados `1`, `2`, `3`… (sem zero à esquerda). Tópicos com subtópicos `###` são `<details class="toc-topic-details">` — o clique expande/recolhe os subtópicos (numerados `2.1`, `2.2`, … por tópico) e rotaciona o chevron (`toc-chevron`). Tópicos sem subtópicos são links simples.
+- **Acordeão por tópico**: tópicos `##` sempre visíveis, numerados `1`, `2`, `3`… (sem zero à esquerda). Tópicos com subtópicos `###` são `<details class="toc-topic-details">` — o clique no tópico/chevrão **apenas expande/recolhe** os subtópicos (numerados `2.1`, `2.2`, … por tópico) e rotaciona o chevron (`toc-chevron`), **sem navegar** para a seção: o rótulo do tópico é um `<span class="toc-link toc-link-topic">`, não um link. A navegação acontece ao clicar no **subtópico** (`toc-link-sub`). Tópicos sem subtópicos são links simples que navegam direto para a âncora.
 - Numeração: tópicos `String(ti + 1)`; subtópicos `String(topicNum.si + 1)` (reinicia em cada tópico).
 - Prefixos de numeração em títulos de `###` (ex.: `1. Altura e peso`) são removidos do texto exibido via `stripNumber()`.
 - Os slugs vêm de `src/lib/headings.ts` (exclui `/^índice$/i`); cada link do TOC resolve para o `id` de um heading real (gerado pelo plugin ou pela âncora manual).

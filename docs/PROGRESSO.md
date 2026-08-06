@@ -1,151 +1,151 @@
 # Blog Gamer — Status do Projeto
 
-> Última atualização: 2026-08-05
+> Última atualização: 2026-08-06
+
+> ⚠️ **Este arquivo foi reescrito em 06/08/2026.** A versão anterior descrevia o pipeline Python
+> na VM (`scheduler.py`, `generate_article.py`, `ml_affiliate.py`) como se fosse o sistema ativo.
+> **Não é.** Aquele pipeline é legado e não funciona (token do GitHub expirado). O que gera
+> artigo hoje é o **GitHub Actions**.
 
 ---
 
-## 1. O que está pronto
+## 1. Como o blog funciona hoje
 
-### Automação (gera artigos todo dia 10:00 UTC)
+| Etapa | Onde | Arquivo |
+|---|---|---|
+| Agendamento | GitHub Actions (cron `30 9 * * *`) | `.github/workflows/gerar-conteudo.yml` |
+| Testes (roda antes de gerar) | GitHub Actions | `scripts/test-injecao.mjs` (`npm test`) |
+| Geração do artigo | GitHub Actions | `scripts/gerar-artigo.mjs` (~2.750 linhas) |
+| Descoberta de produto | Serper.dev (Google Shopping BR) | `scripts/google_shopping.mjs` |
+| Publicação | GitHub Pages | `.github/workflows/deploy.yml` |
 
-| Componente | Arquivo | Status |
-|------------|---------|--------|
-| Scheduler 24/7 | `scheduler.py` | ✅ Rodando via `blog-gamer.service` |
-| Geração de artigo | `generate_article.py` | ✅ Scraping ML, Groq, validação |
-| Link de afiliado | `ml_affiliate.py` | ✅ Gera links `meli.la` com cookies |
-| Rotação de categorias | `generate_article.py` | ✅ 9 categorias, evita repetir últimas 3 |
-| Filtro de marcas | `generate_article.py` (`filter_by_brand_gaming`) | ✅ ~35 marcas gamer, auto-pula em categorias de jogo |
-| Heartbeat | `scheduler.py` | ✅ Escreve `heartbeat.txt` a cada 60s |
-| Watchdog | `heartbeat_watchdog.py` | ✅ Reinicia service se heartbeat parar >300s |
-| SSH Keepalive (servidor) | `/etc/ssh/sshd_config.d/keepalive.conf` | ✅ `ClientAliveInterval 60`, `ClientAliveCountMax 3` |
+**Nada disso roda na VM do blog.** Ver seção 4.
 
-### Frontend (Astro 5, static site)
+---
 
+## 2. O que está pronto
+
+### Automação
 | Componente | Status |
-|------------|--------|
-| Tema escuro profissional | ✅ `#0F1115` fundo, `#171A21` cards, `#2563EB` azul |
-| Design system no CSS | ✅ `global.css` com todas as variáveis |
-| Header glassmorphism | ✅ Sticky, blur, dropdown com animação |
-| Cards com hover azul | ✅ `--shadow-glow`, `translateY(-3px)` |
-| Gradiente hero blue/green | ✅ Substituído o neon roxo/verde |
-| Tabelas, FAQ, affiliate-box | ✅ Estilizados no CSS global |
-| Cards por seção no artigo | ✅ `remark-heading-blocks` + `rehype-article-sections` (cada `##` vira `article-section`, imagem no topo) |
-| TOC "Neste artigo" | ✅ Acordeão por tópico no topo do artigo (todas as telas): tópicos `##` sempre visíveis numerados `1`, `2`, … e subtópicos `###` expandíveis via `<details>` (chevrão); roxo `--accent`, alinhado à esquerda, fonte do tamanho do texto — `src/components/TableOfContents.astro` + extração via `src/lib/headings.ts` |
-| Sidebar padrão no artigo | ✅ Reutiliza `Sidebar.astro` da home (banner 9:16 → Populares → Categorias → Comunidade) |
-| Capa sob header fixo | ✅ `padding-top` com `calc(max(...) + 8px)` no `Layout.astro` |
-| Texto alinhado à esquerda | ✅ Removida justificação nos artigos |
+|---|---|
+| Geração diária via GitHub Actions | ✅ |
+| Descoberta de produtos (Serper/Google Shopping) | ✅ |
+| Imagens de jogos (RAWG) e de capa | ✅ |
+| Injeção de produto e botão no artigo | ✅ |
+| Testes automáticos antes de gerar | ✅ |
+| **Links de afiliado** | ⚠️ **Não.** Ver seção 3 |
 
-### Infraestrutura
+### Frontend (Astro 5)
+| Componente | Status |
+|---|---|
+| Tema escuro, design system em `global.css` | ✅ |
+| Cards por seção, TOC em acordeão, sidebar | ✅ |
+| Estilo do botão de produto (`.product-btn`) | ✅ |
+| Estilo do **botão duplo** (`.product-btns`) | ⏳ Falta (Frente 4) |
 
-| Item | Status |
-|------|--------|
-| VM Google Cloud (`35.237.81.192`) | ✅ Rodando Debian 13, systemd |
-| `blog-gamer.service` | ✅ Auto-restart (`Restart=always`, `RestartSec=30`) |
-| `heartbeat-watchdog.timer` | ✅ A cada 5 min, verifica heartbeat |
-| SSH keepalive (cliente) | ✅ `~/.ssh/config` no PC local |
-| Docs de credenciais | ✅ `docs/CREDENCIAIS.md` com IP, chave, paths |
+### Frente 4 — produtos com afiliado
+| Componente | Status |
+|---|---|
+| Serviço `blog-produtos-api` na VM do monitor (porta 8086) | ✅ Rodando |
+| Banco de produtos afiliados (SQLite, 30 dias) | ✅ 792 produtos |
+| Coletor automático a cada 10 min | ✅ |
+| API de busca (`/api/produtos/buscar`, lote, health, catálogo) | ✅ |
+| Aviso no Telegram quando falta produto | ⚠️ Bloqueado: falta `/start` no bot |
+| **Cliente no blog (`monitor_api.mjs`)** | ⏳ **Falta** |
+| **Botão duplo no artigo** | ⏳ **Falta** |
 
 ---
 
-## 2. O que falta fazer
+## 3. O que falta fazer
 
-### 🔴 Alta prioridade
+### 🔴 Alta prioridade — monetização
 
-| Tarefa | Motivo |
-|--------|--------|
-| **Deploy do frontend no GitHub Pages** | O `dist/` com o design system novo está na VM, mas o blog ao vivo (`sergioskmcle-sketch.github.io/blog-gamer`) ainda exibe o tema neon roxo/verde antigo. Precisa comitar e dar push. |
-| **Corrigir YAML parsing do Groq** | O Groq retorna frontmatter YAML sem o `---` de fechamento. O `generate_article.py` tenta parsear e falha. Artigo gerado mas não salvo. Ajustar prompt ou parser. |
+O blog **não gera comissão nenhuma hoje**. Em `scripts/gerar-artigo.mjs:1941` há literalmente
+`p.affiliate_link = p.permalink`, ou seja, o botão aponta para um link direto de loja.
+
+A solução já está construída do lado do servidor (Frente 4). Falta o lado do blog:
+
+| Tarefa | Detalhe |
+|---|---|
+| Criar `scripts/monitor_api.mjs` | Cliente HTTP da Frente 4, que nunca lança exceção |
+| Alterar `scripts/gerar-artigo.mjs` | Buscar na Frente 4 antes do Serper; não sobrescrever `affiliate_link` |
+| Botão duplo | `buildOfferButtonsHtml` + CSS em `[...slug].astro` |
+| Testes | Asserts do botão duplo e do cliente em `test-injecao.mjs` |
+| Secrets/variables no GitHub | `MONITOR_API_KEY`, `MONITOR_API_URL`, `AFFILIATE_MODE` |
+
+📄 **Instruções completas, passo a passo e com o código pronto:
+[`FRENTE_4_RETOMADA.md`](../FRENTE_4_RETOMADA.md).**
 
 ### 🟡 Média prioridade
-
 | Tarefa | Motivo |
-|--------|--------|
-| **`docs/DESIGN_SYSTEM.md`** | Documentar o design system (cores, tipografia, componentes, etc.) como referência para manutenção |
-| **Testar geração manual na VM** | Rodar `generate_article.py` manualmente após corrigir YAML pra confirmar que o fluxo completo funciona (scraping → links → groq → salvar .md → commit → push) |
+|---|---|
+| `/start` no `@MonitorDeGruposBot` (ação do dono) | Destrava o aviso de produtos faltantes |
+| Limpar `/var/log` na VM do monitor | 6 GB, sendo 2,8 GB de journald sem teto. **Disco cheio = perda do acesso SSH** |
+| Backup do banco da Frente 4 | Ele vive na VM do monitor e só se reconstrói parcialmente (as frentes guardam 1000 registros) |
 
 ### 🟢 Baixa prioridade
-
 | Tarefa | Motivo |
-|--------|--------|
-| **Google Stitch** | Usar chave `AQ.Ab...` pra gerar mockups de novos componentes. O Stitch é `stitch.withgoogle.com` (Google Labs AI UI). |
-| **Renovar cookies ML** | `ml_cookies.json` pode expirar. Se links de afiliado pararem de funcionar, exportar cookies frescos do navegador logado como `sergioskm`. |
+|---|---|
+| Remover código morto | `scripts/ml_affiliate.mjs`, `automation/ml_affiliate.py`, `scripts/fix-article-links.mjs` — fora do pipeline |
+| Limpar docs duplicados | `automation/docs/*` duplica `docs/*` |
+| Aprovar app no programa de devs do ML | Único caminho seguro para o blog ter acesso próprio ao ML |
 
 ---
 
-## 3. Arquitetura
+## 4. Arquitetura real
 
 ```
-PC local (dev)
-├── C:\Users\Sérgio PC\Documents\Expxagents\blog-gamer\   ← automação
-│   ├── generate_article.py     ← pipeline principal
-│   ├── scheduler.py            ← loop 24/7 + heartbeat
-│   ├── ml_affiliate.py         ← link de afiliado ML
-│   ├── heartbeat_watchdog.py   ← watchdog do scheduler
-│   └── docs/                   ← documentação + credenciais
-│
-├── C:\Users\Sérgio PC\Documents\blog-gamer-frontend\     ← frontend Astro
-│   ├── src/                    ← componentes, layouts, páginas
-│   ├── public/                 ← imagens dos produtos
-│   └── dist/                   ← build estático
-│
-└── ~/.ssh/config               ← keepalive + alias blog-gamer
+GitHub Actions  ← É AQUI QUE TUDO ACONTECE
+  └─ npm test  →  node scripts/gerar-artigo.mjs
+        ├─ Serper.dev (Google Shopping) ....... links SEM comissão (atual)
+        └─ Frente 4 (a ligar) ................. links COM comissão
+                │  HTTP :8086 + X-API-Key
+                ▼
+VM monitor-telegram (34.29.27.155)
+  ├─ Frente 1  monitor-bot-ml     → grupos do Telegram
+  ├─ Frente 2  searcher-ml        → varre ofertas ML + busca Shopee
+  ├─ Frente 3  searcher-panel     → painel de post manual
+  └─ Frente 4  blog-produtos-api  → API + banco (catalogo.db)
+        ↑ lê (somente leitura) os posted.json das frentes 1/2/3
 
-VM (35.237.81.192)
-├── ~/blog-gamer-automation/    ← scripts Python
-│   ├── venv/                   ← virtualenv
-│   ├── heartbeat.txt           ← prova de vida
-│   └── logs/                   ← watchdog.log + geracao.log
-│
-├── ~/blog-gamer/               ← frontend (clone do GitHub)
-│   └── src/content/artigos/    ← artigos em .md
-│
-└── /etc/systemd/system/
-    ├── blog-gamer.service           ← scheduler 24/7
-    └── heartbeat-watchdog.timer     ← watchdog a cada 5 min
+VM do blog (35.237.81.192) ......... LEGADO, fora de uso, token expirado
+GitHub Pages ....................... site publicado
 ```
 
 ---
 
-## 4. Comandos úteis
+## 5. Comandos úteis
 
 ```bash
-# Acessar VM (com keepalive automático)
-ssh blog-gamer
+# Rodar os testes (o CI roda isto antes de gerar)
+npm test
 
-# Ver status do scheduler
-sudo systemctl status blog-gamer.service
-
-# Ver logs do scheduler
-cat ~/blog-gamer-automation/logs/geracao.log
-
-# Ver logs do watchdog
-cat ~/blog-gamer-automation/logs/watchdog.log
-
-# Ver heartbeat
-cat ~/blog-gamer-automation/heartbeat.txt
-
-# Testar geração manual
-cd ~/blog-gamer-automation
-source venv/bin/activate
-python3 generate_article.py
-
-# Build do frontend
-cd ~/blog-gamer
+# Build do site
 npm run build
 
-# Commit e push dos artigos
-cd ~/blog-gamer
-git add .
-git commit -m "novo artigo"
-git push
+# Gerar artigo localmente (precisa das chaves no .env)
+node scripts/gerar-artigo.mjs
+
+# Disparar a geração no GitHub
+gh workflow run gerar-conteudo.yml -f force=true
+
+# Saúde da Frente 4 + estado do banco
+curl -s http://34.29.27.155:8086/api/health | python -m json.tool
+
+# Os 4 serviços da VM do monitor (os 3 primeiros nunca podem sair de "active")
+ssh -i ~/.ssh/id_opencode sergioskm_cle@34.29.27.155 \
+  'systemctl is-active monitor-bot-ml searcher-ml searcher-panel blog-produtos-api'
 ```
 
 ---
 
-## 5. Credenciais
+## 6. Documentação
 
-Ver `docs/CREDENCIAIS.md` para:
-- IP, usuário, chave SSH da VM
-- API keys (Groq, Tavily, GitHub)
-- Tag de afiliado ML (`sergioskm`)
-- Cookies ML (`ml_cookies.json`)
+| Arquivo | Conteúdo |
+|---|---|
+| [`FRENTE_4_RETOMADA.md`](../FRENTE_4_RETOMADA.md) | **Instruções de execução da Frente 4** — comece por aqui |
+| [`CREDENCIAIS.md`](CREDENCIAIS.md) | Chaves, hosts, portas, onde fica cada segredo |
+| [`MONITOR_API_AUDITORIA.md`](MONITOR_API_AUDITORIA.md) | Auditoria da VM do monitor e decisões do dono |
+| [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) | Problemas conhecidos, incluindo o incidente da sessão do ML |
+| [`../PLANO_ML_SHOPEE_MONITOR.md`](../PLANO_ML_SHOPEE_MONITOR.md) | Plano original (histórico) |
+| [`../infra/blog-produtos-api/README.md`](../infra/blog-produtos-api/README.md) | Código do serviço e deploy |

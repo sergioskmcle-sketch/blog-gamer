@@ -6,21 +6,49 @@ afiliado (Shopee + Mercado Livre) para o pipeline do blog-gamer.
 Estes arquivos são a **cópia versionada** do que está em `/opt/blog-produtos-api/` na VM.
 Editar aqui não muda nada em produção — é preciso enviar (ver "Deploy").
 
-- Plano geral: [`PLANO_ML_SHOPEE_MONITOR.md`](../../PLANO_ML_SHOPEE_MONITOR.md)
+- **Instruções de execução: [`FRENTE_4_RETOMADA.md`](../../FRENTE_4_RETOMADA.md)**
 - Auditoria da VM: [`docs/MONITOR_API_AUDITORIA.md`](../../docs/MONITOR_API_AUDITORIA.md)
+- Plano original (histórico): [`PLANO_ML_SHOPEE_MONITOR.md`](../../PLANO_ML_SHOPEE_MONITOR.md)
 
-## Estado: Fase 2 concluída (2026-08-05)
+## Estado: Frente 4 no ar (2026-08-06)
 
-Busca real na Shopee funcionando, individual e em lote, com cache de 30 min e link de afiliado
-verificado ponta a ponta (o short link resolve com `utm_medium=affiliates`). O Mercado Livre
-responde com `warning` e não quebra nada — chega na Fase 3, junto do pareamento cruzado.
+Serviço rodando, versão `2.0.0-frente4`. Serve produtos **com link de afiliado** para o blog a
+partir de um banco alimentado pelas Frentes 1/2/3 do monitor. **Zero requisições ao Mercado
+Livre.**
+
+| Rota | Estado |
+|---|---|
+| `GET /api/health` | ✅ marketplaces + estado do banco |
+| `POST /api/produtos/buscar` | ✅ |
+| `POST /api/produtos/buscar-lote` | ✅ até 5 consultas |
+| `GET /api/catalogo` | ✅ estatísticas |
+| `POST /api/afiliar` | ⚠️ só Shopee — **ML travado de propósito** |
+| `POST /api/faltantes` | ⚠️ falta o dono mandar `/start` ao `@MonitorDeGruposBot` |
+
+Banco: 792 produtos (646 ML + 146 Shopee), 0,57 MB, coletor a cada 10 min, retenção de 30 dias.
+
+⛔ **A trava `BLOG_ML_ENABLED` em `adapters.py` deve permanecer desligada.** Ativá-la faz este
+serviço usar a sessão do ML — que é compartilhada com as Frentes 1 e 2 e não suporta um segundo
+consumidor. Em 06/08/2026 isso derrubou a sessão e parou a Frente 1 por ~1h.
 
 | Arquivo | Papel |
 |---|---|
-| `app.py` | Rotas, auth por `X-API-Key`, rate limit de entrada, cache TTL 1800s |
+| `app.py` | Rotas, auth por `X-API-Key`, rate limit de entrada, cache TTL 1800s, tarefa do coletor |
 | `busca.py` | Orquestra os marketplaces e monta o modelo de produto do blog |
+| `catalogo.py` | Banco SQLite: coleta, busca, retenção de 30 dias, travas de disco |
+| `aviso.py` | Mensagem no Telegram — **só envia, nunca chama `getUpdates`** |
 | `adapters.py` | **Único** ponto de acoplamento com `/opt/afiliados-monitor-v2/`. Bootstrap `configure()`, throttle de saída e buscas |
 | `blog-produtos-api.service` | Unit do systemd |
+
+## O banco (coração da Frente 4)
+
+As Frentes 1/2/3 gravam o que publicam, mas cortam em `posted[-1000:]` — a Frente 1 descarta
+~150 produtos/dia. O coletor lê os dois `posted.json` a cada 10 min (**leitura pura**) e copia o
+que é novo antes do descarte.
+
+Travas de crescimento em `catalogo.py`: retenção de 30 dias, teto de 200 MB e parada automática
+se o disco livre cair abaixo de 3 GB. Guarda só texto e URL de imagem, **nunca a imagem**.
+Disco cheio nesta VM significa perder o acesso SSH.
 
 ### Por que a Shopee não gera link
 
@@ -43,6 +71,8 @@ sub_ids=['blog'])` — **uma chamada extra por produto**. Decisão em aberto (ve
    versão específica do `curl_cffi`.
 4. **Falha parcial não derruba nada.** Um marketplace quebrado vira `ready:false` no health;
    o outro segue servindo.
+5. **Nunca chamar `getUpdates`** do Telegram: roubaria as mensagens do bot da Frente 1.
+6. **Nunca usar a sessão do ML** a partir daqui (trava `BLOG_ML_ENABLED`, desligada).
 
 ## Configuração
 
@@ -52,7 +82,7 @@ BLOG_API_KEY=<openssl rand -hex 32>
 ```
 
 Os segredos dos marketplaces **não** são duplicados aqui: `adapters.py` lê seletivamente
-`SHOPEE_APP_ID`, `SHOPEE_SECRET` e `ML_COOKIES_PATH` de
+`SHOPEE_APP_ID`, `SHOPEE_SECRET`, `ML_COOKIES_PATH`, `ML_CLIENT_ID` e `ML_CLIENT_SECRET` de
 `/opt/afiliados-monitor-v2/searcher/.env` (é de lá que o `searcher-ml.service` os tira; no
 `config.yaml` esses campos estão vazios). `TELEGRAM_BOT_TOKEN` e `PANEL_TOKEN` moram no mesmo
 arquivo e são deliberadamente ignorados.
@@ -60,7 +90,7 @@ arquivo e são deliberadamente ignorados.
 ## Deploy
 
 ```bash
-scp -i ~/.ssh/id_opencode app.py adapters.py sergioskm_cle@34.29.27.155:/opt/blog-produtos-api/
+scp -i ~/.ssh/id_opencode app.py busca.py catalogo.py adapters.py aviso.py     sergioskm_cle@34.29.27.155:/opt/blog-produtos-api/
 ssh -i ~/.ssh/id_opencode sergioskm_cle@34.29.27.155 'sudo systemctl restart blog-produtos-api'
 ```
 
@@ -80,14 +110,15 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST $B/api/produtos/buscar   # 401
 curl -s -X POST -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
      -d '{"query":"ab"}' $B/api/produtos/buscar                    # 400
 curl -s -X POST -H "X-API-Key: $KEY" -H 'Content-Type: application/json' \
-     -d '{"query":"mouse gamer wireless","limit":5}' $B/api/produtos/buscar   # 501 (Fase 1)
+     -d '{"query":"headset gamer","limit":5}' $B/api/produtos/buscar   # 200 com produtos
+curl -s -H "X-API-Key: $KEY" $B/api/catalogo | python3 -m json.tool   # estado do banco
 ```
 
 ## Nota de projeto: onde mora o rate limit
 
 O limite em `app.py` (5 req/s, burst 20) é **anti-abuso da porta HTTP** e nada mais. O limite
-que protege ML e Shopee (1 req/s por marketplace) vai em `busca.py`, em volta das chamadas de
-saída, na Fase 2/3.
+que protege ML e Shopee (1 req/s por marketplace) está em **`adapters.py`** (`_throttle`), em
+volta das chamadas de saída.
 
 Trocar os dois de lugar faz o serviço se estrangular sozinho sem proteger ninguém — foi
 exatamente o que aconteceu no primeiro gate da Fase 1, quando um limite de entrada de 1 req/s

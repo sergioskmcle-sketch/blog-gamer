@@ -1,5 +1,13 @@
 # Plano — Produtos com afiliado ML + Shopee via VM monitor-telegram
 
+> 📌 **Documento histórico. Para executar, use [`FRENTE_4_RETOMADA.md`](FRENTE_4_RETOMADA.md).**
+>
+> Fases 0-2 concluídas conforme planejado. **A Fase 3 mudou de rumo em 06/08/2026**, por dois
+> motivos descobertos na execução: (1) o ML não tem busca por palavra-chave utilizável nesta VM;
+> (2) a sessão do ML não suporta um segundo consumidor — testá-la derrubou a operação do dono.
+> O desenho final: o blog consome um **banco alimentado pelas Frentes 1/2/3**, com os links de
+> afiliado já gerados. Custo em requisições ao ML: zero.
+
 > **Fase 2 concluída em 2026-08-05** — busca real na Shopee no ar (individual + lote), cache de
 > 30 min funcionando (2ª chamada `cached:true`, 0 ms), filtro de preço OK, query sem resultado
 > devolve `ok:true` com lista vazia, ML pedido vira `warning` sem quebrar. Link de afiliado
