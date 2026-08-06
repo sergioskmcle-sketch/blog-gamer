@@ -74,6 +74,17 @@
 }
 /* --- END EDITOR THEME --- */
 
+/* Layout centralizado: conteúdo + sidebar mantêm o bloco total centralizado
+   mesmo quando --main-cols/--sidebar-cols são reduzidos no painel admin. */
+@media (min-width: 1024px) {
+  .blog-layout {
+    grid-template-columns: repeat(calc(var(--main-cols, 8) + var(--sidebar-cols, 4)), minmax(0, 1fr));
+    width: calc((var(--main-cols, 8) + var(--sidebar-cols, 4)) / 12 * 100%);
+    margin-inline: auto;
+  }
+}
+
+
 
 
 
