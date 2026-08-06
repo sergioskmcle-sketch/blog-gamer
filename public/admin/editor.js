@@ -53,6 +53,7 @@ let layoutEditorInitialized = false;
 let selectedElement = null;
 let pendingChanges = {};
 let pendingLogoFile = null;
+let pendingBgFile = null;
 
 function getBlogBase() {
   const path = window.location.pathname;
@@ -252,6 +253,7 @@ function pickBgColor(color) {
 function applyBgImage() {
   const url = document.getElementById('bgImageUrl').value.trim();
   if (!url) return;
+  pendingBgFile = null;
   applyStyle('body-bg-image', url);
   toast('Imagem de fundo aplicada!');
 }
@@ -263,15 +265,18 @@ function handleBgUpload(event) {
   const reader = new FileReader();
   reader.onload = (e) => {
     document.getElementById('bgImageUrl').value = e.target.result;
-    applyStyle('body-bg-image', e.target.result.split(',')[1] || e.target.result);
-    toast('Imagem de fundo carregada!');
+    pendingBgFile = file;
+    applyStyle('body-bg-image', e.target.result);
+    toast('Imagem de fundo carregada! Clique em "Salvar Tema" para publicar.');
   };
   reader.readAsDataURL(file);
 }
 
 function resetBgImage() {
   document.getElementById('bgImageUrl').value = '';
-  sendToIframe({ type: 'editor-apply-css', css: 'body{background-image:var(--bg-image-original)!important}' });
+  delete pendingChanges['body-bg-image'];
+  pendingBgFile = null;
+  sendToIframe({ type: 'editor-apply-style', payload: { property: 'body-bg-image', value: '' } });
   toast('Fundo restaurado');
 }
 
@@ -306,6 +311,25 @@ async function saveLogoToRepo(file) {
     return true;
   } catch (e) {
     toast('Erro ao salvar logo: ' + e.message, 'error');
+    return false;
+  }
+}
+
+async function saveBgToRepo(file) {
+  if (typeof token === 'undefined' || !token) {
+    toast('Faça login no GitHub para salvar a imagem de fundo permanentemente.', 'error');
+    return false;
+  }
+  try {
+    const compressed = await compressImage(file, 1920, 0.8, 'webp');
+    const b64 = await fileToBase64(compressed);
+    const path = 'public/images/bg-blog.webp';
+    const existing = await getFile(path);
+    await putFileRaw(path, b64, 'cms: update background', existing ? existing.sha : null);
+    toast('Imagem de fundo salva no repositório como bg-blog.webp!');
+    return true;
+  } catch (e) {
+    toast('Erro ao salvar imagem de fundo: ' + e.message, 'error');
     return false;
   }
 }
@@ -382,13 +406,23 @@ async function layoutSaveTheme() {
     return;
   }
 
-  const css = generateThemeCSS();
   let savedSomething = false;
 
   toast('Salvando...', 'success');
   setLoading('btnSaveTheme', true);
 
   try {
+    if (pendingBgFile) {
+      const ok = await saveBgToRepo(pendingBgFile);
+      if (ok) {
+        pendingBgFile = null;
+        pendingChanges['body-bg-image'] = getBlogBase() + 'images/bg-blog.webp';
+        savedSomething = true;
+      }
+    }
+
+    const css = generateThemeCSS();
+
     if (css) {
       const existingCSS = await getFile('src/styles/global.css');
       if (existingCSS) {
@@ -455,6 +489,10 @@ function generateThemeCSS() {
 
   if (pendingChanges['body-bg-color']) {
     vars.push(`  --body-bg-color: ${pendingChanges['body-bg-color']};`);
+  }
+
+  if (pendingChanges['body-bg-image']) {
+    vars.push(`  --body-bg-image: url(${pendingChanges['body-bg-image']});`);
   }
 
   if (vars.length === 0) {
