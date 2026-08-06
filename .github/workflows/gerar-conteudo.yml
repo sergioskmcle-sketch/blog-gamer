@@ -48,6 +48,9 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           STABILITY_API_KEY: ${{ secrets.STABILITY_API_KEY }}
           FORCE_GENERATE: ${{ github.event.inputs.force == 'true' && 'true' || '' }}
+          AFFILIATE_MODE: ${{ vars.AFFILIATE_MODE }}
+          MONITOR_API_URL: ${{ vars.MONITOR_API_URL }}
+          MONITOR_API_KEY: ${{ secrets.MONITOR_API_KEY }}
 
       - name: Verificar alteracoes
         id: check
