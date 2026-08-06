@@ -31,23 +31,13 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 
   function applyStyle(payload) {
     const { property, value } = payload;
-    if (property === "body-bg-image") {
-      document.body.style.backgroundImage = "";
-      document.body.style.backgroundSize = "";
-      document.body.style.backgroundPosition = "";
-      document.body.style.backgroundRepeat = "";
-      if (!value) return;
+    if (property === "body-bg-image" && value) {
       const existingBg = getComputedStyle(document.body).backgroundImage;
-      const existingSize = getComputedStyle(document.body).backgroundSize;
-      const existingPos = getComputedStyle(document.body).backgroundPosition;
-      const existingRep = getComputedStyle(document.body).backgroundRepeat;
-      const imgLayer = `url('${value}')`;
-      document.body.style.backgroundImage = (existingBg && existingBg !== "none")
-        ? `${existingBg}, ${imgLayer}`
-        : imgLayer;
-      document.body.style.backgroundSize = `${existingSize}, cover`;
-      document.body.style.backgroundPosition = `${existingPos}, center`;
-      document.body.style.backgroundRepeat = `${existingRep}, no-repeat`;
+      if (existingBg && existingBg !== "none") {
+        document.body.style.backgroundImage = `url('${value}'), ${existingBg}`;
+      } else {
+        document.body.style.backgroundImage = `url('${value}')`;
+      }
       return;
     }
     if (property === "body-bg-color") {
