@@ -37,9 +37,60 @@
 | Serper | `SERPER_API_KEY` | Google Shopping BR, 2500 buscas grátis |
 | RAWG | `RAWG_API_KEY` | Free tier |
 
-## ML (Aposentado)
+## Frente 4 — API de produtos afiliados (monitor-telegram)
+
+Serviço `blog-produtos-api` que serve produtos **com link de afiliado** para o pipeline do blog.
+Detalhes de operação: [`FRENTE_4_RETOMADA.md`](../FRENTE_4_RETOMADA.md).
+
+| Item | Valor |
+|------|-------|
+| Host | `34.29.27.155` (VM monitor-telegram, `ml-monitor-telegram`) |
+| Porta | `8086` (firewall GCP: regra `allow-blog-api` + tag `blog-api`) |
+| Acesso SSH | `ssh -i ~/.ssh/id_opencode sergioskm_cle@34.29.27.155` |
+| Path | `/opt/blog-produtos-api/` |
+| Banco | `/opt/blog-produtos-api/catalogo.db` (SQLite, retenção 30 dias) |
+| Zona / Projeto GCP | `us-central1-a` / `project-475deb3a-7038-45fd-948` |
+
+| Config | Onde fica | Valor |
+|--------|-----------|-------|
+| `MONITOR_API_URL` | GitHub **variable** + `.env` local | `http://34.29.27.155:8086` |
+| `MONITOR_API_KEY` | GitHub **secret** + `.env` local | = `BLOG_API_KEY` do `.env` da VM |
+| `AFFILIATE_MODE` | GitHub **variable** | `legacy` (atual) / `remote` (ativado) |
+| `BLOG_API_KEY` | `/opt/blog-produtos-api/.env` na VM (chmod 600) | gerado com `openssl rand -hex 32` |
+
+Recuperar a chave (nunca colar o valor em arquivo ou commit):
+```bash
+ssh -i ~/.ssh/id_opencode sergioskm_cle@34.29.27.155 \
+  'sudo sed -n "s/^BLOG_API_KEY=//p" /opt/blog-produtos-api/.env'
+```
+
+Os segredos dos marketplaces **não são duplicados** no blog: o serviço lê seletivamente
+`SHOPEE_APP_ID`, `SHOPEE_SECRET`, `ML_COOKIES_PATH`, `ML_CLIENT_ID` e `ML_CLIENT_SECRET` de
+`/opt/afiliados-monitor-v2/searcher/.env`, que é onde o `searcher-ml.service` os carrega.
+
+## ML (Aposentado para uso direto do blog)
 
 - **Cookies de sessão** e **OAuth do ML** estão aposentados/bloqueados (fingerprint + bloqueio global; `invalid_client` local; `/sites/MLB/search` 403 para apps não aprovadas). Não reativar cookies.
+- ⛔ **O blog NUNCA deve gerar link de afiliado do ML.** A sessão é compartilhada com as Frentes 1
+  e 2 do monitor e **não suporta um segundo consumidor**. Em 06/08/2026 isso foi feito em testes,
+  a sessão caiu com `401` e a Frente 1 parou de postar por ~1h (ver `TROUBLESHOOTING.md`).
+  Existe a trava `BLOG_ML_ENABLED` em `adapters.py`, **desligada**, e deve continuar assim.
+- Produtos do ML chegam ao blog **apenas** pelo banco da Frente 4, com o link de afiliado já
+  gerado pelas frentes do monitor. Custo em requisições ao ML: zero.
+- Renovação de sessão (só o dono, exportando do navegador logado):
+  `sudo /opt/afiliados-monitor-v2/instalar_cookies_ml.sh <arquivo.json>`
+
+## Telegram
+
+| Item | Valor |
+|------|-------|
+| Bot | `@MonitorDeGruposBot` |
+| Token | `TELEGRAM_BOT_TOKEN` em `/opt/afiliados-monitor-v2/searcher/.env` |
+| Chat do dono | `admin_chat_id` em `/opt/afiliados-monitor-v2/automation/config.yaml` |
+
+⛔ **Nunca chamar `getUpdates`** com esse token: o Telegram entrega cada atualização uma única vez
+e o serviço do blog roubaria as mensagens da Frente 1, quebrando a detecção nos grupos em
+silêncio. Só `sendMessage`.
 
 ## VM (Google Cloud) — Legado
 

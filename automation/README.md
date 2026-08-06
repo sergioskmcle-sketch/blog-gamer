@@ -1,3 +1,12 @@
+> ⚠️ **DOCUMENTO LEGADO — NÃO USE COMO REFERÊNCIA (marcado em 06/08/2026)**
+>
+> Descreve a automação **Python na VM**, que não é mais o sistema ativo e não funciona
+> (`GITHUB_TOKEN` expirado). O pipeline real roda no **GitHub Actions**
+> (`scripts/gerar-artigo.mjs`). Veja [`README.md`](../README.md) na raiz e
+> [`FRENTE_4_RETOMADA.md`](../FRENTE_4_RETOMADA.md).
+>
+> Mantido apenas como histórico.
+
 ﻿# Blog Gamer Automation
 
 Pipeline de geraÃ§Ã£o automÃ¡tica de artigos para o [Blog Gamer](https://sergioskmcle-sketch.github.io/blog-gamer/) com links de afiliado do Mercado Livre.

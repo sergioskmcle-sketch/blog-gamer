@@ -1,3 +1,16 @@
+> ⚠️ **DOCUMENTO LEGADO — NÃO USE COMO REFERÊNCIA (marcado em 06/08/2026)**
+>
+> Este arquivo descreve o pipeline **Python na VM** (`scheduler.py`, `generate_article.py`,
+> `ml_affiliate.py`), que **não é mais o sistema ativo** e não funciona (o `GITHUB_TOKEN` da VM
+> está expirado). Quem gera os artigos hoje é o **GitHub Actions**
+> (`.github/workflows/gerar-conteudo.yml` → `scripts/gerar-artigo.mjs`).
+>
+> **A versão correta e atualizada está em [`docs/PROGRESSO.md`](../../docs/PROGRESSO.md).**
+> Para o trabalho em andamento (monetização), veja
+> [`FRENTE_4_RETOMADA.md`](../../FRENTE_4_RETOMADA.md).
+>
+> Mantido apenas como histórico.
+
 # Blog Gamer — Status do Projeto
 
 > Última atualização: 2026-07-02

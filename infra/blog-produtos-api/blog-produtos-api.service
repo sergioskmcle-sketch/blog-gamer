@@ -1,0 +1,23 @@
+[Unit]
+Description=blog-gamer - API de produtos com afiliado (Shopee + ML)
+Documentation=https://github.com/sergioskmcle-sketch/blog-gamer
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=sergioskm_cle
+Group=sergioskm_cle
+WorkingDirectory=/opt/blog-produtos-api
+EnvironmentFile=/opt/blog-produtos-api/.env
+ExecStart=/opt/afiliados-monitor-v2/venv/bin/python -u /opt/blog-produtos-api/app.py
+Restart=always
+RestartSec=5
+MemoryMax=512M
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=false
+
+[Install]
+WantedBy=multi-user.target

@@ -1,3 +1,7 @@
+> 📎 **Versão antiga (06/08/2026):** a versão em uso é
+> [`docs/ARTICLE_STRUCTURE_DRAFT.md`](docs/ARTICLE_STRUCTURE_DRAFT.md), que difere desta.
+> Mantido por histórico.
+
 # Estrutura de Artigos — Rascunho
 
 > **Status:** Aguardando validação

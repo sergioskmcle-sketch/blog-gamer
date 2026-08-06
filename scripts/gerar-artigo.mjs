@@ -4,6 +4,7 @@ import path from "path";
 import { pathToFileURL } from "url";
 import Parser from "rss-parser";
 import { searchGoogleShopping } from "./google_shopping.mjs";
+import { buscarProdutosLoteRemoto } from "./monitor_api.mjs";
 import { gerarCapaStability } from "./stability-cover.mjs";
 import { gerarCapaOpenAI, downloadImage, searchTavilyImage } from "./openai-cover.mjs";
 
@@ -458,6 +459,8 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const RAWG_API_KEY = process.env.RAWG_API_KEY;
 const SERPER_API_KEY = process.env.SERPER_API_KEY;
 const MAX_PRODUCTS = 5;
+// remote = usa a Frente 4 (produtos com comissao). legacy = so Google Shopping.
+const AFFILIATE_MODE = process.env.AFFILIATE_MODE || "legacy";
 
 const GAME_IMAGE_CACHE = {};
 
@@ -839,7 +842,11 @@ function sanitizeProducts(products, topic) {
     const title = String(p.title || "");
     if (ML_NON_PRODUCT_URL.test(url)) continue;
     if (ML_ARTICLE_TITLE.test(title)) continue;
-    const id = p.id || (url.match(/MLB\d{8,}/) || [])[0] || "";
+    // Produto da Shopee nao tem id no formato MLB — sem isto ele seria descartado.
+    const id = p.id
+      || (url.match(/MLB\d{8,}/) || [])[0]
+      || (url.match(/shopee\.com\.br\/product\/(\d+)\/(\d+)/) || []).slice(1, 3).join("_")
+      || "";
     if (!id && !url.startsWith("http")) continue;
     const dedupeKey = id || url;
     if (seen.has(dedupeKey)) continue;
@@ -901,7 +908,34 @@ function productButtonLabel(p) {
   return NA_STORES.has(src) ? `VER NA ${store}` : `VER NO ${store}`;
 }
 
+const OFFER_META = {
+  mercadolivre: { label: "VER NO MERCADO LIVRE", cls: "product-btn product-btn--ml" },
+  shopee:       { label: "VER NA SHOPEE",        cls: "product-btn product-btn--shopee" },
+};
+
+export function buildOfferButtonsHtml(p) {
+  const lojas = Object.keys(p?.offers || {}).filter(
+    (k) => OFFER_META[k] && (p.offers[k].affiliate_link || p.offers[k].permalink)
+  );
+  if (lojas.length === 0) return "";
+
+  const botoes = lojas.map((k) => {
+    const o = p.offers[k];
+    const m = OFFER_META[k];
+    const href = o.affiliate_link || o.permalink;
+    return `<a href="${href}" class="${m.cls}" target="_blank" rel="nofollow sponsored">${m.label}</a>`;
+  });
+
+  if (botoes.length === 1) return botoes[0];
+  return `<div class="product-btns">\n${botoes.join("\n")}\n</div>`;
+}
+
 function buildProductButtonHtml(p) {
+  // Produto da Frente 4: um botao por loja.
+  const duplo = buildOfferButtonsHtml(p);
+  if (duplo) return duplo;
+
+  // Caminho antigo (Google Shopping) — NAO ALTERAR, os testes dependem dele.
   const link = p.affiliate_link || p.permalink || "";
   if (!link) return "";
   const label = productButtonLabel(p);
@@ -1891,7 +1925,34 @@ async function main() {
   }
 
   let mlProducts = [];
-  if (SERPER_API_KEY) {
+  // Dedup compartilhado entre Frente 4 e Google Shopping: sem isto, o Serper
+  // reinsere produto que a Frente 4 ja trouxe.
+  const seen = new Set();
+
+  // Frente 4 primeiro: produtos que ja vem com link de afiliado.
+  if (AFFILIATE_MODE === "remote") {
+    try {
+      const trendingKws = topic.trending_keywords || [];
+      const queriesRemotas = [
+        ...trendingKws.slice(0, 2),
+        topic.ml_query,
+      ].filter(Boolean).slice(0, 5);
+
+      const remotos = await buscarProdutosLoteRemoto(queriesRemotas, { limitPorQuery: 3 });
+      for (const p of remotos) {
+        if (mlProducts.length >= MAX_PRODUCTS) break;
+        if (p.permalink && seen.has(p.permalink)) continue;
+        if (p.permalink) seen.add(p.permalink);
+        mlProducts.push(p);
+      }
+      log("INFO", `Frente 4: ${mlProducts.length} produtos com afiliado`);
+    } catch (e) {
+      log("WARN", `Frente 4 falhou: ${e.message} — seguindo com Google Shopping`);
+    }
+  }
+
+  // Google Shopping so completa o que faltou (ou assume tudo, no modo legacy).
+  if (SERPER_API_KEY && mlProducts.length < MAX_PRODUCTS) {
     try {
       const trendingKws = topic.trending_keywords || [];
       // Queries seguem o dominio do artigo: games -> jogos; hardware -> perifericos
@@ -1904,7 +1965,6 @@ async function main() {
         topic.ml_query,
       ].slice(0, MAX_PRODUCTS);
 
-      const seen = new Set();
       for (const query of searchQueries) {
         try {
           const results = await searchGoogleShopping(query, SERPER_API_KEY, MAX_PRODUCTS);
@@ -1939,7 +1999,8 @@ async function main() {
       }
 
       for (const p of mlProducts) {
-        p.affiliate_link = p.permalink;
+        // Produto vindo da Frente 4 ja tem link de afiliado — nao sobrescrever.
+        if (!p.affiliate_link) p.affiliate_link = p.permalink;
       }
     } catch (err) {
       log("WARN", `Shopping Search: ${err.message}`);
