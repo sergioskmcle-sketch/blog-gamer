@@ -55,7 +55,7 @@ Detalhes de operação: [`FRENTE_4_RETOMADA.md`](../FRENTE_4_RETOMADA.md).
 |--------|-----------|-------|
 | `MONITOR_API_URL` | GitHub **variable** + `.env` local | `http://34.29.27.155:8086` |
 | `MONITOR_API_KEY` | GitHub **secret** + `.env` local | = `BLOG_API_KEY` do `.env` da VM |
-| `AFFILIATE_MODE` | GitHub **variable** | `legacy` (atual) / `remote` (ativado) |
+| `AFFILIATE_MODE` | GitHub **variable** | **`remote`** (ativo em produção) / `legacy` (fallback) |
 | `BLOG_API_KEY` | `/opt/blog-produtos-api/.env` na VM (chmod 600) | gerado com `openssl rand -hex 32` |
 
 Recuperar a chave (nunca colar o valor em arquivo ou commit):

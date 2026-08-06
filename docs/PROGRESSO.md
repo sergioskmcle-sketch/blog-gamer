@@ -16,7 +16,7 @@
 | Agendamento | GitHub Actions (cron `30 9 * * *`) | `.github/workflows/gerar-conteudo.yml` |
 | Testes (roda antes de gerar) | GitHub Actions | `scripts/test-injecao.mjs` (`npm test`) |
 | Geração do artigo | GitHub Actions | `scripts/gerar-artigo.mjs` (~2.750 linhas) |
-| Descoberta de produto | Serper.dev (Google Shopping BR) | `scripts/google_shopping.mjs` |
+| Descoberta de produto | Frente 4 (ML/Shopee com afiliado) + fallback Serper/Google Shopping | `scripts/monitor_api.mjs` + `scripts/google_shopping.mjs` |
 | Publicação | GitHub Pages | `.github/workflows/deploy.yml` |
 
 **Nada disso roda na VM do blog.** Ver seção 4.
@@ -33,7 +33,7 @@
 | Imagens de jogos (RAWG) e de capa | ✅ |
 | Injeção de produto e botão no artigo | ✅ |
 | Testes automáticos antes de gerar | ✅ |
-| **Links de afiliado** | ⚠️ **Não.** Ver seção 3 |
+| **Links de afiliado** | ✅ **Ativo** — Frente 4 (`meli.la`, `s.shopee.com.br`) |
 
 ### Frontend (Astro 5)
 | Componente | Status |
@@ -41,7 +41,7 @@
 | Tema escuro, design system em `global.css` | ✅ |
 | Cards por seção, TOC em acordeão, sidebar | ✅ |
 | Estilo do botão de produto (`.product-btn`) | ✅ |
-| Estilo do **botão duplo** (`.product-btns`) | ⏳ Falta (Frente 4) |
+| Estilo do **botão duplo** (`.product-btns`) | ✅ Pronto |
 
 ### Frente 4 — produtos com afiliado
 | Componente | Status |
@@ -51,30 +51,30 @@
 | Coletor automático a cada 10 min | ✅ |
 | API de busca (`/api/produtos/buscar`, lote, health, catálogo) | ✅ |
 | Aviso no Telegram quando falta produto | ⚠️ Bloqueado: falta `/start` no bot |
-| **Cliente no blog (`monitor_api.mjs`)** | ⏳ **Falta** |
-| **Botão duplo no artigo** | ⏳ **Falta** |
+| **Cliente no blog (`monitor_api.mjs`)** | ✅ Pronto e ativo |
+| **Botão duplo no artigo** | ✅ Pronto |
 
 ---
 
 ## 3. O que falta fazer
 
-### 🔴 Alta prioridade — monetização
+### 🔴 Alta prioridade — monetização ✅ concluído em 06/08/2026
 
-O blog **não gera comissão nenhuma hoje**. Em `scripts/gerar-artigo.mjs:1941` há literalmente
-`p.affiliate_link = p.permalink`, ou seja, o botão aponta para um link direto de loja.
+O blog **agora gera comissão**: a Frente 4 está ativa em produção (`AFFILIATE_MODE=remote`,
+merge `1435106`). O pipeline busca produtos com link de afiliado na API da VM **antes** do Serper
+(que virou só fallback). Primeiro artigo com afiliado no ar: *"5 Melhores teclados gamer com
+retroiluminação em 2024"* (5 produtos: 3 ML + 2 Shopee).
 
-A solução já está construída do lado do servidor (Frente 4). Falta o lado do blog:
-
-| Tarefa | Detalhe |
+| Tarefa | Estado |
 |---|---|
-| Criar `scripts/monitor_api.mjs` | Cliente HTTP da Frente 4, que nunca lança exceção |
-| Alterar `scripts/gerar-artigo.mjs` | Buscar na Frente 4 antes do Serper; não sobrescrever `affiliate_link` |
-| Botão duplo | `buildOfferButtonsHtml` + CSS em `[...slug].astro` |
-| Testes | Asserts do botão duplo e do cliente em `test-injecao.mjs` |
-| Secrets/variables no GitHub | `MONITOR_API_KEY`, `MONITOR_API_URL`, `AFFILIATE_MODE` |
+| `scripts/monitor_api.mjs` (cliente da Frente 4, nunca lança exceção) | ✅ |
+| `scripts/gerar-artigo.mjs` (busca Frente 4 antes do Serper; não sobrescreve `affiliate_link`) | ✅ |
+| Botão duplo (`buildOfferButtonsHtml` + CSS em `[...slug].astro`) | ✅ |
+| Testes (158 asserts, incl. botão duplo e cliente remoto) | ✅ |
+| Secrets/variables no GitHub (`MONITOR_API_KEY`, `MONITOR_API_URL`, `AFFILIATE_MODE`) | ✅ |
 
-📄 **Instruções completas, passo a passo e com o código pronto:
-[`FRENTE_4_RETOMADA.md`](../FRENTE_4_RETOMADA.md).**
+📄 **Execução completa, passo a passo e com o código:
+[`FRENTE_4_RETOMADA.md`](../FRENTE_4_RETOMADA.md) (STATUS no topo).**
 
 ### 🟡 Média prioridade
 | Tarefa | Motivo |
@@ -97,16 +97,16 @@ A solução já está construída do lado do servidor (Frente 4). Falta o lado d
 ```
 GitHub Actions  ← É AQUI QUE TUDO ACONTECE
   └─ npm test  →  node scripts/gerar-artigo.mjs
-        ├─ Serper.dev (Google Shopping) ....... links SEM comissão (atual)
-        └─ Frente 4 (a ligar) ................. links COM comissão
-                │  HTTP :8086 + X-API-Key
-                ▼
-VM monitor-telegram (34.29.27.155)
-  ├─ Frente 1  monitor-bot-ml     → grupos do Telegram
-  ├─ Frente 2  searcher-ml        → varre ofertas ML + busca Shopee
-  ├─ Frente 3  searcher-panel     → painel de post manual
-  └─ Frente 4  blog-produtos-api  → API + banco (catalogo.db)
-        ↑ lê (somente leitura) os posted.json das frentes 1/2/3
+        ├─ Frente 4 (ATIVA) ................. links COM comissão (meli.la / s.shopee)
+        │        HTTP :8086 + X-API-Key
+        │        ▼
+        │      VM monitor-telegram (34.29.27.155)
+        │        ├─ Frente 1  monitor-bot-ml     → grupos do Telegram
+        │        ├─ Frente 2  searcher-ml        → varre ofertas ML + busca Shopee
+        │        ├─ Frente 3  searcher-panel     → painel de post manual
+        │        └─ Frente 4  blog-produtos-api  → API + banco (catalogo.db)
+        │              ↑ lê (somente leitura) os posted.json das frentes 1/2/3
+        └─ Serper.dev (Google Shopping) ....... fallback quando a VM está fora
 
 VM do blog (35.237.81.192) ......... LEGADO, fora de uso, token expirado
 GitHub Pages ....................... site publicado

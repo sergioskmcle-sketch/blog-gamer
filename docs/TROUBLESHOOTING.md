@@ -233,3 +233,36 @@ git add -A
 git commit -m "merge: resolucao de conflitos"
 git push origin main
 ```
+
+---
+
+## Deploy não dispara automaticamente após o push do artigo
+
+**Sintoma:** o `gerar-conteudo.yml` publica um artigo novo no `main`, mas o `deploy.yml` não roda
+sozinho.
+
+**Causa:** pushes feitos com o `GITHUB_TOKEN` do Actions **não disparam novos workflows** (regra
+do GitHub, exceto `workflow_dispatch`). Por isso o `gerar-conteudo.yml` termina com o passo
+"Disparar deploy" (`gh workflow run deploy.yml`), que é o caminho confiável — não o `on: push`.
+
+**Regra prática:** todo run do `gerar-conteudo.yml` que muda arquivos **deve** gerar um run de
+deploy em seguida (dado pelo próprio pipeline). Se você fez push manual de artigo/merge, dispare o
+deploy na mão:
+```bash
+gh workflow run deploy.yml --ref main
+```
+
+---
+
+## 06/08/2026 — Pane global do GitHub Actions (webhooks throttled)
+
+**Sintoma:** runs ficam em `queued` por muitos minutos; push ao `main` não cria run de deploy;
+deploys falham com `Service Unavailable`.
+
+**Causa:** incidente global do GitHub (*Incident with Actions*), com webhooks processando ~15%
+dos eventos e runners atribuídos a jobs inválidos. Afetou Actions e Pages.
+
+**O que funcionou:** (1) disparar `workflow_dispatch` manual em vez de confiar no push;
+(2) o `deploy.yml` usa `concurrency` que **não cancela** run em andamento, então run antigo que
+falhou é irrelevante se o último passou; (3) o `actions/checkout` resolve o `main` **no momento
+em que o job roda**, então um deploy disparado depois já inclui o artigo novo.

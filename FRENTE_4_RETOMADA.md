@@ -9,6 +9,15 @@
 > escritas aqui. Se algo parecer ambíguo, siga literalmente o que está escrito.
 >
 > Estado medido em: **06/08/2026**.
+>
+> **STATUS ATUALIZADO (06/08/2026, à noite) — a Frente 4 está ATIVA EM PRODUÇÃO.**
+> - Merge `feat/afiliados-ml-shopee` → `main` concluído (commit `1435106`).
+> - Variable `AFFILIATE_MODE` no GitHub: **`remote`**.
+> - Primeiro artigo com link de afiliado no ar: *"5 Melhores teclados gamer com retroiluminação
+>   em 2024"*, com botões apontando para `meli.la` e `s.shopee.com.br`.
+> - O cron diário (09:30 UTC) já gera os artigos com comissão.
+> - Passos 1 a 8 executados e verificados. Do lado do blog, **nada resta**. Pende apenas a ação do
+>   dono: `/start` no `@MonitorDeGruposBot` (Parte 4.1), que destrava o aviso de produtos faltantes.
 
 ---
 
@@ -135,7 +144,7 @@ Arquivos de origem (**somente leitura**):
 - `/opt/afiliados-monitor-v2/automation/state/posted.json` — Frentes 1 e 3
 - `/opt/afiliados-monitor-v2/searcher/services/searcher/state/posted.json` — Frente 2
 
-**Estado atual:** 792 produtos (646 do ML, 146 da Shopee), 0,57 MB.
+**Estado atual:** 854 produtos (703 do ML, 151 da Shopee), 0,61 MB.
 
 **Travas de disco** (se o disco encher, perde-se o acesso SSH à VM):
 - Retenção de 30 dias, com limpeza automática
@@ -644,9 +653,11 @@ MONITOR_API_KEY=qualquer node scripts/gerar-artigo.mjs
 
 O teste 4 é o que garante que o blog nunca para de publicar por causa da VM.
 
-## PASSO 8 — Ativar
+## PASSO 8 — Ativar ✅ (concluído em 06/08/2026)
 
-Só depois de tudo acima passar: mude a variable `AFFILIATE_MODE` no GitHub para `remote`.
+A variable `AFFILIATE_MODE` no GitHub está em **`remote`** (ativa). O merge da branch
+`feat/afiliados-ml-shopee` no `main` foi feito (commit `1435106`) e o primeiro artigo com
+afiliado já foi publicado (o log da geração registrou `Frente 4: 5 produtos com afiliado`).
 
 **Para desligar em caso de problema:** mude de volta para `legacy`. Não precisa alterar código
 nem fazer deploy.
@@ -808,12 +819,15 @@ ssh -i ~/.ssh/id_opencode sergioskm_cle@34.29.27.155 'df -h /'
 **O que já funciona:** o serviço na VM do monitor (porta 8086) com um banco de 792 produtos que
 já têm link de afiliado, alimentado automaticamente pelas Frentes 1/2/3 a cada 10 minutos.
 
-**O que falta:** ensinar o blog a consultar esse serviço (Parte 3, passos 1 a 8) e o dono mandar
-`/start` para o bot no Telegram (Parte 4.1).
+**O que falta:** nada do lado do blog — a Parte 3 (passos 1 a 8) está concluída e o
+`AFFILIATE_MODE` está em `remote`. Pende apenas a ação do dono: mandar `/start` para o bot no
+Telegram (Parte 4.1), que destrava o aviso de produtos faltantes.
 
 **O que nunca fazer:** usar os cookies do Mercado Livre a partir do blog, chamar `getUpdates`,
 reiniciar as frentes do monitor, escrever em `/opt/afiliados-monitor-v2/`, ou rodar `pip` no venv
 do monitor.
 
 **Como saber que deu certo:** um artigo publicado com botões apontando para `meli.la` e
-`s.shopee.com.br`, e o teste com a VM inacessível ainda gerando artigo normalmente.
+`s.shopee.com.br` — já aconteceu: *"5 Melhores teclados gamer com retroiluminação em 2024"*
+(06/08/2026). E o teste com a VM inacessível ainda gera artigo normalmente (fallback Google
+Shopping).
