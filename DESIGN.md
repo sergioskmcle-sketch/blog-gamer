@@ -1,3 +1,6 @@
+> 📎 **Duplicata (06/08/2026):** este arquivo é idêntico a [`docs/DESIGN.md`](docs/DESIGN.md).
+> Mantenha as edições em `docs/` — esta cópia existe só por histórico.
+
 ---
 name: Blog Gamer
 colors:

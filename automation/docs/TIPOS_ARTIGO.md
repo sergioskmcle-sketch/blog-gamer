@@ -1,3 +1,9 @@
+> 📌 **Nota (06/08/2026):** este é o **único** arquivo com este conteúdo — não existe cópia em
+> `docs/`. Os demais arquivos de `automation/docs/` são duplicatas legadas, mas **este não é**.
+>
+> Atenção ao contexto: os arquivos vizinhos descrevem o pipeline **Python na VM**, que está
+> desativado. O pipeline real hoje é o **GitHub Actions** (`scripts/gerar-artigo.mjs`).
+> Trabalho em andamento: [`FRENTE_4_RETOMADA.md`](../../FRENTE_4_RETOMADA.md).
 # Tipos de Artigo
 
 ## Resumo
