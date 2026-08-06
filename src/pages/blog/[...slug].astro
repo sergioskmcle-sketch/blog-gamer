@@ -392,6 +392,21 @@ const todosArtigos = Object.entries(import.meta.glob("../../content/artigos/*.md
     #articleBody .product-btn-laranja:hover { box-shadow: 0 0 20px rgba(249, 115, 22, 0.4); color: #fff; }
     #articleBody .product-btn-roxo { background: #a855f7; color: #fff; }
     #articleBody .product-btn-roxo:hover { box-shadow: 0 0 20px rgba(168, 85, 247, 0.4); color: #fff; }
+    #articleBody .product-btns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: center;
+      max-width: 420px;
+      margin: 1.5rem auto 0;
+    }
+    #articleBody .product-btns .product-btn {
+      margin: 0;
+      flex: 1 1 180px;
+      width: auto;
+    }
+    #articleBody .product-btn--ml { background: #ffe600; color: #000; }
+    #articleBody .product-btn--shopee { background: #ee4d2d; color: #fff; }
 
     /* === Tabela Comparativa === */
     #articleBody table {
