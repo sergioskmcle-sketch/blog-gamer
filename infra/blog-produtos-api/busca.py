@@ -12,6 +12,7 @@ import logging
 import re
 
 import adapters
+import catalogo
 
 logger = logging.getLogger("blog-produtos-api.busca")
 
@@ -106,6 +107,40 @@ def _buscar_shopee(query, limit, min_price, max_price, warnings):
     return produtos
 
 
+def _do_catalogo(query, limit, plataforma, min_price, max_price, warnings):
+    """Produtos vindos do banco alimentado pelas Frentes 1/2/3.
+
+    O link de afiliado ja veio pronto de la — nao ha nenhuma chamada externa.
+    """
+    try:
+        linhas = catalogo.buscar(query, limit=limit * 3, plataformas=(plataforma,))
+    except Exception as e:
+        logger.warning("catalogo falhou para %r: %s", query, e)
+        warnings.append("%s: banco indisponivel (%s)" % (plataforma, e))
+        return []
+
+    produtos = []
+    for l in linhas:
+        preco = _num(l.get("preco"))
+        if preco and not _dentro_da_faixa(preco, min_price, max_price):
+            continue
+        oferta = {"permalink": l.get("url") or l.get("affiliate_url"),
+                  "affiliate_link": l.get("affiliate_url") or "",
+                  "price": preco, "item_id": str(l.get("item_id") or "")}
+        base = {"item_id": l.get("item_id") or l.get("fingerprint"),
+                "title": l.get("titulo"), "thumbnail": l.get("thumbnail"),
+                "images": [l["thumbnail"]] if l.get("thumbnail") else [],
+                "original_price": 0}
+        p = _montar_produto({plataforma: oferta}, base)
+        if p:
+            # O preco e do dia em que a frente encontrou a oferta, nao de agora.
+            # O artigo deve tratar como referencia, nunca como preco garantido.
+            p["preco_de"] = (l.get("postado_em") or "")[:10]
+            p["origem"] = "catalogo"
+            produtos.append(p)
+    return produtos[:limit]
+
+
 def buscar(query, limit=5, marketplaces=("shopee", "mercadolivre"),
            min_price=None, max_price=None):
     """Busca nos marketplaces pedidos. Devolve (produtos, warnings).
@@ -114,16 +149,31 @@ def buscar(query, limit=5, marketplaces=("shopee", "mercadolivre"),
     Lista vazia com warnings e resultado valido — quem chama decide o fallback.
     """
     warnings = []
-    produtos = []
 
-    if "shopee" in marketplaces:
+    # Banco primeiro para AMBOS: custo zero em requisicoes, e o link de afiliado
+    # ja vem pronto das Frentes 1/2/3. O blog nunca dispara busca no ML.
+    cat_ml = (_do_catalogo(query, limit, "mercadolivre", min_price, max_price, warnings)
+              if "mercadolivre" in marketplaces else [])
+    cat_shopee = (_do_catalogo(query, limit, "shopee", min_price, max_price, warnings)
+                  if "shopee" in marketplaces else [])
+
+    # Intercala em vez de concatenar. Concatenando, a primeira lista consome o
+    # limite inteiro e a segunda some — foi o que aconteceu no 1o teste, com a
+    # Shopee ocupando as 5 vagas com acessorios de R$ 15 enquanto o ML tinha
+    # monitor e headset de verdade esperando na fila.
+    produtos = []
+    for i in range(max(len(cat_ml), len(cat_shopee))):
+        if i < len(cat_ml):
+            produtos.append(cat_ml[i])
+        if i < len(cat_shopee):
+            produtos.append(cat_shopee[i])
+
+    # So se o banco nao encheu a lista vale gastar uma chamada ao vivo na Shopee
+    # (API oficial, sem sessao a arriscar). O ML nunca entra aqui.
+    if len(produtos) < limit and "shopee" in marketplaces:
         produtos.extend(_buscar_shopee(query, limit, min_price, max_price, warnings))
 
-    if "mercadolivre" in marketplaces:
-        # Fase 3: busca no ML, geracao de link de afiliado e pareamento cruzado.
-        warnings.append("mercadolivre: nao implementado nesta versao (Fase 3)")
-
-    # Dedup por id dentro do mesmo marketplace.
+    # Dedup por marketplace + id.
     vistos = set()
     unicos = []
     for p in produtos:

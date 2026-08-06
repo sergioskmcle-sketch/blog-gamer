@@ -12,6 +12,7 @@ Fase 1: apenas bootstrap + status. As funcoes de busca chegam na Fase 2/3.
 """
 
 import logging
+import os
 import sys
 import threading
 import time
@@ -42,7 +43,8 @@ SEARCHER_ENV = SEARCHER_ROOT / ".env"
 # Unicas chaves que este servico le do .env do searcher. O arquivo tambem contem
 # TELEGRAM_BOT_TOKEN e PANEL_TOKEN — deliberadamente NAO carregados, para nao
 # trazer segredo alheio ao escopo do blog para dentro deste processo.
-_ENV_KEYS = ("SHOPEE_APP_ID", "SHOPEE_SECRET", "ML_COOKIES_PATH")
+_ENV_KEYS = ("SHOPEE_APP_ID", "SHOPEE_SECRET", "ML_COOKIES_PATH",
+             "ML_CLIENT_ID", "ML_CLIENT_SECRET")
 
 
 def _read_searcher_env():
@@ -88,6 +90,8 @@ def _load_config():
         ("ml_cookies_path", "ML_COOKIES_PATH"),
         ("shopee_app_id", "SHOPEE_APP_ID"),
         ("shopee_secret", "SHOPEE_SECRET"),
+        ("ml_client_id", "ML_CLIENT_ID"),
+        ("ml_client_secret", "ML_CLIENT_SECRET"),
     ):
         cfg[key] = os.environ.get(env) or do_env.get(env) or cfg.get(key, "")
 
@@ -105,14 +109,26 @@ def _bootstrap_shopee(cfg):
 
 
 def _bootstrap_ml(cfg):
-    """configure() do caminho ML (afiliacao por cookies + curl_cffi)."""
+    """configure() do caminho ML: busca (offers) + afiliacao (affiliate).
+
+    Os DOIS sao obrigatorios. Sem offers.configure a lista de user-agents fica
+    vazia e todo fetch morre com "Cannot choose from an empty sequence" —
+    parece bloqueio do ML, mas e bootstrap faltando.
+    """
     cookies_path = cfg.get("ml_cookies_path") or ""
     if not cookies_path or not Path(cookies_path).exists():
         raise RuntimeError("ml_cookies_path inexistente: %s" % cookies_path)
 
     from monitor_core.affiliate import configure as aff_configure
     from monitor_core.scraping.offers import DEFAULT_USER_AGENTS
+    from monitor_core.scraping.offers import configure as offers_configure
 
+    offers_configure(
+        base_dir=str(SEARCHER_SVC),  # de onde sai o ml_api_token.json
+        ml_client_id=cfg.get("ml_client_id"),
+        ml_client_secret=cfg.get("ml_client_secret"),
+        token_url=cfg.get("ml_token_url"),
+    )
     aff_configure(
         config=cfg,
         cookies_path=cookies_path,
@@ -237,3 +253,98 @@ def shopee_search(query, limit=5):
             itens.append(mapeado)
     logger.info("shopee_search(%r) -> %d itens", query, len(itens))
     return itens
+
+
+# ------------------------------------------------------- afiliacao por URL
+# O ML nao tem busca por keyword utilizavel nesta VM (medido em 05/Ago/2026):
+#   - /sites/MLB/search       -> 403, app nao aprovada
+#   - /ofertas?search=        -> ignora o termo e devolve o feed generico
+#   - lista.mercadolivre.com  -> devolve so o esqueleto da pagina, sem produtos
+# Gerar link de afiliado a partir de uma URL, porem, funciona. Dai o desenho
+# hibrido: quem descobre o produto do ML e o Google Shopping (no blog), e a VM
+# so converte a URL em meli.la.
+
+
+def _resolver_se_preciso(url):
+    """Resolve redirecionador (google.com/shopping, short link) ate a loja."""
+    from monitor_core.linkparse import classify, resolve_redirect
+
+    if classify(url) != "unknown":
+        return url, False
+    final = resolve_redirect(url)
+    return final, final != url
+
+
+def afiliar_url(url):
+    """Converte uma URL de produto em link de afiliado.
+
+    Devolve dict sempre — nunca levanta — no formato:
+      {url, url_final, marketplace, affiliate_link, ok, error}
+
+    ok=False significa "nao consegui afiliar": quem chama deve usar a URL
+    original, nunca fingir que o link e afiliado.
+    """
+    saida = {"url": url, "url_final": url, "marketplace": "unknown",
+             "affiliate_link": "", "ok": False, "error": None}
+    try:
+        from monitor_core.linkparse import classify
+
+        final, resolveu = _resolver_se_preciso(url)
+        saida["url_final"] = final
+        mkt = classify(final)
+        saida["marketplace"] = {"ml": "mercadolivre"}.get(mkt, mkt)
+
+        if mkt == "ml":
+            # TRAVA DE SEGURANCA (06/Ago/2026). A sessao do ML e compartilhada
+            # com monitor-bot-ml e searcher-ml, que dependem dela para postar no
+            # Telegram. Em 06/Ago a sessao caiu para 401 durante testes deste
+            # servico — o modo de falha que docs/CREDENCIAIS.md ja previa ao
+            # usar os cookies de um segundo consumidor.
+            #
+            # Enquanto a causa nao for confirmada, este servico NAO toca no ML.
+            # Religar: BLOG_ML_ENABLED=1 no /opt/blog-produtos-api/.env, depois
+            # de renovar os cookies com instalar_cookies_ml.sh.
+            if os.environ.get("BLOG_ML_ENABLED", "") != "1":
+                saida["error"] = ("mercadolivre desativado por seguranca "
+                                  "(BLOG_ML_ENABLED != 1)")
+                return saida
+            if not is_ready("mercadolivre"):
+                saida["error"] = "mercadolivre nao configurado"
+                return saida
+            from monitor_core.affiliate import generate_affiliate_link
+
+            _throttle("mercadolivre")
+            r = generate_affiliate_link(final)
+            # Contrato do modulo: em caso de falha devolve a PROPRIA url.
+            # Sucesso e, e so e, conter 'meli.la'.
+            if r and "meli.la" in r:
+                saida["affiliate_link"] = r
+                saida["ok"] = True
+            else:
+                saida["error"] = "ml recusou gerar o link (sessao/breaker)"
+
+        elif mkt == "shopee":
+            if not is_ready("shopee"):
+                saida["error"] = "shopee nao configurada"
+                return saida
+            from monitor_core.shopee_api import (ShopeeRateLimitError,
+                                                 generate_short_link)
+
+            _throttle("shopee")
+            try:
+                curto = generate_short_link(final, sub_ids=["blog"])
+            except ShopeeRateLimitError as e:
+                raise RateLimitUpstream("shopee: %s" % e)
+            if curto:
+                saida["affiliate_link"] = curto
+                saida["ok"] = True
+            else:
+                saida["error"] = "shopee nao devolveu short link"
+        else:
+            saida["error"] = "url nao e de mercadolivre nem shopee"
+
+    except RateLimitUpstream:
+        raise
+    except Exception as e:
+        saida["error"] = str(e)
+    return saida

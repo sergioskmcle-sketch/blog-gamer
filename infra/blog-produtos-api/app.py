@@ -16,9 +16,11 @@ import time
 from aiohttp import web
 
 import adapters
+import aviso
 import busca
+import catalogo
 
-VERSION = "1.1.0-fase2"
+VERSION = "2.0.0-frente4"
 PORT = int(os.environ.get("BLOG_API_PORT", "8086"))
 API_KEY = os.environ.get("BLOG_API_KEY", "")
 
@@ -36,6 +38,14 @@ RATE_PER_S = 5.0
 RATE_BURST = 20
 
 MARKETPLACES = ("shopee", "mercadolivre")
+
+# Coletor: copia dos arquivos das Frentes 1/2/3 o que ainda nao esta no banco.
+# 10 min e folgadissimo — a frente mais rapida gasta ~150 dos 1000 registros de
+# folga por DIA, entao mesmo uma parada longa nao perde produto.
+SYNC_INTERVALO_S = 600
+
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_ADMIN_CHAT_ID", "")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -161,6 +171,7 @@ async def handle_health(request):
         "version": VERSION,
         "uptime_s": int(time.time() - STARTED_AT),
         "marketplaces": adapters.status(),
+        "catalogo": catalogo.estatisticas(),
     })
 
 
@@ -248,12 +259,106 @@ async def handle_buscar_lote(request):
     return web.json_response({"ok": True, "resultados": resultados})
 
 
+MAX_URLS_AFILIAR = 10
+
+
+async def handle_afiliar(request):
+    """Converte URLs de produto em links de afiliado.
+
+    E o caminho do Mercado Livre: o blog descobre o produto pelo Google
+    Shopping e manda a URL aqui. Tambem aceita URLs da Shopee.
+    """
+    body = await _body(request)
+    if not isinstance(body, dict):
+        return erro(400, "bad_request", "corpo deve ser um objeto JSON")
+
+    urls = body.get("urls")
+    if not isinstance(urls, list) or not (1 <= len(urls) <= MAX_URLS_AFILIAR):
+        return erro(400, "bad_request",
+                    "urls deve ser lista de 1 a %d itens" % MAX_URLS_AFILIAR)
+    for u in urls:
+        if not isinstance(u, str) or not u.startswith("http"):
+            return erro(400, "bad_request", "url invalida: %r" % (u,))
+
+    resultados = []
+    for u in urls:
+        em_cache = cache_get(("afiliar", u))
+        if em_cache is not None:
+            resultados.append(dict(em_cache, cached=True))
+            continue
+        try:
+            r = await asyncio.to_thread(adapters.afiliar_url, u)
+        except adapters.RateLimitUpstream as e:
+            return web.json_response(
+                {"ok": False, "error": {"code": "rate_limited", "message": str(e)}},
+                status=429, headers={"Retry-After": "30"})
+        # So cacheia sucesso: falha costuma ser transitoria (breaker, sessao),
+        # e guardar por 30 min prolongaria o prejuizo.
+        if r.get("ok"):
+            cache_put(("afiliar", u), r)
+        resultados.append(dict(r, cached=False))
+
+    afiliados = sum(1 for r in resultados if r["ok"])
+    logger.info("afiliar: %d/%d convertidos", afiliados, len(resultados))
+    return web.json_response({"ok": True, "total": len(resultados),
+                              "afiliados": afiliados, "resultados": resultados})
+
+
+async def handle_catalogo(request):
+    """Estado do banco: quantos produtos, tamanho, disco livre."""
+    return web.json_response({"ok": True, "catalogo": catalogo.estatisticas()})
+
+
+async def handle_faltantes(request):
+    """O blog reporta o que nao conseguiu preencher; avisamos no Telegram."""
+    body = await _body(request)
+    if not isinstance(body, dict) or not isinstance(body.get("faltantes"), list):
+        return erro(400, "bad_request", "faltantes deve ser lista")
+
+    enviado, motivo = await asyncio.to_thread(
+        aviso.avisar_faltantes, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID,
+        body["faltantes"], bool(body.get("forcar")))
+    return web.json_response({"ok": True, "avisado": enviado, "motivo": motivo})
+
+
+async def _coletor(app):
+    """Tarefa de fundo: sincroniza o banco periodicamente."""
+    try:
+        while True:
+            try:
+                r = await asyncio.to_thread(catalogo.sincronizar)
+                if r.get("novos"):
+                    logger.info("coletor: +%d produtos (db %.1f MB)",
+                                r["novos"], r.get("db_mb", 0))
+            except Exception:
+                logger.exception("coletor falhou (segue tentando)")
+            await asyncio.sleep(SYNC_INTERVALO_S)
+    except asyncio.CancelledError:
+        pass
+
+
+async def _ao_subir(app):
+    catalogo.init()
+    app["coletor"] = asyncio.create_task(_coletor(app))
+
+
+async def _ao_parar(app):
+    t = app.get("coletor")
+    if t:
+        t.cancel()
+
+
 def criar_app():
     adapters.bootstrap()
     app = web.Application(middlewares=[middleware_auth])
     app.router.add_get("/api/health", handle_health)
     app.router.add_post("/api/produtos/buscar", handle_buscar)
     app.router.add_post("/api/produtos/buscar-lote", handle_buscar_lote)
+    app.router.add_post("/api/afiliar", handle_afiliar)
+    app.router.add_get("/api/catalogo", handle_catalogo)
+    app.router.add_post("/api/faltantes", handle_faltantes)
+    app.on_startup.append(_ao_subir)
+    app.on_cleanup.append(_ao_parar)
     return app
 
 
