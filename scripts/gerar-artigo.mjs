@@ -858,7 +858,7 @@ async function enrichProductTitles(mlProducts) {
     const raw = String(p.raw_title || p.title || "").trim();
     if (!raw || BRAND_RE.test(raw) || MODEL_RE.test(raw)) continue;
     const url = String(p.permalink || "");
-    if (!/mercadolivre/i.test(url)) continue;
+    if (!/^https?:\/\//.test(url)) continue;
     try {
       const res = await fetch(url, {
         headers: SESSION_HEADERS,

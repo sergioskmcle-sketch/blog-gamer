@@ -187,6 +187,11 @@ export function extractMLProductData(html, url) {
   const title = (html.match(/<title>([^<]+)/)?.[1] || "")
     .replace(/\s*\|\s*Mercado\s*Livre.*$/i, "")
     .replace(/\s*\|\s*Mercado\s*L(i|í)vre.*$/i, "")
+    .replace(/\s*\|\s*Shopee\s*Brasil.*$/i, "")
+    .replace(/\s*\|\s*Shopee.*$/i, "")
+    .replace(/\s*\|\s*Amazon.*$/i, "")
+    .replace(/\s*\|\s*Magazine\s*Luiza.*$/i, "")
+    .replace(/\s*\|\s*Kabum!?.*$/i, "")
     .trim();
 
   const ogImg = html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/)?.[1] || "";
