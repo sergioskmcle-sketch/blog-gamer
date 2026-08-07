@@ -408,8 +408,8 @@ Caso o dispositivo seja mais lento ou o usuário prefira `prefers-reduced-motion
 |---------|--------------|
 | `src/styles/global.css` | Variáveis CSS, texturas, estilos globais, cursor effect |
 | `src/styles/effects.css` | Cursor magnético, partículas, background layers, carbon fiber CSS |
-| `src/layouts/Layout.astro` | Meta tags, theme-color (#050505), Google Fonts |
-| `src/components/Header.astro` | Header glassmorphism + underline animado |
+| `src/layouts/Layout.astro` | Meta tags, theme-color (#050505 dark / #F5F5F7 light), injeção do fundo (blog-config.json), Google Fonts |
+| `src/components/Header.astro` | Header glassmorphism + underline animado + ThemeToggle |
 | `src/components/Footer.astro` | Footer escuro com grid |
 | `src/components/ArticleCard.astro` | Card com hover elevado + borda roxa |
 | `src/components/HeroSection.astro` | Hero com halo roxo + gradiente neon |

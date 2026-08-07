@@ -20,7 +20,7 @@
 
 | Recurso | URL |
 |---------|-----|
-| Repositório | `https://github.com/sergioskmcle-sketch.git` |
+| Repositório | `https://github.com/sergioskmcle-sketch/blog-gamer` |
 | Blog (GitHub Pages) | `https://promogamer.com.br/` |
 | Status / Saúde | `https://promogamer.com.br/status.json` |
 | Groq API | `https://api.groq.com/openai/v1/chat/completions` |

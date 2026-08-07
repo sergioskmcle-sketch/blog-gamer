@@ -47,36 +47,35 @@ scripts/
   gerar-placas-video.mjs    → Pipeline dedicada para artigos sobre placas de vídeo
   gerar-lista-monitores.mjs → Pipeline dedicada para artigos sobre monitores gamer
   google_shopping.mjs        → Busca de produtos via API Google Shopping da Serper.dev (geo BR)
+  product_naming.mjs        → Categorias únicas + nomenclatura dos produtos (fonte da regra de categoria no SKILL)
+  monitor_api.mjs           → Cliente da Frente 4 (produtos com link de afiliado ML/Shopee)
   ml_affiliate.mjs          → LEGADO (API ML com cookies — aposentado/removido, não usar)
   openai-cover.mjs          → Capa IA (gpt-image-2) usando imagens dos produtos como referência
   stability-cover.mjs       → Refinamento/fallback de capas via Stability AI (sd3)
   fix-article-links.mjs     → LEGADO (meli.la com cookies do ML — inativo)
   regenerate-*-cover.mjs    → Regenera a capa de artigos específicos (cadeiras, fones, monitores, psplus, xbox)
   gerar-status.cjs          → Gera status.json a cada deploy
-  test-injecao.mjs          → Testes de validação (145 asserts): itens, TOC, fontes, portão de produtos, labels de loja e montagem segmentada
+  test-injecao.mjs          → Testes de validação (263 asserts): itens, TOC, fontes, portão de produtos, labels de loja e montagem segmentada
   download-images.mjs       → Baixa imagens dos produtos para o repo
   convert-banners.mjs       → Converter banners PNG → WebP
   migrar-artigos.mjs        → Migra artigos antigos para o novo padrão (categorias, índice hierárquico, FAQ e nomes normalizados — ver TAREFA 7)
   limpar-imagens-orfas.mjs  → Remove imagens sem uso no repo (públicas de produtos/apagadas) e atualiza frontmatter
 
-automation/                 → Suíte Python (pipelines locais/servidor)
-  generate_article.py       → Gera artigos (modos: informativo/melhor/custo-beneficio/misto + capa IA + ml_query seed)
-  scheduler.py              → Agenda 1 artigo/dia (roda generate_article.py com seeds circulares)
-  heartbeat_watchdog.py     → Watchdog do serviço systemd `blog-gamer.service` (reinicia se o heartbeat parar)
-  cookie_keepalive.py       → Desativado (não visitar o ML com cookies: entrega fingerprint e causa bloqueio global)
-  admin_api.py              → Painel de controle do blog (FastAPI)
-  force_article.py          → Força a geração manual de um tópico
-  fix_article_links.py      → Versão Python do fix-article-links
-  ml_affiliate.py           → API ML (versão Python)
-  docs/TIPOS_ARTIGO.md      → Tipos/modos de artigo e regras de imagens
+src/
+  content/artigos/          → Artigos em markdown com frontmatter
+  data/blog-config.json     → Config de tema/fundo (aba Aparência do admin)
+  data/background-presets.json → Presets de fundo (dark e light)
+  layouts/Layout.astro      → Aplica tema + fundo (anti-FOUC) antes do primeiro paint
+  components/ThemeToggle.astro → Alternador dark/light (visível se allowVisitorThemeToggle)
 
-public/admin/             → Painel admin (fonte única de verdade — ver nota em "Manutenção"): editor de aparência/layout, CRUD de artigos e gestão de imagens, com deploy automático
+public/admin/             → Painel admin (fonte única de verdade — ver nota em "Manutenção"): abas Aparência/Layout/Artigos/Produtos, com deploy automático
 
-src/content/artigos/   → Artigos em markdown com frontmatter
-docs/                  → Estrutura de artigo (ARTICLE_STRUCTURE_DRAFT.md)
-state.json             → Estado da geração (cooldown, falhas, tópicos recentes)
-public/status.json     → Status público gerado a cada deploy
-public/images/         → Banners Telegram (WebP), logo (logo-blog.webp), capas IA (capas/) e imagens de produtos
+automation/                 → Suíte Python LEGADA (pipeline antigo da VM — não é o sistema ativo; GITHUB_TOKEN expirado)
+docs/                       → Documentação do projeto (DESIGN.md com temas dark/light, METODOLOGIA.md com critérios de ranking)
+state.json                  → Estado da geração (cooldown, falhas, tópicos recentes)
+public/status.json          → Status público gerado a cada deploy
+public/CNAME                → Domínio promogamer.com.br
+public/images/              → Banners Telegram (WebP), logo (logo-blog.webp), capas IA (capas/) e imagens de produtos
 ```
 
 ---

@@ -1,6 +1,6 @@
 # Promo Gamer — Status do Projeto
 
-> Última atualização: 2026-08-06
+> Última atualização: 2026-08-07
 
 > ⚠️ **Este arquivo foi reescrito em 06/08/2026.** A versão anterior descrevia o pipeline Python
 > na VM (`scheduler.py`, `generate_article.py`, `ml_affiliate.py`) como se fosse o sistema ativo.
@@ -39,6 +39,8 @@
 | Componente | Status |
 |---|---|
 | Tema escuro, design system em `global.css` | ✅ |
+| **Tema claro** (`:root[data-theme="light"]`) + toggle para visitantes | ✅ |
+| **Fundo configurável** (preset/cor/imagem) via `src/data/blog-config.json` | ✅ |
 | Cards por seção, TOC em acordeão, sidebar | ✅ |
 | Estilo do botão de produto (`.product-btn`) | ✅ |
 | Estilo do **botão duplo** (`.product-btns`) | ✅ Pronto |
@@ -82,6 +84,17 @@ retroiluminação em 2024"* (5 produtos: 3 ML + 2 Shopee).
 | `/start` no `@MonitorDeGruposBot` (ação do dono) | Destrava o aviso de produtos faltantes |
 | Limpar `/var/log` na VM do monitor | 6 GB, sendo 2,8 GB de journald sem teto. **Disco cheio = perda do acesso SSH** |
 | Backup do banco da Frente 4 | Ele vive na VM do monitor e só se reconstrói parcialmente (as frentes guardam 1000 registros) |
+
+### ✅ Concluído em 07/08/2026 — reformulação do tema e do admin
+
+| Tarefa | Estado |
+|---|---|
+| Tema claro completo (dark + light, sem cor hardcoded) | ✅ |
+| Config de tema/fundo em `src/data/blog-config.json` + `background-presets.json` | ✅ |
+| Aba **Aparência** no admin (tema, toggle para visitantes, fundo preset/cor/imagem) | ✅ |
+| Admin unificado em `public/admin/` (fonte de verdade) | ✅ |
+| Docs: `DESIGN.md` (temas), `METODOLOGIA.md` (ranking), `SKILL.md` (categoria única), `README.md` | ✅ |
+| Migração do domínio para `promogamer.com.br` (raiz, sem `/blog-gamer`) | ✅ |
 
 ### 🟢 Baixa prioridade
 | Tarefa | Motivo |
@@ -147,5 +160,7 @@ ssh -i ~/.ssh/id_opencode sergioskm_cle@34.29.27.155 \
 | [`CREDENCIAIS.md`](CREDENCIAIS.md) | Chaves, hosts, portas, onde fica cada segredo |
 | [`MONITOR_API_AUDITORIA.md`](MONITOR_API_AUDITORIA.md) | Auditoria da VM do monitor e decisões do dono |
 | [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md) | Problemas conhecidos, incluindo o incidente da sessão do ML |
+| [`DESIGN.md`](DESIGN.md) | Design system e **temas dark/light** (variáveis, regra de cor) |
+| [`METODOLOGIA.md`](METODOLOGIA.md) | Critérios de ranking dos produtos (TAREFA 6) |
 | [`../PLANO_ML_SHOPEE_MONITOR.md`](../PLANO_ML_SHOPEE_MONITOR.md) | Plano original (histórico) |
 | [`../infra/blog-produtos-api/README.md`](../infra/blog-produtos-api/README.md) | Código do serviço e deploy |
