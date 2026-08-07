@@ -113,7 +113,7 @@ function validateArticle(file) {
   const hasListTopic = /^##\s+(?:<a\s+id="[^"]*"[^>]*>\s*<\/a>\s*)?(os\s+\d+\s+melhores|ranking dos)\b/im.test(body);
 
   // 2. Secao de metodologia em artigo de lista com produtos.
-  if (hasListTopic && !/^##\s+como\s+escolhemos/im.test(body)) {
+  if (hasListTopic && !/^##\s+(?:<a\s+id="[^"]*"[^>]*>\s*<\/a>\s*)?como\s+escolhemos/im.test(body)) {
     fail(file, "faltando secao '## Como Escolhemos' (metodologia de ranking)");
   }
 

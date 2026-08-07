@@ -72,6 +72,23 @@ function buildReuseImageMap(body) {
   return map;
 }
 
+// Nomes dos produtos antigos viram consultas extras na busca ML: a API remota
+// encontra os MESMOS produtos (com titulo completo) em vez de itens genericos
+// para a query ampla do topico.
+function buildExtraQueries(body) {
+  const titles = [];
+  for (const line of body.split(/\r?\n/)) {
+    const h = line.match(/^###\s+(?:<a\s+id="[^"]*"[^>]*>\s*<\/a>\s*)?(.+)$/);
+    if (h) {
+      const t = h[1].trim().replace(/\s*—\s*.+$/, "").trim();
+      if (t && !titles.includes(t)) titles.push(t);
+    }
+  }
+  return titles
+    .filter((t) => t.split(/\s+/).length >= 3 || /[A-Z]{2,}/.test(t))
+    .slice(0, 4);
+}
+
 function buildTopic(fm, slug) {
   const tags = Array.isArray(fm.tags) && fm.tags.length > 0 ? fm.tags : [];
   const keyword = tags[0] || fm.title || "";
@@ -134,11 +151,13 @@ async function main() {
     const { fm, body } = parseFrontmatter(content);
     const topic = buildTopic(fm, targetSlug);
     const reuseImageMap = buildReuseImageMap(body);
+    const extraMlQueries = buildExtraQueries(body);
 
     console.log(`\n--- ${targetSlug}.md ---`);
     console.log(`  titulo: ${topic.hint}`);
     console.log(`  categoria: ${topic.category}`);
     console.log(`  imagens reutilizaveis: ${reuseImageMap.size}`);
+    if (extraMlQueries.length > 0) console.log(`  queries extras (produtos antigos): ${extraMlQueries.join(" | ")}`);
 
     if (!APPLY) {
       console.log("  (dry-run) geracao NAO executada. Rode com --apply para regenerar.");
@@ -153,6 +172,7 @@ async function main() {
         overwriteSlug: targetSlug,
         keepPubDate: true,
         reuseImageMap,
+        extraMlQueries,
         updateState: false,
       },
     });

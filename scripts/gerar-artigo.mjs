@@ -2149,6 +2149,7 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
         const queriesRemotas = [
           ...trendingKws.slice(0, 2),
           topic.ml_query,
+          ...(opts.extraMlQueries || []),
           ...(extraRound > 0 ? retryQ : []),
         ].filter(Boolean).slice(0, 5 + retryQ.length);
 
