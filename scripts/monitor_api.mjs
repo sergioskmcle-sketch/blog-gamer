@@ -52,6 +52,21 @@ async function chamar(rota, corpo, tentativa = 1) {
   }
 }
 
+// Mercado Livre e a maioria das lojas BR usam escala 0-5. Ver mesma logica em
+// google_shopping.mjs — se a Frente 4 repassar nota de fonte que usa 0-10,
+// normaliza em vez de deixar "5,5" ou "8/5" vazar pro artigo.
+function normalizeRating(raw) {
+  const r = Number(raw);
+  if (!Number.isFinite(r) || r <= 0) return null;
+  if (r <= 5) return r;
+  if (r <= 10) {
+    log("WARN", `rating ${r} fora da escala 0-5 — normalizando (${(r / 2).toFixed(1)})`);
+    return r / 2;
+  }
+  log("WARN", `rating ${r} fora de qualquer escala plausivel — descartado`);
+  return null;
+}
+
 // Valida e limpa um produto vindo da API. Devolve null se for inutilizavel.
 export function normalizarProdutoRemoto(raw) {
   if (!raw || typeof raw !== "object") return null;
@@ -63,6 +78,9 @@ export function normalizarProdutoRemoto(raw) {
     if (!o || typeof o !== "object") continue;
     const link = String(o.affiliate_link || o.permalink || "").trim();
     if (!link) continue;
+    if (!String(o.affiliate_link || "").trim()) {
+      log("WARN", `${loja}: oferta de "${title.slice(0, 50)}" sem affiliate_link — so permalink`);
+    }
     offers[loja] = {
       permalink: String(o.permalink || link),
       affiliate_link: String(o.affiliate_link || ""),
@@ -87,6 +105,8 @@ export function normalizarProdutoRemoto(raw) {
     offers,
     preco_de: String(raw.preco_de || ""),
     origem: String(raw.origem || "remoto"),
+    rating: normalizeRating(raw.rating),
+    ratingCount: Number(raw.ratingCount) || null,
   };
 }
 

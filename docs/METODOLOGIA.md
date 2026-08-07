@@ -1,87 +1,222 @@
 # Metodologia de Ranking — "Top 5 / Melhores"
 
-Este documento explica, de forma pública e auditável, como o Promo Gamer decide a
-ordem e a nota dos produtos nos rankings (guias "Top 5", "Melhores …", "Melhor
-custo-benefício" etc.). Ele dá credibilidade às listas: **nada aqui é palpite**.
+Este documento explica, de forma pública e auditável, como o Promo Gamer decide
+**quais** produtos entram num ranking (guias "Top 5", "Melhores …", "Melhor
+custo-benefício" etc.), em que **ordem** e com **qual nota**. Ele dá
+credibilidade às listas: **nada aqui é palpite**.
 
 ## De onde vêm os produtos
 
-Os produtos vêm do **Google Shopping via Serper** (geo Brasil, `gl=br`), que retorna
-título, preço, imagem, link da loja e — quando a loja fornece — **nota média
-(`rating`) e número de avaliações (`ratingCount`)**.
+Os candidatos vêm de até três fontes, combinadas num único pool antes de
+qualquer filtro:
 
-Antes de qualquer ranking, o pipeline:
+1. **Shortlist editorial** (`scripts/editorial_shortlist.mjs`) — antes de
+   buscar preço, o sistema consulta fontes confiáveis (Serper Search + Tavily)
+   por `melhores {categoria} gamer {ano}` e afins, e usa uma chamada de IA para
+   extrair os **modelos especificos** citados (marca + modelo, nunca
+   "mouse gamer" genérico). Esses modelos viram query prioritária de busca —
+   o sistema passa a procurar nomeadamente por "Logitech G Pro X Superlight 2"
+   em vez de só "mouse gamer".
+2. **Frente 4** (`scripts/monitor_api.mjs`) — banco de produtos do Mercado
+   Livre/Shopee com link de afiliado já gerado.
+3. **Google Shopping via Serper** (`scripts/google_shopping.mjs`, geo Brasil,
+   `gl=br`) — título, preço, imagem, link da loja e, quando a loja fornece,
+   **nota média (`rating`, escala 0–5) e número de avaliações
+   (`ratingCount`)**.
 
-1. Filtra itens que não são do tema do artigo (categoria única — ex.: um artigo de
-   teclado **nunca** lista mouse).
-2. Remove itens sem preço, links quebrados/duplicados e produtos "falsos" (acessórios
-   genéricos, listagens, artigos de blog).
-3. Ordena por relevância ao tópico (com o score composto abaixo).
+O sistema coleta até um **pool de ~20 candidatos** (`CANDIDATE_POOL` em
+`scripts/gerar-artigo.mjs`) antes de filtrar e ranquear — a lista final de 5
+não é mais "os 5 primeiros que a busca devolveu", é o resultado de comparar um
+pool maior.
 
-## Os 5 critérios do score composto
+## Pipeline de limpeza (`sanitizeProducts`)
 
-Cada produto recebe um **score 0–1** (sinais ausentes valem **0**, nunca `NaN`; tudo
-é normalizado antes de ponderar):
+Antes de qualquer ranking, o pipeline, nesta ordem:
+
+1. Remove itens que não são produto (blog, listagem, variante de vendedor) e
+   duplicata exata por `id`/URL.
+2. Descarta itens sem preço.
+3. Filtra pela **categoria única do artigo** (ex.: um artigo de teclado
+   **nunca** lista mouse) — usando `detectArticleCategory`/`productMatchesCategory`
+   de `scripts/product_naming.mjs`.
+4. Limpa o nome de cada produto (`cleanProductTitle`), preservando o nome bruto
+   em `raw_title`.
+5. **Dedup semântico** (`scripts/product_dedupe.mjs`, `dedupeProducts()`) —
+   ver seção abaixo.
+6. Ranqueia por score objetivo (`rankProducts`).
+7. Aplica o **piso de elegibilidade** (`filterEligible`) — ver seção abaixo.
+8. Trunca para o tamanho final da lista (`MAX_PRODUCTS`, hoje 5) — só agora,
+   depois de comparar o pool inteiro.
+
+## Dedup semântico: quando dois anúncios são o mesmo produto
+
+Comparar só `id`/URL não bastava: "Mouse Razer Deathadder Essential" e "Mouse
+Razer 6400dpi Deathadder Essential" são anúncios diferentes do **mesmo
+produto** (mesma imagem, inclusive), e o pipeline antigo listava os dois.
+
+`scripts/product_dedupe.mjs` decide identidade por uma escada de sinais, do
+mais forte ao mais fraco:
+
+1. **Mesmo id de catálogo/anúncio** (MLB do Mercado Livre, `productId` do
+   Google Shopping, `item_id` de cada oferta) → mesmo produto.
+2. **Mesma URL canônica** (host + path, sem query/tracking) → mesmo produto.
+3. **Categorias diferentes** (ex.: mouse vs. teclado) → **nunca** o mesmo
+   produto, mesmo que o nome compartilhe marca/modelo.
+4. **Specs conflitantes** (ex.: `TKL` vs. `full`, `27"` vs. `24"`, geração
+   `Superlight` vs. `Superlight 2`) → produtos diferentes. Uma spec que
+   aparece só de um lado (ex.: "6400 DPI" citado num anúncio e omitido no
+   outro) **não** é conflito — é ruído de anúncio, não variante de produto.
+5. **Mesma imagem** de produto (chave = nome do arquivo sem sufixo de
+   redimensionamento do CDN) e sem conflito de spec → mesmo produto.
+6. **Mesma marca + mesmo modelo** detectados (`detectBrand`/`detectModel`) →
+   mesmo produto.
+7. **Nome equivalente** — similaridade de tokens (Dice) ≥ 0,82 sobre o nome
+   normalizado (sem ano, sem specs numéricas com unidade, sem ruído de
+   anúncio) → mesmo produto.
+
+Quando dois candidatos são identificados como o mesmo produto, o sistema
+mantém o **melhor representante** (quem tem link de afiliado, depois quem tem
+mais avaliações, depois melhor nota, depois o mais barato) e **mescla** nele
+as ofertas/imagem/avaliação do outro — assim o mesmo produto vendido em duas
+lojas vira **um item com dois botões**, não duas posições da lista.
+
+O portão de qualidade (`scripts/validar-artigo.mjs`) também roda essa
+comparação sobre os produtos publicados: um artigo com dois títulos do mesmo
+produto **falha a validação**.
+
+## Piso de elegibilidade (quem pode entrar no "Top N")
+
+Antes de ranquear, cada candidato precisa passar em **todos** estes critérios
+(`eligibilityCheck` / `filterEligible` em `scripts/product_ranking.mjs`) — um
+produto caro não entra só por ser caro, e um barato não entra só por ser
+barato:
+
+| Critério | Regra |
+|----------|-------|
+| **Preço plausível** | Entre 0,35× e 2,2× a mediana de preço da lista. Fora disso: risco de anúncio errado/acessório (muito abaixo) ou preço fora de mercado (muito acima). |
+| **Prova de compra real** | `rating >= 4.0` **ou** `ratingCount >= 100` (nota alta compensa poucas avaliações; muitas avaliações compensam nota mediana). |
+| **Volume mínimo de avaliações** | `ratingCount >= 20` (relaxado para `>= 10` só se isso for necessário para não deixar a lista abaixo do mínimo de produtos do artigo). |
+| **Identidade reconhecível** | Marca conhecida (`KNOWN_BRANDS`) **ou** modelo detectável (`detectModel`, ex. "RTX 4060", "K552") **ou** ao menos 1 menção editorial. |
+
+Produtos que não atendem ao piso são descartados **e o motivo é registrado no
+log** (`log("INFO"/"WARN", "Fora do piso de qualidade: ...")`), para
+auditoria. Só quando o piso deixaria a lista abaixo do mínimo aceitável para o
+artigo o sistema relaxa o volume de avaliações — nunca preço, marca/modelo ou
+nota/volume combinados.
+
+## Os 6 critérios do score objetivo
+
+Quem passa no piso é então ranqueado por um **score 0–1** (sinais ausentes
+valem **0**, nunca `NaN`; tudo normalizado antes de ponderar):
 
 | Critério | Peso | Como é medido |
 |----------|------|---------------|
-| **Avaliações de consumidores** | 25% | Nota média nas lojas (`rating`), normalizada para 0–5. |
-| **Volume de avaliações** | 20% | `log10(ratingCount)` normalizado — muitas avaliações = mais confiável. |
-| **Consenso editorial** | 25% | Quantas vezes o modelo (marca + modelo) é citado em reviews e rankings independentes consultados na pesquisa (Serper Search + Tavily). |
-| **Reputação da marca** | 15% | Marca reconhecida na categoria (`detectBrand`). |
-| **Custo-benefício** | 15% | Preço em relação à **mediana** da lista: pontuação máxima entre 0,6× e 1,2× a mediana; penaliza preço suspeito de falso (< 0,3×) e muito acima da média (> 2,5×). |
+| **Consenso editorial** | 30% | Quantas vezes marca **e** modelo (não só a marca) são citados juntos em reviews e rankings independentes consultados na pesquisa (Serper Search + Tavily). Marca sozinha bate em qualquer review de periférico — só marca+modelo prova que aquele item específico foi avaliado. |
+| **Custo-benefício** | 20% | Preço em relação à **mediana** da lista: pontuação máxima entre 0,6× e 1,2× a mediana. |
+| **Avaliações de consumidores** | 20% | Nota média nas lojas (`rating`), normalizada de 0–5 para 0–1. |
+| **Volume de avaliações** | 15% | `log10(ratingCount)` normalizado — muitas avaliações = mais confiável. |
+| **Reputação da marca** | 10% | Marca reconhecida na categoria (`detectBrand`). |
+| **Aderência de specs** | 5% | Quantas especificações relevantes da categoria (DPI, Hz, switch, wireless...) aparecem no nome do produto — sinal de que é um candidato real, não um resultado de busca genérico. |
 
-A ordem final da lista é o score descrescente. O score de tokens/tema é usado apenas
-como **critério de desempate**.
+A ordem final da lista é o score decrescente. A sobreposição de
+tokens/tema é usada apenas como **critério de desempate**.
 
-## Nota da tabela comparativa (1–10)
+## Nota da tabela comparativa (0–5 estrelas)
 
-A **nota** exibida não é inventada pela IA. Ela é derivada do score objetivo:
+A **nota** exibida na tabela **nunca** é o score objetivo acima, e **nunca**
+é inventada pela IA. É sempre o `rating` real coletado da fonte do produto,
+escala **0 a 5** — a mesma escala do Mercado Livre e da maioria das lojas
+brasileiras:
 
 ```
-nota = round(score × 10, 1)   // escala 1–10, uma casa decimal
+Nota: 4,8/5 (vírgula decimal, nunca "/10", nunca > 5)
 ```
 
-## Requisito mínimo para entrar na lista
+Ratings recebidos fora da escala 0–5 (ex.: uma fonte que use 0–10) são
+normalizados na entrada (`normalizeRating` em `google_shopping.mjs` e
+`monitor_api.mjs`) — dividido por 2 e registrado em log — em vez de vazar
+como "5,5/5" ou "8/5" para o artigo. O score objetivo (0–1) que decide a
+**ordem** da lista é um número interno (`p.score`) e nunca é mostrado ao
+leitor como "nota".
 
-Para entrar no ranking, o produto precisa satisfazer **pelo menos 2** destes critérios:
+## Link de afiliado: etapa obrigatória, sem fallback silencioso
 
-- `rating >= 4.0`
-- `ratingCount >= 20`
-- citado em pelo menos 1 review independente (`mentions >= 1`)
-- marca conhecida da categoria (`KNOWN_BRANDS`)
+Depois que a lista final está fechada, `resolverAfiliados()` roda **sempre**,
+fora de qualquer condicional de disponibilidade de API:
 
-Produtos que não atingem o mínimo são descartados — **a menos que** descartá-los deixe
-a lista com menos produtos que o mínimo aceitável para o artigo; nesse caso os melhores
-restantes entram e o fato é registrado nos logs.
+1. Produto que já chegou com `affiliate_link` pronto (Frente 4) segue direto.
+2. Produto sem link é **descartado da lista** (nunca publicado com o link cru
+   do produto, sem comissão) e o motivo vai para o log como `ERROR` — o laço
+   de busca tenta repor o produto descartado.
+3. Se a lista final ficar abaixo do mínimo de produtos do artigo, a geração
+   **aborta** em vez de publicar incompleta.
+
+> **Regra permanente (ver `docs/TROUBLESHOOTING.md`): o blog nunca gera link
+> de afiliado do Mercado Livre por conta própria.** A sessão/cookie do ML é
+> compartilhada com o monitor-telegram e não suporta um segundo consumidor —
+> uma chamada feita a partir do processo do blog já derrubou essa sessão em
+> produção (06/08/2026), tirando as Frentes 1/2 do ar. Por isso
+> `resolverAfiliados()` **não** tenta gerar link via `ml_affiliate.mjs` com
+> cookie local: produto do ML só entra com link já pronto vindo da Frente 4.
+> `generateAffiliateLink()` continua existindo em `scripts/ml_affiliate.mjs`
+> apenas para os scripts manuais/legados (`fix-article-links.mjs`,
+> `gerar-lista-monitores.mjs`, `gerar-placas-video.mjs`) — nenhum deles roda
+> no pipeline automatizado (`gerar-conteudo.yml`).
+
+`scripts/validar-artigo.mjs` verifica, no artigo já montado, que o número de
+botões de compra bate com o número de produtos da lista — produto sem botão
+reprova a validação.
 
 ## Por que entrou (coluna auditável)
 
-A tabela comparativa inclui a coluna **"Por que entrou"**, preenchida com os critérios
-objetivos que o produto atendeu (ex.: `4,6★ (1.2k avaliações) · citado em 3 reviews`).
-Assim o leitor consegue auditar a posição de cada modelo.
+A tabela comparativa inclui a coluna **"Por que entrou"**, preenchida com os
+critérios objetivos que o produto atendeu (ex.: `4,6★ de nota media · citado
+em 3 reviews · marca Logitech`). Assim o leitor consegue auditar a posição de
+cada modelo.
 
 ## Seção "Como Escolhemos" no artigo
 
-Todo ranking inclui uma seção de metodologia gerada por **template** (não pela IA),
-explicando que a seleção usa:
+Todo ranking inclui uma seção de metodologia gerada por **template** (não pela
+IA), explicando o piso de elegibilidade e os critérios de ranking acima.
 
-- avaliações de consumidores (nota e volume),
-- consenso editorial (reviews e rankings independentes),
-- reputação da marca,
-- especificações técnicas do que o modelo entrega,
-- custo-benefício (preço frente à mediana da categoria),
+## Ano do artigo
 
-e que modelos sem o mínimo de critérios ficam de fora.
+O ano usado em títulos, queries de busca e prompts vem de uma fonte única
+(`scripts/tempo.mjs`, `ANO_ATUAL`), nunca hardcoded. Como reforço, o sistema
+corrige deterministicamente (sem depender do modelo) qualquer ano fora do
+intervalo válido (ano corrente ou o seguinte) que apareça no título, na
+description ou no heading da lista antes de publicar. `validar-artigo.mjs`
+reprova artigo com ano desatualizado no título/description.
 
 ## Implementação
 
-- `scripts/product_ranking.mjs` — sinais, `scoreProduct()`, `rankProducts()`, pesos e mínimo de critérios (`MIN_CRITERIA`).
-- `scripts/product_naming.mjs` — categoria única e `detectBrand()`.
-- `scripts/google_shopping.mjs` — captura `rating`, `ratingCount` e `offers` dos resultados.
-- `scripts/gerar-artigo.mjs` — aplica o ranking, deriva a nota, monta a coluna "Por que entrou" e injeta a seção "Como Escolhemos".
+- `scripts/tempo.mjs` — ano corrente único (`ANO_ATUAL`) e correção
+  determinística de anos no texto (`normalizarAnos`).
+- `scripts/editorial_shortlist.mjs` — shortlist de modelos citados em fontes
+  editoriais, usada como query prioritária de busca de produto.
+- `scripts/product_dedupe.mjs` — identidade semântica de produto
+  (`compareProducts`, `dedupeProducts`) e sua reexportação em
+  `scripts/gerar-artigo.mjs` (`similarity`, `nameSimilarity`) para os demais
+  usos de correspondência de nome (jogos, imagens).
+- `scripts/product_ranking.mjs` — sinais, `scoreProduct()`, `rankProducts()`,
+  pesos (`RANKING_WEIGHTS`), piso de elegibilidade
+  (`eligibilityCheck`/`filterEligible`).
+- `scripts/product_naming.mjs` — categoria única, `detectBrand()`,
+  `detectModel()`.
+- `scripts/google_shopping.mjs` / `scripts/monitor_api.mjs` — captura e
+  normalização de `rating`/`ratingCount` (sempre 0–5) e `offers`.
+- `scripts/ml_affiliate.mjs` — geração do link de afiliado; falha sempre
+  reportada (`{ short_url: null, error }`), nunca mascarada com a URL crua.
+- `scripts/gerar-artigo.mjs` — orquestra o pipeline (`sanitizeProducts`,
+  `resolverAfiliados`), deriva a nota exibida a partir do `rating` real,
+  monta a coluna "Por que entrou" e injeta a seção "Como Escolhemos".
+- `scripts/validar-artigo.mjs` — portão de qualidade: ano desatualizado,
+  nota fora de escala, produtos duplicados na mesma lista e produto sem botão
+  de afiliado reprovam o artigo.
 
-> **Nota de transparência:** quando um sinal não existe (ex.: a loja não devolve
-> avaliações), ele vale 0 e o produto depende dos demais critérios. Listas curtas e
-> corretas são sempre preferidas a listas longas e erradas — se o filtro deixar a lista
-> abaixo do mínimo, o gerador **falha e não publica** em vez de publicar errado.
+> **Nota de transparência:** quando um sinal não existe (ex.: a loja não
+> devolve avaliações), ele vale 0 no score e o produto depende dos demais
+> critérios — mas ainda precisa passar no piso de elegibilidade para entrar na
+> lista. Listas curtas e corretas são sempre preferidas a listas longas e
+> erradas — se o filtro deixar a lista abaixo do mínimo, o gerador **falha e
+> não publica** em vez de publicar errado.

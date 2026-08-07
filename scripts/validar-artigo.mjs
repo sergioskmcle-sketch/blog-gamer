@@ -14,6 +14,8 @@ import {
   detectArticleCategory,
   productMatchesCategory,
 } from "./product_naming.mjs";
+import { anosInvalidos } from "./tempo.mjs";
+import { isSameProduct } from "./product_dedupe.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ARTIGOS_DIR = path.resolve(__dirname, "..", "src", "content", "artigos");
@@ -107,6 +109,29 @@ function validateArticle(file) {
     fail(file, 'contem "## Indice" (indice duplicado) — deve ter sumido na geracao');
   }
 
+  // 1b. Ano do titulo/description precisa ser o ano corrente (ou o seguinte).
+  const anosRuinsTitulo = anosInvalidos(fm.title);
+  if (anosRuinsTitulo.length > 0) {
+    fail(file, `titulo com ano desatualizado: ${anosRuinsTitulo.join(", ")} ("${fm.title}")`);
+  }
+  const anosRuinsDesc = anosInvalidos(fm.description);
+  if (anosRuinsDesc.length > 0) {
+    fail(file, `description com ano desatualizado: ${anosRuinsDesc.join(", ")}`);
+  }
+
+  // 1c. Nota da tabela Comparativo tem que estar em escala 0-5 (Mercado
+  // Livre/lojas BR), nunca 0-10. "5,5/5" ou qualquer "/10" e erro de conversao.
+  const notaMatches = [...body.matchAll(/\|\s*(\d+(?:[.,]\d+)?)\s*\/\s*(5|10)\s*\|/g)];
+  for (const m of notaMatches) {
+    const valor = Number(m[1].replace(",", "."));
+    const escala = Number(m[2]);
+    if (escala === 10) {
+      fail(file, `nota em escala 0-10 na tabela ("${m[0].trim()}") — deve ser 0-5`);
+    } else if (valor > 5) {
+      fail(file, `nota impossivel na tabela ("${m[0].trim()}") — maximo e 5`);
+    }
+  }
+
   const hasProductImages = /src="\/images\/produtos\//.test(body);
   if (!hasProductImages) return; // artigo sem produtos: so o indice importa aqui
 
@@ -154,6 +179,25 @@ function validateArticle(file) {
     }
     if (articleCat && !productMatchesCategory(title, articleCat)) {
       fail(file, `produto fora da categoria "${articleCat}" do artigo: "${title}"`);
+    }
+  }
+
+  // 5b. Dois produtos da mesma lista nao podem ser o mesmo item (ex.: "Razer
+  // DeathAdder Essential" e "Razer 6400dpi DeathAdder Essential").
+  for (let i = 0; i < productTitles.length; i++) {
+    for (let j = i + 1; j < productTitles.length; j++) {
+      if (isSameProduct({ title: productTitles[i] }, { title: productTitles[j] })) {
+        fail(file, `produtos duplicados na mesma lista: "${productTitles[i]}" e "${productTitles[j]}"`);
+      }
+    }
+  }
+
+  // 5c. Todo produto da lista precisa ter um botao de compra (link de
+  // afiliado). Produto sem botao e produto sem comissao publicado em silencio.
+  if (hasListTopic && productTitles.length > 0) {
+    const btnCount = (body.match(/class="product-btn[^"]*"/g) || []).length;
+    if (btnCount < productTitles.length) {
+      fail(file, `${productTitles.length} produto(s) na lista mas so ${btnCount} botao(oes) de compra — produto sem link de afiliado`);
     }
   }
 

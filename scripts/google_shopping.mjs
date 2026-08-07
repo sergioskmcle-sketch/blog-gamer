@@ -26,6 +26,21 @@ export function parsePriceBRL(str) {
   return parseFloat(numeric) || 0;
 }
 
+// Mercado Livre e a maioria das lojas BR usam escala 0-5. Se alguma fonte
+// mandar 0-10 (ja aconteceu com agregador de review), normaliza dividindo por
+// 2 em vez de deixar nota impossivel (5,5/5, 10/5) vazar pro artigo.
+function normalizeRating(raw) {
+  const r = Number(raw);
+  if (!Number.isFinite(r) || r <= 0) return null;
+  if (r <= 5) return r;
+  if (r <= 10) {
+    log("WARN", `rating ${r} fora da escala 0-5 — normalizando para escala 10 (${(r / 2).toFixed(1)})`);
+    return r / 2;
+  }
+  log("WARN", `rating ${r} fora de qualquer escala plausivel — descartado`);
+  return null;
+}
+
 function itemId(title, index) {
   const slug = title
     .toLowerCase()
@@ -85,7 +100,7 @@ export async function searchGoogleShopping(query, apiKey, limit = 5) {
       permalink: link,
       images: it.imageUrl ? [it.imageUrl] : [],
       source: String(it.source || "").trim(),
-      rating: it.rating || null,
+      rating: normalizeRating(it.rating),
       ratingCount: it.ratingCount || it.reviews || null,
       offersCount: it.offers || null,
     });

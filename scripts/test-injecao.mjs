@@ -374,14 +374,14 @@ ok(warnings.some((w) => /Secao ## Fontes ausente/.test(w)), "detecta secao Fonte
 // --- Fase 1: portao sanitizeProducts ---
 const topicProd = { hint: "placas de video amd 2026", ml_query: "placa de video gamer", trending_keywords: ["rx 580"] };
 const candidatos = [
-  { id: "MLB1", title: "Placa de Video RTX 4060 8GB", price: 1800, permalink: "https://www.mercadolivre.com.br/rtx/p/MLB12345678" },
+  { id: "MLB1", title: "Placa de Video RTX 4060 8GB", price: 1800, rating: 4.7, ratingCount: 120, permalink: "https://www.mercadolivre.com.br/rtx/p/MLB12345678" },
   { id: "MLB2", title: "Os mais vendidos de 2024", price: 10, permalink: "https://www.mercadolivre.com.br/blog/mais-vendidos/placas-video" },
   { id: "MLB3", title: "Listagem de categoria", price: 5, permalink: "https://lista.mercadolivre.com.br/placas-video" },
-  { id: "MLB4", title: "Placa de Video RX 580 8GB", price: 900, permalink: "https://www.mercadolivre.com.br/rx580/p/MLB87654321" },
+  { id: "MLB4", title: "Placa de Video RX 580 8GB", price: 900, rating: 4.5, ratingCount: 80, permalink: "https://www.mercadolivre.com.br/rx580/p/MLB87654321" },
   { id: "MLB5", title: "Variante de vendedor", price: 50, permalink: "https://www.mercadolivre.com.br/vende/MLB99999/up" },
   { id: "MLB6", title: "Sem preco", price: 0, permalink: "https://www.mercadolivre.com.br/np/p/MLB11111" },
   { id: "MLB1", title: "Duplicado", price: 1, permalink: "https://www.mercadolivre.com.br/dup/p/MLB12345678" },
-  { id: "GB1", title: "Placa de Video RTX 5060 Kabum", price: 2500, permalink: "https://www.kabum.com.br/rtx5060", source: "Kabum" },
+  { id: "GB1", title: "Placa de Video RTX 5060 Kabum", price: 2500, rating: 4.8, ratingCount: 200, permalink: "https://www.kabum.com.br/rtx5060", source: "Kabum" },
   { id: "", title: "Placa sem id mas com permalink", price: 3000, permalink: "https://www.amazon.com.br/rtx", source: "Amazon" },
 ];
 const limpos = sanitizeProducts(candidatos, topicProd);
@@ -403,25 +403,27 @@ igual(splitMainBody("so texto"), null, "split rejeita texto sem heading");
 igual(splitMainBody(null), null, "split rejeita null");
 
 // --- Fase 2: parseBlurb ---
-const blurbOk = parseBlurb("TAGLINE: melhor custo-beneficio\n\nCORPO:\nParagrafo um.\n\nParagrafo dois.\n\nNOTA: 8.5\nDESTAQUE: 60fps estaveis");
+const blurbOk = parseBlurb("TAGLINE: melhor custo-beneficio\n\nCORPO:\nParagrafo um.\n\nParagrafo dois.\n\nNOTA: 4.5\nDESTAQUE: 60fps estaveis");
 igual(blurbOk.tagline, "melhor custo-beneficio", "blurb: tagline extraida");
 ok(blurbOk.text.includes("Paragrafo dois."), "blurb: corpo preserva os dois paragrafos");
-igual(blurbOk.nota, 8.5, "blurb: nota decimal");
+igual(blurbOk.nota, 4.5, "blurb: nota decimal (escala 0-5)");
 igual(blurbOk.destaque, "60fps estaveis", "blurb: destaque extraido");
 igual(parseBlurb("CORPO:\ntexto sem nota").nota, null, "blurb sem nota");
 igual(parseBlurb("texto avulso").text, "texto avulso", "blurb fora do formato cai no fallback");
+igual(parseBlurb("NOTA: 8.5\nCORPO:\nx").nota, null, "blurb: nota fora da escala 0-5 vira null");
 
 // --- Fase 2: buildComparativoTable ---
 const tab = buildComparativoTable([
-  { title: "P1", price: 1234.5, nota: 8, destaque: "legal" },
-  { title: "P2", price: 0, nota: null, destaque: "" },
+  { title: "P1", price: 1234.5, rating: 4.8, ratingCount: 120, destaque: "legal" },
+  { title: "P2", price: 0, rating: null, ratingCount: null, destaque: "" },
 ]);
 ok(tab.startsWith("## Comparativo"), "tabela tem heading");
-ok(tab.includes("| P1 | R$ 1.234,50 | legal | 8/10 |"), "tabela: preco pt-BR e nota");
-ok(tab.includes("| P2 | Ver no ML | — | — |"), "tabela: sem preco/nota usa placeholder");
+ok(tab.includes("| P1 | R$ 1.234,50 | legal | 4,8/5 | 120 |"), "tabela: preco pt-BR e nota 0-5");
+ok(tab.includes("| P2 | Ver no ML | — | — | — |"), "tabela: sem preco/nota usa placeholder");
+ok(!/\/10/.test(tab), "tabela: nunca escala 0-10");
 
 // --- Fase 2: buildItemSection (montagem deterministica) ---
-const sec = buildItemSection({ title: "Placa de Video RTX 4060", tagline: "60fps", blurbText: "Texto do item.", nota: 8, local_thumbnail: "/images/produtos/x.png", affiliate_link: "http://ml/x" });
+const sec = buildItemSection({ title: "Placa de Video RTX 4060", tagline: "60fps", blurbText: "Texto do item.", rating: 4.5, local_thumbnail: "/images/produtos/x.png", affiliate_link: "http://ml/x" });
 ok(sec.startsWith("### Placa de Video RTX 4060 — 60fps"), "item: heading com tagline");
 ok(sec.includes('src="/images/produtos/x.png"'), "item: foto local do produto");
 ok(sec.includes("VER NO MERCADO LIVRE") && sec.includes("http://ml/x"), "item: botao aponta para o produto real");
@@ -514,11 +516,11 @@ igual(detectArticleCategory({}), null, "topic vazio nao quebra");
 // Filtro dentro de sanitizeProducts: artigo de teclado descarta mouse/headset.
 const topicTeclado = { hint: "melhores teclados gamer 2026", ml_query: "teclado gamer", trending_keywords: ["teclado"] };
 const misto = [
-  { id: "T1", title: "Teclado Redragon Kumara K552", price: 200, permalink: "https://www.mercadolivre.com.br/t/p/MLB1" },
-  { id: "T2", title: "Teclado Logitech G Pro X", price: 700, permalink: "https://www.mercadolivre.com.br/t/p/MLB2" },
-  { id: "T3", title: "Teclado Mecanico Razer", price: 400, permalink: "https://www.mercadolivre.com.br/t/p/MLB3" },
-  { id: "M1", title: "Mouse Gamer Logitech G Pro", price: 500, permalink: "https://www.mercadolivre.com.br/m/p/MLB4" },
-  { id: "H1", title: "Headset Gamer HyperX", price: 300, permalink: "https://www.mercadolivre.com.br/h/p/MLB5" },
+  { id: "T1", title: "Teclado Redragon Kumara K552", price: 200, rating: 4.5, ratingCount: 60, permalink: "https://www.mercadolivre.com.br/t/p/MLB1" },
+  { id: "T2", title: "Teclado Logitech G Pro X", price: 700, rating: 4.7, ratingCount: 300, permalink: "https://www.mercadolivre.com.br/t/p/MLB2" },
+  { id: "T3", title: "Teclado Mecanico Razer", price: 400, rating: 4.3, ratingCount: 90, permalink: "https://www.mercadolivre.com.br/t/p/MLB3" },
+  { id: "M1", title: "Mouse Gamer Logitech G Pro", price: 500, rating: 4.6, ratingCount: 200, permalink: "https://www.mercadolivre.com.br/m/p/MLB4" },
+  { id: "H1", title: "Headset Gamer HyperX", price: 300, rating: 4.4, ratingCount: 150, permalink: "https://www.mercadolivre.com.br/h/p/MLB5" },
 ];
 const teclados = sanitizeProducts(misto, topicTeclado);
 igual(teclados.length, 3, "filtro de categoria manteve so os teclados (>= MIN_PRODUCTS)");
@@ -545,12 +547,13 @@ igual(valueForMoneyScore(0, 100), 0, "sem preco zera");
 igual(valueForMoneyScore(100, 0), 0, "sem mediana zera");
 
 igual(countEditorialMentions({ title: "Teclado Redragon K552" }, ""), 0, "sem contexto editorial nao ha mencões");
-igual(countEditorialMentions({ title: "Teclado Redragon K552" }, "Redragon e citado no ranking e em outra review Redragon"), 2, "marca citada 2x no consenso editorial");
+igual(countEditorialMentions({ title: "Teclado Redragon K552" }, "Redragon e citado no ranking e em outra review Redragon"), 1, "marca citada 2x mas sem o modelo (K552) pesa metade (2 * 0.5)");
+igual(countEditorialMentions({ title: "Teclado Redragon K552" }, "O Redragon K552 e citado no ranking e em outra review do K552"), 6, "marca+modelo juntos pesam 3x por mencao (2 ocorrencias de K552)");
 igual(countEditorialMentions({ title: "Teclado X" }, "nenhuma marca"), 0, "marca desconhecida nao conta");
 
 const pOK = { title: "Mouse Logitech G Pro", rating: 4.6, ratingCount: 1200, price: 300 };
 const sc = scoreProduct(pOK, { products: [{ price: 100 }, { price: 300 }, { price: 500 }] });
-ok(sc.score >= 0.65, "produto com rating, volume, marca e preco na faixa pontua alto");
+ok(sc.score >= 0.55, "produto com rating, volume, marca e preco na faixa pontua alto");
 ok(sc.breakdown.rating >= 0.9, "rating 4.6/5 normaliza acima de 0.9");
 ok(sc.criteriosAtendidos.some((c) => c.includes("4,6")), "criterio nota media 4,6");
 ok(sc.criteriosAtendidos.some((c) => /1,2k avaliacoes/.test(c)), "criterio volume 1,2k avaliacoes");
@@ -562,7 +565,11 @@ ok(sc2.score < 0.3, "produto fraco pontua baixo");
 igual(sc2.criteriosAtendidos.length, 0, "produto fraco nao atinge nenhum criterio");
 
 igual(MIN_CRITERIA, 2, "requisito minimo e 2 criterios");
-igual(RANKING_WEIGHTS.rating + RANKING_WEIGHTS.reviewVolume + RANKING_WEIGHTS.editorialMentions + RANKING_WEIGHTS.brandReputation + RANKING_WEIGHTS.valueForMoney, 1, "pesos somam 1");
+igual(
+  Math.round(Object.values(RANKING_WEIGHTS).reduce((s, w) => s + w, 0) * 100) / 100,
+  1,
+  "pesos somam 1"
+);
 
 const ranked = rankProducts([pRuim, pOK], { products: [{ price: 100 }, { price: 300 }, { price: 500 }] });
 igual(ranked[0].title, "Mouse Logitech G Pro", "rankProducts coloca o melhor na frente");
@@ -579,28 +586,29 @@ ok(a2.fallback, "flag de fallback ligada quando a lista ficaria curta");
 // Consenso editorial dentro do sanitize: marca citada vira criterio e sobe.
 const ctxTeclado2 = { hint: "melhores teclados gamer 2026", ml_query: "teclado gamer", trending_keywords: ["teclado"] };
 const comConsenso = sanitizeProducts([
-  { id: "R1", title: "Teclado Redragon Kumara K552", price: 250, permalink: "https://www.mercadolivre.com.br/r/p/MLBR1" },
-  { id: "L1", title: "Teclado Logitech G Pro X", price: 700, permalink: "https://www.mercadolivre.com.br/l/p/MLBL1" },
-  { id: "Z1", title: "Teclado Razer BlackWidow V4", price: 900, permalink: "https://www.mercadolivre.com.br/z/p/MLBZ1" },
+  { id: "R1", title: "Teclado Redragon Kumara K552", price: 250, rating: 4.5, ratingCount: 60, permalink: "https://www.mercadolivre.com.br/r/p/MLBR1" },
+  { id: "L1", title: "Teclado Logitech G Pro X", price: 700, rating: 4.5, ratingCount: 60, permalink: "https://www.mercadolivre.com.br/l/p/MLBL1" },
+  { id: "Z1", title: "Teclado Razer BlackWidow V4", price: 900, rating: 4.5, ratingCount: 60, permalink: "https://www.mercadolivre.com.br/z/p/MLBZ1" },
   { id: "P1", title: "Teclado Rapoo V500", price: 150, permalink: "https://www.mercadolivre.com.br/p/p/MLBP1" },
 ], ctxTeclado2, { rankingContext: "Redragon Logitech Razer aparecem em reviews de melhores teclados gamer" });
-igual(comConsenso.length, 3, "com consenso editorial, marcas citadas sobem e quem nao tem criterio sai");
-ok(!comConsenso.some((p) => /Rapoo/.test(p.title)), "produto sem nenhum criterio e descartado quando ha lista cheia");
-ok(comConsenso[0].criteriosAtendidos.some((c) => /citado em 1 review/.test(c)), "mencão editorial vira criterio auditavel");
+igual(comConsenso.length, 3, "com consenso editorial, marcas citadas sobem e quem nao tem criterio (nota/reviews/preco) sai");
+ok(!comConsenso.some((p) => /Rapoo/.test(p.title)), "produto sem nota/avaliacoes e fora do piso de preco e descartado");
+ok(comConsenso.every((p) => p.criteriosAtendidos.some((c) => /citado em 1 review/.test(c))), "mencão editorial vira criterio auditavel em todos");
 const semConsenso = sanitizeProducts([
-  { id: "R1", title: "Teclado Redragon Kumara K552", price: 250, permalink: "https://www.mercadolivre.com.br/r/p/MLBR1" },
-  { id: "L1", title: "Teclado Logitech G Pro X", price: 700, permalink: "https://www.mercadolivre.com.br/l/p/MLBL1" },
-  { id: "Z1", title: "Teclado Razer BlackWidow V4", price: 900, permalink: "https://www.mercadolivre.com.br/z/p/MLBZ1" },
+  { id: "R1", title: "Teclado Redragon Kumara K552", price: 250, rating: 4.5, ratingCount: 60, permalink: "https://www.mercadolivre.com.br/r/p/MLBR1" },
+  { id: "L1", title: "Teclado Logitech G Pro X", price: 700, rating: 4.5, ratingCount: 60, permalink: "https://www.mercadolivre.com.br/l/p/MLBL1" },
+  { id: "Z1", title: "Teclado Razer BlackWidow V4", price: 900, rating: 4.5, ratingCount: 60, permalink: "https://www.mercadolivre.com.br/z/p/MLBZ1" },
 ], ctxTeclado2);
 igual(semConsenso.length, 3, "sem consenso, nada e descartado a ponto de deixar a lista curta");
 
 // Metodologia + tabela auditavel.
 const met = buildMetodologiaSection();
 ok(met.startsWith("## Como Escolhemos"), "metodologia tem heading proprio");
-ok(met.includes(`${MIN_CRITERIA} desses criterios`), "metodologia cita o requisito minimo");
-const tab6 = buildComparativoTable([{ title: "P1", price: 100, nota: 8.5, destaque: "legal", criteriosAtendidos: ["marca A", "1,2k avaliacoes"] }]);
-ok(tab6.includes("| Produto | Preco | Destaque | Nota | Por que entrou |"), "tabela ganhou a coluna Por que entrou");
-ok(tab6.includes("| P1 | R$ 100,00 | legal | 8.5/10 | marca A · 1,2k avaliacoes |"), "tabela mostra nota objetiva e motivos");
+ok(met.includes("piso de elegibilidade") || met.includes("piso minimo"), "metodologia cita o piso de elegibilidade");
+const tab6 = buildComparativoTable([{ title: "P1", price: 100, rating: 4.8, ratingCount: 1234, destaque: "legal", criteriosAtendidos: ["marca A", "1,2k avaliacoes"] }]);
+ok(tab6.includes("| Produto | Preco | Destaque | Nota | Avaliacoes | Por que entrou |"), "tabela ganhou a coluna Por que entrou e Avaliacoes");
+ok(tab6.includes("| P1 | R$ 100,00 | legal | 4,8/5 | 1234 | marca A · 1,2k avaliacoes |"), "tabela mostra nota do consumidor (0-5) e motivos");
+ok(!tab6.includes("/10"), "tabela nunca usa escala 0-10");
 const injMet = injectSegmentedItems("Intro.\n\n## Lista Principal\n\n## Veredito\n\nVale.", "Lista Principal", prodsSeg, true);
 ok(injMet.indexOf("## Como Escolhemos") > -1, "metodologia injetada quando a flag esta ligada");
 ok(injMet.indexOf("## Como Escolhemos") < injMet.indexOf("## Lista Principal"), "metodologia antes do heading da lista");

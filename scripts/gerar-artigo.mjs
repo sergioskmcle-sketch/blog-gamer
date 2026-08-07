@@ -8,9 +8,12 @@ import { buscarProdutosLoteRemoto } from "./monitor_api.mjs";
 import { gerarCapaStability } from "./stability-cover.mjs";
 import { gerarCapaOpenAI, downloadImage, searchTavilyImage } from "./openai-cover.mjs";
 import { cleanProductTitle, detectArticleCategory, detectBrand, detectModel, productMatchesCategory, PRODUCT_CATEGORIES, CATEGORY_BRANDS, KNOWN_BRANDS } from "./product_naming.mjs";
-import { rankProducts, applyMinCriteria, MIN_CRITERIA } from "./product_ranking.mjs";
+import { rankProducts, filterEligible, medianPrice, MIN_CRITERIA } from "./product_ranking.mjs";
 import { upgradeImageUrl, imageDimensions, isImageUsable, searchSerperImage } from "./product_images.mjs";
 import { SESSION_HEADERS, extractMLProductData } from "./ml_affiliate.mjs";
+import { dedupeProducts } from "./product_dedupe.mjs";
+import { buildEditorialShortlist } from "./editorial_shortlist.mjs";
+import { ANO_ATUAL, normalizarAnos } from "./tempo.mjs";
 
 const rssParser = new Parser({
   timeout: 15000,
@@ -52,12 +55,15 @@ function nextCategory(lastCategory) {
   return CATEGORY_ROTATION[(idx + 1) % CATEGORY_ROTATION.length];
 }
 
-const TOPIC_SEEDS = [
-  { category: "noticia", hint: "lancamento de game, evento de games, anuncio de console", ml_query: "lancamento jogo ps5 xbox 2026" },
-  { category: "review", hint: "review de jogo popular de 2026, performance nos consoles, o que esperar do jogo", ml_query: "jogo popular ps5 xbox switch 2026" },
-  { category: "guia", hint: "melhores headsets gamers, teclado mecanico, mouse gamer, monitor, cadeira", ml_query: "headset gamer teclado mecanico mouse gamer monitor" },
-  { category: "lista", hint: "melhores jogos para PC, jogos gratis, jogos multiplayer, jogos estilo", ml_query: "jogo pc mais vendido 2026" },
-];
+// Funcao (nao const) para o ano vir sempre de ANO_ATUAL, nunca hardcoded.
+function topicSeeds() {
+  return [
+    { category: "noticia", hint: "lancamento de game, evento de games, anuncio de console", ml_query: `lancamento jogo ps5 xbox ${ANO_ATUAL}` },
+    { category: "review", hint: `review de jogo popular de ${ANO_ATUAL}, performance nos consoles, o que esperar do jogo`, ml_query: `jogo popular ps5 xbox switch ${ANO_ATUAL}` },
+    { category: "guia", hint: "melhores headsets gamers, teclado mecanico, mouse gamer, monitor, cadeira", ml_query: "headset gamer teclado mecanico mouse gamer monitor" },
+    { category: "lista", hint: "melhores jogos para PC, jogos gratis, jogos multiplayer, jogos estilo", ml_query: `jogo pc mais vendido ${ANO_ATUAL}` },
+  ];
+}
 
 // Temas proibidos: apostas, cassino, caça-níqueis e afins. Nunca podem virar artigo.
 // A lista completa vale para topicos curtos (titulo, keyword, headline), onde
@@ -299,8 +305,8 @@ function buildTopicFromKeyword(topKeyword, topKeywords, existingTopics = [], rec
     ml_query = `${kw} ${top3.filter(k => k !== kw).slice(0, 2).join(" ")} jogo`;
   } else if (HARDWARE_KEYWORDS.some((h) => kw.includes(h) || h.includes(kw))) {
     category = "guia";
-    hint = `melhores ${kw}s gamer em 2026 — topicos em alta: ${ctx}`;
-    ml_query = `${kw} gamer ${top3.filter(k => k !== kw).slice(0, 1).join(" ")} 2026`;
+    hint = `melhores ${kw}s gamer em ${ANO_ATUAL} — topicos em alta: ${ctx}`;
+    ml_query = `${kw} gamer ${top3.filter(k => k !== kw).slice(0, 1).join(" ")} ${ANO_ATUAL}`;
   } else if (EVENT_KEYWORDS.some((e) => kw.includes(e) || e.includes(kw))) {
     category = "noticia";
     hint = `${kw}: anuncios, novidades e expectativas — topicos em alta: ${ctx}`;
@@ -308,7 +314,7 @@ function buildTopicFromKeyword(topKeyword, topKeywords, existingTopics = [], rec
   } else {
     category = "noticia";
     hint = `novidades sobre ${kw} no mundo gamer — topicos em alta: ${ctx}`;
-    ml_query = `${top2names} gamer 2026`;
+    ml_query = `${top2names} gamer ${ANO_ATUAL}`;
   }
 
   // Guard: se por algum motivo o hint ficou misto, descarta
@@ -333,7 +339,7 @@ REGRAS:
 - Priorize assuntos que NÃO estão na lista de "Já cobertos"
 - FOCO UNICO: o artigo deve tratar APENAS de um dos dois domínios — JOGOS/SOFTWARE/CONSOLES ou PERIFERICOS/HARDWARE GAMER. Nunca misture os dois domínios no mesmo artigo.
   - Se escolher um jogo/console/evento: o hint, o ml_query e o conteudo devem ser sobre games (ex: "jogo ps5 xbox pc", "lancamentos de games", "ofertas de jogos").
-  - Se escolher hardware/periférico: o hint, o ml_query e o conteudo devem ser sobre perifericos gamer (ex: "mouse gamer", "headset gamer", "monitor gamer 2026").
+  - Se escolher hardware/periférico: o hint, o ml_query e o conteudo devem ser sobre perifericos gamer (ex: "mouse gamer", "headset gamer", "monitor gamer ${ANO_ATUAL}").
   - NUNCA escreva algo como "games e perifericos" no mesmo tema.
 - PROIBIDO escolher temas de apostas, cassino, slots, caça-níqueis, roleta, jogos de azar ou qualquer conteúdo de jogo de dinheiro real. O blog não cobre esse tipo de assunto.
 - Se TODOS os trending são sobre assuntos já cobertos, sugira um assunto diferente que esteja em alta mas não está nos trending principais
@@ -405,7 +411,7 @@ Analise as headlines e os trending topics. Escolha um assunto que seja NOVO e IN
   return {
     category: parsed.category,
     hint: parsed.hint,
-    ml_query: parsed.ml_query || `${parsed.topic} gamer 2026`,
+    ml_query: parsed.ml_query || `${parsed.topic} gamer ${ANO_ATUAL}`,
     trending_score: trending[0]?.[1] || 1,
     trending_keywords: sameDomainKws.length > 0 ? sameDomainKws : [parsed.topic],
   };
@@ -505,6 +511,12 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const RAWG_API_KEY = process.env.RAWG_API_KEY;
 const SERPER_API_KEY = process.env.SERPER_API_KEY;
 const MAX_PRODUCTS = 5;
+// Pool de candidatos antes do ranking/filtro de elegibilidade. Antes o gerador
+// parava de coletar assim que tinha MAX_PRODUCTS e so entao ranqueava — na
+// pratica "os 5 primeiros que a busca devolveu" viravam "os 5 melhores". Agora
+// coleta ate CANDIDATE_POOL, filtra por elegibilidade (preco/avaliacoes/marca)
+// e ranqueia, so truncando pra MAX_PRODUCTS no final.
+const CANDIDATE_POOL = 20;
 // TAREFA 5.3: quantidade minima de produtos da categoria certa para o artigo
 // "Top N" valer a pena. Abaixo disso o gerador tenta mais buscas e, se ainda
 // faltar, aborta em vez de publicar um artigo cheio de produto errado.
@@ -1020,25 +1032,51 @@ function sanitizeProducts(products, topic, ctx = {}) {
     }
   }
 
+  // Dedup SEMANTICO: id/URL identicos ja foram removidos acima, mas o mesmo
+  // produto anunciado duas vezes (lojas diferentes, ou o mesmo anuncio com uma
+  // spec extra no titulo — ex. "Razer DeathAdder Essential" e "Razer 6400dpi
+  // DeathAdder Essential") passava disso. Aqui a identidade e por
+  // marca+modelo/imagem/URL canonica, nao so string exata. Quem mescla ganha
+  // as ofertas/imagem/avaliacao de quem perdeu.
+  {
+    const before = out.length;
+    const { items, removidos } = dedupeProducts(out);
+    out = items;
+    for (const r of removidos) {
+      log("INFO", `Duplicado descartado: "${r.descartado}" == "${r.mantido}" (${r.motivo})`);
+    }
+    if (before > out.length) {
+      log("INFO", `${before - out.length} produto(s) duplicado(s) semanticamente removido(s)`);
+    }
+  }
+
   // TAREFA 6.2/6.3: ordena por score objetivo (rankProducts) em vez de so
-  // sobreposicao de tokens — essa vira apenas criterio de desempate. Produto
-  // que nao atinge MIN_CRITERIA sai da lista, salvo se isso a deixar abaixo de
-  // MIN_PRODUCTS (ai mantem os melhores restantes e avisa).
+  // sobreposicao de tokens — essa vira apenas criterio de desempate.
   if (out.length > 1) {
-    const ranked = rankProducts(out, {
+    out = rankProducts(out, {
       rankingContext: ctx.rankingContext || "",
       tieBreak: (a, b) => mlProductRelevanceScore(b, tokens) - mlProductRelevanceScore(a, tokens),
     });
-    const { items, descartados, fallback } = applyMinCriteria(ranked, {}, MIN_PRODUCTS);
-    if (descartados > 0) {
-      if (fallback) {
-        log("WARN", `${descartados} produto(s) sem minimo de ${MIN_CRITERIA} criterios mantidos para nao deixar a lista abaixo de ${MIN_PRODUCTS}`);
-      } else {
-        log("INFO", `${descartados} produto(s) sem minimo de ${MIN_CRITERIA} criterios descartados`);
+  }
+
+  // Piso de elegibilidade objetivo: preco plausivel perto da mediana da lista,
+  // prova de que gente comprou e avaliou, identidade reconhecivel. Sem isso o
+  // "Top 5" aceitava qualquer coisa que a busca devolvesse.
+  if (out.length > 0) {
+    const median = medianPrice(out);
+    const { items, descartados, fallback } = filterEligible(out, { median }, MIN_PRODUCTS);
+    if (descartados.length > 0) {
+      for (const d of descartados) {
+        log(fallback ? "WARN" : "INFO", `Fora do piso de qualidade: "${(d.produto.raw_title || d.produto.title || "").slice(0, 50)}" — ${d.motivos.join("; ")}`);
       }
     }
     out = items;
   }
+
+  // Trunca para MAX_PRODUCTS so agora, depois de ranking+elegibilidade — antes
+  // o corte acontecia na coleta ("os 5 primeiros que a busca achou"), agora
+  // acontece depois de comparar um pool maior de candidatos.
+  if (out.length > MAX_PRODUCTS) out = out.slice(0, MAX_PRODUCTS);
 
   return out;
 }
@@ -1050,7 +1088,7 @@ function sanitizeProducts(products, topic, ctx = {}) {
 function buildCategoryRetryQueries(articleCat) {
   if (!articleCat || !PRODUCT_CATEGORIES[articleCat]) return [];
   const label = PRODUCT_CATEGORIES[articleCat].label;
-  const ano = new Date().getFullYear();
+  const ano = ANO_ATUAL;
   const marcas = CATEGORY_BRANDS[articleCat] || [];
   return [
     ...marcas.slice(0, 3).map((marca) => `${label} ${marca}`),
@@ -1126,6 +1164,41 @@ export function buildOfferButtonsHtml(p) {
   return `<div class="product-btns">\n${botoes.join("\n")}\n</div>`;
 }
 
+function produtoTemAfiliado(p) {
+  if (String(p?.affiliate_link || "").trim()) return true;
+  return Object.values(p?.offers || {}).some((o) => String(o?.affiliate_link || "").trim());
+}
+
+// Etapa explicita e incondicional: roda SEMPRE, fora de qualquer `if
+// (SERPER_API_KEY...)`. Antes o link de afiliado so era preenchido dentro de
+// um bloco condicional (e so com o permalink cru, sem tag nenhuma) — se a
+// Frente 4 ja tivesse entregue MAX_PRODUCTS, esse bloco nunca rodava e o
+// produto ficava sem NENHUM affiliate_link, com o botao sumindo em silencio.
+//
+// REGRA PERMANENTE (docs/TROUBLESHOOTING.md): o blog NUNCA gera link de
+// afiliado do ML por conta propria. A sessao/cookie do ML e compartilhada com
+// o monitor-telegram e nao suporta um segundo consumidor — uma chamada feita
+// a partir do processo do blog ja derrubou a sessao em producao (06/08/2026),
+// tirando as Frentes 1/2 do ar. Produtos do ML SO entram com link de afiliado
+// vindo pronto da Frente 4 (monitor_api.mjs). Sem isso, o produto e
+// DESCARTADO da lista com log ERROR — nunca publicado com link cru, e
+// NUNCA tentamos gerar o link aqui.
+async function resolverAfiliados(produtos) {
+  const out = [];
+  for (const p of produtos) {
+    if (produtoTemAfiliado(p)) {
+      out.push(p);
+    } else {
+      log("ERROR", `Sem link de afiliado para "${(p.title || "").slice(0, 60)}" (produto nao veio da Frente 4 com link pronto) — produto descartado`);
+    }
+  }
+  const descartados = produtos.length - out.length;
+  if (descartados > 0) {
+    log("WARN", `${descartados} produto(s) descartado(s) por falta de link de afiliado`);
+  }
+  return out;
+}
+
 function buildProductButtonHtml(p) {
   // Produto da Frente 4: um botao por loja.
   const duplo = buildOfferButtonsHtml(p);
@@ -1133,7 +1206,10 @@ function buildProductButtonHtml(p) {
 
   // Caminho antigo (Google Shopping) — NAO ALTERAR, os testes dependem dele.
   const link = p.affiliate_link || p.permalink || "";
-  if (!link) return "";
+  if (!link) {
+    log("ERROR", `buildProductButtonHtml: "${(p.title || "").slice(0, 60)}" sem affiliate_link nem permalink — botao omitido`);
+    return "";
+  }
   const label = productButtonLabel(p);
   return `<a href="${link}" class="product-btn" target="_blank" rel="nofollow">${label}</a>`;
 }
@@ -1441,7 +1517,7 @@ let rankingContextLoaded = false;
 async function fetchRankingContext(articleCat, topicHint) {
   if (rankingContextLoaded) return rankingContextCache;
   rankingContextLoaded = true;
-  const ano = new Date().getFullYear();
+  const ano = ANO_ATUAL;
   const label = (articleCat && PRODUCT_CATEGORIES[articleCat]?.label) || String(topicHint || "produtos gamer");
   const query = `melhores ${label} gamer ${ano} review`;
   const parts = [];
@@ -2131,7 +2207,8 @@ function getCategoryCounts() {
 
 function pickTopic(counts) {
   const sorted = [...CATEGORIES].sort((a, b) => (counts[a.slug] || 0) - (counts[b.slug] || 0));
-  return TOPIC_SEEDS.find((s) => s.category === sorted[0].slug) || TOPIC_SEEDS[0];
+  const seeds = topicSeeds();
+  return seeds.find((s) => s.category === sorted[0].slug) || seeds[0];
 }
 
 async function main() {
@@ -2229,8 +2306,8 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
   let researchSources = [];
   try {
     const query = topic.category === "noticia"
-      ? `${topic.hint} Brasil 2026`
-      : `melhores ${topic.hint} Brasil 2026`;
+      ? `${topic.hint} Brasil ${ANO_ATUAL}`
+      : `melhores ${topic.hint} Brasil ${ANO_ATUAL}`;
     const sr = await fetchTavily(query);
     researchSources = sr?.results || [];
     // 450 chars por fonte: o limite de 8000 TPM da Groq divide o orcamento
@@ -2259,6 +2336,30 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
   // TAREFA 6.1: consenso editorial coletado UMA vez, fora do laço de retry.
   const rankingContext = await fetchRankingContext(articleCat, topic.hint);
 
+  // Shortlist editorial: modelos especificos citados em reviews/rankings
+  // independentes viram query de busca PRIORITARIA. Sem isso a busca mirava
+  // so a categoria ("mouse gamer") e aceitava o que a Frente 4/Shopping
+  // devolvesse — agora ela mira nomeadamente "Logitech G Pro X Superlight 2"
+  // quando esse e o modelo que o mercado esta recomendando.
+  let shortlistQueries = [];
+  if (articleCat && PRODUCT_CATEGORIES[articleCat]) {
+    try {
+      const shortlist = await buildEditorialShortlist({
+        categoriaLabel: PRODUCT_CATEGORIES[articleCat].label,
+        ano: ANO_ATUAL,
+        serperKey: SERPER_API_KEY,
+        tavilyKey: TAVILY_API_KEY,
+        fetchLLM,
+      });
+      shortlistQueries = shortlist.queries;
+      if (shortlistQueries.length > 0) {
+        log("INFO", `Shortlist editorial: ${shortlistQueries.join(" | ")}`);
+      }
+    } catch (e) {
+      log("WARN", `Shortlist editorial falhou: ${e.message}`);
+    }
+  }
+
   for (let extraRound = 0; extraRound <= 3; extraRound++) {
     const retryQ = retryQueries.filter((q) => !triedQueries.has(q));
 
@@ -2269,6 +2370,7 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
         // Marcas da categoria entram JÁ na primeira rodada (seed), para artigo
         // novo nascer com produto de nome reconhecivel — nao so no retry.
         const queriesRemotas = [
+          ...shortlistQueries,
           ...(opts.extraMlQueries || []),
           ...retryQ,
           topic.ml_query,
@@ -2289,31 +2391,32 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
         };
         const comIdentidade = [...remotos].sort((a, b) => peso(b) - peso(a));
         for (const p of comIdentidade) {
-          if (mlProducts.length >= MAX_PRODUCTS) break;
+          if (mlProducts.length >= CANDIDATE_POOL) break;
           if (p.permalink && seen.has(p.permalink)) continue;
           if (p.permalink) seen.add(p.permalink);
           mlProducts.push(p);
         }
-        log("INFO", `Frente 4: ${mlProducts.length} produtos com afiliado`);
+        log("INFO", `Frente 4: ${mlProducts.length} produtos no pool de candidatos`);
       } catch (e) {
         log("WARN", `Frente 4 falhou: ${e.message} — seguindo com Google Shopping`);
       }
     }
 
     // Google Shopping so completa o que faltou (ou assume tudo, no modo legacy).
-    if (SERPER_API_KEY && mlProducts.length < MAX_PRODUCTS) {
+    if (SERPER_API_KEY && mlProducts.length < CANDIDATE_POOL) {
       try {
         const trendingKws = topic.trending_keywords || [];
         // Queries seguem o dominio do artigo: games -> jogos; hardware -> perifericos
         const searchQueries = [
+          ...shortlistQueries,
           ...trendingKws.slice(0, 2).flatMap((kw) =>
             effectiveDomain === "hardware"
-              ? [`${kw} gamer 2026`, `${kw} 2026`]
+              ? [`${kw} gamer ${ANO_ATUAL}`, `${kw} ${ANO_ATUAL}`]
               : [`${kw} jogo ps5`, `${kw} jogo xbox`]
           ),
           topic.ml_query,
           ...(extraRound > 0 ? retryQ : []),
-        ].slice(0, MAX_PRODUCTS + retryQ.length);
+        ].slice(0, CANDIDATE_POOL);
 
         for (const query of searchQueries) {
           if (triedQueries.has(query)) continue;
@@ -2329,7 +2432,7 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
           } catch (e) {
             log("WARN", `Shopping search "${query}": ${e.message}`);
           }
-          if (mlProducts.length >= MAX_PRODUCTS) break;
+          if (mlProducts.length >= CANDIDATE_POOL) break;
         }
 
         if (mlProducts.length === 0 && effectiveDomain === "games") {
@@ -2350,10 +2453,10 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
           }
         }
 
-        for (const p of mlProducts) {
-          // Produto vindo da Frente 4 ja tem link de afiliado — nao sobrescrever.
-          if (!p.affiliate_link) p.affiliate_link = p.permalink;
-        }
+        // Link de afiliado NAO e mais preenchido aqui com o permalink cru —
+        // isso escondia produtos sem comissao atras de um botao normal.
+        // resolverAfiliados() cuida disso depois que a lista final estiver
+        // fechada (ver TAREFA afiliados abaixo).
       } catch (err) {
         log("WARN", `Shopping Search: ${err.message}`);
       }
@@ -2367,6 +2470,7 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
     }
 
     mlProducts = sanitizeProducts(mlProducts.filter((p) => isGamerProduct(p.title)), topic, { rankingContext });
+    mlProducts = await resolverAfiliados(mlProducts);
 
     if (mlProducts.length >= MIN_PRODUCTS || !articleCat) break;
 
@@ -2413,7 +2517,7 @@ REGRAS DE ESTILO:
   const personaFactual = `PERSONA: Voce e um redator tecnico especializado em {{DOMINIO}} do Promo Gamer. Escreve reviews e guias com precisao e profundidade.
 
 REGRAS DE ESTILO:
-- ABERTURA: Va direto ao ponto. Contextualize o topico em 1-2 frases. Ex: "Escolher o monitor certo para games em 2026 exige atencao a 3 especificacoes-chave: taxa de atualizacao, tempo de resposta e tipo de painel."
+- ABERTURA: Va direto ao ponto. Contextualize o topico em 1-2 frases. Ex: "Escolher o monitor certo para games em ${ANO_ATUAL} exige atencao a 3 especificacoes-chave: taxa de atualizacao, tempo de resposta e tipo de painel."
 - OBJETIVIDADE: Seja direto e informativo. Compare especificacoes, mostre dados, explique decisoes tecnicas.
 - PROFUNDIDADE: Guias e reviews precisam de detalhes. Explique o "por que" por tras de cada recomendacao.
 - ESTRUTURA: Use tabelas comparativas, pros/contras, listas numeradas de passos.
@@ -2454,14 +2558,14 @@ Voce nao renderiza imagens nem cards de produto — voce decide ONDE eles entram
 - 55 a 65 caracteres.
 - ${primaryKeyword ? `A palavra-chave "${primaryKeyword}" DEVE aparecer nos primeiros 40% do titulo.` : "A palavra-chave principal (jogo, produto ou evento) deve aparecer nos primeiros 40% do titulo."}
 - PROIBIDO: "Tudo que voce precisa saber", "Novidades que vao bombar/mexer/transformar", "Fique por dentro", "Imperdivel", "Revolucionario", "O que esperar".
-- Use numero, data ou beneficio concreto: "10 Melhores X em 2026", "X vs Y: Qual Vale a Pena", "X Chega em Marco: O Que Muda".
+- Use numero, data ou beneficio concreto: "10 Melhores X em ${ANO_ATUAL}", "X vs Y: Qual Vale a Pena", "X Chega em Marco: O Que Muda".
 - Nada de clickbait vazio: o titulo tem que ser 100% sustentado pelo conteudo.
 
 ## REGRAS DE CONTEUDO
 1. GROUNDING: todo dado concreto (preco, spec, data, numero de vendas, nota) vem das fontes de pesquisa fornecidas. Se nao esta la, nao afirme como fato — use "segundo rumores", "ainda sem confirmacao".
 2. ESPECIFICIDADE: proibido "incrivel", "revolucionario", "surpreendente" sem uma frase logo depois explicando o motivo concreto.
 3. TESE POR SECAO: cada secao defende um ponto, nao lista fatos soltos. Nao "as specs do monitor X", e sim "o monitor X vale o preco por causa de Y, apesar de Z".
-4. COMPARACAO REAL: em tabela comparativa, os numeros precisam diferenciar os itens. Nada de todo mundo com nota 9/10.
+4. COMPARACAO REAL: em tabela comparativa, os numeros precisam diferenciar os itens. Nota SEMPRE na escala 0 a 5 estrelas (a mesma do Mercado Livre) — NUNCA escala 0-10, NUNCA numero maior que 5. Nada de todo mundo com a mesma nota.
   5. EXTENSAO: minimo ${minWords} palavras, alvo ${alvoWords}, maximo 1200 palavras. Extensao e consequencia de profundidade — nao encha linguica pra bater numero.
 6. E permitido (e recomendado) discordar do hype de marketing quando os dados sustentarem. Isso gera credibilidade.
 7. Frases curtas alternadas com uma ou duas mais longas. Paragrafos com frases todas do mesmo tamanho denunciam texto de IA.
@@ -2469,9 +2573,9 @@ ${estiloOpinativo ? "8. Giria e humor sao tempero, nao estrutura: no maximo 1 gi
 
 ## ESTRUTURA (ordem obrigatoria — adapte so o conteudo de cada bloco)
 - INTRODUCAO SEM H2: 1-2 paragrafos diretos com gancho concreto. Nos primeiros 2-3 paragrafos, resuma os criterios/requisitos que definem os itens da lista (o que diferencia um bom item, em 2 frases no maximo) — NAO crie secao ## separada para esse contexto.
-- PRIMEIRA SECAO ## (a principal): a lista de Itens. ${mlProducts.length > 0 ? `Titulo tipo: "## Os ${mlProducts.length} Melhores {Itens} em 2026". Um bloco por item, nesta ordem: "## Nome do Produto — Subtitulo" (SEM [IMG:] — a foto e injetada automaticamente), 2-3 paragrafos com os principais detalhes do item, e [PRODUTO:N] numa linha sozinha logo apos o texto.` : `Titulo tipo: "## Os Melhores {Jogos/Itens} em 2026". Um bloco por item: "## Nome — Subtitulo" com [IMG:Nome] na linha imediatamente anterior, 2-3 paragrafos de detalhes, sem botao de compra.`}
+- PRIMEIRA SECAO ## (a principal): a lista de Itens. ${mlProducts.length > 0 ? `Titulo tipo: "## Os ${mlProducts.length} Melhores {Itens} em ${ANO_ATUAL}". Um bloco por item, nesta ordem: "## Nome do Produto — Subtitulo" (SEM [IMG:] — a foto e injetada automaticamente), 2-3 paragrafos com os principais detalhes do item, e [PRODUTO:N] numa linha sozinha logo apos o texto.` : `Titulo tipo: "## Os Melhores {Jogos/Itens} em ${ANO_ATUAL}". Um bloco por item: "## Nome — Subtitulo" com [IMG:Nome] na linha imediatamente anterior, 2-3 paragrafos de detalhes, sem botao de compra.`}
 - Depois da lista, secoes curtas nesta ordem (omita o que nao se aplica):
-  - ${mlProducts.length > 0 ? "Tabela comparativa dos produtos (Produto | Preco | Destaque | Nota 1-10) com notas que realmente diferenciam." : "Tabela quando houver o que comparar (jogos, specs, edicoes)."}
+  - ${mlProducts.length > 0 ? "Tabela comparativa dos produtos (Produto | Preco | Destaque | Nota de 0 a 5 estrelas, NUNCA 0-10) com notas que realmente diferenciam." : "Tabela quando houver o que comparar (jogos, specs, edicoes)."}
   - "## Veredito" (ou "## Qual X Escolher?") com bullets por perfil de usuario — nunca "depende do orcamento".
   - "## FAQ" com 3-4 perguntas que as pessoas realmente pesquisam no Google sobre o tema.
   - "## Quer mais ofertas?" com: Entre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e receba ofertas diarias de ${domain === "hardware" ? "perifericos e hardware gamer" : "games e consoles"}!
@@ -2506,9 +2610,9 @@ category DEVE ser: noticia, review, guia ou lista`;
 
 DOMINIO OBRIGATORIO: este artigo é APENAS sobre ${domainLabel(domain)}. Nao misture games e hardware no mesmo texto.
 ${domain === "hardware"
-  ? `Foque em perifericos e hardware gamer. Exemplos validos: "Melhores Mouses Wireless 2026", "Headset Gamer Custo-Beneficio", "Monitor 144Hz vs 240Hz".
+  ? `Foque em perifericos e hardware gamer. Exemplos validos: "Melhores Mouses Wireless ${ANO_ATUAL}", "Headset Gamer Custo-Beneficio", "Monitor 144Hz vs 240Hz".
 PROIBIDO NO TEXTO: GTA, Resident Evil, Fortnite, Zelda, Game Awards, E3, Gamescom, lancamentos de jogos, gameplay, historia de jogo.`
-  : `Foque em jogos, consoles, software ou eventos de games. Exemplos validos: "GTA 6: data de lancamento", "Melhores Jogos de Corrida 2026", "Resident Evil Requiem no PS5", "Game Awards 2026".
+  : `Foque em jogos, consoles, software ou eventos de games. Exemplos validos: "GTA 6: data de lancamento", "Melhores Jogos de Corrida ${ANO_ATUAL}", "Resident Evil Requiem no PS5", "Game Awards ${ANO_ATUAL}".
 PROIBIDO NO TEXTO: mouse, teclado, headset, monitor, placa de video, RTX, processador, SSD, fonte, gabinete, water cooler, setup gamer.`}
 
 ${research ? `PESQUISA (use estes fatos — nao invente dados fora daqui):\n${research}\n` : "SEM PESQUISA DISPONIVEL: escreva so o que e conhecimento consolidado, sem inventar numeros, datas ou precos.\n"}
@@ -2651,6 +2755,12 @@ Checklist antes de responder:
 
   fm.title = capitalizeTitle(String(fm.title).replace(/\*/g, "").trim());
   fm.description = String(fm.description).replace(/\*/g, "").trim();
+  // Ultima trava contra ano velho no titulo/description, cobrindo tambem o
+  // fluxo de chamada unica (sem produtos) que nao passa por generateArticleFrontmatter.
+  const tituloCorrigido = normalizarAnos(fm.title);
+  if (tituloCorrigido !== fm.title) log("WARN", `Ano corrigido no titulo final: "${fm.title}" -> "${tituloCorrigido}"`);
+  fm.title = tituloCorrigido;
+  fm.description = normalizarAnos(fm.description);
 
   log("INFO", "Validando links internos...");
   body = validateInternalLinks(body);
@@ -2919,7 +3029,7 @@ Este artigo e APENAS sobre ${domainLabel(domain)}. Nunca misture games e hardwar
 - 55 a 65 caracteres.
 - ${primaryKeyword ? `A palavra-chave "${primaryKeyword}" DEVE aparecer nos primeiros 40% do titulo.` : "A palavra-chave principal (jogo, produto ou evento) deve aparecer nos primeiros 40%."}
 - PROIBIDO: "Tudo que voce precisa saber", "Novidades que vao bombar", "Fique por dentro", "Imperdivel", "Revolucionario", "O que esperar".
-- Use numero, data ou beneficio concreto: "10 Melhores X em 2026", "X vs Y: Qual Vale a Pena".
+- Use numero, data ou beneficio concreto: "10 Melhores X em ${ANO_ATUAL}", "X vs Y: Qual Vale a Pena".
 - Nada de clickbait vazio.
 
 ## SAIDA (somente este bloco, nao escreva o artigo)
@@ -2945,13 +3055,27 @@ category DEVE ser: noticia, review, guia ou lista. Tags relevantes e sem ** dent
       const clean = out.replace(/^[\s\S]*?---\s*/m, "").split(/\n---\s*/)[0].trim();
       fm = parseRaw(clean);
     }
-    if (fm && String(fm.description || "").length >= 120) return fm;
+    if (fm && String(fm.description || "").length >= 120) return normalizeFrontmatterYears(fm);
     log("WARN", `Description curta (${String(fm?.description || "").length} chars) — regenerando frontmatter (${attempt}/2)`);
   }
   if (fm) {
     log("WARN", "Estendendo description ate o minimo de 120 caracteres");
     fm.description = extendDescription(fm.description, topic.hint, primaryKeyword);
   }
+  return normalizeFrontmatterYears(fm);
+}
+
+// Correcao deterministica pos-LLM: troca qualquer ano fora de ANOS_VALIDOS
+// (ex.: "2024" escrito por habito do modelo) pelo ano corrente. E aqui, nao no
+// prompt, que a garantia realmente existe — prompt e pedido, isto e regra.
+function normalizeFrontmatterYears(fm) {
+  if (!fm || typeof fm !== "object") return fm;
+  if (fm.title) {
+    const corrigido = normalizarAnos(fm.title);
+    if (corrigido !== fm.title) log("WARN", `Ano corrigido no titulo: "${fm.title}" -> "${corrigido}"`);
+    fm.title = corrigido;
+  }
+  if (fm.description) fm.description = normalizarAnos(fm.description);
   return fm;
 }
 
@@ -2959,8 +3083,8 @@ category DEVE ser: noticia, review, guia ou lista. Tags relevantes e sem ** dent
 function extendDescription(cur, hint, primaryKeyword) {
   const base = String(cur || "").trim().replace(/\*+/g, "");
   if (base.length >= 120) return base.slice(0, 160).trim();
-  const kw = primaryKeyword || hint || "os melhores produtos em 2026";
-  const head = base && base.length >= 40 ? base : `${kw.charAt(0).toUpperCase()}${kw.slice(1)} em 2026.`;
+  const kw = primaryKeyword || hint || `os melhores produtos em ${ANO_ATUAL}`;
+  const head = base && base.length >= 40 ? base : `${kw.charAt(0).toUpperCase()}${kw.slice(1)} em ${ANO_ATUAL}.`;
   let d = `${head} Compare custo-beneficio, leia os destaques e o veredito e descubra qual modelo entrega mais pelo seu dinheiro para escolher sem errar.`;
   if (d.length < 120) d += " Analise completa com pros e contras de cada opcao do guia.";
   return d.slice(0, 160).trim();
@@ -2969,8 +3093,11 @@ function extendDescription(cur, hint, primaryKeyword) {
 // Extrai tagline/corpo/nota/destaque do texto bruto do blurb (formato TAGLINE:/CORPO:).
 function parseBlurb(out) {
   const tagline = (out.match(/^TAGLINE:\s*(.+)$/m) || [])[1]?.trim() || "";
+  // NOTA da LLM nao alimenta mais a tabela (a nota do consumidor, 0-5, vem do
+  // rating real do produto) — o campo so e mantido aqui por compatibilidade de
+  // parsing, sem uso downstream.
   let nota = Number((out.match(/^NOTA:\s*(\d+(?:[.,]\d+)?)/m) || [])[1]?.replace(",", "."));
-  if (!Number.isFinite(nota) || nota < 1 || nota > 10) nota = null;
+  if (!Number.isFinite(nota) || nota < 0 || nota > 5) nota = null;
   const destaque = (out.match(/^DESTAQUE:\s*(.+)$/m) || [])[1]?.trim() || "";
   let text = "";
   const corpoMatch = out.match(/CORPO:\s*([\s\S]*?)(?=\n\s*(?:NOTA|DESTAQUE):|$)/);
@@ -3055,7 +3182,7 @@ Este artigo e APENAS sobre ${domainLabel(domain)}. Nunca misture games e hardwar
 
 ## ESTRUTURA EXATA (em ordem)
 1. INTRODUCAO SEM H2: 1-2 paragrafos com gancho direto. Nos primeiros 2-3 paragrafos, resuma em 2 frases os criterios que definem os itens (o que diferencia um bom item). NAO crie secao ## para isso.
-2. A LINHA "## Os ${mlProducts.length} Melhores {tipo} em 2026" — a PRIMEIRA linha ## do seu texto. Apos essa linha, NAO escreva mais nada na secao: o sistema insere os itens e a tabela ali.
+2. A LINHA "## Os ${mlProducts.length} Melhores {tipo} em ${ANO_ATUAL}" — a PRIMEIRA linha ## do seu texto. Apos essa linha, NAO escreva mais nada na secao: o sistema insere os itens e a tabela ali.
 3. "## Veredito" (ou "## Qual X Escolher?"): bullets por perfil de usuario — nunca "depende do orcamento".
 4. "## FAQ": 3-4 perguntas que as pessoas pesquisam no Google sobre o tema.
 5. "## Quer mais ofertas?": "Entre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e receba ofertas diarias de ${domain === "hardware" ? "perifericos e hardware gamer" : "games e consoles"}!"
@@ -3086,11 +3213,11 @@ O "## Veredito" deve refletir EXATAMENTE a ordem e as notas do RANKING OBJETIVO 
 Somente o markdown das secoes acima, na ordem. Sem frontmatter, sem comentario.`;
 
   const rankingBlock = mlProducts.length > 0
-    ? `\n\nRANKING OBJETIVO (use no Veredito, nao invente outra ordem nem outras notas):\n${mlProducts
+    ? `\n\nRANKING OBJETIVO (use no Veredito, nao invente outra ordem nem outra nota — a ordem ja reflete o score interno, NAO exiba esse score, so a nota do consumidor abaixo):\n${mlProducts
         .map((p, i) => {
-          const nota = Number.isFinite(Number(p.score))
-            ? `${Math.round(Number(p.score) * 100) / 10}/10`
-            : "sem nota";
+          const nota = Number.isFinite(Number(p.rating)) && Number(p.rating) > 0
+            ? `${formatRating5(p.rating)}/5${Number(p.ratingCount) > 0 ? ` (${Math.round(Number(p.ratingCount))} avaliacoes)` : ""}`
+            : "sem nota de consumidor";
           const motivos = Array.isArray(p.criteriosAtendidos) && p.criteriosAtendidos.length > 0
             ? p.criteriosAtendidos.join(", ")
             : "sem criterios objetivos";
@@ -3110,7 +3237,7 @@ function splitMainBody(mainBody) {
   if (typeof mainBody !== "string" || !mainBody.trim()) return null;
   const m = mainBody.match(/^##\s+([^\n]+)\n([\s\S]*)$/m);
   if (!m) return null;
-  const listHeading = m[1].trim();
+  const listHeading = normalizarAnos(m[1].trim());
   if (/^(veredito|qual\s|faq|perguntas\s+frequentes|fontes|quer\s+mais|continue\s+explorando|comparativo|conclus)/i.test(listHeading)) {
     return null;
   }
@@ -3124,30 +3251,38 @@ function splitMainBody(mainBody) {
 // TAREFA 6.3.3: secao de metodologia gerada por template (deterministica),
 // injetada entre a introducao e o heading da lista. Da credibilidade ao "Top 5".
 function buildMetodologiaSection() {
-  return `## Como Escolhemos\n\nEsta lista nao e aleatoria. Cada modelo foi avaliado com os mesmos criterios:\n\n` +
-    `- **Avaliacoes de consumidores** — nota media e volume de avaliacoes nas lojas.\n` +
-    `- **Consenso editorial** — presenca em reviews e rankings independentes consultados nesta pesquisa.\n` +
-    `- **Reputacao da marca** — historico da fabricante na categoria.\n` +
-    `- **Especificacoes tecnicas** — o que o modelo entrega de fato.\n` +
-    `- **Custo-beneficio** — preco frente a mediana da categoria.\n\n` +
-    `Modelos que nao atenderam a pelo menos ${MIN_CRITERIA} desses criterios ficaram de fora.\n`;
+  return `## Como Escolhemos\n\nEsta lista nao e aleatoria. Todo modelo precisou passar por um piso de elegibilidade antes de ser avaliado:\n\n` +
+    `- **Preco plausivel** — nem muito abaixo (risco de anuncio errado/acessorio) nem muito acima da mediana da categoria.\n` +
+    `- **Avaliacoes de consumidores reais** — nota minima e volume de avaliacoes que sustentam a nota.\n` +
+    `- **Identidade reconhecivel** — marca e/ou modelo identificaveis, nunca um anuncio generico.\n\n` +
+    `Quem passou por esse piso foi entao ranqueado por: nota media e volume de avaliacoes, consenso editorial (presenca em reviews e rankings independentes consultados nesta pesquisa), reputacao da marca, aderencia as especificacoes que importam na categoria e custo-beneficio frente a mediana. Um produto caro nao entra so por ser caro, e um barato nao entra so por ser barato — o equilibrio entre os criterios decide.\n\n` +
+    `Modelos que nao atenderam ao piso minimo ficaram de fora.\n`;
+}
+
+// Nota do consumidor, escala 0-5 (a mesma do Mercado Livre e da maioria das
+// lojas BR). Vírgula decimal (pt-BR), nunca "/10" nem numero > 5 — ver
+// scripts/product_ranking.mjs e scripts/google_shopping.mjs para a
+// normalizacao na entrada.
+function formatRating5(rating) {
+  const r = Math.min(5, Math.max(0, Number(rating) || 0));
+  return r.toFixed(1).replace(".", ",");
 }
 
 function buildComparativoTable(mlProducts) {
   const rows = mlProducts
     .map((p) => {
-      const rawNota = p.nota;
-      const nota = (rawNota !== null && rawNota !== undefined && rawNota !== "" && Number.isFinite(Number(rawNota)))
-        ? `${Number(rawNota)}/10`
-        : "—";
+      const rating = Number(p.rating);
+      const nota = Number.isFinite(rating) && rating > 0 ? `${formatRating5(rating)}/5` : "—";
+      const ratingCount = Number(p.ratingCount);
+      const avaliacoes = Number.isFinite(ratingCount) && ratingCount > 0 ? String(Math.round(ratingCount)) : "—";
       // TAREFA 6.3.4: coluna "Por que entrou" torna o ranking auditavel.
       const motivo = Array.isArray(p.criteriosAtendidos) && p.criteriosAtendidos.length > 0
         ? p.criteriosAtendidos.join(" · ")
         : "—";
-      return `| ${p.title} | ${formatPriceBRL(p.price)} | ${p.destaque || "—"} | ${nota} | ${motivo} |`;
+      return `| ${p.title} | ${formatPriceBRL(p.price)} | ${p.destaque || "—"} | ${nota} | ${avaliacoes} | ${motivo} |`;
     })
     .join("\n");
-  return `## Comparativo\n\n| Produto | Preco | Destaque | Nota | Por que entrou |\n|---|---|---|---|---|\n${rows}\n`;
+  return `## Comparativo\n\n| Produto | Preco | Destaque | Nota | Avaliacoes | Por que entrou |\n|---|---|---|---|---|---|\n${rows}\n`;
 }
 
 function buildItemSection(p) {
@@ -3187,11 +3322,8 @@ async function generateSegmentedArticle({ mlProducts, topic, domain, categoria, 
     const b = await generateProductBlurb({ product: mlProducts[i], topic, domain, categoria, index: i + 1, articleCat });
     mlProducts[i].tagline = b.tagline;
     mlProducts[i].blurbText = b.text;
-    // TAREFA 6.3.2: a nota da tabela vem do score objetivo; a nota da LLM so
-    // vale quando o score nao existe (ex.: lista com 1 produto).
-    mlProducts[i].nota = Number.isFinite(Number(mlProducts[i].score))
-      ? Math.round(Number(mlProducts[i].score) * 100) / 10
-      : b.nota;
+    // A nota da tabela e SEMPRE a nota do consumidor (p.rating, escala 0-5,
+    // vinda da fonte do produto) — a LLM nao inventa nota. Ver buildComparativoTable.
     mlProducts[i].destaque = b.destaque;
     log("INFO", `Blurb ok (${i + 1}/${mlProducts.length}): "${mlProducts[i].title?.slice(0, 45)}"`);
   }
@@ -3210,8 +3342,8 @@ async function generateSegmentedArticle({ mlProducts, topic, domain, categoria, 
   if (!parts) {
     const fallbackKw = (topic.hint || primaryKeyword || "").split(" ").slice(0, 3).join(" ");
     parts = {
-      intro: `Fala, gamer! Bora conferir quais ${fallbackKw} valem a pena em 2026 — a lista considera o que entrega mais por real, o que segura o tranco no dia a dia e o que a galera anda comprando.`,
-      listHeading: `Os ${mlProducts.length} Melhores ${fallbackKw || "Itens"} em 2026`,
+      intro: `Fala, gamer! Bora conferir quais ${fallbackKw} valem a pena em ${ANO_ATUAL} — a lista considera o que entrega mais por real, o que segura o tranco no dia a dia e o que a galera anda comprando.`,
+      listHeading: `Os ${mlProducts.length} Melhores ${fallbackKw || "Itens"} em ${ANO_ATUAL}`,
       rest: "",
     };
     log("WARN", "Usando corpo principal fallback (estrutura minima)");

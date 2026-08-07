@@ -168,7 +168,7 @@ Todo artigo, independente da persona, deve conter:
 - **Headings** (`##`) para cada seção principal — rejeitado sem headings
 - **Estrutura por tópico:** `## Nome → Imagem → Texto → Botão` (imagem antes do texto)
 - **`**nome do jogo**` em negrito** na primeira menção (sistema injeta imagem RAWG)
-- **Tabela comparativa** com colunas: Produto | Preço | Destaque | Nota (1-10)
+- **Tabela comparativa** com colunas: Produto | Preço | Destaque | Nota (0–5, escala do Mercado Livre) | Avaliações | Por que entrou
 - **FAQ** com 3-4 perguntas e respostas
 - **Pros e Contras** em bullets para cada produto
 - **2-3 links internos** para outros artigos do blog
@@ -260,8 +260,8 @@ Para artigos automáticos (pipeline diário), a capa é gerada durante o `gerar-
 
 Os artigos **não dependem da IA** incluir produtos no texto. Após a IA gerar o artigo, o sistema injeta um botão de compra no final de cada tópico de produto:
 
-1. **Busca de produtos** (`searchGoogleShopping`): até 5 queries usando trending keywords (ex: `"resident evil jogo ps5 xbox pc"`). A fonte é a **API de Google Shopping da Serper.dev** (`gl=br`, retorna produto + preço + imagem + link da loja: Mercado Livre, Kabum, Amazon, etc.).
-2. **Link direto**: o botão aponta para a URL do produto na loja (`p.permalink`). Sem comissão até você cadastrar um programa de afiliado (Amazon Associates, AliExpress).
+1. **Busca de produtos**: um pool de até ~20 candidatos por artigo (`CANDIDATE_POOL`), combinando a shortlist editorial (`editorial_shortlist.mjs`), a Frente 4 (`monitor_api.mjs`, produtos com link de afiliado já gerado) e o **Google Shopping da Serper.dev** (`searchGoogleShopping`, `gl=br`, retorna produto + preço + imagem + link da loja: Mercado Livre, Kabum, Amazon, etc.).
+2. **Link de afiliado obrigatório**: `resolverAfiliados()` roda depois que a lista final está fechada e **descarta** qualquer produto que não tenha link de afiliado pronto — nunca publica com o link cru do produto (`p.permalink`) sem comissão. Ver `docs/METODOLOGIA.md`.
 3. **Texto do botão**: usa o nome da loja (ex.: `VER NA KABUM`, `VER NO MERCADO LIVRE`). Editável depois no painel `/admin/`.
 4. **Filtro** (`isGamerProduct`): bloqueia itens não-gamer (whey, parafusadeira, roupas, cosméticos, utensílios de cozinha, etc.)
 5. **Posição**: o botão é injetado **no final de cada tópico de produto**, após o texto que descreve o produto.
@@ -300,8 +300,9 @@ A IA recebe a lista de produtos no prompt, mas é instruída a **apenas mencion�
 
 ### Tabela + Pros/Contras
 
-A IA gera dentro do corpo do artigo:
-- **Tabela comparativa:** `| Produto | Preço | Destaque | Nota (1-10) |`
+Quando há produtos, a tabela comparativa é **montada pelo sistema**
+(`buildComparativoTable`), não pela IA — a IA nunca inventa nota nem preço:
+- **Tabela comparativa:** `| Produto | Preço | Destaque | Nota | Avaliações | Por que entrou |`, nota sempre na escala **0–5** (a mesma do Mercado Livre), nunca 0–10. Ver `docs/METODOLOGIA.md`.
 - **Seção Pros e Contras:** bullets para cada produto
 
 ---

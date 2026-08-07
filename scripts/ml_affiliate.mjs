@@ -396,9 +396,15 @@ export async function searchMLDirect(query, clientId, clientSecret, limit = 4) {
   }
 }
 
+// Toda falha aqui devolve short_url: null + error, NUNCA o link cru do
+// produto. Um link sem tag de afiliado silenciosamente vira R$0 de comissao,
+// e antes disso passava despercebido porque o botao renderizava normal —
+// quem chama esta funcao decide o que fazer com a falha (descartar o
+// produto, tentar de novo, abortar o artigo), mas tem que SABER que falhou.
 export async function generateAffiliateLink(productUrl, cookiePath) {
   if (!cookiePath || !fs.existsSync(cookiePath)) {
-    return { short_url: productUrl };
+    log("ERROR", `generateAffiliateLink: cookiePath ausente/invalido para ${productUrl}`);
+    return { short_url: null, error: "cookiePath ausente ou invalido" };
   }
 
   // 1. Create a persistent session (CookieJar) — like Python requests.Session()
@@ -446,8 +452,8 @@ export async function generateAffiliateLink(productUrl, cookiePath) {
   }
 
   if (!csrf) {
-    log("WARN", "CSRF token nao encontrado — usando link direto");
-    return { short_url: productUrl };
+    log("ERROR", `CSRF token nao encontrado para ${productUrl} — link de afiliado NAO gerado`);
+    return { short_url: null, error: "CSRF token nao encontrado" };
   }
 
   // 4. Call affiliate API with the SAME session (shares cookies from jar)
@@ -493,10 +499,10 @@ export async function generateAffiliateLink(productUrl, cookiePath) {
       return { ...d, short_url: shortUrl };
     }
 
-    log("WARN", `Affiliate API: ${r2.status}`);
-    return { short_url: productUrl };
+    log("ERROR", `Affiliate API falhou (${r2.status}) para ${productUrl} — link de afiliado NAO gerado`);
+    return { short_url: null, error: `Affiliate API HTTP ${r2.status}` };
   } catch (e) {
-    log("WARN", `Affiliate error: ${e.message}`);
-    return { short_url: productUrl };
+    log("ERROR", `Affiliate error para ${productUrl}: ${e.message}`);
+    return { short_url: null, error: e.message };
   }
 }
