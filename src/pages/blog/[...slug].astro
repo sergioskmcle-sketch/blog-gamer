@@ -247,8 +247,10 @@ const todosArtigos = Object.entries(import.meta.glob("../../content/artigos/*.md
     #articleBody .article-game-img {
       display: block;
       max-width: 100%;
+      height: auto;
       margin: 1.5rem auto;
       object-fit: contain;
+      background: var(--bg-card, #0A0A0F);
       border-radius: var(--radius, 10px);
       border: 1px solid var(--border, #1C1C2E);
       transition: transform 0.3s ease, box-shadow 0.3s ease;

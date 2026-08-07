@@ -9,6 +9,7 @@ import { gerarCapaStability } from "./stability-cover.mjs";
 import { gerarCapaOpenAI, downloadImage, searchTavilyImage } from "./openai-cover.mjs";
 import { cleanProductTitle, detectArticleCategory, productMatchesCategory, PRODUCT_CATEGORIES, CATEGORY_BRANDS } from "./product_naming.mjs";
 import { rankProducts, applyMinCriteria, MIN_CRITERIA } from "./product_ranking.mjs";
+import { upgradeImageUrl, imageDimensions, isImageUsable, searchSerperImage } from "./product_images.mjs";
 
 const rssParser = new Parser({
   timeout: 15000,
@@ -18,6 +19,10 @@ const rssParser = new Parser({
 const ARTIGOS_DIR = path.resolve("src/content/artigos");
 const STATE_FILE = path.resolve("state.json");
 const PROD_IMAGES_DIR = path.resolve("public/images/produtos");
+// TAREFA 4.3: ultimo recurso de imagem — nunca deixa o item sem foto. O caminho
+// usa /images (site servido na raiz, com dominio proprio); o arquivo vive em
+// public/images/produtos/_placeholder.webp.
+const PLACEHOLDER_IMAGE = "/images/produtos/_placeholder.webp";
 
 function loadState() {
   try {
@@ -948,7 +953,11 @@ function buildProductImageTag(p) {
   const url = p.local_thumbnail || (p.thumbnail && p.thumbnail.startsWith("http") ? p.thumbnail : "");
   if (!url) return "";
   const title = p.title || "Produto no Mercado Livre";
-  return `<img src="${url}" alt="${title}" class="article-game-img" loading="lazy" decoding="async">`;
+  const size =
+    p.image_width && p.image_height
+      ? ` width="${p.image_width}" height="${p.image_height}"`
+      : "";
+  return `<img src="${url}" alt="${title}"${size} class="article-game-img" loading="lazy" decoding="async">`;
 }
 
 // Lojas cujo nome pede "NA" (feminino) em portugues. Padrao: "NO".
@@ -1042,56 +1051,89 @@ async function gerarImagemItemIA(title, slug) {
 }
 
 // Baixa e salva a foto de cada item em public/images/produtos/.
-// Cadeia de prioridade: thumbnail do ML -> busca web (Tavily) -> IA (ultimo recurso).
+// TAREFA 4 — cadeia de fallback robusta; para no primeiro sucesso que passe
+// na validacao de dimensao real (isImageUsable, >= 500px):
+//   1. thumbnail do Google Shopping com URL turbinada (upgradeImageUrl);
+//   2. thumbnail original;
+//   3. cada p.images[] (tambem com upgrade);
+//   4. Google Images via Serper (raw_title, o titulo completo acha o produto);
+//   5. busca web (Tavily);
+//   6. geracao por IA (ultimo recurso pago);
+//   7. placeholder local — o item NUNCA sai sem foto.
 async function ensureProductImages(mlProducts) {
   if (!mlProducts || mlProducts.length === 0) return;
   if (!fs.existsSync(PROD_IMAGES_DIR)) fs.mkdirSync(PROD_IMAGES_DIR, { recursive: true });
 
+  const stats = { cache: 0, url_upgrade: 0, url_original: 0, url_images: 0, serper: 0, tavily: 0, ia: 0, placeholder: 0 };
+
   for (const p of mlProducts) {
     const slug = slugify(p.title || p.raw_title || `produto-${mlProducts.indexOf(p) + 1}`);
 
-    if (fs.existsSync(path.join(PROD_IMAGES_DIR, `${slug}.png`))) {
-      p.local_thumbnail = `/images/produtos/${slug}.png`;
-      continue;
+    for (const ext of [".png", ".jpg", ".webp"]) {
+      const cachedPath = path.join(PROD_IMAGES_DIR, `${slug}${ext}`);
+      if (fs.existsSync(cachedPath)) {
+        p.local_thumbnail = `/images/produtos/${slug}${ext}`;
+        stats.cache++;
+        break;
+      }
     }
-    if (fs.existsSync(path.join(PROD_IMAGES_DIR, `${slug}.jpg`))) {
-      p.local_thumbnail = `/images/produtos/${slug}.jpg`;
-      continue;
-    }
-    if (fs.existsSync(path.join(PROD_IMAGES_DIR, `${slug}.webp`))) {
-      p.local_thumbnail = `/images/produtos/${slug}.webp`;
-      continue;
-    }
+    if (p.local_thumbnail) continue;
 
     let buf = null;
-    const directUrl = p.thumbnail && p.thumbnail.startsWith("http") ? p.thumbnail : "";
-    if (directUrl) {
-      try {
-        const b = await downloadImage(directUrl);
-        if (b && b.length > 2048) buf = b;
-      } catch {}
+    const stages = [
+      { name: "url_upgrade", urls: [upgradeImageUrl(p.thumbnail)] },
+      { name: "url_original", urls: [p.thumbnail] },
+      { name: "url_images", urls: (p.images || []).map((u) => upgradeImageUrl(u)) },
+    ];
+    for (const stage of stages) {
+      for (const url of stage.urls) {
+        if (!url || !url.startsWith("http")) continue;
+        try {
+          const b = await downloadImage(url);
+          if (b && isImageUsable(b)) {
+            buf = b;
+            stats[stage.name]++;
+            break;
+          }
+        } catch {}
+      }
+      if (buf) break;
     }
-    if (buf) {
-      log("INFO", `Thumbnail ML OK para "${p.title?.slice(0, 40)}"`);
-    } else {
-      log("WARN", `Sem imagem valida do ML para "${p.title?.slice(0, 40)}" — buscando na web...`);
-      try {
-        buf = await searchTavilyImage(p.title || "");
-      } catch {}
+
+    if (!buf) {
+      buf = await searchSerperImage(p.raw_title || p.title);
+      if (buf) stats.serper++;
+    }
+    if (!buf) {
+      buf = await searchTavilyImage(p.raw_title || p.title);
+      if (buf) stats.tavily++;
     }
     if (!buf) {
       buf = await gerarImagemItemIA(p.title, slug);
+      if (buf) stats.ia++;
     }
 
     if (buf) {
       const ext = imageExtension(buf);
       fs.writeFileSync(path.join(PROD_IMAGES_DIR, `${slug}${ext}`), buf);
       p.local_thumbnail = `/images/produtos/${slug}${ext}`;
+      const dim = imageDimensions(buf);
+      if (dim) {
+        p.image_width = dim.width;
+        p.image_height = dim.height;
+      }
       log("INFO", `Imagem do item salva: ${p.local_thumbnail} (${(buf.length / 1024).toFixed(1)} KB)`);
     } else {
-      log("WARN", `Nenhuma imagem obtida para "${p.title?.slice(0, 40)}" — item sem foto`);
+      p.local_thumbnail = PLACEHOLDER_IMAGE;
+      stats.placeholder++;
+      log("WARN", `Nenhuma imagem valida para "${p.title?.slice(0, 40)}" — usando placeholder local`);
     }
   }
+
+  const resumo = Object.entries(stats)
+    .map(([k, v]) => `${k}=${v}`)
+    .join(" | ");
+  log("INFO", `Imagens dos itens (${mlProducts.length}): ${resumo}`);
 }
 
 // Injeta âncoras unicas nos headings ## e ### do artigo para o componente

@@ -17,6 +17,7 @@ import { parsePriceBRL } from "./google_shopping.mjs";
 import { normalizarProdutoRemoto } from "./monitor_api.mjs";
 import { cleanProductTitle, detectCategory, productMatchesCategory, detectArticleCategory } from "./product_naming.mjs";
 import { medianPrice, valueForMoneyScore, countEditorialMentions, scoreProduct, rankProducts, applyMinCriteria, RANKING_WEIGHTS, MIN_CRITERIA } from "./product_ranking.mjs";
+import { upgradeImageUrl, imageDimensions, isImageUsable, MIN_IMAGE_SIZE } from "./product_images.mjs";
 
 let passou = 0;
 function ok(cond, msg) {
@@ -615,5 +616,53 @@ ok(norm !== null, "produto valido e aceito");
 igual(norm.sources.length, 1, "sources vem de offers");
 igual(normalizarProdutoRemoto({ title: "" }), null, "produto sem titulo e descartado");
 igual(normalizarProdutoRemoto({ title: "X", offers: {} }), null, "produto sem oferta e descartado");
+
+// ---- TAREFA 4: upgrade de URL, dimensoes reais e validacao ----
+igual(upgradeImageUrl(""), "", "url vazia volta vazia");
+igual(upgradeImageUrl(null), "", "url nula volta vazia");
+const mlUrl = "http://mlstatic.com/D_NQ_NP_734715-MLB51234567890-O.webp";
+const mlUp = upgradeImageUrl(mlUrl);
+ok(mlUp.includes("D_NQ_NP_2X_"), "ML: forca a variante 2X");
+ok(/-F\.webp$/.test(mlUp), "ML: sufixo -O vira -F (alta resolucao)");
+ok(!mlUp.includes("-O.webp"), "ML: variante pequena nao sobrevive");
+igual(upgradeImageUrl("http://img/D_NQ_NP_2X_123-O.jpg"), "http://img/D_NQ_NP_2X_123-F.jpg", "ML: 2X existente nao e duplicado e -O vira -F");
+igual(upgradeImageUrl("http://shopee.com/x_tn.jpg"), "http://shopee.com/x.jpg", "Shopee: sufixo _tn e removido");
+igual(upgradeImageUrl("http://gstatic.com/img?w=100&q=80"), "http://gstatic.com/img?w=1200&q=80", "Serper/Google: largura sobe para 1200");
+
+// PNG: assinatura + IHDR (largura no offset 16, altura no 20).
+const png = Buffer.alloc(24);
+png.writeUInt32BE(0x89504e47, 0);
+png.writeUInt32BE(13, 8); // tamanho do IHDR
+png.write("IHDR", 12);
+png.writeUInt32BE(1920, 16);
+png.writeUInt32BE(1080, 20);
+igual(imageDimensions(png), { width: 1920, height: 1080 }, "PNG: le dimensoes do IHDR");
+
+// JPEG: FFD8 + SOF0 com altura/largura.
+const jpg = Buffer.from([0xff, 0xd8, 0xff, 0xc0, 0x00, 0x11, 0x08, 0x02, 0x00, 0x04, 0x00, 0x03, 0x01, 0x11, 0x00, 0x02, 0x11, 0x00, 0x03, 0x11, 0x00]);
+igual(imageDimensions(jpg), { width: 1024, height: 512 }, "JPEG: le dimensoes do SOF0");
+
+// WebP VP8X: canvas (largura-1, altura-1) em 24 bits LE a partir do offset 24.
+const webp = Buffer.alloc(32);
+webp.write("RIFF", 0);
+webp.write("WEBP", 8);
+webp.write("VP8X", 12);
+webp[24] = 0x9f; webp[25] = 0x04; webp[26] = 0x00; // 1183 -> 1184
+webp[27] = 0xef; webp[28] = 0x01; webp[29] = 0x00; // 495 -> 496
+igual(imageDimensions(webp), { width: 1184, height: 496 }, "WebP VP8X: le canvas size");
+igual(imageDimensions(Buffer.from("isso nao e imagem")), null, "formato desconhecido retorna null");
+
+igual(MIN_IMAGE_SIZE, 500, "lado minimo da imagem e 500px");
+ok(!isImageUsable(Buffer.alloc(10)), "buffer minusculo e reprovado");
+ok(!isImageUsable(png), "PNG pequeno (nao tem bytes minimos) e reprovado");
+const pngGrande = Buffer.concat([png, Buffer.alloc(9000)]);
+ok(isImageUsable(pngGrande), "PNG grande e aprovado");
+ok(isImageUsable(Buffer.alloc(12000)), "formato desconhecido com bytes suficientes e aceito (nao descarta por limite do parser)");
+
+// buildProductImageTag respeita a ordem e passa dimensoes quando conhecidas.
+const imgTag4 = buildProductImageTag({ title: "Produto X", local_thumbnail: "/images/produtos/x.webp", image_width: 1200, image_height: 630 });
+ok(imgTag4.includes('width="1200"') && imgTag4.includes('height="630"'), "tag de imagem carrega largura/altura reais");
+const imgTag4Sem = buildProductImageTag({ title: "Produto X", local_thumbnail: "/images/produtos/x.webp" });
+ok(!imgTag4Sem.includes("width="), "sem dimensao conhecida a tag nao inventa largura");
 
 console.log(`${passou} asserts OK`);
