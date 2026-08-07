@@ -1094,8 +1094,10 @@ async function ensureProductImages(mlProducts) {
   }
 }
 
-// Gera um sumário/índice com links âncora a partir dos headings ## do artigo
-function injectTableOfContents(body) {
+// Injeta âncoras unicas nos headings ## do artigo para o componente Neste
+// artigo (TableOfContents) consumir. NAO gera mais o bloco "## Indice" — o
+// indice e responsabilidade do componente Astro.
+function injectHeadingAnchors(body) {
   if (!body || typeof body !== "string") return body;
 
   const headings = [...body.matchAll(/^(## )([^\n]+)$/gm)];
@@ -1120,7 +1122,7 @@ function injectTableOfContents(body) {
 
   // Gera âncoras únicas
   const usedAnchors = new Set();
-  const tocItems = items.map((item, idx) => {
+  const tocItems = items.map((item) => {
     let anchor = item.baseAnchor;
     let suffix = 1;
     while (usedAnchors.has(anchor)) {
@@ -1130,9 +1132,6 @@ function injectTableOfContents(body) {
     usedAnchors.add(anchor);
     return { title: item.title, anchor };
   });
-
-  const tocLines = tocItems.map((item, idx) => `${idx + 1}. [${item.title}](#${item.anchor})`);
-  const toc = `## Índice\n\n${tocLines.join("\n")}\n`;
 
   // Cria mapa título -> âncora final para inserir nos headings
   const anchorMap = new Map(tocItems.map((item) => [item.title, item.anchor]));
@@ -1146,7 +1145,7 @@ function injectTableOfContents(body) {
     return `${hashes}<a id="${anchor}"></a>${trimmedTitle}`;
   });
 
-  return `${toc}\n${result}`;
+  return result;
 }
 
 // Substitui [PRODUTO:N] pelo botao e injeta a foto do produto logo apos o
@@ -2546,7 +2545,7 @@ Checklist antes de responder:
   body = stripLeftoverMarkers(body);
 
   // Gera sumário/índice com links âncora para melhor navegação e SEO
-  body = injectTableOfContents(body);
+  body = injectHeadingAnchors(body);
 
   if (!coverImage) {
     const fallbackKw = trendingKeywordForCover || (topic.ml_query ? topic.ml_query.split(" ").slice(0, 2).join(" ") : "") || "";
@@ -3021,7 +3020,7 @@ export {
   buildComparativoTable,
   buildItemSection,
   injectSegmentedItems,
-  injectTableOfContents,
+  injectHeadingAnchors,
   validateSourceCoverage,
   formatProductPriceForPrompt,
   stripLeftoverMarkers,

@@ -6,7 +6,7 @@ import assert from "assert";
 import {
   injectProductCards, injectGameImages, extractImageMarkers, repositionImageMarkers,
   stripLeftoverMarkers, validate, checkTitle, capitalizeTitle, similarity, nameSimilarity,
-  computeMaxTokens, buildProductButtonHtml, productButtonLabel, buildProductImageTag, injectTableOfContents, validateSourceCoverage,
+  computeMaxTokens, buildProductButtonHtml, productButtonLabel, buildProductImageTag, injectHeadingAnchors, validateSourceCoverage,
   formatProductPriceForPrompt, findPricesInBody,
   sanitizeProducts, splitMainBody, parseBlurb, buildComparativoTable, buildItemSection, injectSegmentedItems,
   buildMetodologiaSection,
@@ -320,16 +320,17 @@ Texto final.
 ## Fontes
 
 - [Site](http://site.com)`;
-const comIndice = injectTableOfContents(corpoComHeadings);
-ok(comIndice.includes("## Índice"), "gera secao de Indice");
-ok(comIndice.includes("[God of War Ragnarok](#god-of-war-ragnarok)"), "indice linka para heading");
-ok(comIndice.includes('<a id="god-of-war-ragnarok"></a>'), "insere ancora no heading");
-ok(!comIndice.includes("[Conclusao]"), "nao inclui Conclusao no indice");
-ok(!comIndice.includes("[Fontes]"), "nao inclui Fontes no indice");
+const comAncora = injectHeadingAnchors(corpoComHeadings);
+ok(!comAncora.includes("## Índice"), "nao gera mais o bloco Indice duplicado");
+ok(/^## /.test(comAncora) && !comAncora.startsWith("## Índice"), "markdown comeca direto pelo primeiro heading");
+ok(comAncora.includes('<a id="god-of-war-ragnarok"></a>'), "insere ancora no heading");
+ok(comAncora.indexOf('<a id="introducao"></a>') < comAncora.indexOf('<a id="god-of-war-ragnarok"></a>'), "ancoras unicas preservam a ordem");
+ok(comAncora.indexOf('<a id="gameplay-e-mecanicas"></a>') < comAncora.indexOf("## Conclusao"), "secoes excluidas nao ganham ancora antes delas");
+ok(!/<a id="[^"]+"><\/a>conclusao/i.test(comAncora), "Conclusao segue sem ancora");
 
-// indice nao e gerado quando ha poucos headings
+// indice de ancora nao e gerado quando ha poucos headings
 const corpoCurto = `## Unica Secao\n\nTexto.`;
-igual(injectTableOfContents(corpoCurto), corpoCurto, "nao gera indice com menos de 3 headings");
+igual(injectHeadingAnchors(corpoCurto), corpoCurto, "nao gera ancoras com menos de 3 headings");
 
 // --- validacao de cobertura de fontes (v1.1) ---
 const fontes = [
