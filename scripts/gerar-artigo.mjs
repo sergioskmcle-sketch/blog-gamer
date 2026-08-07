@@ -845,37 +845,80 @@ function mlProductRelevanceScore(p, tokens) {
 // Portao de sanidade aplicado a TODA fonte de produtos: blog/categoria/listagem
 // nunca viram item; exige id ou permalink real e preco; prefere itens relevantes ao topico.
 // Enriquecimento de nome de produto: quando o titulo vindo do catalogo e
-// generico (sem marca/modelo), busca a pagina do produto no Mercado Livre e
-// extrai o nome completo. So roda em regeneracao (opts.enrichNames) para nao
-// custar chamadas extras no cron — e nunca quebra o pipeline se a pagina falhar.
+// generico (sem marca/modelo), tenta descobrir o nome completo do produto.
+// So roda em regeneracao (opts.enrichNames) para nao custar chamadas extras no
+// cron — e nunca quebra o pipeline se a busca falhar. Duas fontes, em ordem:
+//   1. A pagina do proprio produto (permalink) quando o site serve og:title.
+//   2. Busca web (Tavily) pelo titulo generico — pega o titulo da pagina do
+//      produto. Quando o produto tem id MLB, exige que o resultado seja do
+//      mesmo anuncio (id na URL) para nao trocar o nome por outro teclado.
 const BRAND_RE = new RegExp(`(^|[^a-z])(${Object.keys(KNOWN_BRANDS).map((b) => b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})([^a-z]|$)`, "i");
 const MODEL_RE = /\b[A-Z]{1,4}[- ]?\d{2,5}[A-Z-]{0,4}\b/;
+const STORE_SUFFIX_RE = /\s*[|\-]\s*(mercadolivre|mercado libre|mercado livre|shopee|amazon(\.com\.br)?|magazine luiza|magalu|kabum|pichau|terabyte).*$/i;
+const FAKE_TITLE_RE = /^(mercado libre|mercado livre|captcha|just a moment|verifica[cç][aã]o de seguran[cç][aã]|acesso negado|access denied|attention required|error|404|p[aá]gina n[aã]o encontrada|hmm)/i;
+
+async function enrichWithProductPage(p) {
+  const url = String(p.permalink || p.affiliate_link || "");
+  if (!/^https?:\/\//.test(url)) return null;
+  try {
+    const res = await fetch(url, {
+      headers: SESSION_HEADERS,
+      redirect: "follow",
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const data = extractMLProductData(html, url);
+    const t = String(data.title || "").trim();
+    if (t.length < 10 || FAKE_TITLE_RE.test(t)) return null;
+    return t;
+  } catch {
+    return null;
+  }
+}
+
+async function enrichWithTavily(p) {
+  if (!TAVILY_API_KEY) return null;
+  const raw = String(p.raw_title || p.title || "").trim();
+  if (!raw || raw.length < 5) return null;
+  const res = await fetch("https://api.tavily.com/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      api_key: TAVILY_API_KEY,
+      query: `"${raw}"`,
+      search_depth: "basic",
+      max_results: 6,
+    }),
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const pId = String(p.id || "");
+  for (const r of data.results || []) {
+    const url = String(r.url || "");
+    if (/MLB\d{8,}/.test(pId) && !url.includes(pId)) continue;
+    const t = String(r.title || "").trim().replace(STORE_SUFFIX_RE, "").trim();
+    if (t.length < 10 || FAKE_TITLE_RE.test(t)) continue;
+    if (t.toLowerCase() === raw.toLowerCase()) continue;
+    return t;
+  }
+  return null;
+}
 
 async function enrichProductTitles(mlProducts) {
   let enriched = 0;
   for (const p of mlProducts) {
-    if (!p || !p.permalink) continue;
+    if (!p || typeof p !== "object") continue;
     const raw = String(p.raw_title || p.title || "").trim();
     if (!raw || BRAND_RE.test(raw) || MODEL_RE.test(raw)) continue;
-    const url = String(p.permalink || "");
-    if (!/^https?:\/\//.test(url)) continue;
-    try {
-      const res = await fetch(url, {
-        headers: SESSION_HEADERS,
-        redirect: "follow",
-        signal: AbortSignal.timeout(15000),
-      });
-      if (!res.ok) continue;
-      const html = await res.text();
-      const data = extractMLProductData(html, url);
-      if (!data.title || data.title.length < 10 || data.title === raw) continue;
-      p.raw_title = data.title;
-      p.title = data.title;
-      enriched++;
-      log("INFO", `Titulo enriquecido: "${raw}" -> "${data.title.slice(0, 60)}"`);
-    } catch (e) {
-      log("WARN", `Enriquecimento falhou para ${url.slice(0, 60)}: ${e.message}`);
-    }
+    let full = await enrichWithProductPage(p);
+    if (!full) full = await enrichWithTavily(p);
+    if (!full) continue;
+    p.raw_title = full;
+    p.title = full;
+    enriched++;
+    log("INFO", `Titulo enriquecido: "${raw}" -> "${full.slice(0, 60)}"`);
   }
   return enriched;
 }
