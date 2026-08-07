@@ -14,6 +14,7 @@ import {
 } from "./gerar-artigo.mjs";
 import { parsePriceBRL } from "./google_shopping.mjs";
 import { normalizarProdutoRemoto } from "./monitor_api.mjs";
+import { cleanProductTitle, detectCategory, productMatchesCategory, detectArticleCategory } from "./product_naming.mjs";
 
 let passou = 0;
 function ok(cond, msg) {
@@ -372,7 +373,8 @@ const candidatos = [
   { id: "", title: "Placa sem id mas com permalink", price: 3000, permalink: "https://www.amazon.com.br/rtx", source: "Amazon" },
 ];
 const limpos = sanitizeProducts(candidatos, topicProd);
-igual(limpos.map((p) => p.title), ["Placa de Video RX 580 8GB", "Placa de Video RTX 4060 8GB", "Placa de Video RTX 5060 Kabum", "Placa sem id mas com permalink"], "sanitize tira blog/lista/up, deduplica, aceita lojas sem MLB e ordena por relevancia");
+igual(limpos.map((p) => p.title), ["Placa de Vídeo RX 580 8GB", "Placa de Vídeo RTX 4060 8GB", "Placa de Vídeo Kabum RTX 5060"], "sanitize tira blog/lista/up, deduplica, ordena por relevancia, limpa o nome e filtra pela categoria do artigo");
+ok(limpos[0].raw_title === "Placa de Video RX 580 8GB", "sanitize preserva o titulo bruto em raw_title");
 igual(sanitizeProducts([], topicProd), [], "sanitize lista vazia");
 igual(sanitizeProducts(null, topicProd), [], "sanitize null");
 igual(sanitizeProducts([{ title: "X", price: 1, permalink: "" }], topicProd), [], "sanitize rejeita produto sem id e sem permalink");
@@ -406,9 +408,9 @@ ok(tab.includes("| P1 | R$ 1.234,50 | legal | 8/10 |"), "tabela: preco pt-BR e n
 ok(tab.includes("| P2 | Ver no ML | — | — |"), "tabela: sem preco/nota usa placeholder");
 
 // --- Fase 2: buildItemSection (montagem deterministica) ---
-const sec = buildItemSection({ title: "Placa de Video RTX 4060", tagline: "60fps", blurbText: "Texto do item.", nota: 8, local_thumbnail: "/blog-gamer/images/produtos/x.png", affiliate_link: "http://ml/x" });
+const sec = buildItemSection({ title: "Placa de Video RTX 4060", tagline: "60fps", blurbText: "Texto do item.", nota: 8, local_thumbnail: "/images/produtos/x.png", affiliate_link: "http://ml/x" });
 ok(sec.startsWith("## Placa de Video RTX 4060 — 60fps"), "item: heading com tagline");
-ok(sec.includes('src="/blog-gamer/images/produtos/x.png"'), "item: foto local do produto");
+ok(sec.includes('src="/images/produtos/x.png"'), "item: foto local do produto");
 ok(sec.includes("VER NO MERCADO LIVRE") && sec.includes("http://ml/x"), "item: botao aponta para o produto real");
 ok(!sec.includes("R$"), "item: sem preco no texto");
 
@@ -457,6 +459,63 @@ ok(!htmlUma.includes("product-btns"), "uma loja nao usa wrapper");
 igual(buildOfferButtonsHtml({}), "", "sem offers cai no caminho antigo");
 igual(buildOfferButtonsHtml({ offers: { amazon: { affiliate_link: "x" } } }), "",
       "loja desconhecida e ignorada");
+
+// ---- TAREFA 1: cleanProductTitle ----
+igual(cleanProductTitle("Monitor Gamer AOC Agon 27 Pol 165Hz 1ms 2026"), "Monitor AOC 27 Pol 165Hz", "tira ano e 'gamer', remonta Monitor + Marca + specs da prioridade do plano");
+igual(cleanProductTitle("Teclado Mecanico Gamer Redragon Kumara K552 Switch Blue"), "Teclado Redragon Kumara K552 Switch Blue", "Teclado + Marca + Modelo com codigo + specs");
+igual(cleanProductTitle("Headset Gamer Bluetooth 2026"), "Headset Bluetooth", "remove ano do fim e o adjetivo gamer");
+igual(cleanProductTitle("1pcsk1 Teclado Gamer Redragon Kumara K552"), "Teclado Redragon Kumara K552", "descarta token lixo no inicio");
+igual(cleanProductTitle("Produto X | Enviado por Fulano"), "Produto X", "corta cauda de vendedor apos separador");
+igual(cleanProductTitle("Teclado Gamer Redragon Kumara K552 Switch Blue - 12x de R$ 49,90"), "Teclado Redragon Kumara K552 Switch Blue", "remove preco e parcela do titulo");
+igual(cleanProductTitle(""), "", "titulo vazio vira vazio");
+igual(cleanProductTitle("   "), "", "so espacos vira vazio");
+igual(cleanProductTitle(null), "", "null vira vazio");
+igual(cleanProductTitle("Placa de Video RTX 4070 12GB"), "Placa de Vídeo RTX 4070 12GB", "serie de GPU reconhecida e vira modelo, acentos preservados");
+igual(cleanProductTitle("123"), "123", "titulo que so sobra em lixo cai no fallback colapsado");
+igual(cleanProductTitle("Teclado Redragon Kumara K552 Switch Blue | Loja Oficial 2026"), "Teclado Redragon Kumara K552 Switch Blue", "loja oficial e ano removidos");
+igual(cleanProductTitle("Mouse Gamer Sem Fio 2026"), "Mouse Sem Fio", "sem fio vira spec e mouse mantem categoria");
+
+// ---- TAREFA 5: categoria do produto vs categoria do artigo ----
+igual(detectCategory("Teclado Gamer Redragon K552"), "teclado", "detecta teclado");
+igual(detectCategory("Mouse Gamer Logitech G Pro"), "mouse", "detecta mouse");
+igual(detectCategory("Placa de Video RTX 4060 8GB"), "placa_video", "detecta placa de video pelo include rtx");
+igual(detectCategory("Kit Teclado e Mouse Gamer"), "teclado", "desempate de includes vai para a 1a categoria na tabela");
+igual(detectCategory("Fone de Ouvido Bluetooth"), "headset", "fone de ouvido vira headset");
+igual(detectCategory("Caixa de Papelao"), null, "sem categoria conhecida retorna null");
+igual(detectCategory(""), null, "titulo vazio nao tem categoria");
+
+ok(productMatchesCategory("Teclado Gamer Redragon K552", "teclado"), "teclado casa com teclado");
+ok(!productMatchesCategory("Mouse Gamer", "teclado"), "mouse nao casa com teclado (exclude)");
+ok(!productMatchesCategory("Suporte para Teclado", "teclado"), "acessorio suporte e descartado (ACCESSORY_NOISE)");
+ok(!productMatchesCategory("Kit Teclado e Mouse", "teclado"), "kit teclado+mouse nao casa (exclude kit)");
+ok(!productMatchesCategory("Teclado", "mouse"), "teclado nao casa com mouse (include nao bate)");
+ok(!productMatchesCategory("X", "monitor"), "categoria inexistente no titulo retorna false");
+
+igual(detectArticleCategory({ hint: "melhores mouses gamer 2026" }), "mouse", "categoria do artigo vem do hint");
+igual(detectArticleCategory({ hint: "gta 6", ml_query: "monitor 144hz" }), "monitor", "ml_query entra na deteccao");
+igual(detectArticleCategory({ hint: "novidades", ml_query: "placa de video", trending_keywords: ["rx 580", "rtx 4070"] }), "placa_video", "trending keywords entram na deteccao");
+igual(detectArticleCategory({ hint: "noticias do dia" }), null, "sem palavra de categoria retorna null");
+igual(detectArticleCategory(null), null, "topic null nao quebra");
+igual(detectArticleCategory({}), null, "topic vazio nao quebra");
+
+// Filtro dentro de sanitizeProducts: artigo de teclado descarta mouse/headset.
+const topicTeclado = { hint: "melhores teclados gamer 2026", ml_query: "teclado gamer", trending_keywords: ["teclado"] };
+const misto = [
+  { id: "T1", title: "Teclado Redragon Kumara K552", price: 200, permalink: "https://www.mercadolivre.com.br/t/p/MLB1" },
+  { id: "T2", title: "Teclado Logitech G Pro X", price: 700, permalink: "https://www.mercadolivre.com.br/t/p/MLB2" },
+  { id: "T3", title: "Teclado Mecanico Razer", price: 400, permalink: "https://www.mercadolivre.com.br/t/p/MLB3" },
+  { id: "M1", title: "Mouse Gamer Logitech G Pro", price: 500, permalink: "https://www.mercadolivre.com.br/m/p/MLB4" },
+  { id: "H1", title: "Headset Gamer HyperX", price: 300, permalink: "https://www.mercadolivre.com.br/h/p/MLB5" },
+];
+const teclados = sanitizeProducts(misto, topicTeclado);
+igual(teclados.length, 3, "filtro de categoria manteve so os teclados (>= MIN_PRODUCTS)");
+ok(teclados.every((p) => productMatchesCategory(p.raw_title, "teclado")), "todos os itens restantes sao teclados");
+ok(!teclados.some((p) => /mouse|headset/i.test(p.raw_title)), "mouse e headset descartados do artigo de teclado");
+const soUm = sanitizeProducts(misto.slice(0, 1), topicTeclado);
+igual(soUm.length, 1, "com menos de MIN_PRODUCTS mantem os que casam (lista curta e correta)");
+ok(soUm.every((p) => productMatchesCategory(p.raw_title, "teclado")), "mesmo com lista curta, nada fora da categoria sobrevive");
+const semCategoria = sanitizeProducts(misto, { hint: "novidades da semana" });
+igual(semCategoria.length, 5, "sem categoria detectada o filtro nao roda e nada e descartado");
 
 // ---- Frente 4: cliente remoto ----
 const bruto = {

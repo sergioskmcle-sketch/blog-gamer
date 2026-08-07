@@ -7,6 +7,7 @@ import { searchGoogleShopping } from "./google_shopping.mjs";
 import { buscarProdutosLoteRemoto } from "./monitor_api.mjs";
 import { gerarCapaStability } from "./stability-cover.mjs";
 import { gerarCapaOpenAI, downloadImage, searchTavilyImage } from "./openai-cover.mjs";
+import { cleanProductTitle, detectArticleCategory, productMatchesCategory, PRODUCT_CATEGORIES, CATEGORY_BRANDS } from "./product_naming.mjs";
 
 const rssParser = new Parser({
   timeout: 15000,
@@ -459,6 +460,10 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const RAWG_API_KEY = process.env.RAWG_API_KEY;
 const SERPER_API_KEY = process.env.SERPER_API_KEY;
 const MAX_PRODUCTS = 5;
+// TAREFA 5.3: quantidade minima de produtos da categoria certa para o artigo
+// "Top N" valer a pena. Abaixo disso o gerador tenta mais buscas e, se ainda
+// faltar, aborta em vez de publicar um artigo cheio de produto errado.
+const MIN_PRODUCTS = 3;
 // remote = usa a Frente 4 (produtos com comissao). legacy = so Google Shopping.
 const AFFILIATE_MODE = process.env.AFFILIATE_MODE || "legacy";
 
@@ -860,11 +865,54 @@ function sanitizeProducts(products, topic) {
     log("WARN", `${candidates.length - out.length} produto(s) sem preco descartados — tabela comparativa exige preco`);
   }
 
+  // TAREFA 5.3: filtra produtos que NAO pertencem a categoria do artigo.
+  const articleCat = detectArticleCategory(topic);
+  if (articleCat) {
+    const before = out.length;
+    const matched = out.filter((p) => productMatchesCategory(p.raw_title || p.title, articleCat));
+    if (matched.length >= MIN_PRODUCTS) {
+      out = matched;
+      if (before > out.length) {
+        log("INFO", `${before - out.length} produto(s) fora da categoria "${articleCat}" descartados`);
+      }
+    } else {
+      log("WARN", `Filtro de categoria "${articleCat}" deixaria so ${matched.length} produto(s) — mantendo os que casam e sinalizando falta`);
+      out = matched;
+    }
+  }
+
   const tokens = mlTopicTokens(topic);
   if (out.length > 1 && tokens.length > 0) {
     out = out.slice().sort((a, b) => mlProductRelevanceScore(b, tokens) - mlProductRelevanceScore(a, tokens));
   }
+
+  // TAREFA 1: normaliza o nome de cada produto e preserva o bruto em raw_title.
+  // Se raw_title ja existe (ex.: re-chamada no laço de retry da TAREFA 5.4),
+  // nao sobrescreve com o titulo ja limpo.
+  for (const p of out) {
+    if (p && typeof p === "object") {
+      const raw = String(p.raw_title || p.title || "").trim();
+      if (raw) {
+        p.raw_title = raw;
+        p.title = cleanProductTitle(raw) || raw;
+      }
+    }
+  }
   return out;
+}
+
+// TAREFA 5.4: queries especificas de retry quando sobrarem menos de
+// MIN_PRODUCTS itens da categoria do artigo apos o filtro.
+function buildCategoryRetryQueries(articleCat) {
+  if (!articleCat || !PRODUCT_CATEGORIES[articleCat]) return [];
+  const label = PRODUCT_CATEGORIES[articleCat].label;
+  const ano = new Date().getFullYear();
+  const marcas = CATEGORY_BRANDS[articleCat] || [];
+  return [
+    `${label} gamer ${ano}`,
+    `melhor ${label} gamer custo beneficio`,
+    ...marcas.slice(0, 3).map((marca) => `${label} ${marca}`),
+  ];
 }
 
 // Detecta a extensao real pelo magic bytes do buffer baixado.
@@ -981,18 +1029,18 @@ async function ensureProductImages(mlProducts) {
   if (!fs.existsSync(PROD_IMAGES_DIR)) fs.mkdirSync(PROD_IMAGES_DIR, { recursive: true });
 
   for (const p of mlProducts) {
-    const slug = slugify(p.title || `produto-${mlProducts.indexOf(p) + 1}`);
+    const slug = slugify(p.title || p.raw_title || `produto-${mlProducts.indexOf(p) + 1}`);
 
     if (fs.existsSync(path.join(PROD_IMAGES_DIR, `${slug}.png`))) {
-      p.local_thumbnail = `/blog-gamer/images/produtos/${slug}.png`;
+      p.local_thumbnail = `/images/produtos/${slug}.png`;
       continue;
     }
     if (fs.existsSync(path.join(PROD_IMAGES_DIR, `${slug}.jpg`))) {
-      p.local_thumbnail = `/blog-gamer/images/produtos/${slug}.jpg`;
+      p.local_thumbnail = `/images/produtos/${slug}.jpg`;
       continue;
     }
     if (fs.existsSync(path.join(PROD_IMAGES_DIR, `${slug}.webp`))) {
-      p.local_thumbnail = `/blog-gamer/images/produtos/${slug}.webp`;
+      p.local_thumbnail = `/images/produtos/${slug}.webp`;
       continue;
     }
 
@@ -1019,7 +1067,7 @@ async function ensureProductImages(mlProducts) {
     if (buf) {
       const ext = imageExtension(buf);
       fs.writeFileSync(path.join(PROD_IMAGES_DIR, `${slug}${ext}`), buf);
-      p.local_thumbnail = `/blog-gamer/images/produtos/${slug}${ext}`;
+      p.local_thumbnail = `/images/produtos/${slug}${ext}`;
       log("INFO", `Imagem do item salva: ${p.local_thumbnail} (${(buf.length / 1024).toFixed(1)} KB)`);
     } else {
       log("WARN", `Nenhuma imagem obtida para "${p.title?.slice(0, 40)}" — item sem foto`);
@@ -1755,7 +1803,7 @@ function getRecentArticlesForPrompt(limit = 12) {
 function buildInternalLinksBlock() {
   const articles = getRecentArticlesForPrompt(12);
   if (articles.length === 0) return "";
-  const lines = articles.map((a) => `- ${a.title} -> /blog-gamer/blog/${a.slug}/`);
+  const lines = articles.map((a) => `- ${a.title} -> /blog/${a.slug}/`);
   return `\nARTIGOS EXISTENTES (links internos SO desta lista — proibido inventar slug):\n${lines.join("\n")}\n`;
 }
 
@@ -1806,13 +1854,13 @@ function validateSourceCoverage(body, sources = []) {
 
 function validateInternalLinks(body) {
   const existingSlugs = getExistingSlugs();
-  const linkRegex = /\[([^\]]+)\]\(\/blog-gamer\/blog\/([^)]+?)\/?\)/g;
+  const linkRegex = /\[([^\]]+)\]\(\/blog\/([^)]+?)\/?\)/g;
   let match;
   let fixed = body;
   while ((match = linkRegex.exec(fixed)) !== null) {
     const slug = match[2];
     if (!existingSlugs.includes(slug)) {
-      log("WARN", `Link interno invalido removido: /blog-gamer/blog/${slug}/`);
+      log("WARN", `Link interno invalido removido: /blog/${slug}/`);
       fixed = fixed.replace(match[0], "");
     }
   }
@@ -1929,87 +1977,114 @@ async function main() {
   // reinsere produto que a Frente 4 ja trouxe.
   const seen = new Set();
 
-  // Frente 4 primeiro: produtos que ja vem com link de afiliado.
-  if (AFFILIATE_MODE === "remote") {
-    try {
-      const trendingKws = topic.trending_keywords || [];
-      const queriesRemotas = [
-        ...trendingKws.slice(0, 2),
-        topic.ml_query,
-      ].filter(Boolean).slice(0, 5);
+  // TAREFA 5.4: se depois do filtro por categoria sobrarem menos de
+  // MIN_PRODUCTS itens, refaz a busca com queries especificas da categoria
+  // (label + ano, custo beneficio, 3 marcas conhecidas) — ate 3 rodadas
+  // extras. Se ainda faltar, aborta: melhor nao publicar do que publicar um
+  // artigo de teclado cheio de mouse.
+  const articleCat = detectArticleCategory(topic);
+  const retryQueries = buildCategoryRetryQueries(articleCat);
+  const triedQueries = new Set();
 
-      const remotos = await buscarProdutosLoteRemoto(queriesRemotas, { limitPorQuery: 3 });
-      for (const p of remotos) {
-        if (mlProducts.length >= MAX_PRODUCTS) break;
-        if (p.permalink && seen.has(p.permalink)) continue;
-        if (p.permalink) seen.add(p.permalink);
-        mlProducts.push(p);
+  for (let extraRound = 0; extraRound <= 3; extraRound++) {
+    const retryQ = retryQueries.filter((q) => !triedQueries.has(q));
+
+    // Frente 4 primeiro: produtos que ja vem com link de afiliado.
+    if (AFFILIATE_MODE === "remote") {
+      try {
+        const trendingKws = topic.trending_keywords || [];
+        const queriesRemotas = [
+          ...trendingKws.slice(0, 2),
+          topic.ml_query,
+          ...(extraRound > 0 ? retryQ : []),
+        ].filter(Boolean).slice(0, 5 + retryQ.length);
+
+        const remotos = await buscarProdutosLoteRemoto(queriesRemotas, { limitPorQuery: 3 });
+        for (const p of remotos) {
+          if (mlProducts.length >= MAX_PRODUCTS) break;
+          if (p.permalink && seen.has(p.permalink)) continue;
+          if (p.permalink) seen.add(p.permalink);
+          mlProducts.push(p);
+        }
+        log("INFO", `Frente 4: ${mlProducts.length} produtos com afiliado`);
+      } catch (e) {
+        log("WARN", `Frente 4 falhou: ${e.message} — seguindo com Google Shopping`);
       }
-      log("INFO", `Frente 4: ${mlProducts.length} produtos com afiliado`);
-    } catch (e) {
-      log("WARN", `Frente 4 falhou: ${e.message} — seguindo com Google Shopping`);
     }
-  }
 
-  // Google Shopping so completa o que faltou (ou assume tudo, no modo legacy).
-  if (SERPER_API_KEY && mlProducts.length < MAX_PRODUCTS) {
-    try {
-      const trendingKws = topic.trending_keywords || [];
-      // Queries seguem o dominio do artigo: games -> jogos; hardware -> perifericos
-      const searchQueries = [
-        ...trendingKws.slice(0, 2).flatMap((kw) =>
-          effectiveDomain === "hardware"
-            ? [`${kw} gamer 2026`, `${kw} 2026`]
-            : [`${kw} jogo ps5`, `${kw} jogo xbox`]
-        ),
-        topic.ml_query,
-      ].slice(0, MAX_PRODUCTS);
+    // Google Shopping so completa o que faltou (ou assume tudo, no modo legacy).
+    if (SERPER_API_KEY && mlProducts.length < MAX_PRODUCTS) {
+      try {
+        const trendingKws = topic.trending_keywords || [];
+        // Queries seguem o dominio do artigo: games -> jogos; hardware -> perifericos
+        const searchQueries = [
+          ...trendingKws.slice(0, 2).flatMap((kw) =>
+            effectiveDomain === "hardware"
+              ? [`${kw} gamer 2026`, `${kw} 2026`]
+              : [`${kw} jogo ps5`, `${kw} jogo xbox`]
+          ),
+          topic.ml_query,
+          ...(extraRound > 0 ? retryQ : []),
+        ].slice(0, MAX_PRODUCTS + retryQ.length);
 
-      for (const query of searchQueries) {
-        try {
-          const results = await searchGoogleShopping(query, SERPER_API_KEY, MAX_PRODUCTS);
-          for (const p of results) {
-            if (!seen.has(p.permalink)) {
-              seen.add(p.permalink);
-              mlProducts.push(p);
+        for (const query of searchQueries) {
+          if (triedQueries.has(query)) continue;
+          triedQueries.add(query);
+          try {
+            const results = await searchGoogleShopping(query, SERPER_API_KEY, MAX_PRODUCTS);
+            for (const p of results) {
+              if (!seen.has(p.permalink)) {
+                seen.add(p.permalink);
+                mlProducts.push(p);
+              }
+            }
+          } catch (e) {
+            log("WARN", `Shopping search "${query}": ${e.message}`);
+          }
+          if (mlProducts.length >= MAX_PRODUCTS) break;
+        }
+
+        if (mlProducts.length === 0 && effectiveDomain === "games") {
+          log("INFO", "Fallback final: produtos fixos gaming");
+          const gamingProducts = [
+            { title: "Console Sony PlayStation 5 Slim 1TB + GTA 6", price: 4499, thumbnail: "https://store.sony.com.au/dw/image/v2/ABBC_PRD/on/demandware.static/-/Sites-sony-master-catalog/default/dwf11f74b4/images/PLAYSTATION5WSLIM/PLAYSTATION5WSLIM.png", permalink: "https://www.mercadolivre.com.br/console-sony-playstation-5-edico-slim-disk-1tb-branco-controle-sem-fio-dualsense-ps5-branco/p/MLB52897777", source: "Mercado Livre" },
+            { title: "Console Xbox Series X 1TB", price: 4399, thumbnail: "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/6048892_Image-Buy-Box-0_2000x2000-1?wid=1253&hei=705&fmt=jpg", permalink: "https://www.mercadolivre.com.br/console-xbox-series-x-1tb-standard-cor-preto/p/MLB37335939", source: "Mercado Livre" },
+            { title: "Console Nintendo Switch 2", price: 3299, thumbnail: "https://assets.nintendo.com/image/upload/c_fill,w_1200/q_auto:best/f_auto/dpr_2.0/ncom/My%20Nintendo%20Store/EN-US/Nintendo%20Switch%202/Hardware/123669-nintendo-switch-2-package-front-2000x2000", permalink: "https://www.mercadolivre.com.br/nintendo-switch-2/p/MLB41884906", source: "Mercado Livre" },
+            { title: "Controle Sem Fio DualSense PS5", price: 429, thumbnail: "https://gmedia.playstation.com/is/image/SIEPDC/dualsense-controller-product-thumbnail-01-en-14sep21", permalink: "https://www.mercadolivre.com.br/controle-sem-fio-sony-dualsense-ps5-com-cabo-de-carregamento-usb-cor-branco/p/MLB26725576", source: "Mercado Livre" },
+            { title: "Headset Gamer Astro A50 Wireless PS5/PC", price: 1799, thumbnail: "https://http2.mlstatic.com/D_NQ_NP_2X_697790-MLB75680571995_052024-F.webp", permalink: "https://www.mercadolivre.com.br/headset-gamer-astro-a50-wireless-base-station-ps5-pc/p/MLB29785062", source: "Mercado Livre" },
+            { title: "Controle Xbox Series Wireless", price: 449, thumbnail: "https://http2.mlstatic.com/D_NQ_NP_2X_823063-MLB73535292701_122023-F.webp", permalink: "https://www.mercadolivre.com.br/controle-sem-fio-microsoft-xbox-series-carbon-black/p/MLB26813017", source: "Mercado Livre" },
+          ];
+          for (const gp of gamingProducts.slice(0, MAX_PRODUCTS)) {
+            if (!seen.has(gp.permalink)) {
+              seen.add(gp.permalink);
+              mlProducts.push(gp);
             }
           }
-        } catch (e) {
-          log("WARN", `Shopping search "${query}": ${e.message}`);
         }
-        if (mlProducts.length >= MAX_PRODUCTS) break;
-      }
 
-      if (mlProducts.length === 0 && effectiveDomain === "games") {
-        log("INFO", "Fallback final: produtos fixos gaming");
-        const gamingProducts = [
-          { title: "Console Sony PlayStation 5 Slim 1TB + GTA 6", price: 4499, thumbnail: "https://store.sony.com.au/dw/image/v2/ABBC_PRD/on/demandware.static/-/Sites-sony-master-catalog/default/dwf11f74b4/images/PLAYSTATION5WSLIM/PLAYSTATION5WSLIM.png", permalink: "https://www.mercadolivre.com.br/console-sony-playstation-5-edico-slim-disk-1tb-branco-controle-sem-fio-dualsense-ps5-branco/p/MLB52897777", source: "Mercado Livre" },
-          { title: "Console Xbox Series X 1TB", price: 4399, thumbnail: "https://cdn-dynmedia-1.microsoft.com/is/image/microsoftcorp/6048892_Image-Buy-Box-0_2000x2000-1?wid=1253&hei=705&fmt=jpg", permalink: "https://www.mercadolivre.com.br/console-xbox-series-x-1tb-standard-cor-preto/p/MLB37335939", source: "Mercado Livre" },
-          { title: "Console Nintendo Switch 2", price: 3299, thumbnail: "https://assets.nintendo.com/image/upload/c_fill,w_1200/q_auto:best/f_auto/dpr_2.0/ncom/My%20Nintendo%20Store/EN-US/Nintendo%20Switch%202/Hardware/123669-nintendo-switch-2-package-front-2000x2000", permalink: "https://www.mercadolivre.com.br/nintendo-switch-2/p/MLB41884906", source: "Mercado Livre" },
-          { title: "Controle Sem Fio DualSense PS5", price: 429, thumbnail: "https://gmedia.playstation.com/is/image/SIEPDC/dualsense-controller-product-thumbnail-01-en-14sep21", permalink: "https://www.mercadolivre.com.br/controle-sem-fio-sony-dualsense-ps5-com-cabo-de-carregamento-usb-cor-branco/p/MLB26725576", source: "Mercado Livre" },
-          { title: "Headset Gamer Astro A50 Wireless PS5/PC", price: 1799, thumbnail: "https://http2.mlstatic.com/D_NQ_NP_2X_697790-MLB75680571995_052024-F.webp", permalink: "https://www.mercadolivre.com.br/headset-gamer-astro-a50-wireless-base-station-ps5-pc/p/MLB29785062", source: "Mercado Livre" },
-          { title: "Controle Xbox Series Wireless", price: 449, thumbnail: "https://http2.mlstatic.com/D_NQ_NP_2X_823063-MLB73535292701_122023-F.webp", permalink: "https://www.mercadolivre.com.br/controle-sem-fio-microsoft-xbox-series-carbon-black/p/MLB26813017", source: "Mercado Livre" },
-        ];
-        for (const gp of gamingProducts.slice(0, MAX_PRODUCTS)) {
-          if (!seen.has(gp.permalink)) {
-            seen.add(gp.permalink);
-            mlProducts.push(gp);
-          }
+        for (const p of mlProducts) {
+          // Produto vindo da Frente 4 ja tem link de afiliado — nao sobrescrever.
+          if (!p.affiliate_link) p.affiliate_link = p.permalink;
         }
+      } catch (err) {
+        log("WARN", `Shopping Search: ${err.message}`);
       }
-
-      for (const p of mlProducts) {
-        // Produto vindo da Frente 4 ja tem link de afiliado — nao sobrescrever.
-        if (!p.affiliate_link) p.affiliate_link = p.permalink;
-      }
-    } catch (err) {
-      log("WARN", `Shopping Search: ${err.message}`);
+    } else {
+      log("WARN", "SERPER_API_KEY nao configurada — pulando busca de produtos");
     }
-  } else {
-    log("WARN", "SERPER_API_KEY nao configurada — pulando busca de produtos");
-  }
 
-  mlProducts = sanitizeProducts(mlProducts.filter((p) => isGamerProduct(p.title)), topic);
+    mlProducts = sanitizeProducts(mlProducts.filter((p) => isGamerProduct(p.title)), topic);
+
+    if (mlProducts.length >= MIN_PRODUCTS || !articleCat) break;
+
+    if (extraRound < 3 && retryQ.length > 0) {
+      log("WARN", `Filtro de categoria "${articleCat}" deixou ${mlProducts.length} produto(s) — rodada ${extraRound + 1}/3 com queries especificas`);
+      continue;
+    }
+
+    log("ERROR", `Menos de ${MIN_PRODUCTS} produtos da categoria "${articleCat}" (so ${mlProducts.length}) — abortando para nao publicar artigo errado`);
+    process.exit(1);
+  }
 
   const productBlock = mlProducts.length > 0
     ? `\nPRODUTOS DISPONIVEIS (cada um vira um item da secao de Itens):\n${mlProducts.map((p, i) =>
@@ -2029,7 +2104,7 @@ async function main() {
   const estiloOpinativo = categoria === "noticia" || categoria === "lista";
   const estiloFactual = categoria === "guia" || categoria === "review";
 
-  const personaManoGamer = `PERSONA: Voce e o "Mano Gamer", narrador raiz do Blog Gamer — um gamer brasileiro que escreve como se estivesse trocando ideia com os amigos no Discord.
+  const personaManoGamer = `PERSONA: Voce e o "Mano Gamer", narrador raiz do Promo Gamer — um gamer brasileiro que escreve como se estivesse trocando ideia com os amigos no Discord.
 
 REGRAS DE ESTILO:
 - ABERTURA: Todo artigo comeca com gancho direto: "Fala, gamer!", "Segura essa, galera!", "O, presta atencao nisso!", "Mermao, olha o que saiu!"
@@ -2042,7 +2117,7 @@ REGRAS DE ESTILO:
 - FONTES: Cite no final com naturalidade: "Peguei as infos do [site] e do [outro] — os caras manjam do assunto."
 - JAMAIS: voz passiva, emojis, mencionar que e IA, termos corporativos ("desta forma", "contudo", "outrossim")`;
 
-  const personaFactual = `PERSONA: Voce e um redator tecnico especializado em {{DOMINIO}} do Blog Gamer. Escreve reviews e guias com precisao e profundidade.
+  const personaFactual = `PERSONA: Voce e um redator tecnico especializado em {{DOMINIO}} do Promo Gamer. Escreve reviews e guias com precisao e profundidade.
 
 REGRAS DE ESTILO:
 - ABERTURA: Va direto ao ponto. Contextualize o topico em 1-2 frases. Ex: "Escolher o monitor certo para games em 2026 exige atencao a 3 especificacoes-chave: taxa de atualizacao, tempo de resposta e tipo de painel."
@@ -2108,7 +2183,7 @@ ${estiloOpinativo ? "8. Giria e humor sao tempero, nao estrutura: no maximo 1 gi
   - "## FAQ" com 3-4 perguntas que as pessoas realmente pesquisam no Google sobre o tema.
   - "## Quer mais ofertas?" com: Entre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e receba ofertas diarias de ${domain === "hardware" ? "perifericos e hardware gamer" : "games e consoles"}!
   - "## Fontes" com os links da pesquisa.
-- LINKS INTERNOS: 2 a 3, SOMENTE na ultima secao "## Continue Explorando" (formato [texto](/blog-gamer/blog/slug-do-artigo/), usando SOMENTE slugs da lista de artigos existentes fornecida). NUNCA coloque links internos no meio do artigo.
+- LINKS INTERNOS: 2 a 3, SOMENTE na ultima secao "## Continue Explorando" (formato [texto](/blog/slug-do-artigo/), usando SOMENTE slugs da lista de artigos existentes fornecida). NUNCA coloque links internos no meio do artigo.
 - Headings ## em toda secao principal (### para subsecoes). Subtitulos que dizem algo, nao "Analise" ou "Detalhes".
 - Jogos citados pela PRIMEIRA vez em **negrito**: "**EA Sports FC 26** chegou..."
 - Bullets ou passos numerados nas secoes onde ajudam a leitura (nao em todas a forca).
@@ -2188,7 +2263,7 @@ Checklist antes de responder:
     try {
       const seg = await generateSegmentedArticle({
         mlProducts, topic, domain, categoria, primaryKeyword,
-        researchContext, internalLinksBlock, today, minWords,
+        researchContext, internalLinksBlock, today, minWords, articleCat,
       });
       fm = seg.fm;
       parts = seg.parts;
@@ -2389,9 +2464,6 @@ Checklist antes de responder:
     if (fallbackKw) coverImage = await fetchRAWGImage(fallbackKw) || "";
   }
   if (coverImage) {
-    if (coverImage.startsWith("/") && !coverImage.startsWith("/blog-gamer") && !coverImage.startsWith("http") && !coverImage.startsWith("data:")) {
-      coverImage = "/blog-gamer" + coverImage;
-    }
     fm.image = coverImage;
     log("INFO", `Imagem de capa: ${coverImage.slice(0, 80)}`);
   } else {
@@ -2481,14 +2553,14 @@ async function generateStatusFile(state) {
 // apontando para pagina errada: o sistema decide os itens, a ordem e o botao.
 // ============================================================================
 
-const SEG_STYLE_OPINATIVO = `PERSONA: Voce e o "Mano Gamer", narrador raiz do Blog Gamer — gamer brasileiro que escreve como se estivesse trocando ideia com os amigos no Discord.
+const SEG_STYLE_OPINATIVO = `PERSONA: Voce e o "Mano Gamer", narrador raiz do Promo Gamer — gamer brasileiro que escreve como se estivesse trocando ideia com os amigos no Discord.
 - OPINIAO FORTE: tome lado. Critique quando erram, elogie quando acertam. Ex: "A Capcom lancou mais um remake. Surpresa: zero."
 - HUMOR: metaforas do mundo gamer ("mais dificil que matar Malenia no level 1", "preco de scalper", "nao tankei").
 - GIRIAS NATURAIS e DOSADAS: "ta on", "brabo", "tankar", "o bagulho", "mermao", "ta ligado", "rage quit" (maximo 1 giria marcante a cada 2-3 paragrafos).
 - FALE COM O LEITOR: "voce", "teu setup", "bora ver?", "vai encarar?". Faca perguntas retoricas.
 - NUNCA: voz passiva, emojis, "Alem disso...", "E importante notar que...", termos corporativos.`;
 
-const SEG_STYLE_FACTUAL = `PERSONA: redator tecnico especializado em {{DOMINIO}} do Blog Gamer. Guias e reviews com precisao e profundidade.
+const SEG_STYLE_FACTUAL = `PERSONA: redator tecnico especializado em {{DOMINIO}} do Promo Gamer. Guias e reviews com precisao e profundidade.
 - OBJETIVIDADE: direto e informativo. Compare specs, mostre dados, explique o "por que" de cada recomendacao.
 - ESTRUTURA: tabelas, pros/contras, passos numerados.
 - TOM: profissional mas acessivel. Ex: "A RTX 4060 entrega 60 fps estaveis em 1080p." (e nao "apresenta desempenho satisfatorio no que tange a...").
@@ -2592,11 +2664,23 @@ function parseBlurb(out) {
   return { tagline, text, nota, destaque };
 }
 
+// TAREFA 5.5: reforco no prompt para o artigo tratar SO da categoria dele.
+function categoriaUnicaPrompt(articleCat) {
+  if (!articleCat || !PRODUCT_CATEGORIES[articleCat]) return "";
+  return `## CATEGORIA UNICA
+Este artigo e exclusivamente sobre: ${PRODUCT_CATEGORIES[articleCat].label}.
+NUNCA cite, recomende ou descreva produto de outra categoria (mouse, headset, monitor, kit, combo)
+a nao ser como acessorio complementar mencionado de passagem no Veredito.
+
+`;
+}
+
 // 1 chamada POR produto: descreve SO este item, sem preco, sem heading, sem botao.
-async function generateProductBlurb({ product, topic, domain, categoria, index }) {
+async function generateProductBlurb({ product, topic, domain, categoria, index, articleCat }) {
   const estilo = segStyle(categoria, domain);
   const sys = `Voce escreve a descricao de UM UNICO produto para um blog gamer brasileiro. ${estilo}
 
+${categoriaUnicaPrompt(articleCat)}
 ## O QUE VOCE GERA (somente texto, sem heading)
 1. "TAGLINE:" — uma frase curta (2-6 palavras) que vira o subtitulo do item. Destaque o diferencial do produto com a persona escolhida. Nao use aspas.
 2. "CORPO:" — 2 a 3 paragrafos curtos (60-110 palavras no total) sobre APENAS este produto. Sem lista, sem bullets.
@@ -2630,7 +2714,7 @@ async function generateProductBlurb({ product, topic, domain, categoria, index }
 
 // 1 chamada: intro SEM H2, o heading da lista, e as secoes finais. Nao escreve
 // os itens (o sistema monta) nem a tabela comparativa (o sistema monta).
-async function generateMainBody({ mlProducts, topic, domain, categoria, researchContext, internalLinksBlock, primaryKeyword, mainMinWords }) {
+async function generateMainBody({ mlProducts, topic, domain, categoria, researchContext, internalLinksBlock, primaryKeyword, mainMinWords, articleCat }) {
   const estilo = segStyle(categoria, domain);
   const productLines = mlProducts
     .map((p, i) => `${i + 1}. ${p.title}${p.price ? ` (${formatPriceBRL(p.price)})` : ""}`)
@@ -2639,6 +2723,7 @@ async function generateMainBody({ mlProducts, topic, domain, categoria, research
 
 ${estilo}
 
+${categoriaUnicaPrompt(articleCat)}
 ## DOMINIO UNICO
 Este artigo e APENAS sobre ${domainLabel(domain)}. Nunca misture games e hardware.
 
@@ -2649,7 +2734,7 @@ Este artigo e APENAS sobre ${domainLabel(domain)}. Nunca misture games e hardwar
 4. "## FAQ": 3-4 perguntas que as pessoas pesquisam no Google sobre o tema.
 5. "## Quer mais ofertas?": "Entre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e receba ofertas diarias de ${domain === "hardware" ? "perifericos e hardware gamer" : "games e consoles"}!"
 6. "## Fontes": os links da pesquisa fornecida.
-7. "## Continue Explorando": 2-3 links internos SOMENTE dos slugs fornecidos, formato [texto](/blog-gamer/blog/slug-do-artigo/).
+7. "## Continue Explorando": 2-3 links internos SOMENTE dos slugs fornecidos, formato [texto](/blog/slug-do-artigo/).
 
 ## MARCADORES DE IMAGEM
 - [IMG:Nome] em linha sozinha ANTES de cada heading ## das secoes 3 a 7 (pelo menos 2 delas). Ex: [IMG:Setup Gamer], [IMG:Perguntas Frequentes]. NUNCA em linhas de itens (nao existem no seu texto) nem antes de "## Os ... Melhores".
@@ -2726,12 +2811,12 @@ function injectSegmentedItems(body, listHeading, mlProducts) {
 }
 
 // Pipeline segmentado completo: frontmatter + blurbs + corpo + assembleia.
-async function generateSegmentedArticle({ mlProducts, topic, domain, categoria, primaryKeyword, researchContext, internalLinksBlock, today, minWords }) {
+async function generateSegmentedArticle({ mlProducts, topic, domain, categoria, primaryKeyword, researchContext, internalLinksBlock, today, minWords, articleCat }) {
   const fm = await generateArticleFrontmatter({ topic, domain, categoria, primaryKeyword, productCount: mlProducts.length, today });
   if (!fm) throw new Error("Frontmatter segmentado falhou");
 
   for (let i = 0; i < mlProducts.length; i++) {
-    const b = await generateProductBlurb({ product: mlProducts[i], topic, domain, categoria, index: i + 1 });
+    const b = await generateProductBlurb({ product: mlProducts[i], topic, domain, categoria, index: i + 1, articleCat });
     mlProducts[i].tagline = b.tagline;
     mlProducts[i].blurbText = b.text;
     mlProducts[i].nota = b.nota;
@@ -2743,7 +2828,7 @@ async function generateSegmentedArticle({ mlProducts, topic, domain, categoria, 
   let parts = null;
   for (let attempt = 1; attempt <= 2 && !parts; attempt++) {
     try {
-      const raw = await generateMainBody({ mlProducts, topic, domain, categoria, researchContext, internalLinksBlock, primaryKeyword, mainMinWords });
+      const raw = await generateMainBody({ mlProducts, topic, domain, categoria, researchContext, internalLinksBlock, primaryKeyword, mainMinWords, articleCat });
       parts = splitMainBody(raw);
       if (!parts) log("WARN", `Corpo principal sem estrutura valida (tentativa ${attempt}/2)`);
     } catch (e) {
