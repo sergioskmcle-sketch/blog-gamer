@@ -71,6 +71,16 @@ Blocos que ficaram inválidos após a remoção do prefixo `""`/`startsWith("")`
 
 `scripts/gerar-artigo.mjs` já gera/valida links internos no formato `[texto](/blog/slug-do-artigo/)` (sem `blog-gamer`), tanto no prompt de geração quanto na validação (`linkRegex`).
 
+### 3.6 Fundo liso e remoção do efeito de cursor
+
+Decisão do usuário após a migração: o site passou a ter **fundo liso** (sem textura/hexágonos) e o **efeito de brilho que seguia o cursor foi removido**.
+
+- **`src/data/blog-config.json`** → `background.mode: "solid"` (`--body-bg-image: none`).
+- **`src/layouts/Layout.astro`** → adicionado `!important` em `--body-bg-image` nos 3 ramos (`preset`, `image`, `solid`) para corrigir o conflito de especificidade com `:root[data-theme="light"]` do `global.css` (que reaplicava a textura no tema claro).
+- **`src/styles/global.css`** → removido o overlay `html::before` (hexágonos) do tema escuro e do claro.
+- **`src/components/CursorEffect.astro`** → **deletado** (era o brilho roxo radial que seguia o mouse); removido do `Layout.astro` e o CSS `.carbon-shine`/`.magnet-lens` foi limpo de `effects.css`.
+- **`public/admin/index.html`** → `imgUrl()` passou a usar base dinâmica via `getBlogBase()`/`window.location`, sem URL fixa (`https://promogamer.com.br`), para funcionar em qualquer base de publicação.
+
 ---
 
 ## 4. Validação executada
@@ -95,28 +105,27 @@ Blocos que ficaram inválidos após a remoção do prefixo `""`/`startsWith("")`
 - Scripts de capa corrigidos.
 - Build validado localmente.
 - Logo mantida (decisão do usuário).
+- **DNS propagado** no Registro.br: `A` raiz → `185.199.108.153` e `CNAME www` → `sergioskmcle-sketch.github.io`, confirmado em resolvers públicos (1.1.1.1, 8.8.8.8, 9.9.9.9, OpenDNS).
+- **Custom domain ativo** no GitHub Pages: `promogamer.com.br` (API `gh api .../pages` → `cname: "promogamer.com.br"`).
+- **Site publicado e validado** em `https://promogamer.com.br` (raiz, www, sitemap, RSS, robots, admin, artigo de exemplo — todos HTTP 200).
+- **Fundo liso** (sem textura) aplicado nos temas escuro e claro, corrigindo conflito de especificidade CSS com `!important`.
+- **Efeito de cursor removido** (`CursorEffect.astro` deletado).
+- **`imgUrl()` no admin** agora usa base dinâmica (`getBlogBase()`/`window.location`), sem URL fixa.
 
-### 5.2 Aguardando o usuário (bloqueado)
-O domínio `promogamer.com.br` está **registrado e com DNS configurado** no Registro.br, mas ainda **não está ativo/propagado**. Pendências:
-
-1. **DNS (já adicionado no painel Registro.br, aguardando propagação de até 1h–3h):**
-   - `A` → `185.199.108.153` (raiz; campo Nome **vazio**, o painel não aceita `@`)
-   - `CNAME www` → `sergioskmcle-sketch.github.io`
-2. **GitHub** → Settings → Pages → Custom domain: `promogamer.com.br` (deve ser feito na conta dona `sergioskmcle-sketch`, após a propagação do DNS).
-3. Habilitar **Enforce HTTPS** após o certificado ser emitido.
+### 5.2 Pendências menores
+1. **Enforce HTTPS** no GitHub (Settings → Pages): o certificado já é servido, mas `https_enforced` ainda aparece `false` na API — habilitar quando o GitHub liberar o botão.
+2. **Google Search Console** (opcional):
+   - Verificar propriedade do domínio `promogamer.com.br`.
+   - Enviar o sitemap `https://promogamer.com.br/sitemap-index.xml`.
+3. A URL antiga (`sergioskmcle-sketch.github.io/blog-gamer`) não redireciona automaticamente para o novo domínio — o GitHub Pages serve o site antigo com o custom domain configurado; visitantes diretos da URL `.github.io` veem o site normalmente, sem redirect explícito.
 
 ---
 
 ## 6. Próximos passos
 
-1. Usuário aguarda a propagação do DNS (até 1h para alterações, até 3h para mudança de modo) e confirma no painel do Registro.br.
-2. Configurar Custom domain `promogamer.com.br` no GitHub Pages (conta dona `sergioskmcle-sketch`).
-3. Habilitar **Enforce HTTPS**.
-4. **Commit + push** das alterações.
-5. **Google Search Console**:
-   - Verificar propriedade do domínio `promogamer.com.br`.
-   - Enviar o sitemap `https://promogamer.com.br/sitemap-index.xml`.
-6. A URL antiga (`sergioskmcle-sketch.github.io/blog-gamer`) redireciona automaticamente para o novo domínio.
+1. Habilitar **Enforce HTTPS** no GitHub quando disponível.
+2. **Google Search Console**: verificar propriedade `promogamer.com.br` e enviar `https://promogamer.com.br/sitemap-index.xml`.
+3. Monitorar por alguns dias: DNS, certificado, uptime e índices de busca.
 
 ---
 
@@ -135,3 +144,7 @@ O domínio `promogamer.com.br` está **registrado e com DNS configurado** no Reg
 | `admin/editor.js` | Upload de logo e base dinâmica via `getBlogBase()` |
 | `admin/index.html` | `imgUrl()` com base dinâmica (`window.location`), sem URL fixa |
 | `dist/sitemap-index.xml` | Sitemap gerado no build |
+| `src/data/blog-config.json` | `background.mode: "solid"` (fundo liso) |
+| `src/layouts/Layout.astro` | `--body-bg-image: none !important` nos 3 ramos |
+| `src/styles/global.css` | Sem overlay `html::before` (hexágonos removidos) |
+| `src/styles/effects.css` | `.carbon-shine`/`.magnet-lens` removidos |
