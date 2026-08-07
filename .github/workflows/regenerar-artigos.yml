@@ -1,15 +1,17 @@
-name: Gerar Conteudo Automatico
+name: Regenerar Artigo
 
 on:
-  schedule:
-    - cron: "30 9 * * *"
   workflow_dispatch:
     inputs:
-      force:
-        description: "Ignorar cooldown e gerar agora"
+      slug:
+        description: "Slug do artigo a regenerar (vazio = ultimo gerado automaticamente)"
+        required: false
+        type: string
+      apply:
+        description: "Gravar alteracoes no repositorio"
         required: false
         type: boolean
-        default: false
+        default: true
 
 permissions:
   contents: write
@@ -20,7 +22,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  gerar:
+  regenerar:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -37,8 +39,21 @@ jobs:
       - name: Rodar testes do gerador
         run: npm test
 
-      - name: Gerar artigo
-        run: node scripts/gerar-artigo.mjs
+      - name: Determinar slug alvo
+        id: slug
+        run: |
+          if [ -n "${{ github.event.inputs.slug }}" ]; then
+            echo "slug=${{ github.event.inputs.slug }}" >> $GITHUB_OUTPUT
+          else
+            SLUG=$(node -e "const s=require('./state.json'); console.log(s.last_slug||'')")
+            echo "slug=${SLUG}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Regenerar artigo
+        run: |
+          FLAGS=""
+          if [ "${{ github.event.inputs.apply }}" = "true" ]; then FLAGS="--apply"; fi
+          node scripts/regenerar-artigos.mjs --slug "${{ steps.slug.outputs.slug }}" $FLAGS
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
@@ -47,10 +62,13 @@ jobs:
           RAWG_API_KEY: ${{ secrets.RAWG_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           STABILITY_API_KEY: ${{ secrets.STABILITY_API_KEY }}
-          FORCE_GENERATE: ${{ github.event.inputs.force == 'true' && 'true' || '' }}
           AFFILIATE_MODE: ${{ vars.AFFILIATE_MODE }}
           MONITOR_API_URL: ${{ vars.MONITOR_API_URL }}
           MONITOR_API_KEY: ${{ secrets.MONITOR_API_KEY }}
+
+      - name: Validar artigo regenerado (portao de qualidade)
+        run: |
+          node scripts/validar-artigo.mjs "${{ steps.slug.outputs.slug }}"
 
       - name: Verificar alteracoes
         id: check
@@ -61,31 +79,18 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Validar artigo gerado (portao de qualidade)
-        if: steps.check.outputs.changed == 'true'
-        run: |
-          FILES=$(git status --porcelain | awk '{print $2}' | grep '^src/content/artigos/.*\.md$' || true)
-          if [ -z "$FILES" ]; then
-            echo "Nenhum artigo alterado para validar."
-          else
-            for f in $FILES; do
-              SLUG=$(basename "$f" .md)
-              node scripts/validar-artigo.mjs "$SLUG"
-            done
-          fi
-
       - name: Commit e push
-        if: steps.check.outputs.changed == 'true'
+        if: steps.check.outputs.changed == 'true' && github.event.inputs.apply == 'true'
         run: |
           git config user.name "blog-bot"
           git config user.email "bot@blog-gamer.com"
           git add -A
-          git commit -m "feat: artigo gerado automaticamente"
+          git commit -m "feat: regenera artigo com pipeline atual"
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "${GITHUB_REF_NAME}"
 
       - name: Disparar deploy
-        if: steps.check.outputs.changed == 'true'
+        if: steps.check.outputs.changed == 'true' && github.event.inputs.apply == 'true'
         run: gh workflow run deploy.yml
         env:
           GH_TOKEN: ${{ github.token }}

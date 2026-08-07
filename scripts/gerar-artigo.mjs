@@ -2069,6 +2069,29 @@ async function main() {
   topic.category = assignedCategory;
   log("INFO", `Categoria esteira: ${topic.category} (anterior: ${state.last_category || "nenhuma"})`);
 
+  await generateArticle({ topic, state, trendingSource, opts: {} });
+}
+
+// Gera um artigo para um topico dado. Usado pelo cron (main) e pela
+// regeneracao de artigos existentes (scripts/regenerar-artigos.mjs).
+// opts:
+//   overwriteSlug  - se informado, escreve nesse arquivo em vez de criar um
+//                    slug novo; ignora a checagem de slug duplicado.
+//   keepPubDate    - (default true) preserva a pubDate original do arquivo.
+//   reuseImageMap  - Map<titulo antigo do produto, caminho local> de imagens
+//                    a reutilizar quando o produto novo casar com um antigo.
+async function generateArticle({ topic, state, trendingSource = "estatico", opts = {} }) {
+  const now = new Date();
+  const today = now.toISOString().split("T")[0];
+  const keepPubDate = opts.keepPubDate !== false;
+  // Regeneracao nao deve mexer no estado do cron (cooldown/ultimo artigo).
+  const persistState = () => {
+    if (opts.updateState !== false) {
+      saveState(state);
+      generateStatusFile(state);
+    }
+  };
+
   // Determina o dominio do tema para manter foco unico (games OU hardware)
   const topicDomain = classifyDomain(topic.hint);
   if (topicDomain === "mixed") {
@@ -2076,8 +2099,7 @@ async function main() {
     state.last_error = "Tema misto (games + hardware) — pulando";
     state.last_error_date = today;
     state.consecutive_failures = (state.consecutive_failures || 0) + 1;
-    saveState(state);
-    generateStatusFile(state);
+    persistState();
     process.exit(1);
   }
   const effectiveDomain = topicDomain === "hardware" ? "hardware" : "games";
@@ -2406,8 +2428,7 @@ Checklist antes de responder:
       state.last_error = (err?.message || String(err)).slice(0, 200);
       state.last_error_date = today;
       state.consecutive_failures = (state.consecutive_failures || 0) + 1;
-      saveState(state);
-      generateStatusFile(state);
+      persistState();
       process.exit(1);
     }
   } else {
@@ -2425,8 +2446,7 @@ Checklist antes de responder:
       state.last_error = (err?.message || String(err)).slice(0, 200);
       state.last_error_date = today;
       state.consecutive_failures = (state.consecutive_failures || 0) + 1;
-      saveState(state);
-      generateStatusFile(state);
+      persistState();
       process.exit(1);
     }
 
@@ -2558,6 +2578,30 @@ Checklist antes de responder:
 
   log("INFO", "Injetando produtos do Mercado Livre no artigo...");
   if (mlProducts.length > 0) {
+    // Regeneracao: reaproveita a imagem local de produtos que se mantiveram
+    // (match por similaridade de titulo), evitando re-baixar foto boa.
+    if (opts.reuseImageMap && opts.reuseImageMap.size > 0) {
+      let reused = 0;
+      for (const p of mlProducts) {
+        const raw = (p.raw_title || p.title || "").trim();
+        if (!raw) continue;
+        let bestPath = null;
+        let bestScore = 0;
+        for (const [oldTitle, oldPath] of opts.reuseImageMap) {
+          if (!oldTitle || !oldPath) continue;
+          const s = nameSimilarity(raw, oldTitle);
+          if (s > bestScore) { bestScore = s; bestPath = oldPath; }
+        }
+        if (bestPath && bestScore >= 0.55) {
+          const localFile = path.join(PROD_IMAGES_DIR, path.basename(bestPath));
+          if (fs.existsSync(localFile)) {
+            p.local_thumbnail = bestPath;
+            reused++;
+          }
+        }
+      }
+      if (reused > 0) log("INFO", `${reused} imagem(ns) de produto reutilizada(s) do artigo anterior`);
+    }
     log("INFO", `Baixando imagens dos ${mlProducts.length} itens (ML -> web -> IA)...`);
     await ensureProductImages(mlProducts);
   }
@@ -2601,26 +2645,38 @@ Checklist antes de responder:
     log("WARN", "Nenhuma imagem de capa encontrada — artigo ficara sem imagem principal");
   }
 
-  const slug = slugify(fm.title);
+  const slug = opts.overwriteSlug || slugify(fm.title);
   const published = fs.existsSync(ARTIGOS_DIR)
     ? fs.readdirSync(ARTIGOS_DIR).filter((f) => f.endsWith(".md")).map((f) => f.replace(/\.md$/, ""))
     : [];
 
-  if (published.includes(slug)) {
+  if (!opts.overwriteSlug && published.includes(slug)) {
     log("ERROR", `Slug duplicado: ${slug}`);
     state.last_error = `Slug duplicado: ${slug}`;
     state.last_error_date = today;
     state.consecutive_failures = (state.consecutive_failures || 0) + 1;
-    saveState(state);
-    generateStatusFile(state);
+    persistState();
     process.exit(1);
+  }
+
+  // Regeneracao: preserva a pubDate original para o artigo nao "virar novo"
+  // no RSS/SEO. So o conteudo e regenerado, a data de publicacao fica.
+  let pubDate = today;
+  if (opts.overwriteSlug && keepPubDate) {
+    const existingPath = path.join(ARTIGOS_DIR, `${opts.overwriteSlug}.md`);
+    if (fs.existsSync(existingPath)) {
+      try {
+        const antigo = parseFrontmatter(fs.readFileSync(existingPath, "utf-8"));
+        if (antigo.frontmatter && antigo.frontmatter.pubDate) pubDate = String(antigo.frontmatter.pubDate);
+      } catch {}
+    }
   }
 
   const cover = fm.image || mlProducts[0]?.thumbnail || "";
   const markdown = `---
 title: "${fm.title.replace(/"/g, '\\"')}"
 description: "${fm.description.replace(/"/g, '\\"')}"
-pubDate: ${today}
+pubDate: ${pubDate}
 tags: [${fm.tags.map((t) => `"${t.trim().replace(/"/g, '\\"')}"`).join(", ")}]
 category: "${fm.category}"
 affiliate: ${fm.affiliate || mlProducts.length > 0}
@@ -2634,21 +2690,21 @@ ${body}
   fs.writeFileSync(fp, markdown, "utf-8");
   log("INFO", `Artigo salvo: ${slug}.md`);
 
-  state.last_success = today;
-  state.last_slug = slug;
-  state.last_error = null;
-  state.last_error_date = null;
-  state.consecutive_failures = 0;
-  state.total_articles = countArticlesInDir();
-  state.last_topic = topic.hint;
-  state.last_category = topic.category;
-  state.trending_source = trendingSource;
-  state.recent_keywords = topic.trending_keywords || [];
-  state.recent_topics = [...((state.recent_topics || []).slice(-9)), topic.hint.slice(0, 60)];
-  saveState(state);
-  log("INFO", `Estado atualizado: ${state.total_articles} artigos, ultimo hoje`);
-
-  generateStatusFile(state);
+  if (opts.updateState !== false) {
+    state.last_success = today;
+    state.last_slug = slug;
+    state.last_error = null;
+    state.last_error_date = null;
+    state.consecutive_failures = 0;
+    state.total_articles = countArticlesInDir();
+    state.last_topic = topic.hint;
+    state.last_category = topic.category;
+    state.trending_source = trendingSource;
+    state.recent_keywords = topic.trending_keywords || [];
+    state.recent_topics = [...((state.recent_topics || []).slice(-9)), topic.hint.slice(0, 60)];
+    persistState();
+    log("INFO", `Estado atualizado: ${state.total_articles} artigos, ultimo hoje`);
+  }
 
   log("INFO", "=== CONCLUIDO ===");
 }
@@ -3046,6 +3102,7 @@ if (executadoDireto) {
 }
 
 export {
+  generateArticle,
   similarity,
   nameSimilarity,
   extractImageMarkers,
