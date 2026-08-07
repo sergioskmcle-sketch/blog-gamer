@@ -150,11 +150,12 @@ export const KNOWN_BRANDS = {
   bloody: "Bloody",
   a4tech: "A4Tech",
   forcegamer: "ForceGamer",
+  aula: "Aula",
 };
 
 // 3 marcas conhecidas por categoria — usadas nas queries de retry (PLANO §5.4).
 export const CATEGORY_BRANDS = {
-  teclado: ["Redragon", "Logitech", "Razer"],
+  teclado: ["Redragon", "Logitech", "Aula"],
   mouse: ["Logitech", "Razer", "Redragon"],
   mousepad: ["Redragon", "Logitech", "Razer"],
   headset: ["HyperX", "Logitech", "Razer"],
