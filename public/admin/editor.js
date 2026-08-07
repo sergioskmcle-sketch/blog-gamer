@@ -492,8 +492,11 @@ function generateThemeCSS() {
     }
   }
 
-  if (pendingChanges['body-bg-color']) {
-    vars.push(`  --body-bg-color: ${pendingChanges['body-bg-color']};`);
+  const bgVars = pendingChanges['__background_vars__'] || {};
+  for (const [cssKey, cssVal] of Object.entries(bgVars)) {
+    if (cssKey.startsWith('--')) {
+      vars.push(`  ${cssKey}: ${cssVal};`);
+    }
   }
 
   if (vars.length === 0) {
