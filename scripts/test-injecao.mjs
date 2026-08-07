@@ -332,6 +332,14 @@ ok(!/<a id="[^"]+"><\/a>conclusao/i.test(comAncora), "Conclusao segue sem ancora
 const corpoCurto = `## Unica Secao\n\nTexto.`;
 igual(injectHeadingAnchors(corpoCurto), corpoCurto, "nao gera ancoras com menos de 3 headings");
 
+// TAREFA 3: produtos (H3) tambem ganham ancora para entrar como sub-topicos do indice.
+const corpoComH3 = `## Lista\n\n### Produto A\n\n### Produto B\n\n## Dicas\n\n## Conclusao\n\nfim`;
+const comH3 = injectHeadingAnchors(corpoComH3);
+ok(comH3.includes('## <a id="lista"></a>Lista'), "H2 topico recebe ancora");
+ok(comH3.includes('### <a id="produto-a"></a>Produto A'), "produto H3 recebe ancora");
+ok(comH3.includes('### <a id="produto-b"></a>Produto B'), "segundo produto H3 recebe ancora");
+ok(!comH3.includes('<a id="conclusao"></a>'), "H3/H2 excluidos seguem sem ancora");
+
 // --- validacao de cobertura de fontes (v1.1) ---
 const fontes = [
   { title: "Review Tech", content: "O jogo chega em 19 de novembro de 2026. Nota 9/10.", url: "http://tech.com" },
@@ -413,7 +421,7 @@ ok(tab.includes("| P2 | Ver no ML | — | — |"), "tabela: sem preco/nota usa p
 
 // --- Fase 2: buildItemSection (montagem deterministica) ---
 const sec = buildItemSection({ title: "Placa de Video RTX 4060", tagline: "60fps", blurbText: "Texto do item.", nota: 8, local_thumbnail: "/images/produtos/x.png", affiliate_link: "http://ml/x" });
-ok(sec.startsWith("## Placa de Video RTX 4060 — 60fps"), "item: heading com tagline");
+ok(sec.startsWith("### Placa de Video RTX 4060 — 60fps"), "item: heading com tagline");
 ok(sec.includes('src="/images/produtos/x.png"'), "item: foto local do produto");
 ok(sec.includes("VER NO MERCADO LIVRE") && sec.includes("http://ml/x"), "item: botao aponta para o produto real");
 ok(!sec.includes("R$"), "item: sem preco no texto");
@@ -424,9 +432,9 @@ const prodsSeg = [
   { title: "Produto B", price: 20, blurbText: "texto B", nota: 7, destaque: "dB", local_thumbnail: "/x/b.png", affiliate_link: "http://ml/b" },
 ];
 const injSeg = injectSegmentedItems("Intro.\n\n## Lista Principal\n\n## Veredito\n\nVale.", "Lista Principal", prodsSeg);
-ok(injSeg.indexOf("## Lista Principal") < injSeg.indexOf("## Produto A"), "inject: itens apos o heading da lista");
-ok(injSeg.indexOf("## Produto A") < injSeg.indexOf("## Produto B"), "inject: ordem dos itens preservada");
-ok(injSeg.indexOf("## Produto B") < injSeg.indexOf("## Comparativo"), "inject: tabela depois dos itens");
+ok(injSeg.indexOf("## Lista Principal") < injSeg.indexOf("### Produto A"), "inject: itens apos o heading da lista");
+ok(injSeg.indexOf("### Produto A") < injSeg.indexOf("### Produto B"), "inject: ordem dos itens preservada");
+ok(injSeg.indexOf("### Produto B") < injSeg.indexOf("## Comparativo"), "inject: tabela depois dos itens");
 ok(injSeg.indexOf("## Comparativo") < injSeg.indexOf("## Veredito"), "inject: veredito depois da tabela");
 
 // --- Fase 3: validate endurecido (modo segmentado) ---
@@ -434,7 +442,7 @@ const fmSeg = { title: "Os 2 Melhores Produtos em 2026", description: "x".repeat
 r = validate(fmSeg, injSeg, { category: "lista", segmented: true, listHeading: "Lista Principal", products: prodsSeg, productCount: 2, relaxedWordCount: true, lastAttempt: true });
 igual(r.hard, [], "segmentado: artigo montado passa sem bloqueantes");
 const quebrado = validate(fmSeg, "Intro.\n\n## Lista Principal\n\n## Veredito\n\nVale.", { category: "lista", segmented: true, listHeading: "Lista Principal", products: prodsSeg, productCount: 2, relaxedWordCount: true, lastAttempt: true });
-ok(quebrado.hard.some((e) => /secao ## propria/.test(e)), "segmentado: item sem heading bloqueia");
+ok(quebrado.hard.some((e) => /secao propria/.test(e)), "segmentado: item sem heading bloqueia");
 const secVazia = validate(fmSeg, "Intro.\n\n## Secao Vazia\n\n## Outra\n\ntexto.", { category: "lista", segmented: true, listHeading: "Lista Principal", products: prodsSeg, productCount: 2, relaxedWordCount: true, lastAttempt: true });
 ok(secVazia.hard.some((e) => /vazia/.test(e)), "segmentado: secao ## vazia bloqueia");
 const refCard = validate(fmSeg, "Intro.\n\n## X\n\nconfira o preco atual no card", { category: "lista", segmented: true, listHeading: "Lista Principal", products: prodsSeg, productCount: 2, relaxedWordCount: true, lastAttempt: true });

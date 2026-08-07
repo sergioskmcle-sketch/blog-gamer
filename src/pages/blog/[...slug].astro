@@ -539,6 +539,55 @@ const todosArtigos = Object.entries(import.meta.glob("../../content/artigos/*.md
       margin-top: 1rem;
     }
 
+    /* === FAQ acordeao (TAREFA 3.3) === */
+    #articleBody .faq-item {
+      background: rgba(47, 248, 1, 0.03);
+      border: 1px solid var(--border, #1C1C2E);
+      border-left: 3px solid #2ff801;
+      border-radius: 0 10px 10px 0;
+      margin: 1rem 0;
+      overflow: hidden;
+    }
+    #articleBody .faq-item > summary {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      cursor: pointer;
+      list-style: none;
+      padding: 1rem 1.25rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #2ff801;
+      user-select: none;
+    }
+    #articleBody .faq-item > summary::-webkit-details-marker {
+      display: none;
+    }
+    #articleBody .faq-item > summary h3 {
+      margin: 0;
+      font-size: inherit;
+      font-weight: inherit;
+      color: inherit;
+      display: inline;
+    }
+    #articleBody .faq-item > summary::after {
+      content: "";
+      width: 0.5rem;
+      height: 0.5rem;
+      margin-left: auto;
+      flex-shrink: 0;
+      border-right: 2px solid var(--accent, #A855F7);
+      border-bottom: 2px solid var(--accent, #A855F7);
+      transform: rotate(-45deg);
+      transition: transform var(--transition, 0.2s) ease;
+    }
+    #articleBody .faq-item[open] > summary::after {
+      transform: rotate(45deg);
+    }
+    #articleBody .faq-item > :not(summary) {
+      padding: 0 1.25rem 1.25rem;
+    }
+
     /* === Fontes === */
     #articleBody ul li a {
       color: var(--accent, #A855F7);

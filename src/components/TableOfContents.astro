@@ -43,8 +43,14 @@ for (const h of headings) {
       <span class="toc-count">{headings.length}</span>
     </div>
     <ol class="toc-list list-none p-0">
+      <li class="toc-topic">
+        <a href="#introducao" class="toc-link toc-link-topic">
+          <span class="toc-num">1</span>
+          <span>Introdução</span>
+        </a>
+      </li>
       {tree.map((topic, ti) => {
-        const topicNum = String(ti + 1);
+        const topicNum = String(ti + 2);
         const topicLabel = (
           <span class="toc-link toc-link-topic">
             <span class="toc-num">{topicNum}</span>

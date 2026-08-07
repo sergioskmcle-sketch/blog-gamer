@@ -1094,13 +1094,14 @@ async function ensureProductImages(mlProducts) {
   }
 }
 
-// Injeta âncoras unicas nos headings ## do artigo para o componente Neste
-// artigo (TableOfContents) consumir. NAO gera mais o bloco "## Indice" — o
-// indice e responsabilidade do componente Astro.
+// Injeta âncoras unicas nos headings ## e ### do artigo para o componente
+// Neste artigo (TableOfContents) consumir — produtos (###) entram como
+// sub-topicos do H2 da lista. NAO gera mais o bloco "## Indice" — o indice e
+// responsabilidade do componente Astro.
 function injectHeadingAnchors(body) {
   if (!body || typeof body !== "string") return body;
 
-  const headings = [...body.matchAll(/^(## )([^\n]+)$/gm)];
+  const headings = [...body.matchAll(/^(#{2,3}) ([^\n]+)$/gm)];
   if (headings.length < 3) return body;
 
   const excluded = /^(fontes|conclus[aã]o|quer mais ofertas\?|faq|perguntas frequentes|resumo r[áa]pido|veredito|continue explorando)/i;
@@ -1137,12 +1138,12 @@ function injectHeadingAnchors(body) {
   const anchorMap = new Map(tocItems.map((item) => [item.title, item.anchor]));
 
   // Insere âncoras nos headings originais
-  const result = body.replace(/^(## )([^\n]+)$/gm, (match, hashes, title) => {
+  const result = body.replace(/^(#{2,3}) ([^\n]+)$/gm, (match, hashes, title) => {
     const trimmedTitle = title.trim();
     if (excluded.test(trimmedTitle)) return match;
     const anchor = anchorMap.get(trimmedTitle);
     if (!anchor) return match;
-    return `${hashes}<a id="${anchor}"></a>${trimmedTitle}`;
+    return `${hashes} <a id="${anchor}"></a>${trimmedTitle}`;
   });
 
   return result;
@@ -1166,9 +1167,9 @@ function injectProductCards(body, mlProducts) {
     if (!marker.test(result)) return;
 
     const markerIndex = result.search(marker);
-    const headingMatch = [...result.slice(0, markerIndex).matchAll(/^##\s+([^\n]+)$/gm)]
+    const headingMatch = [...result.slice(0, markerIndex).matchAll(/^(#{2,3})\s+([^\n]+)$/gm)]
       .reverse()
-      .find((m) => !excludedHeading.test(m[1].trim()));
+      .find((m) => !excludedHeading.test(m[2].trim()));
     if (!headingMatch) return;
 
     const afterHeading = result.slice(headingMatch.index + headingMatch[0].length);
@@ -1804,10 +1805,10 @@ function validate(fm, body, ctx = {}) {
     }
   }
 
-  // Fluxo segmentado: cada produto DEVE virar um item "## Nome" e aparecer na
+  // Fluxo segmentado: cada produto DEVE virar um item "### Nome" e aparecer na
   // tabela comparativa. Se a montagem quebrou, o artigo nao pode publicar.
   if (ctx.segmented && ctx.productCount > 0) {
-    const headings = [...body.matchAll(/^##\s+([^\n]+)$/gm)].map((m) => m[1].trim());
+    const headings = [...body.matchAll(/^(?:##|###)\s+([^\n]+)$/gm)].map((m) => m[1].trim());
     const tableRows = body.split("\n").filter((l) => /^\|.*\|$/.test(l)).join("\n");
     const missingAsHeading = [];
     const missingInTable = [];
@@ -1818,7 +1819,7 @@ function validate(fm, body, ctx = {}) {
       }
       if (!tableRows.includes(p.title)) missingInTable.push(p.title.slice(0, 60));
     }
-    if (missingAsHeading.length > 0) hard.push(`Itens sem secao ## propria (montagem quebrou): ${missingAsHeading.join(" | ")}`);
+    if (missingAsHeading.length > 0) hard.push(`Itens sem secao propria (montagem quebrou): ${missingAsHeading.join(" | ")}`);
     if (missingInTable.length > 0) hard.push(`Produtos ausentes da tabela comparativa: ${missingInTable.join(" | ")}`);
   }
 
@@ -2918,7 +2919,7 @@ function buildItemSection(p) {
   const text = p.blurbText || `O ${p.title} aparece entre os destaques desta lista.`;
   const imgBlock = img ? `${img}\n\n` : "";
   const btnBlock = btn ? `\n\n${btn}` : "";
-  return `## ${p.title}${tagline}\n\n${imgBlock}${text}${btnBlock}`;
+  return `### ${p.title}${tagline}\n\n${imgBlock}${text}${btnBlock}`;
 }
 
 // Injeta os itens (foto local + paragrafos + botao), a secao de metodologia e a

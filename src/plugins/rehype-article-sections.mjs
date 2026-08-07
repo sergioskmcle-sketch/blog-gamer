@@ -123,21 +123,23 @@ export default function rehypeArticleSections() {
     const out = [];
     let section = null;
     let subsection = null;
+    let intro = null;
+
+    const isFaqSection = (s) => {
+      const h2 = s && s.children && s.children.find((c) => c.type === "element" && c.tagName === "h2");
+      return h2 ? /^(faq|perguntas frequentes)/i.test(headingText(h2).trim()) : false;
+    };
 
     for (const node of tree.children) {
       if (isHeading(node, "h2")) {
         ensureHeadingId(node, usedIds);
         subsection = null;
-        section = {
-          type: "element",
-          tagName: "section",
-          properties: { className: ["article-section"] },
-          children: [node],
-        };
 
         const prev = out[out.length - 1];
         let lifted = null;
-        if (prev) {
+        if (intro && intro.children.length > 0) {
+          lifted = takeTrailingImg(intro);
+        } else if (prev) {
           if (prev.type === "element" && prev.tagName === "section") {
             lifted = takeTrailingImg(prev);
           } else if (isImg(prev)) {
@@ -145,34 +147,68 @@ export default function rehypeArticleSections() {
             lifted = prev;
           }
         }
+        section = {
+          type: "element",
+          tagName: "section",
+          properties: { className: ["article-section"] },
+          children: [node],
+        };
         if (lifted) section.children.push(lifted);
 
         out.push(section);
       } else if (isHeading(node, "h3")) {
         ensureHeadingId(node, usedIds);
-        subsection = {
-          type: "element",
-          tagName: "section",
-          properties: { className: ["article-subsection"] },
-          children: [node],
-        };
-
-        if (section) {
-          const lifted = takeTrailingImg(section);
-          if (lifted) subsection.children.push(lifted);
+        if (section && isFaqSection(section)) {
+          // TAREFA 3.3: FAQ vira acordeao — cada pergunta e um <details>.
+          subsection = {
+            type: "element",
+            tagName: "details",
+            properties: { className: ["faq-item"] },
+            children: [
+              { type: "element", tagName: "summary", properties: {}, children: [node] },
+            ],
+          };
           section.children.push(subsection);
         } else {
-          out.push(subsection);
-          section = subsection;
+          subsection = {
+            type: "element",
+            tagName: "section",
+            properties: { className: ["article-subsection"] },
+            children: [node],
+          };
+
+          if (section) {
+            const lifted = takeTrailingImg(section);
+            if (lifted) subsection.children.push(lifted);
+            section.children.push(subsection);
+          } else {
+            out.push(subsection);
+            section = subsection;
+          }
         }
       } else if (subsection) {
         subsection.children.push(node);
       } else if (section) {
         section.children.push(node);
       } else {
-        out.push(node);
+        // TAREFA 3.2: o que vem antes do primeiro H2 e a introducao — ganha um
+        // container proprio com a ancora usada pelo item "Introducao" do TOC.
+        if (!intro) {
+          intro = {
+            type: "element",
+            tagName: "section",
+            properties: {
+              className: ["article-section", "article-intro"],
+              id: "introducao",
+            },
+            children: [],
+          };
+        }
+        intro.children.push(node);
       }
     }
+
+    if (intro && intro.children.length > 0) out.unshift(intro);
 
     tree.children = out;
     ensureNestedHeadingIds(tree, usedIds);
