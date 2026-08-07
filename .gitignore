@@ -59,3 +59,14 @@ Thumbs.db
 squads/*/state.json
 squads/*/state.json.tmp
 squads/*/output/
+squads/**/state.json
+squads/**/state.json.tmp
+squads/**/output/
+.expxagents/
+.server-port
+.server-port.tmp
+
+# Logs de preview gerados localmente
+preview.err.log
+preview.log
+
