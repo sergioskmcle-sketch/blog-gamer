@@ -9,12 +9,14 @@ import {
   computeMaxTokens, buildProductButtonHtml, productButtonLabel, buildProductImageTag, injectTableOfContents, validateSourceCoverage,
   formatProductPriceForPrompt, findPricesInBody,
   sanitizeProducts, splitMainBody, parseBlurb, buildComparativoTable, buildItemSection, injectSegmentedItems,
+  buildMetodologiaSection,
   extendDescription,
   buildOfferButtonsHtml,
 } from "./gerar-artigo.mjs";
 import { parsePriceBRL } from "./google_shopping.mjs";
 import { normalizarProdutoRemoto } from "./monitor_api.mjs";
 import { cleanProductTitle, detectCategory, productMatchesCategory, detectArticleCategory } from "./product_naming.mjs";
+import { medianPrice, valueForMoneyScore, countEditorialMentions, scoreProduct, rankProducts, applyMinCriteria, RANKING_WEIGHTS, MIN_CRITERIA } from "./product_ranking.mjs";
 
 let passou = 0;
 function ok(cond, msg) {
@@ -373,8 +375,9 @@ const candidatos = [
   { id: "", title: "Placa sem id mas com permalink", price: 3000, permalink: "https://www.amazon.com.br/rtx", source: "Amazon" },
 ];
 const limpos = sanitizeProducts(candidatos, topicProd);
-igual(limpos.map((p) => p.title), ["Placa de Vídeo RX 580 8GB", "Placa de Vídeo RTX 4060 8GB", "Placa de Vídeo Kabum RTX 5060"], "sanitize tira blog/lista/up, deduplica, ordena por relevancia, limpa o nome e filtra pela categoria do artigo");
-ok(limpos[0].raw_title === "Placa de Video RX 580 8GB", "sanitize preserva o titulo bruto em raw_title");
+igual(limpos.map((p) => p.title), ["Placa de Vídeo Kabum RTX 5060", "Placa de Vídeo RTX 4060 8GB", "Placa de Vídeo RX 580 8GB"], "sanitize tira blog/lista/up, deduplica, ordena por score objetivo (marca + custo-beneficio), limpa o nome e filtra pela categoria do artigo");
+ok(limpos[0].raw_title === "Placa de Video RTX 5060 Kabum", "sanitize preserva o titulo bruto em raw_title");
+ok(Number.isFinite(limpos[0].score) && limpos[0].score > 0, "sanitize anexa score objetivo ao produto");
 igual(sanitizeProducts([], topicProd), [], "sanitize lista vazia");
 igual(sanitizeProducts(null, topicProd), [], "sanitize null");
 igual(sanitizeProducts([{ title: "X", price: 1, permalink: "" }], topicProd), [], "sanitize rejeita produto sem id e sem permalink");
@@ -516,6 +519,82 @@ igual(soUm.length, 1, "com menos de MIN_PRODUCTS mantem os que casam (lista curt
 ok(soUm.every((p) => productMatchesCategory(p.raw_title, "teclado")), "mesmo com lista curta, nada fora da categoria sobrevive");
 const semCategoria = sanitizeProducts(misto, { hint: "novidades da semana" });
 igual(semCategoria.length, 5, "sem categoria detectada o filtro nao roda e nada e descartado");
+
+// ---- TAREFA 6: ranking objetivo dos "melhores" ----
+igual(medianPrice([]), 0, "mediana de lista vazia e 0");
+igual(medianPrice([{ price: 10 }, { price: 20 }]), 15, "mediana par e a media dos dois do meio");
+igual(medianPrice([{ price: 10 }, { price: 20 }, { price: 30 }]), 20, "mediana impar");
+igual(medianPrice([{ price: 0 }, { price: "abc" }]), 0, "precos invalidos nao entram na mediana");
+
+igual(valueForMoneyScore(100, 100), 1, "preco na mediana pontua o maximo");
+igual(valueForMoneyScore(80, 100), 1, "preco a 0,8x a mediana pontua o maximo");
+igual(valueForMoneyScore(110, 100), 1, "preco a 1,1x a mediana pontua o maximo");
+igual(valueForMoneyScore(20, 100), 0, "preco abaixo de 0,3x a mediana zera (proval falso/acessorio)");
+igual(valueForMoneyScore(300, 100), 0, "preco acima de 2,5x a mediana zera");
+igual(valueForMoneyScore(0, 100), 0, "sem preco zera");
+igual(valueForMoneyScore(100, 0), 0, "sem mediana zera");
+
+igual(countEditorialMentions({ title: "Teclado Redragon K552" }, ""), 0, "sem contexto editorial nao ha mencões");
+igual(countEditorialMentions({ title: "Teclado Redragon K552" }, "Redragon e citado no ranking e em outra review Redragon"), 2, "marca citada 2x no consenso editorial");
+igual(countEditorialMentions({ title: "Teclado X" }, "nenhuma marca"), 0, "marca desconhecida nao conta");
+
+const pOK = { title: "Mouse Logitech G Pro", rating: 4.6, ratingCount: 1200, price: 300 };
+const sc = scoreProduct(pOK, { products: [{ price: 100 }, { price: 300 }, { price: 500 }] });
+ok(sc.score >= 0.65, "produto com rating, volume, marca e preco na faixa pontua alto");
+ok(sc.breakdown.rating >= 0.9, "rating 4.6/5 normaliza acima de 0.9");
+ok(sc.criteriosAtendidos.some((c) => c.includes("4,6")), "criterio nota media 4,6");
+ok(sc.criteriosAtendidos.some((c) => /1,2k avaliacoes/.test(c)), "criterio volume 1,2k avaliacoes");
+ok(sc.criteriosAtendidos.some((c) => c.includes("Logitech")), "criterio marca conhecida");
+
+const pRuim = { title: "Teclado Sem Marca XYZ", rating: 2, price: 20 };
+const sc2 = scoreProduct(pRuim, { products: [{ price: 100 }, { price: 300 }, { price: 500 }] });
+ok(sc2.score < 0.3, "produto fraco pontua baixo");
+igual(sc2.criteriosAtendidos.length, 0, "produto fraco nao atinge nenhum criterio");
+
+igual(MIN_CRITERIA, 2, "requisito minimo e 2 criterios");
+igual(RANKING_WEIGHTS.rating + RANKING_WEIGHTS.reviewVolume + RANKING_WEIGHTS.editorialMentions + RANKING_WEIGHTS.brandReputation + RANKING_WEIGHTS.valueForMoney, 1, "pesos somam 1");
+
+const ranked = rankProducts([pRuim, pOK], { products: [{ price: 100 }, { price: 300 }, { price: 500 }] });
+igual(ranked[0].title, "Mouse Logitech G Pro", "rankProducts coloca o melhor na frente");
+ok(ranked.every((p) => Number.isFinite(p.score)), "todo produto rankeado tem score finito");
+
+const a1 = applyMinCriteria([{ criteriosAtendidos: ["a", "b"] }, { criteriosAtendidos: ["a"] }, { criteriosAtendidos: [] }], {}, 1);
+igual(a1.items.length, 1, "descarta quem nao atinge o minimo quando sobra lista cheia");
+igual(a1.descartados, 2, "conta os descartados");
+ok(!a1.fallback, "nao usou fallback quando sobra lista cheia");
+const a2 = applyMinCriteria([{ criteriosAtendidos: ["a"] }], {}, 3);
+igual(a2.items.length, 1, "com lista abaixo do minimo mantem o melhor restante");
+ok(a2.fallback, "flag de fallback ligada quando a lista ficaria curta");
+
+// Consenso editorial dentro do sanitize: marca citada vira criterio e sobe.
+const ctxTeclado2 = { hint: "melhores teclados gamer 2026", ml_query: "teclado gamer", trending_keywords: ["teclado"] };
+const comConsenso = sanitizeProducts([
+  { id: "R1", title: "Teclado Redragon Kumara K552", price: 250, permalink: "https://www.mercadolivre.com.br/r/p/MLBR1" },
+  { id: "L1", title: "Teclado Logitech G Pro X", price: 700, permalink: "https://www.mercadolivre.com.br/l/p/MLBL1" },
+  { id: "Z1", title: "Teclado Razer BlackWidow V4", price: 900, permalink: "https://www.mercadolivre.com.br/z/p/MLBZ1" },
+  { id: "P1", title: "Teclado Rapoo V500", price: 150, permalink: "https://www.mercadolivre.com.br/p/p/MLBP1" },
+], ctxTeclado2, { rankingContext: "Redragon Logitech Razer aparecem em reviews de melhores teclados gamer" });
+igual(comConsenso.length, 3, "com consenso editorial, marcas citadas sobem e quem nao tem criterio sai");
+ok(!comConsenso.some((p) => /Rapoo/.test(p.title)), "produto sem nenhum criterio e descartado quando ha lista cheia");
+ok(comConsenso[0].criteriosAtendidos.some((c) => /citado em 1 review/.test(c)), "mencão editorial vira criterio auditavel");
+const semConsenso = sanitizeProducts([
+  { id: "R1", title: "Teclado Redragon Kumara K552", price: 250, permalink: "https://www.mercadolivre.com.br/r/p/MLBR1" },
+  { id: "L1", title: "Teclado Logitech G Pro X", price: 700, permalink: "https://www.mercadolivre.com.br/l/p/MLBL1" },
+  { id: "Z1", title: "Teclado Razer BlackWidow V4", price: 900, permalink: "https://www.mercadolivre.com.br/z/p/MLBZ1" },
+], ctxTeclado2);
+igual(semConsenso.length, 3, "sem consenso, nada e descartado a ponto de deixar a lista curta");
+
+// Metodologia + tabela auditavel.
+const met = buildMetodologiaSection();
+ok(met.startsWith("## Como Escolhemos"), "metodologia tem heading proprio");
+ok(met.includes(`${MIN_CRITERIA} desses criterios`), "metodologia cita o requisito minimo");
+const tab6 = buildComparativoTable([{ title: "P1", price: 100, nota: 8.5, destaque: "legal", criteriosAtendidos: ["marca A", "1,2k avaliacoes"] }]);
+ok(tab6.includes("| Produto | Preco | Destaque | Nota | Por que entrou |"), "tabela ganhou a coluna Por que entrou");
+ok(tab6.includes("| P1 | R$ 100,00 | legal | 8.5/10 | marca A · 1,2k avaliacoes |"), "tabela mostra nota objetiva e motivos");
+const injMet = injectSegmentedItems("Intro.\n\n## Lista Principal\n\n## Veredito\n\nVale.", "Lista Principal", prodsSeg, true);
+ok(injMet.indexOf("## Como Escolhemos") > -1, "metodologia injetada quando a flag esta ligada");
+ok(injMet.indexOf("## Como Escolhemos") < injMet.indexOf("## Lista Principal"), "metodologia antes do heading da lista");
+ok(injMet.indexOf("Intro.") < injMet.indexOf("## Como Escolhemos"), "metodologia apos a introducao");
 
 // ---- Frente 4: cliente remoto ----
 const bruto = {

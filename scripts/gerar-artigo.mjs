@@ -8,6 +8,7 @@ import { buscarProdutosLoteRemoto } from "./monitor_api.mjs";
 import { gerarCapaStability } from "./stability-cover.mjs";
 import { gerarCapaOpenAI, downloadImage, searchTavilyImage } from "./openai-cover.mjs";
 import { cleanProductTitle, detectArticleCategory, productMatchesCategory, PRODUCT_CATEGORIES, CATEGORY_BRANDS } from "./product_naming.mjs";
+import { rankProducts, applyMinCriteria, MIN_CRITERIA } from "./product_ranking.mjs";
 
 const rssParser = new Parser({
   timeout: 15000,
@@ -837,7 +838,7 @@ function mlProductRelevanceScore(p, tokens) {
 
 // Portao de sanidade aplicado a TODA fonte de produtos: blog/categoria/listagem
 // nunca viram item; exige id ou permalink real e preco; prefere itens relevantes ao topico.
-function sanitizeProducts(products, topic) {
+function sanitizeProducts(products, topic, ctx = {}) {
   if (!Array.isArray(products) || products.length === 0) return [];
   const seen = new Set();
   const candidates = [];
@@ -882,9 +883,6 @@ function sanitizeProducts(products, topic) {
   }
 
   const tokens = mlTopicTokens(topic);
-  if (out.length > 1 && tokens.length > 0) {
-    out = out.slice().sort((a, b) => mlProductRelevanceScore(b, tokens) - mlProductRelevanceScore(a, tokens));
-  }
 
   // TAREFA 1: normaliza o nome de cada produto e preserva o bruto em raw_title.
   // Se raw_title ja existe (ex.: re-chamada no laço de retry da TAREFA 5.4),
@@ -898,6 +896,27 @@ function sanitizeProducts(products, topic) {
       }
     }
   }
+
+  // TAREFA 6.2/6.3: ordena por score objetivo (rankProducts) em vez de so
+  // sobreposicao de tokens — essa vira apenas criterio de desempate. Produto
+  // que nao atinge MIN_CRITERIA sai da lista, salvo se isso a deixar abaixo de
+  // MIN_PRODUCTS (ai mantem os melhores restantes e avisa).
+  if (out.length > 1) {
+    const ranked = rankProducts(out, {
+      rankingContext: ctx.rankingContext || "",
+      tieBreak: (a, b) => mlProductRelevanceScore(b, tokens) - mlProductRelevanceScore(a, tokens),
+    });
+    const { items, descartados, fallback } = applyMinCriteria(ranked, {}, MIN_PRODUCTS);
+    if (descartados > 0) {
+      if (fallback) {
+        log("WARN", `${descartados} produto(s) sem minimo de ${MIN_CRITERIA} criterios mantidos para nao deixar a lista abaixo de ${MIN_PRODUCTS}`);
+      } else {
+        log("INFO", `${descartados} produto(s) sem minimo de ${MIN_CRITERIA} criterios descartados`);
+      }
+    }
+    out = items;
+  }
+
   return out;
 }
 
@@ -1248,6 +1267,73 @@ async function fetchTavily(query) {
   const data = await res.json();
   log("INFO", `Tavily: ${data.results?.length || 0} resultados`);
   return data;
+}
+
+// TAREFA 6.1: consenso editorial para o ranking. UMA chamada por artigo (Serper
+// Search + Tavily), nao por produto. Devolve um texto unico onde as mencões de
+// marca/modelo dos produtos candidatos serao contadas. Nunca lanca — sem chaves
+// ou com falha, retorna "" e o sinal editorial vale 0.
+let rankingContextCache = "";
+let rankingContextLoaded = false;
+
+async function fetchRankingContext(articleCat, topicHint) {
+  if (rankingContextLoaded) return rankingContextCache;
+  rankingContextLoaded = true;
+  const ano = new Date().getFullYear();
+  const label = (articleCat && PRODUCT_CATEGORIES[articleCat]?.label) || String(topicHint || "produtos gamer");
+  const query = `melhores ${label} gamer ${ano} review`;
+  const parts = [];
+
+  if (SERPER_API_KEY) {
+    try {
+      const res = await fetch("https://google.serper.dev/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-API-KEY": SERPER_API_KEY },
+        body: JSON.stringify({ q: query, gl: "br", hl: "pt-br", num: 10 }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const organic = Array.isArray(data.organic) ? data.organic : [];
+        for (const o of organic) {
+          if (o.title) parts.push(String(o.title));
+          if (o.snippet) parts.push(String(o.snippet));
+        }
+        log("INFO", `Consenso editorial (Serper): ${organic.length} paginas de review`);
+      } else {
+        log("WARN", `Serper ranking: HTTP ${res.status}`);
+      }
+    } catch (e) {
+      log("WARN", `Serper ranking falhou: ${e.message}`);
+    }
+  }
+
+  if (TAVILY_API_KEY) {
+    try {
+      const res = await fetch("https://api.tavily.com/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          api_key: TAVILY_API_KEY, query,
+          search_depth: "advanced", max_results: 5, include_answer: false,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        for (const r of data.results || []) {
+          if (r.title) parts.push(String(r.title));
+          if (r.content) parts.push(String(r.content));
+        }
+        log("INFO", `Consenso editorial (Tavily): ${(data.results || []).length} paginas de review`);
+      } else {
+        log("WARN", `Tavily ranking: HTTP ${res.status}`);
+      }
+    } catch (e) {
+      log("WARN", `Tavily ranking falhou: ${e.message}`);
+    }
+  }
+
+  rankingContextCache = parts.join("\n").slice(0, 60000);
+  return rankingContextCache;
 }
 
 const TAVILY_IMAGE_CACHE = {};
@@ -1986,6 +2072,9 @@ async function main() {
   const retryQueries = buildCategoryRetryQueries(articleCat);
   const triedQueries = new Set();
 
+  // TAREFA 6.1: consenso editorial coletado UMA vez, fora do laço de retry.
+  const rankingContext = await fetchRankingContext(articleCat, topic.hint);
+
   for (let extraRound = 0; extraRound <= 3; extraRound++) {
     const retryQ = retryQueries.filter((q) => !triedQueries.has(q));
 
@@ -2073,7 +2162,7 @@ async function main() {
       log("WARN", "SERPER_API_KEY nao configurada — pulando busca de produtos");
     }
 
-    mlProducts = sanitizeProducts(mlProducts.filter((p) => isGamerProduct(p.title)), topic);
+    mlProducts = sanitizeProducts(mlProducts.filter((p) => isGamerProduct(p.title)), topic, { rankingContext });
 
     if (mlProducts.length >= MIN_PRODUCTS || !articleCat) break;
 
@@ -2431,7 +2520,7 @@ Checklist antes de responder:
     await ensureProductImages(mlProducts);
   }
   if (parts) {
-    body = injectSegmentedItems(body, parts.listHeading, mlProducts);
+    body = injectSegmentedItems(body, parts.listHeading, mlProducts, true);
     log("INFO", `${mlProducts.length} itens segmentados (foto local + blurb + botao) e tabela comparativa injetados`);
     const { hard: segHard, soft: segSoft } = validate(fm, body, {
       ...validationCtx,
@@ -2684,8 +2773,7 @@ ${categoriaUnicaPrompt(articleCat)}
 ## O QUE VOCE GERA (somente texto, sem heading)
 1. "TAGLINE:" — uma frase curta (2-6 palavras) que vira o subtitulo do item. Destaque o diferencial do produto com a persona escolhida. Nao use aspas.
 2. "CORPO:" — 2 a 3 paragrafos curtos (60-110 palavras no total) sobre APENAS este produto. Sem lista, sem bullets.
-3. "NOTA:" — nota de 1 a 10 (numero inteiro ou decimal), justificada indiretamente pelo texto.
-4. "DESTAQUE:" — o diferencial do produto em ate 8 palavras.
+3. "DESTAQUE:" — o diferencial do produto em ate 8 palavras.
 
 ## REGRAS ABSOLUTAS
 - NUNCA escreva preco, "R$", card, botao, "confira o preco", nem mencione tabela ou comparativo.
@@ -2753,12 +2841,29 @@ Este artigo e APENAS sobre ${domainLabel(domain)}. Nunca misture games e hardwar
 ## PRODUTOS (cite naturalmente; nunca como heading, nunca com preco)
 ${productLines}
 
+## VEREDITO BASEADO EM DADOS
+O "## Veredito" deve refletir EXATAMENTE a ordem e as notas do RANKING OBJETIVO enviado na mensagem do usuario (o item 1 e o campeao). NUNCA afirme que um produto e superior a outro sem se apoiar nos criterios objetivos: nota media e volume de avaliacoes de consumidores, mencões em reviews independentes, reputacao da marca e custo-beneficio. Se um item entrou sem criterios objetivos, diga isso de forma honesta — nunca invente nota nem motivo.
+
 ## SAIDA
 Somente o markdown das secoes acima, na ordem. Sem frontmatter, sem comentario.`;
 
+  const rankingBlock = mlProducts.length > 0
+    ? `\n\nRANKING OBJETIVO (use no Veredito, nao invente outra ordem nem outras notas):\n${mlProducts
+        .map((p, i) => {
+          const nota = Number.isFinite(Number(p.score))
+            ? `${Math.round(Number(p.score) * 100) / 10}/10`
+            : "sem nota";
+          const motivos = Array.isArray(p.criteriosAtendidos) && p.criteriosAtendidos.length > 0
+            ? p.criteriosAtendidos.join(", ")
+            : "sem criterios objetivos";
+          return `${i + 1}. ${p.title} — nota ${nota} (${motivos})`;
+        })
+        .join("\n")}`
+    : "";
+
   const user = `${topic.hint ? `Escreva a parte do artigo sobre: ${topic.hint}\n\n` : ""}${
     researchContext ? `PESQUISA (use estes fatos — nao invente dados fora daqui):\n${researchContext}\n\n` : "SEM PESQUISA DISPONIVEL: escreva so conhecimento consolidado, sem inventar numeros, datas ou precos.\n\n"
-  }${internalLinksBlock}`;
+  }${rankingBlock}${internalLinksBlock}`;
   return fetchLLM(sys, user, 3, { maxTokens: 6000, temperature: 0.7 });
 }
 
@@ -2778,11 +2883,33 @@ function splitMainBody(mainBody) {
   };
 }
 
+// TAREFA 6.3.3: secao de metodologia gerada por template (deterministica),
+// injetada entre a introducao e o heading da lista. Da credibilidade ao "Top 5".
+function buildMetodologiaSection() {
+  return `## Como Escolhemos\n\nEsta lista nao e aleatoria. Cada modelo foi avaliado com os mesmos criterios:\n\n` +
+    `- **Avaliacoes de consumidores** — nota media e volume de avaliacoes nas lojas.\n` +
+    `- **Consenso editorial** — presenca em reviews e rankings independentes consultados nesta pesquisa.\n` +
+    `- **Reputacao da marca** — historico da fabricante na categoria.\n` +
+    `- **Especificacoes tecnicas** — o que o modelo entrega de fato.\n` +
+    `- **Custo-beneficio** — preco frente a mediana da categoria.\n\n` +
+    `Modelos que nao atenderam a pelo menos ${MIN_CRITERIA} desses criterios ficaram de fora.\n`;
+}
+
 function buildComparativoTable(mlProducts) {
   const rows = mlProducts
-    .map((p) => `| ${p.title} | ${formatPriceBRL(p.price)} | ${p.destaque || "—"} | ${p.nota ? `${p.nota}/10` : "—"} |`)
+    .map((p) => {
+      const rawNota = p.nota;
+      const nota = (rawNota !== null && rawNota !== undefined && rawNota !== "" && Number.isFinite(Number(rawNota)))
+        ? `${Number(rawNota)}/10`
+        : "—";
+      // TAREFA 6.3.4: coluna "Por que entrou" torna o ranking auditavel.
+      const motivo = Array.isArray(p.criteriosAtendidos) && p.criteriosAtendidos.length > 0
+        ? p.criteriosAtendidos.join(" · ")
+        : "—";
+      return `| ${p.title} | ${formatPriceBRL(p.price)} | ${p.destaque || "—"} | ${nota} | ${motivo} |`;
+    })
     .join("\n");
-  return `## Comparativo\n\n| Produto | Preco | Destaque | Nota |\n|---|---|---|---|\n${rows}\n`;
+  return `## Comparativo\n\n| Produto | Preco | Destaque | Nota | Por que entrou |\n|---|---|---|---|---|\n${rows}\n`;
 }
 
 function buildItemSection(p) {
@@ -2795,19 +2922,22 @@ function buildItemSection(p) {
   return `## ${p.title}${tagline}\n\n${imgBlock}${text}${btnBlock}`;
 }
 
-// Injeta os itens (foto local + paragrafos + botao) e a tabela comparativa logo
-// apos o heading da lista. Deterministico: nada fica a criterio da LLM.
-function injectSegmentedItems(body, listHeading, mlProducts) {
+// Injeta os itens (foto local + paragrafos + botao), a secao de metodologia e a
+// tabela comparativa logo apos o heading da lista. Deterministico: nada fica a
+// criterio da LLM. withMetodologia injeta "## Como Escolhemos" entre a
+// introducao e o heading da lista.
+function injectSegmentedItems(body, listHeading, mlProducts, withMetodologia = false) {
   const itemBlock = mlProducts.map((p) => buildItemSection(p)).join("\n\n");
   const table = buildComparativoTable(mlProducts);
   const marker = `## ${listHeading}`;
+  const metodologia = withMetodologia ? `${buildMetodologiaSection()}\n\n` : "";
   const idx = body.indexOf(marker);
   if (idx === -1) {
     log("WARN", "Heading da lista nao encontrado no corpo — itens anexados no fim");
-    return `${body}\n\n${itemBlock}\n\n${table}`;
+    return `${body}\n\n${metodologia}${itemBlock}\n\n${table}`;
   }
   const after = idx + marker.length;
-  return `${body.slice(0, after)}\n\n${itemBlock}\n\n${table}${body.slice(after)}`;
+  return `${body.slice(0, idx)}${metodologia}${body.slice(idx, after)}\n\n${itemBlock}\n\n${table}${body.slice(after)}`;
 }
 
 // Pipeline segmentado completo: frontmatter + blurbs + corpo + assembleia.
@@ -2819,7 +2949,11 @@ async function generateSegmentedArticle({ mlProducts, topic, domain, categoria, 
     const b = await generateProductBlurb({ product: mlProducts[i], topic, domain, categoria, index: i + 1, articleCat });
     mlProducts[i].tagline = b.tagline;
     mlProducts[i].blurbText = b.text;
-    mlProducts[i].nota = b.nota;
+    // TAREFA 6.3.2: a nota da tabela vem do score objetivo; a nota da LLM so
+    // vale quando o score nao existe (ex.: lista com 1 produto).
+    mlProducts[i].nota = Number.isFinite(Number(mlProducts[i].score))
+      ? Math.round(Number(mlProducts[i].score) * 100) / 10
+      : b.nota;
     mlProducts[i].destaque = b.destaque;
     log("INFO", `Blurb ok (${i + 1}/${mlProducts.length}): "${mlProducts[i].title?.slice(0, 45)}"`);
   }
@@ -2883,6 +3017,7 @@ export {
   sanitizeProducts,
   splitMainBody,
   parseBlurb,
+  buildMetodologiaSection,
   buildComparativoTable,
   buildItemSection,
   injectSegmentedItems,

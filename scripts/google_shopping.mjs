@@ -86,6 +86,8 @@ export async function searchGoogleShopping(query, apiKey, limit = 5) {
       images: it.imageUrl ? [it.imageUrl] : [],
       source: String(it.source || "").trim(),
       rating: it.rating || null,
+      ratingCount: it.ratingCount || it.reviews || null,
+      offersCount: it.offers || null,
     });
   }
 
