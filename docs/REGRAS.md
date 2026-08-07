@@ -49,7 +49,7 @@ pick_topic() → scrape_ml_products() → generate_affiliate_link() → call_gro
 ### 6. download-images.mjs (pós-geração)
 - Lê todos os artigos em `src/content/artigos/`
 - Baixa imagens de `http2.mlstatic.com` para `public/images/produtos/`
-- Substitui URLs CDN por paths locais (`/blog-gamer/images/produtos/...`)
+- Substitui URLs CDN por paths locais (`/images/produtos/...`)
 - Se CDN bloquear (retorna GIF placeholder), segue link de afiliado e extrai `og:image`
 - Commit + push das imagens
 
@@ -101,7 +101,7 @@ noticia → review → guia → lista → (volta)
 - ML CDN (`http2.mlstatic.com`) bloqueia `.webp` com GIF placeholder (52KB, header `47 49 46 38 39 61`)
 - Solução: baixar localmente e servir do GitHub Pages
 - Fallback: seguir link de afiliado → extrair `og:image` da página do produto
-- Path local: `/blog-gamer/images/produtos/{filename}`
+- Path local: `/images/produtos/{filename}`
 
 ### Geração de Capa (Cover Image)
 - **NUNCA** gerar capa apenas com prompt textual — as imagens dos produtos DEVEM ser enviadas como referência

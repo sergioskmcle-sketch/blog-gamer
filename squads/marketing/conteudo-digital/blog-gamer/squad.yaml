@@ -1,0 +1,116 @@
+squad:
+  code: blog-gamer
+  setor: marketing
+  grupo: conteudo-digital
+  sessao: blog-gamer
+  name: Squad Blog Gamer
+  description: >
+    Gera artigos do blog gamer (noticia, review, guia, lista, promocao):
+    pesquisa de tendências, escrita por persona (Mano Gamer/Tecnico),
+    SEO on-page, revisão de qualidade, layout visual e publicação
+    em markdown com frontmatter padrão e links de afiliado (Google Shopping).
+  icon: gamepad
+  format: blog-post
+
+  agents:
+    - id: pesquisadora
+      name: Ana Pesquisadora
+      icon: search
+      avatar: Ana
+      prompt: agents/pesquisadora.agent.md
+      provider: claude-code
+      model: claude-sonnet-4-6
+
+    - id: redator
+      name: Carlos Redator
+      icon: pencil
+      avatar: Carlos
+      prompt: agents/redator.agent.md
+      provider: claude-code
+      model: claude-sonnet-4-6
+
+    - id: otimizador-seo
+      name: Felipe Otimizador
+      icon: chart
+      avatar: Felipe
+      prompt: agents/otimizador-seo.agent.md
+      provider: claude-code
+      model: claude-sonnet-4-6
+
+    - id: revisora
+      name: Juliana Revisora
+      icon: shield-check
+      avatar: Juliana
+      prompt: agents/revisora.agent.md
+      provider: claude-code
+      model: claude-sonnet-4-6
+
+    - id: designer
+      name: Lucas Designer
+      icon: palette
+      avatar: Lucas
+      prompt: agents/designer.agent.md
+      provider: claude-code
+      model: claude-sonnet-4-6
+
+    - id: publicadora
+      name: Rafaela Publicadora
+      icon: rocket
+      avatar: Rafaela
+      prompt: agents/publicadora.agent.md
+      provider: claude-code
+      model: claude-sonnet-4-6
+
+  skills:
+    - pesquisa-web
+    - produtos-gamer
+    - imagens-jogos
+    - validacao-artigo
+    - layout-blog
+
+  pipeline:
+    steps:
+      - id: pesquisar
+        agent: pesquisadora
+        label: Pesquisar tema, tendências, fontes e produtos relevantes
+        onFail: retry
+        maxRetries: 2
+
+      - id: redigir
+        agent: redator
+        label: Redigir artigo com persona e foco em 1 tema
+        deliverFrom: pesquisadora
+        onFail: retry
+        maxRetries: 2
+
+      - id: otimizar-seo
+        agent: otimizador-seo
+        label: Otimizar SEO on-page, frontmatter e keywords
+        deliverFrom: redator
+        onFail: retry
+
+      - id: revisar
+        agent: revisora
+        label: Revisar qualidade, produto↔imagem e precisão
+        deliverFrom: otimizador-seo
+        onFail: abort
+
+      - id: layout
+        agent: designer
+        label: Aplicar layout, estrutura visual e preview
+        deliverFrom: revisora
+        onFail: retry
+
+      - id: publicar
+        agent: publicadora
+        label: Gerar imagens, links Serper e markdown final
+        deliverFrom: designer
+        producesFormat: true
+        onFail: abort
+
+  schedule:
+    enabled: false
+
+  spendControl:
+    maxCostPerRun: 1.0
+    mode: graceful

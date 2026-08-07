@@ -2,7 +2,7 @@
 > Mantenha as edições em `docs/` — esta cópia existe só por histórico.
 
 ---
-name: Blog Gamer
+name: Promo Gamer
 colors:
   bg-primary: "#050505"
   bg-secondary: "#020203"
@@ -142,11 +142,77 @@ spacing:
 
 ## Brand & Style
 
-**Blog Gamer** is a **premium gaming content portal** — a professional editorial platform focused on news, articles, reviews, guides, tutorials, hardware, games, eSports, and tech analysis. The brand communicates technology, innovation, and high performance — evoking supercars, premium PC builds, and elite gaming setups.
+**Promo Gamer** is a **premium gaming content portal** — a professional editorial platform focused on news, articles, reviews, guides, tutorials, hardware, games, eSports, and tech analysis. The brand communicates technology, innovation, and high performance — evoking supercars, premium PC builds, and elite gaming setups.
 
 The visual style is **Dark Premium RGB** — true Black Piano (`#050505`) as the canvas, with a vibrant dual-accent system: **Electric Purple (`#A855F7`)** for technology and brand identity, **Lime Neon Green (`#39FF14`)** for actions and important destinations. Colors are intense and energetic — no pastel, washed, or grayish tones.
 
 **IMPORTANT:** This is a BLOG / CONTENT PORTAL, NOT a store, marketplace, or product showcase. Products appear ONLY contextually within articles (e.g., "Best Gaming Headsets", "Gaming Setup Guide"). Editorial content is the protagonist. The experience should feel like IGN, PC Gamer, Adrenaline, or Eurogamer — not an e-commerce site.
+
+## Themes (Dark / Light)
+
+O blog tem **dois temas**: **dark** (padrão, "Black Piano RGB") e **light** (papel). Nenhum dos dois é escolhido por CSS isolado — o tema é definido no elemento `<html>` e todos os componentes leem CSS variables.
+
+### Como o tema é aplicado
+
+1. **`src/data/blog-config.json`** guarda `theme` (`"dark"` | `"light"`) e `allowVisitorThemeToggle` (`true`/`false`).
+2. **`src/layouts/Layout.astro`** injeta um `<script>` no `<head>` (anti-FOUC) que resolve o tema nesta ordem:
+   `localStorage["blog-theme"]` → `blog-config.json.theme` → `prefers-color-scheme`.
+   O script seta `data-theme="dark|light"` e as classes `dark`/`light` no `<html>` **antes** do primeiro paint.
+3. **`src/components/ThemeToggle.astro`** (renderizado no header quando `allowVisitorThemeToggle: true`) alterna o tema do visitante e salva em `localStorage["blog-theme"]`.
+4. Os seletores de tema no CSS são `:root { ... }` (dark) e `:root[data-theme="light"] { ... }` (light).
+
+### Regra de ouro: nada de cor hardcoded
+
+**Toda** cor de componente, borda, sombra e background deve vir de uma CSS variable (`var(--...)`). Cores em hex/rgba fixas dentro de componentes estão **proibidas** — quebrariam o tema claro e a personalização do painel. Exceções permitidas: cores *dentro* das definições das próprias variáveis no `global.css`, e overlays de fundo que são intencionalmente escuros nos dois temas (hexágonos do `html::before`, `carbon-overlay` do hero).
+
+### Lista de variáveis do tema (global.css)
+
+```
+Cores:
+  --bg-primary        fundo da página (dark #050505 / light #FFFFFF)
+  --bg-secondary      fundo alternativo (#020203 / #F5F5F7)
+  --bg-card           fundo de cards (#0A0A0F / #FFFFFF)
+  --bg-elevated       fundo elevado (dropdowns, modais) (#12121D / #F0F0F4)
+  --bg-glass          header/modal glass (rgba 0.88 / rgba 255,255,255,0.86)
+  --accent            principal (roxo) #A855F7 / #7C3AED
+  --accent-hover      #9333EA / #6D28D9
+  --accent-dim        fundo suave do principal rgba(...0.08 / 0.10)
+  --accent-glow       brilho do principal rgba(...0.25 / 0.18)
+  --success           destaque (verde) #2ff801 / #15803D
+  --warning           #F97316 / #C2410C
+  --danger            #EF4444 / #DC2626
+  --text-primary      #efecfb / #16161D
+  --text-secondary    #aca9b7 / #4A4A57
+  --text-muted        #757481 / #77777F
+  --border            #1C1C2E / #E2E2EA
+  --border-hover      #3D3D60 / #C4C4D0
+  --on-accent         texto sobre o principal (#fff nos dois)
+  --selection-bg      / --selection-color
+  --hex-overlay-color / --hex-overlay-opacity  (overlay de hexágonos)
+
+Fundo do body (configurável em blog-config.json → aba Aparência do admin):
+  --body-bg-color       cor base
+  --body-bg-image       imagem/gradientes (presets em src/data/background-presets.json)
+  --body-bg-size        --body-bg-position  --body-bg-repeat  --body-bg-attachment
+
+Sombras e relevo:
+  --shadow-sm / --shadow / --shadow-lg / --shadow-glow
+  --emboss-high / --emboss-mid / --emboss-deep
+
+Layout / tipografia:
+  --nav-height  --logo-height  --logo-offset  --content-top
+  --main-cols  --sidebar-cols  --max-width  --content-width
+  --radius-sm / --radius / --radius-lg / --radius-xl
+  --font-sans  --font-mono  --font-label
+  --transition / --transition-slow
+```
+
+### Onde cada tema é definido
+
+- **`src/styles/global.css`** — `:root` (dark) e `:root[data-theme="light"]` (light). Também contém `--body-bg-*` como fallback padrão (preset carbono-roxo).
+- **`src/styles/effects.css`** — efeitos (carbon-shine, glass-nav, scrollbars) também leem variáveis.
+- **`tailwind.config.mjs`** — toda a paleta do Tailwind mapeada para as variáveis (`primary: var(--accent)`, `surface: var(--bg-primary)`, `black-piano: var(--bg-primary)`, etc.).
+- **`src/layouts/Layout.astro`** — injeta `:root:root { --body-bg-* }` com os valores de `blog-config.json` (especificidade maior que o `:root` do global.css, então o config sempre vence).
 
 ## Background & Texture
 

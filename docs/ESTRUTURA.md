@@ -62,5 +62,5 @@ O sistema roda em ciclo pelas categorias:
 
 - Branch: `main`
 - Build automático via GitHub Actions
-- URL: `https://sergioskmcle-sketch.github.io/blog-gamer/`
-- Imagens servidas de `/blog-gamer/images/produtos/`
+- URL: `https://promogamer.com.br/`
+- Imagens servidas de `/images/produtos/`

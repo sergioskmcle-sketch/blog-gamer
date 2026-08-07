@@ -8,7 +8,7 @@ const artigos = Object.entries(import.meta.glob("../content/artigos/*.md", { eag
 ).sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
 
 export async function GET() {
-  const site = "https://sergioskmcle-sketch.github.io/blog-gamer";
+  const site = "https://promogamer.com.br";
 
   const items = artigos
     .map(
@@ -27,7 +27,7 @@ export async function GET() {
     `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Blog Gamer</title>
+    <title>Promo Gamer</title>
     <description>Notícias, reviews e guias do mundo dos games</description>
     <link>${site}/</link>
     <language>pt-br</language>

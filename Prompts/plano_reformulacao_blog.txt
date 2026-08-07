@@ -1,0 +1,895 @@
+# PLANO DE EXECUÇÃO — Blog Gamer (correções de artigos + painel admin)
+
+> **PARA QUEM VAI EXECUTAR (opencode):** Este documento é uma ORDEM DE SERVIÇO completa.
+> Não crie um plano novo. Não pergunte o que fazer. **Execute exatamente o que está escrito abaixo, na ordem das TAREFAS 1 → 12.**
+> Tudo que você precisa saber (caminhos, nomes de funções, números de linha, trechos de código, variáveis de ambiente) está aqui.
+
+---
+
+## 0. CONTEXTO
+
+### 0.1 O que é o projeto
+
+Blog gamer brasileiro, estático, gerado com **Astro 5**, publicado no **GitHub Pages**.
+
+- **Diretório raiz do projeto (Windows):** `c:\Users\sismais\Documents\Projetos Pessoais\blog-gamer`
+- **Repositório GitHub:** `sergioskmcle-sketch/blog-gamer`, branch `main`
+- **Site publicado:** `https://sergioskmcle-sketch.github.io/blog-gamer/`
+- **Painel admin publicado:** `https://sergioskmcle-sketch.github.io/blog-gamer/admin/`
+- **Shell:** Windows / PowerShell. Use caminhos com `\` no shell e `/` dentro do código JS.
+- **Node:** o projeto usa ESM (`.mjs`). Comandos: `npm install`, `npm run build`, `npm test`.
+
+### 0.2 Por que este trabalho existe
+
+O dono do blog avaliou os artigos gerados automaticamente e apontou 7 problemas de qualidade + 2 pedidos de funcionalidade no painel admin. Os artigos melhoraram muito, mas ainda:
+
+1. os nomes dos produtos são títulos crus de marketplace (ex.: `"2026 Teclado Gamer Mecânico 1pcsk1 Com Ñ, Layout de 104"`) — sem marca, sem modelo, ilegíveis;
+2. o artigo tem **dois** índices (`Neste artigo` + `## Índice`);
+3. o índice não tem hierarquia tópico → subtópico com expandir/recolher, e falta o item "Introdução";
+4. os nomes dos produtos são longos demais;
+5. produtos de categoria errada entram na lista (headset e mouse em artigo de teclado);
+6. não existe critério objetivo nenhum para dizer que algo é "o melhor";
+7. imagens de produto faltando / minúsculas / de baixa qualidade;
+8. o admin não permite trocar o plano de fundo do blog;
+9. não existe tema claro.
+
+**Regra de ouro deste trabalho:** corrigir a **causa raiz**, de forma **genérica**. Nenhuma correção pode ser específica de um artigo. Tudo que for implementado tem que valer automaticamente para todo artigo futuro.
+
+### 0.3 Arquitetura — mapa dos arquivos que importam
+
+**Geração de artigos (roda no GitHub Actions, cron diário 09:30):**
+
+| Arquivo | Papel |
+|---|---|
+| `.github/workflows/gerar-conteudo.yml` | dispara `node scripts/gerar-artigo.mjs` |
+| `scripts/gerar-artigo.mjs` | **orquestrador, ~2800 linhas — é aqui que 90% do trabalho acontece** |
+| `scripts/google_shopping.mjs` | busca produtos no Google Shopping via Serper.dev (fonte principal hoje) |
+| `scripts/monitor_api.mjs` | busca produtos na API de afiliados remota (ML + Shopee), só quando `AFFILIATE_MODE=remote` |
+| `scripts/openai-cover.mjs`, `scripts/stability-cover.mjs` | geram a imagem de capa |
+| `scripts/test-injecao.mjs` | suíte de testes rodada por `npm test` no CI |
+| `src/content/artigos/*.md` | os ~31 artigos publicados |
+
+**Renderização do site:**
+
+| Arquivo | Papel |
+|---|---|
+| `src/layouts/Layout.astro` | layout único; importa os 2 CSS; tem `<html class="dark">` fixo |
+| `src/pages/blog/[...slug].astro` | página do artigo; monta headings e renderiza o índice |
+| `src/components/TableOfContents.astro` | o componente "Neste artigo" |
+| `src/plugins/rehype-article-sections.mjs` | envolve o conteúdo pós-`h2` em cards `<section>` |
+| `src/lib/headings.ts` | extrai os headings do markdown |
+| `src/styles/global.css` | **392 linhas — todas as variáveis CSS de cor/tema vivem aqui (`:root`, linhas 5–63)** |
+| `src/styles/effects.css` | 54 linhas, efeitos (glass nav, scrollbar, cursor) |
+| `tailwind.config.mjs` | segunda paleta (desalinhada da do `global.css`) |
+
+**Painel admin:**
+
+| Arquivo | Papel |
+|---|---|
+| `public/admin/index.html` | **o admin que realmente é publicado — FONTE DE VERDADE** |
+| `admin/index.html`, `admin/editor.js`, `admin/marked.min.js` | cópia na raiz, DIVERGENTE. Será descontinuada (ver TAREFA 12) |
+| `src/components/EditorBridge.astro` | recebe `postMessage` do admin e aplica CSS vars ao vivo quando a URL tem `?edit=true` |
+
+**Como o admin persiste as configurações hoje:** não existe backend nem arquivo de config. O admin é HTML+JS puro no navegador; o usuário cola um **GitHub Personal Access Token** (escopo `public_repo`), que fica em `localStorage` sob a chave `gh_token`; o admin então faz `PUT /repos/sergioskmcle-sketch/blog-gamer/contents/<caminho>` na API do GitHub para commitar arquivos direto na branch `main`. O push dispara o workflow `deploy.yml`, que roda `npm run build` e publica.
+
+O tema visual hoje é gravado reescrevendo um bloco delimitado dentro de `src/styles/global.css`:
+
+```css
+/* --- EDITOR THEME OVERRIDES --- */
+:root { --content-top: 78px; --main-cols: 8; ... }
+/* --- END EDITOR THEME --- */
+```
+
+(linhas 65–73 do arquivo atual). Esse mecanismo funciona e **deve ser reaproveitado** — não invente outro.
+
+### 0.4 Credenciais e variáveis de ambiente
+
+**Nunca escreva chaves em código.** Todas vêm de `process.env`, definidas como *GitHub Secrets* no repositório (`Settings → Secrets and variables → Actions`) e injetadas por `.github/workflows/gerar-conteudo.yml`.
+
+Variáveis já existentes e usadas por `scripts/gerar-artigo.mjs`:
+
+| Variável | Uso |
+|---|---|
+| `SERPER_API_KEY` | Google Shopping + Google Search (serper.dev) |
+| `TAVILY_API_KEY` | pesquisa web e busca de imagem de produto |
+| `OPENAI_API_KEY` | LLM dos textos + geração de imagem (`gpt-image-1`) |
+| `RAWG_API_KEY` | imagens de jogos |
+| `STABILITY_API_KEY` | capa alternativa |
+| `AFFILIATE_MODE` | `remote` liga a busca via `scripts/monitor_api.mjs` |
+| `AFFILIATE_API_URL`, `AFFILIATE_API_TOKEN` | API remota de afiliados |
+
+**Você NÃO precisa de credencial nova para nenhuma tarefa deste plano.** Se alguma tarefa exigir uma chamada de API, use as variáveis acima com `process.env.NOME`, e **sempre** trate o caso de ela estar vazia com um fallback que não quebra a geração (o padrão do arquivo já é esse — copie).
+
+Para testar localmente sem chaves, crie um `.env` local (já ignorado pelo git) ou rode com as variáveis vazias: o script tem que continuar funcionando degradado, nunca lançar exceção.
+
+---
+
+## 1. REGRAS OBRIGATÓRIAS PARA TODA A EXECUÇÃO
+
+Leia isto antes de escrever qualquer linha.
+
+1. **Nada específico de um artigo.** Não use o nome de um produto, marca ou artigo em `if`/`switch`. Toda regra é genérica e dirigida por dados/tabelas de configuração.
+2. **Nunca quebre a geração.** `scripts/gerar-artigo.mjs` roda sozinho no CI. Toda função nova precisa de `try/catch` e um fallback determinístico. Se uma melhoria falhar, o artigo ainda tem que sair.
+3. **Não altere `buildProductButtonHtml` nem `productButtonLabel`** (`scripts/gerar-artigo.mjs`, linhas ~903–943). Há um comentário explícito no código: *"Caminho antigo (Google Shopping) — NAO ALTERAR, os testes dependem dele."*
+4. **Rode `npm test` depois de cada tarefa que mexer em `scripts/`.** Se um teste quebrar, conserte antes de seguir.
+5. **Rode `npm run build` depois de cada tarefa que mexer em `src/`.** Build quebrado = site fora do ar.
+6. **Sem acento em identificador de código.** O arquivo `gerar-artigo.mjs` usa comentários sem acento — siga o estilo do arquivo em volta (densidade de comentários, nomes, idioma).
+7. **Exporte toda função nova pura** no bloco `export { ... }` no fim de `scripts/gerar-artigo.mjs` (linha ~2787), para que os testes possam importá-la.
+8. **Commits:** faça um commit por TAREFA, mensagem em português, prefixo `fix:` ou `feat:`. Não faça `push --force`. Não pule hooks.
+
+---
+
+## TAREFA 1 — Limpeza e normalização do nome dos produtos
+
+**Problema (itens 1 e 4 do usuário).** O título do produto é usado cru. Ele vem de:
+- `scripts/google_shopping.mjs:72` → `const title = String(it.title || "").trim();`
+- `scripts/monitor_api.mjs:58` → idem.
+
+E é consumido diretamente em:
+- `buildItemSection` (`scripts/gerar-artigo.mjs:2703`) → vira o heading `## ${p.title}${tagline}`
+- `buildComparativoTable` (`:2696`) → vira a célula da tabela
+- `buildProductImageTag` (`:880`) → vira o `alt`
+- `slugify(p.title)` em `ensureProductImages` (`:984`) → vira o nome do arquivo de imagem
+
+Não existe nenhuma etapa de limpeza entre a fonte e o consumo. **Essa etapa é o que você vai criar.**
+
+**Formato-alvo:** `[Categoria] [Marca] [Modelo] [1–3 características principais]`, no máximo **8 palavras / 60 caracteres**.
+
+| Antes (real) | Depois (alvo) |
+|---|---|
+| `2026 Teclado Gamer Mecânico 1pcsk1 Com Ñ, Layout de 104` | `Teclado Mecânico 104 Teclas` |
+| `Monitor Gamer AOC AGON QUAD 27" QHD 180Hz 0,5ms IPS HDR10 Base Ajustável Q27G4F` | `Monitor AOC AGON Q27G4F 27" QHD 180Hz` |
+| `Monitor Gamer LG UltraGear Curvo 34G600A-B 34 QuadHD 2K` | `Monitor LG UltraGear 34G600A-B 34" 2K` |
+
+### 1.1 Criar `scripts/product_naming.mjs` (arquivo NOVO)
+
+Módulo ESM puro, sem dependências externas, sem chamada de rede. Exporte:
+
+```js
+export const PRODUCT_CATEGORIES = { /* ver TAREFA 5 — tabela compartilhada */ };
+export function detectCategory(title) { ... }   // -> "teclado" | "mouse" | ... | null
+export function detectBrand(title) { ... }      // -> "Redragon" | "Logitech" | ... | ""
+export function detectModel(title) { ... }      // -> "K552" | "Q27G4F" | ...  | ""
+export function extractSpecs(title) { ... }     // -> ["27\"", "180Hz", "RGB"]
+export function cleanProductTitle(rawTitle, opts = {}) { ... } // -> string final
+```
+
+**Regras de implementação de `cleanProductTitle(rawTitle, { category } = {})`:**
+
+1. Normalize espaços, remova `\n`, colapse espaços duplos, remova aspas duplas soltas.
+2. **Remova ruído de vendedor** com uma lista de regex (constante exportada `NOISE_PATTERNS`), aplicada case-insensitive e sem acento:
+   `frete gr[áa]tis`, `envio r[áa]pido`, `promo[çc][ãa]o`, `oferta`, `original`, `lacrado`, `novo na caixa`, `pronta entrega`, `garantia \d+ (meses|anos)`, `nota fiscal`, `nf-?e`, `\+ brinde`, `brinde`, `kit \d+`, `combo`, `\d+ ?(un|pcs|pçs|peças)\b`, `com [ñn]\b`, `\bimportado\b`, `\bbarato\b`, `\bnacional\b`, `super`, `top de linha`, `melhor pre[çc]o`, `\bp/\b`, `para pc notebook`, `12x sem juros`.
+3. **Remova ano solto no início ou no fim** (`^\d{4}\b` e `\b\d{4}$`) quando o número estiver entre 2015 e 2035 — é o que causa o `"2026 Teclado..."`.
+4. **Remova códigos-lixo de vendedor**: tokens alfanuméricos minúsculos misturados sem sentido, ex.: `1pcsk1`. Heurística: token que tem letra **e** dígito, tem ≤ 8 caracteres, está todo em minúsculo no original e **não** aparece na lista de modelos conhecidos → descarte. (Modelo de verdade quase sempre vem em MAIÚSCULA ou com hífen: `K552`, `Q27G4F`, `34G600A-B`, `G Pro X`.)
+5. **Corte tudo após um separador de cauda**: primeiro `-`, `–`, `|`, `,`, `/` seguido de mais de 4 palavras, e todo conteúdo entre parênteses/colchetes.
+6. **Remonte** o título na ordem canônica:
+   `Categoria (capitalizada) + Marca + Modelo + até 3 specs`
+   - Categoria: `detectCategory()`, escrita como no dicionário (`Teclado`, `Mouse`, `Monitor`, `Headset`, `Cadeira`, `Mousepad`, `Placa de Vídeo`, `Console`, `Controle`, `Notebook`, `Webcam`, `Microfone`).
+   - Não repita a palavra "Gamer" se a categoria já implicar isso — remova `Gamer` do meio; ele só polui.
+   - Marca: `detectBrand()` contra a lista `KNOWN_BRANDS` (abaixo).
+   - Modelo: `detectModel()` — primeiro token que casa `/\b[A-Z]{1,4}[- ]?\d{2,5}[A-Z-]{0,4}\b/` **ou** que aparece logo depois da marca.
+   - Specs: `extractSpecs()` — capture no máximo 3, na ordem de prioridade: tamanho (`/\b\d{2}"|\b\d{2}\s?pol/`), resolução (`4K|2K|QHD|FHD|UltraWide|1440p|1080p`), taxa (`\b\d{2,3}\s?Hz\b`), switch (`Switch (Blue|Red|Brown|Outemu|Gateron)`), DPI (`\b\d{3,5}\s?DPI\b`), conectividade (`Wireless|Bluetooth|Sem Fio|TKL|RGB`), capacidade (`\b\d+\s?(GB|TB)\b`).
+7. **Capitalize** em Title Case brasileiro (preposições `de/da/do/e/com/para` minúsculas), preservando siglas em maiúscula (`RGB`, `QHD`, `TKL`, `IPS`, `HDR10`, `DPI`, `Hz`, `GB`, `TB`) e o modelo exatamente como detectado.
+8. **Trunque** em 60 caracteres sem cortar palavra ao meio.
+9. **Fallback duro:** se o resultado ficar com menos de 3 caracteres ou perder a categoria, **retorne o título original apenas colapsado/aparado** — nunca retorne string vazia.
+
+`KNOWN_BRANDS` (constante exportada, minúsculo → forma de exibição). Inclua no mínimo:
+`redragon, logitech, logitech g, razer, corsair, hyperx, steelseries, aoc, agon, lg, samsung, dell, alienware, asus, rog, acer, predator, gigabyte, aorus, msi, benq, zowie, philips, xiaomi, redmi, husky, fortrek, multilaser, warrior, motospeed, akko, keychron, glorious, pichau, rise mode, dt3, kabum, intel, amd, nvidia, sony, microsoft, nintendo, xbox, playstation, thermaltake, cooler master, dazz, mancer, vinik, tgt, sades, jbl, edifier, havit, machenike, evga, zotac, pcyes, duex, elgato, blue, hator, trust, marvo, t-dagger, bloody, a4tech, forcegamer`.
+
+### 1.2 Ligar a limpeza no pipeline
+
+Em `scripts/gerar-artigo.mjs`:
+
+1. Importe no topo: `import { cleanProductTitle, detectCategory } from "./product_naming.mjs";`
+2. Dentro de `sanitizeProducts` (linha ~835), **depois** do laço de deduplicação e **antes** do `return out`, adicione:
+
+```js
+for (const p of out) {
+  p.raw_title = p.title;                 // preserva o original para busca de imagem
+  p.title = cleanProductTitle(p.title);  // nome curto e legivel usado no artigo
+}
+```
+
+**Importante:** `p.raw_title` é obrigatório — a busca de imagem (TAREFA 4) e a busca de reviews (TAREFA 6) precisam do título completo original para achar o produto certo. Nunca perca esse campo.
+
+3. Em `ensureProductImages` (linha ~979), troque `slugify(p.title || ...)` por `slugify(p.title || p.raw_title || ...)`. Como o título ficou mais curto, o slug muda — isso é esperado e desejado (nomes de arquivo mais limpos).
+
+### 1.3 Testes
+
+Adicione um bloco de testes em `scripts/test-injecao.mjs` seguindo o estilo já usado nesse arquivo. Cobrir no mínimo:
+
+```
+cleanProductTitle('2026 Teclado Gamer Mecânico 1pcsk1 Com Ñ, Layout de 104')
+  → não começa com "2026", contém "Teclado", ≤ 60 chars
+cleanProductTitle('Monitor Gamer AOC AGON QUAD 27" QHD 180Hz 0,5ms IPS HDR10 Base Ajustável Q27G4F')
+  → contém "AOC", contém "Q27G4F", contém '27"', ≤ 60 chars
+cleanProductTitle('Teclado Mecânico Redragon Kumara K552 RGB Switch Blue + Brinde Frete Grátis')
+  → contém "Redragon", contém "K552", NÃO contém "Brinde", NÃO contém "Frete"
+cleanProductTitle('') → '' não quebra
+cleanProductTitle('xyz') → 'xyz' (fallback)
+```
+
+---
+
+## TAREFA 2 — Remover o índice duplicado
+
+**Problema (item 2).** Existem dois índices:
+
+1. `Neste artigo` — o correto, gerado pelo componente `src/components/TableOfContents.astro:42`, a partir dos headings extraídos pelo Astro.
+2. `## Índice` — gerado dentro do markdown pela função `injectTableOfContents` em `scripts/gerar-artigo.mjs:1031`, chamada na linha **2385**. A linha 1068 é a culpada:
+   ```js
+   const toc = `## Índice\n\n${tocLines.join("\n")}\n`;
+   return `${toc}\n${result}`;   // :1082
+   ```
+   Como esse `## Índice` é um H2, o plugin `src/plugins/rehype-article-sections.mjs` o transforma num card `article-section` que aparece antes da introdução — daí a sensação de "índice dentro do container da introdução".
+
+**Correção — causa raiz:**
+
+`injectTableOfContents` faz DUAS coisas: (a) monta o markdown `## Índice` — que é lixo; (b) injeta âncoras `<a id="...">` nos H2 — que é **útil** e é consumido por `findAnchorId` em `src/plugins/rehype-article-sections.mjs:45`.
+
+Portanto:
+
+1. **Renomeie** a função para `injectHeadingAnchors(body)` e mantenha toda a lógica de geração de âncoras únicas (linhas 1034–1080).
+2. **Apague** a linha 1068 (`const toc = ...`).
+3. **Troque** o `return` da linha 1082 por `return result;` — sem prefixo.
+4. Atualize a chamada na linha 2385: `body = injectHeadingAnchors(body);`
+5. Atualize o `export { ... }` no fim do arquivo, se `injectTableOfContents` estiver lá.
+6. Procure com grep por `injectTableOfContents` em **todo** o repositório (`scripts/`, `automation/`, testes) e atualize todas as ocorrências.
+
+**Resultado esperado:** o markdown do artigo passa a começar direto pela introdução; existe exatamente um índice, o componente `Neste artigo`.
+
+---
+
+## TAREFA 3 — Índice hierárquico com expandir/recolher + item "Introdução"
+
+**Problema (item 3).** No índice atual, o heading `## Os 5 Melhores Monitores Gamers em 2026` e os headings de cada produto são todos H2 — então todos aparecem como tópicos de primeiro nível, lado a lado, sem hierarquia. E a introdução não aparece no índice.
+
+O componente `src/components/TableOfContents.astro` **já sabe** montar tópico + subtópicos com `<details>`/`<summary>` (linhas 22–35 montam a árvore, linhas 64–84 renderizam o `<details>` colapsável). Ele agrupa **H3 sob H2**. O problema não é o componente — é que os produtos são emitidos como **H2** em vez de **H3**.
+
+### 3.1 Emitir os produtos como H3 (gerador)
+
+Em `scripts/gerar-artigo.mjs`, função `buildItemSection` (linha 2703):
+
+```js
+// ANTES
+return `## ${p.title}${tagline}\n\n${imgBlock}${text}${btnBlock}`;
+// DEPOIS
+return `### ${p.title}${tagline}\n\n${imgBlock}${text}${btnBlock}`;
+```
+
+**Efeitos colaterais que você TEM que tratar (verifique cada um):**
+
+- `src/plugins/rehype-article-sections.mjs` — os H3 já viram `<section class="article-subsection">` (linhas 151–167). Verifique visualmente após o build que o card do produto continua parecendo um card de produto e não um sub-card apagado; se o estilo do H3 ficar pequeno demais, ajuste o CSS em `src/pages/blog/[...slug].astro` (bloco `/* === Sub-cards (itens de lista, FAQ, dicas) === */`, ~linha 507) para que subseções dentro da seção da lista de produtos tenham o peso visual de antes.
+- `injectHeadingAnchors` (ex-`injectTableOfContents`) só casa `^## ` — passe a casar `^(##|###) ` para que os produtos também ganhem âncora, mantendo a exclusão dos headings da lista `excluded` (linha 1037).
+- A função `validate(...)` e o `splitMainBody` procuram headings `##`. Rode `npm test` e conserte qualquer regex que assuma que produto é H2. Busque no arquivo por `/^## /` e `"## "`.
+
+### 3.2 Adicionar "Introdução" ao índice (componente)
+
+Em `src/components/TableOfContents.astro`, antes do `tree.map(...)` (linha 46), insira um item fixo no topo da lista:
+
+```astro
+<li class="toc-topic">
+  <a href="#introducao" class="toc-link toc-link-topic">
+    <span class="toc-num">1</span><span>Introdução</span>
+  </a>
+</li>
+```
+
+E renumere: o `topicNum` dos demais passa a ser `String(ti + 2)`.
+
+Para a âncora `#introducao` existir, em `src/pages/blog/[...slug].astro` adicione `id="introducao"` no elemento que envolve o conteúdo anterior ao primeiro H2 (o bloco de introdução). Se hoje esse conteúdo é emitido "solto" pelo plugin (`src/plugins/rehype-article-sections.mjs:172` — nós antes do primeiro `h2` vão para `out` sem wrapper), **altere o plugin** para envolver esses nós iniciais em `<section class="article-section article-intro" id="introducao">`. Isso também resolve o pedido do usuário de que *"o container da introdução deve conter apenas a introdução"*.
+
+### 3.3 Estado inicial recolhido
+
+O usuário quer que os subtópicos comecem **recolhidos** e expandam ao clique (igual ao FAQ). Em `TableOfContents.astro:65`, o `<details class="toc-topic-details">` **não** deve ter o atributo `open`. Confirme que não tem. Se tiver, remova.
+
+Além disso o usuário citou o FAQ como referência de comportamento — porém **o FAQ hoje NÃO é um acordeão**: as perguntas são H3 renderizados como sub-cards. Para entregar o que ele descreveu, transforme o FAQ em acordeão de verdade:
+
+- Em `src/plugins/rehype-article-sections.mjs`, quando a seção pai for o FAQ (H2 cujo texto casa `/^(faq|perguntas frequentes)/i`), renderize cada H3 filho como `<details class="faq-item"><summary>{pergunta}</summary>{resposta}</details>` em vez de `<section class="article-subsection">`.
+- Estilize `.faq-item` / `.faq-item > summary` em `src/pages/blog/[...slug].astro`, reaproveitando o visual do `<details>` do índice (`.toc-topic-details` em `TableOfContents.astro:140–162`, incluindo o chevron que gira com `[open]`).
+
+---
+
+## TAREFA 4 — Imagens dos produtos: presença, tamanho e qualidade
+
+**Problema (item 7).** Causa raiz, investigada:
+
+1. A imagem vem do campo `thumbnail`, que é o `imageUrl` do Google Shopping (`scripts/google_shopping.mjs:84`). O Serper devolve **thumbnails pequenos** (frequentemente 100–200 px de largura) — daí "imagens muito pequenas / baixa qualidade".
+2. `ensureProductImages` (`scripts/gerar-artigo.mjs:979`) aceita qualquer download com `b.length > 2048` (linha 1004) — ou seja, **2 KB é o único critério**. Um thumbnail de 120×120 passa fácil.
+3. Não há upgrade de URL. Imagens do Mercado Livre têm variantes de resolução no próprio nome (`D_NQ_NP_2X_...` → substituir o sufixo `-O`/`-I`/`-V` por `-F` e/ou usar `_2X_`), e imagens do Google (`encrypted-tbn0.gstatic.com`) são sempre miniaturas irreversíveis.
+4. Quando tudo falha, o item simplesmente sai **sem foto** (linha 1025) — daí "sem imagem".
+
+**Correções:**
+
+### 4.1 Upgrade de URL antes de baixar
+
+Crie em `scripts/gerar-artigo.mjs` (ou melhor, num novo `scripts/product_images.mjs`) a função:
+
+```js
+export function upgradeImageUrl(url) {
+  if (!url) return "";
+  let u = url;
+  // Mercado Livre: forcar variante grande
+  u = u.replace(/D_NQ_NP_(?!2X_)/, "D_NQ_NP_2X_");
+  u = u.replace(/-[OIVSMN](\.(jpg|jpeg|png|webp))(\?.*)?$/i, "-F$1");
+  // Shopee: remover sufixo de redimensionamento
+  u = u.replace(/_tn(\.\w+)?$/i, "");
+  // Serper/Google: parametros de largura
+  u = u.replace(/([?&])(w|width)=\d+/gi, "$1$2=1200");
+  return u;
+}
+```
+
+Aplique na `ensureProductImages`: tente primeiro `upgradeImageUrl(p.thumbnail)`; se falhar (HTTP erro ou buffer pequeno), tente a URL original; só então siga para os fallbacks.
+
+### 4.2 Validar dimensão real, não só bytes
+
+Crie `export function imageDimensions(buf)` que lê o header binário e devolve `{ width, height }` para PNG, JPEG e WebP (sem dependência externa):
+
+- **PNG:** largura = `buf.readUInt32BE(16)`, altura = `buf.readUInt32BE(20)`.
+- **JPEG:** varra os marcadores a partir do byte 2; ao encontrar um SOF (`0xC0`–`0xC3`, `0xC5`–`0xC7`, `0xC9`–`0xCB`, `0xCD`–`0xCF`), altura = `readUInt16BE(off+5)`, largura = `readUInt16BE(off+7)`.
+- **WebP (VP8X/VP8L/VP8):** leia conforme o chunk; se não souber decodificar, devolva `null` (e trate `null` como "aceitar", para não descartar imagem boa por limitação do parser).
+
+Defina a constante `const MIN_IMAGE_SIZE = 500;` (px). Substitua o critério `b.length > 2048` por:
+
+```js
+const dim = imageDimensions(b);
+const ok = b && b.length > 8192 && (!dim || (dim.width >= MIN_IMAGE_SIZE && dim.height >= MIN_IMAGE_SIZE));
+```
+
+### 4.3 Cadeia de fallback mais robusta e garantia de imagem
+
+Reescreva a cadeia de `ensureProductImages` para, em ordem, parar no primeiro sucesso que passe na validação 4.2:
+
+1. `upgradeImageUrl(p.thumbnail)`
+2. `p.thumbnail` original
+3. cada URL de `p.images[]` (também com upgrade)
+4. **NOVO:** busca de imagem no Google Images via Serper (`https://google.serper.dev/images`, header `X-API-KEY: process.env.SERPER_API_KEY`, body `{ q: p.raw_title || p.title, gl: "br", hl: "pt-br", num: 5 }`); percorra os resultados testando `imageUrl` de cada um até um passar na validação. **Use `p.raw_title`** — o título completo acha o produto certo.
+5. `searchTavilyImage(p.raw_title || p.title)` (já existe, linha ~1207)
+6. `gerarImagemItemIA(p.title, slug)` (já existe, linha 946)
+7. **NOVO — último recurso, nunca deixe sem imagem:** um placeholder local. Crie `public/images/produtos/_placeholder.webp` (imagem neutra escura com o ícone/silhueta do produto) e atribua `p.local_thumbnail = "/blog-gamer/images/produtos/_placeholder.webp"`. Loge `WARN`.
+
+Além disso, ao final de `ensureProductImages`, **loge um resumo** com quantos itens vieram de cada etapa da cadeia, para diagnóstico futuro no log do Actions.
+
+### 4.4 Renderização responsiva
+
+Em `buildProductImageTag` (linha 880), acrescente `width`/`height` quando conhecidos e garanta que o CSS não amplie imagem pequena. No CSS de `.article-game-img` (em `src/pages/blog/[...slug].astro`), use `max-width: 100%; height: auto; object-fit: contain;` e um `background` neutro, para que uma imagem menor que o container fique centralizada em vez de esticada e borrada.
+
+### 4.5 Limpeza do cache
+
+`ensureProductImages` reaproveita arquivos já existentes em `public/images/produtos/` só pelo slug (linhas 986–997). Como a TAREFA 1 muda os slugs, as imagens antigas viram órfãs. Crie o script `scripts/limpar-imagens-orfas.mjs` que varre `public/images/produtos/`, cruza com os `local_thumbnail` referenciados em `src/content/artigos/*.md` e **lista** (com flag `--apply` para de fato apagar) os arquivos não referenciados. Não apague nada sem `--apply`.
+
+---
+
+## TAREFA 5 — Validar que o produto pertence à categoria do artigo
+
+**Problema (item 5).** Um artigo de teclado saiu com kit teclado+mouse, headset e mouse.
+
+Causa raiz confirmada: **não existe filtro por categoria de produto.** O que existe:
+- `classifyDomain` / `filterSameDomain` (`scripts/gerar-artigo.mjs:138–166`) só separa **games** de **hardware** — não distingue teclado de mouse.
+- `mlProductRelevanceScore` (`:824`) apenas **ordena** por sobreposição de tokens; `sanitizeProducts` (`:865`) faz `sort`, **nunca `filter`**. Então um mouse num artigo de teclado só fica em último lugar — e é publicado.
+- A regra existe escrita em `skills/produtos-gamer/SKILL.md` ("Artigo de teclado → apenas teclados") mas **nenhum código a implementa**.
+
+### 5.1 Tabela de categorias (em `scripts/product_naming.mjs`)
+
+```js
+export const PRODUCT_CATEGORIES = {
+  teclado:  { label: "Teclado",  include: [/\bteclado\b/, /\bkeyboard\b/], exclude: [/\bmouse\b/, /\bheadset\b/, /\bfone\b/, /\bmonitor\b/, /\bcadeira\b/, /\bmousepad\b/, /\bcombo\b/, /\bkit\b/] },
+  mouse:    { label: "Mouse",    include: [/\bmouse\b/], exclude: [/\bteclado\b/, /\bheadset\b/, /\bfone\b/, /\bmousepad\b/, /\bmonitor\b/, /\bkit\b/, /\bcombo\b/] },
+  mousepad: { label: "Mousepad", include: [/\bmousepad\b/, /\bmouse pad\b/], exclude: [/\bteclado\b/, /\bmonitor\b/] },
+  headset:  { label: "Headset",  include: [/\bheadset\b/, /\bfone (de )?ouvido\b/, /\bheadphone\b/], exclude: [/\bteclado\b/, /\bmouse\b/, /\bmonitor\b/, /\bkit\b/, /\bcombo\b/] },
+  monitor:  { label: "Monitor",  include: [/\bmonitor\b/], exclude: [/\bteclado\b/, /\bmouse\b/, /\bsuporte\b/, /\bcabo\b/] },
+  cadeira:  { label: "Cadeira",  include: [/\bcadeira\b/], exclude: [/\bcapa\b/, /\balmofada\b/] },
+  placa_video: { label: "Placa de Vídeo", include: [/\bplaca de v[ií]deo\b/, /\brtx\s?\d{4}\b/, /\brx\s?\d{4}\b/, /\bgeforce\b/, /\bradeon\b/], exclude: [/\bsuporte\b/, /\bcooler\b/, /\bcabo\b/] },
+  processador: { label: "Processador", include: [/\bprocessador\b/, /\bryzen\b/, /\bcore i[3579]\b/], exclude: [/\bplaca m[aã]e\b/, /\bcooler\b/] },
+  console:  { label: "Console",  include: [/\bplaystation\b/, /\bps5\b/, /\bxbox\b/, /\bnintendo switch\b/, /\bconsole\b/], exclude: [/\bcontrole\b/, /\bcapa\b/, /\bsuporte\b/, /\bjogo\b/] },
+  controle: { label: "Controle", include: [/\bcontrole\b/, /\bgamepad\b/, /\bjoystick\b/, /\bdualsense\b/], exclude: [/\bsuporte\b/, /\bcarregador\b/, /\bgrip\b/] },
+  notebook: { label: "Notebook", include: [/\bnotebook\b/, /\blaptop\b/], exclude: [/\bsuporte\b/, /\bcapa\b/, /\bmochila\b/] },
+  webcam:   { label: "Webcam",   include: [/\bwebcam\b/, /\bc[aâ]mera web\b/], exclude: [] },
+  microfone:{ label: "Microfone",include: [/\bmicrofone\b/, /\bmic\b/], exclude: [/\bsuporte\b/, /\bbra[çc]o\b/, /\bpop filter\b/] },
+  gabinete: { label: "Gabinete", include: [/\bgabinete\b/], exclude: [/\bfonte\b/, /\bcooler\b/] },
+  cooler:   { label: "Cooler",   include: [/\bcooler\b/, /\bwater ?cooler\b/, /\bair ?cooler\b/], exclude: [] },
+  fonte:    { label: "Fonte",    include: [/\bfonte\b/, /\b\d{3,4}w\b.*\b80 ?plus\b/], exclude: [/\bcarregador\b/] },
+  ssd:      { label: "SSD",      include: [/\bssd\b/, /\bnvme\b/, /\bm\.2\b/], exclude: [/\bgaveta\b/, /\bcase\b/] },
+  memoria:  { label: "Memória RAM", include: [/\bmem[oó]ria ram\b/, /\bddr[45]\b/], exclude: [] },
+};
+
+const ACCESSORY_NOISE = [/\bsuporte\b/, /\bcapa\b/, /\bcabo\b/, /\badaptador\b/, /\bpel[ií]cula\b/, /\bskin\b/, /\badesivo\b/, /\bkeycap/, /\bcase\b/, /\bbolsa\b/, /\bcarregador\b/];
+```
+
+`detectCategory(title)`: normalize (minúsculo, sem acento), percorra as entradas; conte quantos `include` batem; a categoria com mais acertos vence; devolva `null` se nenhuma bater.
+
+`export function productMatchesCategory(title, categoryKey)`: `true` somente se (a) algum `include` da categoria bater **e** (b) nenhum `exclude` da categoria bater **e** (c) nenhum `ACCESSORY_NOISE` bater.
+
+### 5.2 Detectar a categoria do ARTIGO
+
+Crie `export function detectArticleCategory(topic)` em `scripts/product_naming.mjs`. Ela recebe o objeto `topic` já usado por `sanitizeProducts` e olha, nesta ordem: `topic.hint`, `topic.ml_query`, `topic.trending_keywords[]`, e o título gerado. Rode `detectCategory()` sobre a concatenação; devolva a chave da categoria ou `null`.
+
+### 5.3 Aplicar o filtro (a correção de fato)
+
+Em `sanitizeProducts` (`scripts/gerar-artigo.mjs:835`), **depois** do laço de dedupe e **antes** da ordenação por relevância:
+
+```js
+const articleCat = detectArticleCategory(topic);
+if (articleCat) {
+  const before = out.length;
+  const matched = out.filter((p) => productMatchesCategory(p.raw_title || p.title, articleCat));
+  if (matched.length >= MIN_PRODUCTS) {
+    out = matched;
+    if (before > out.length) log("INFO", `${before - out.length} produto(s) fora da categoria "${articleCat}" descartados`);
+  } else {
+    log("WARN", `Filtro de categoria "${articleCat}" deixaria so ${matched.length} produto(s) — mantendo os que casam e sinalizando falta`);
+    out = matched; // preferimos lista curta e correta a lista longa e errada
+  }
+}
+```
+
+Defina `const MIN_PRODUCTS = 3;` junto de `MAX_PRODUCTS` (linha ~461).
+
+### 5.4 Falhar em vez de publicar errado
+
+Se após o filtro `mlProducts.length < MIN_PRODUCTS`, o gerador **deve tentar buscar mais produtos** antes de desistir:
+
+Na `main()`, no bloco de busca (linhas 1955–1981), transforme a busca em um laço que, se após `sanitizeProducts` sobrarem menos de `MIN_PRODUCTS` itens, refaz a busca com queries mais específicas — construídas como `` `${PRODUCT_CATEGORIES[articleCat].label} gamer ${ano}` ``, `` `melhor ${label} gamer custo beneficio` ``, `` `${label} ${marca}` `` para 3 marcas conhecidas da categoria — até no máximo **3 rodadas extras**. Só depois disso, se ainda faltar, aborte a geração com `log("ERROR", ...)` + `process.exit(1)` (o padrão já usado na linha 2374). **É melhor não publicar do que publicar um artigo de teclado cheio de mouse.**
+
+### 5.5 Reforço no prompt
+
+Em `generateMainBody` (linha 2638) e em `generateProductBlurb` (linha 2598), acrescente ao system prompt:
+
+```
+## CATEGORIA UNICA
+Este artigo e exclusivamente sobre: {PRODUCT_CATEGORIES[articleCat].label}.
+NUNCA cite, recomende ou descreva produto de outra categoria (mouse, headset, monitor, kit, combo)
+a nao ser como acessorio complementar mencionado de passagem no Veredito.
+```
+
+Passe `articleCat` por parâmetro até essas funções.
+
+---
+
+## TAREFA 6 — Metodologia real de seleção dos "melhores"
+
+**Problema (item 6).** Hoje o título diz "Top 5 / Melhores" mas não há critério nenhum:
+- a ordem é sobreposição de tokens (`mlProductRelevanceScore`, `:824`);
+- a "Nota" da tabela comparativa é inventada pela LLM **produto a produto, isoladamente**, com o prompt dizendo explicitamente `"NUNCA compare com outros produtos"` (`:2609`). São palpites mutuamente cegos apresentados como ranking.
+
+### 6.1 Coletar sinais objetivos
+
+Crie `scripts/product_ranking.mjs`. Sinais disponíveis **sem custo adicional**:
+
+- `p.rating` e `p.ratingCount` — o Serper Shopping já devolve `rating` (`scripts/google_shopping.mjs:88` já captura `rating`; **adicione também** `ratingCount: it.ratingCount || it.reviews || null` e `offersCount: it.offers || null` no objeto retornado em `google_shopping.mjs:79–89`).
+- `p.price` — já existe.
+- `detectBrand()` da TAREFA 1 → reputação de marca.
+- `p.source` (loja).
+
+Sinais que exigem uma chamada extra (faça **uma** chamada por artigo, não por produto):
+
+- **Consenso editorial:** use o Serper Search (`https://google.serper.dev/search`, `X-API-KEY: process.env.SERPER_API_KEY`, body `{ q: "melhores <categoria> gamer <ano> review", gl:"br", hl:"pt-br", num: 10 }`) e o Tavily (já usado no arquivo, `TAVILY_API_KEY`) para trazer 5–10 páginas de review. Concatene os `snippet`/`content` num único texto `rankingContext`.
+- Conte, para cada produto candidato, quantas vezes **marca + modelo** aparecem nesse `rankingContext` → sinal `mentions`.
+
+### 6.2 Score composto
+
+```js
+export const RANKING_WEIGHTS = {
+  rating: 0.25,        // nota media dos consumidores (0-5 normalizada)
+  reviewVolume: 0.20,  // log10(ratingCount) normalizado — muitas avaliacoes = mais confiavel
+  editorialMentions: 0.25, // presenca em reviews/rankings independentes
+  brandReputation: 0.15,   // marca conhecida da categoria
+  valueForMoney: 0.15,     // preco vs mediana da lista (nem o mais caro nem suspeito de barato)
+};
+export function scoreProduct(p, ctx) { /* devolve { score, breakdown, criteriosAtendidos } */ }
+export function rankProducts(products, ctx) { /* devolve products ordenados por score desc */ }
+```
+
+Regras:
+- Cada sinal ausente vale **0**, nunca `NaN`. Normalize tudo para 0–1 antes de ponderar.
+- `valueForMoney`: calcule a mediana de preço da lista; pontuação máxima para preços entre 0,6× e 1,2× a mediana; penalize preço < 0,3× mediana (provável produto falso/acessório) e > 2,5× mediana.
+- **Requisito mínimo para entrar na lista** (`export const MIN_CRITERIA = 2;`): o produto precisa satisfazer pelo menos 2 destes: `rating >= 4.0`, `ratingCount >= 20`, `mentions >= 1`, `marca ∈ KNOWN_BRANDS`. Produto que não atinge o mínimo é descartado — a menos que descartá-lo deixe a lista abaixo de `MIN_PRODUCTS`, caso em que os melhores restantes entram e o fato é **logado**.
+
+### 6.3 Usar o score no artigo
+
+1. Em `sanitizeProducts` (ou logo depois dela, na `main()`), substitua o `sort` por token-overlap pela chamada `rankProducts(out, ctx)`. Mantenha o token-overlap como critério de desempate.
+2. **A `Nota` da tabela comparativa deixa de ser inventada pela LLM.** Em `buildComparativoTable` (`:2696`), use `p.nota = Math.round(p.score * 10 * 10) / 10` (uma casa decimal, escala 1–10). Remova o item `3. "NOTA:"` do prompt de `generateProductBlurb` (`:2603`) e a linha correspondente em `parseBlurb` pode continuar existindo, mas o valor da LLM só é usado se o score objetivo não existir.
+3. **Adicione uma seção de metodologia ao artigo — genérica, gerada por template, não pela LLM.** Crie em `scripts/gerar-artigo.mjs`:
+
+```js
+function buildMetodologiaSection(ctx) {
+  return `## Como Escolhemos\n\nEsta lista nao e aleatoria. Cada modelo foi avaliado com os mesmos criterios:\n\n` +
+    `- **Avaliacoes de consumidores** — nota media e volume de avaliacoes nas lojas.\n` +
+    `- **Consenso editorial** — presenca em reviews e rankings independentes consultados nesta pesquisa.\n` +
+    `- **Reputacao da marca** — historico da fabricante na categoria.\n` +
+    `- **Especificacoes tecnicas** — o que o modelo entrega de fato.\n` +
+    `- **Custo-beneficio** — preco frente a mediana da categoria.\n\n` +
+    `Modelos que nao atenderam a pelo menos ${MIN_CRITERIA} desses criterios ficaram de fora.\n`;
+}
+```
+
+Injete essa seção **logo após a introdução e antes do heading da lista**, dentro de `injectSegmentedItems` (`:2715`) ou imediatamente antes da chamada dela na linha 2359.
+
+4. **Adicione uma coluna `Por que entrou`** na tabela comparativa, preenchida com os critérios objetivos atendidos (ex.: `4,6★ (1.2k avaliações) · citado em 3 reviews`), gerada por `scoreProduct().criteriosAtendidos`. Isso torna o "melhor" auditável.
+
+5. Em `generateMainBody` (`:2638`), acrescente ao prompt: os textos devem se apoiar nos critérios acima e **nunca** afirmar superioridade sem base; o `## Veredito` deve receber, no `user` prompt, a lista ordenada com score e critérios, para que o veredito reflita o ranking real e não invente.
+
+---
+
+## TAREFA 7 — Migrar os artigos já publicados
+
+Crie `scripts/migrar-artigos.mjs`. Ele varre `src/content/artigos/*.md` e, para cada arquivo:
+
+1. **Remove o bloco `## Índice`**: apaga do `## Índice` (com ou sem âncora `<a id>`) até o próximo heading `## ` exclusive.
+2. **Reescreve os títulos dos produtos**: para cada heading `## ` que **não** esteja na lista de seções fixas (`Comparativo`, `Veredito`, `FAQ`, `Perguntas Frequentes`, `Fontes`, `Quer mais ofertas?`, `Continue Explorando`, `Como Escolhemos`, e o heading que começa com `Os N Melhores`), aplica `cleanProductTitle()` na parte antes do ` — ` (preservando a tagline após o travessão) e **rebaixa o heading de `##` para `###`**.
+3. **Reescreve as âncoras** correspondentes, se houver `<a id="...">` embutido.
+4. **Não toca** em `local_thumbnail`/`src` de imagem — as imagens continuam apontando para os arquivos antigos, que continuam existindo. (Por isso a TAREFA 4.5 não deve apagar nada sem `--apply` e revisão.)
+
+Comportamento do script:
+- `node scripts/migrar-artigos.mjs` → **dry-run**: imprime, por arquivo, o diff resumido do que mudaria. Não grava nada.
+- `node scripts/migrar-artigos.mjs --apply` → grava as alterações.
+
+Execute primeiro o dry-run, revise a saída, e só então rode com `--apply`. Depois rode `npm run build` e confira que os 31 artigos ainda constroem.
+
+---
+
+## TAREFA 8 — Tema claro completo (Light Mode)
+
+**Estado atual:** `src/layouts/Layout.astro` fixa `<html lang="pt-BR" class="dark">`. Todas as cores vivem em `:root` no `src/styles/global.css:5–63`. `tailwind.config.mjs` tem `darkMode: "class"` e uma segunda paleta desalinhada. Há cores hardcoded em `src/styles/effects.css` (`.glass-nav` `rgba(5,5,5,0.88)`, scrollbar `#0d0d17`/`#242433`) e em `TableOfContents.astro` (`.toc-link-sub { color: #c4b5fd }`, `:hover { color:#fff }`).
+
+### 8.1 Reestruturar as variáveis por tema
+
+Em `src/styles/global.css`, **mantenha o `:root` atual como está** (é o tema escuro / padrão) e adicione logo abaixo, **antes** do bloco `/* --- EDITOR THEME OVERRIDES --- */`, um bloco de tema claro seletivo por atributo:
+
+```css
+:root[data-theme="light"] {
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F5F5F7;
+  --bg-card: #FFFFFF;
+  --bg-elevated: #F0F0F4;
+  --bg-glass: rgba(255, 255, 255, 0.86);
+
+  --accent: #7C3AED;          /* roxo mais escuro: contraste AA sobre branco */
+  --accent-hover: #6D28D9;
+  --accent-dim: rgba(124, 58, 237, 0.10);
+  --accent-glow: rgba(124, 58, 237, 0.18);
+
+  --success: #15803D;
+  --success-dim: rgba(21, 128, 61, 0.10);
+  --warning: #C2410C;
+  --warning-dim: rgba(194, 65, 12, 0.10);
+  --danger: #DC2626;
+
+  --text-primary: #16161D;
+  --text-secondary: #4A4A57;
+  --text-muted: #77777F;
+
+  --border: #E2E2EA;
+  --border-hover: #C4C4D0;
+
+  --shadow-sm: 0 1px 2px rgba(16, 16, 29, 0.06);
+  --shadow: 0 4px 12px rgba(16, 16, 29, 0.08);
+  --shadow-lg: 0 8px 32px rgba(16, 16, 29, 0.12);
+  --shadow-glow: 0 0 20px rgba(124, 58, 237, 0.14);
+
+  --emboss-high: rgba(255, 255, 255, 0.9);
+  --emboss-mid: rgba(16, 16, 29, 0.06);
+  --emboss-deep: rgba(16, 16, 29, 0.12);
+
+  --body-bg-color: #F5F5F7;
+}
+```
+
+**Não é inversão de cores.** Note as escolhas deliberadas: o roxo escurece (o `#A855F7` original não tem contraste suficiente sobre branco), as sombras ficam sutis e frias, o `--bg-card` fica branco puro sobre um `--body-bg-color` cinza-claro (cards se destacam por elevação, não por escuridão), e o emboss inverte de luz-em-cima para luz-real.
+
+### 8.2 Eliminar as cores hardcoded
+
+Faça um grep por valores hex e `rgba(` em `src/styles/*.css`, `src/components/*.astro` e `src/pages/**/*.astro`. **Toda** cor que participe do tema deve virar `var(--...)`. Casos já mapeados que você DEVE corrigir:
+
+- `src/styles/effects.css`: `.glass-nav` → `background: var(--bg-glass)`; scrollbar `#0d0d17` → `var(--bg-secondary)`, `#242433` → `var(--border-hover)`; `.carbon-overlay` e `.carbon-shine` precisam de variantes claras (no tema claro o brilho de cursor deve ser mais sutil — reduza a opacidade via nova variável `--glow-opacity`, `0.25` no escuro e `0.08` no claro).
+- `src/components/TableOfContents.astro`: `.toc-link-sub { color: #c4b5fd }` → `var(--accent)` com `opacity: .85`; `.toc-link-sub:hover { color: #fff }` → `var(--text-primary)`; `.toc-link:hover { background: rgba(168,85,247,0.06) }` → `var(--accent-dim)`.
+- `src/styles/global.css`: `::selection { background: rgba(204,151,255,.3); color:#fff }` → usar `var(--accent-dim)` / `var(--text-primary)`.
+- `src/pages/blog/[...slug].astro`: revise todo o `<style>` (é grande) pelo mesmo critério, incluindo os blocos `/* === FAQ === */` (~:448) e `/* === Sub-cards === */` (~:507).
+
+Revise especificamente cada item que o usuário listou: **cores, fundos, textos, botões, menus, sidebar, cartões, links, hover, imagens, sombras, contrastes, bordas, componentes**. Para **imagens**, adicione no tema claro uma borda sutil (`border: 1px solid var(--border)`) nas fotos de produto — sem isso, produto fotografado em fundo branco "vaza" no card branco.
+
+### 8.3 Fundo do body por tema
+
+O `body` (linhas 129–154) tem um `background-image` de 12 camadas hardcoded (fibra de carbono + glows roxos), pensado só para o escuro. Refatore para variáveis:
+
+```css
+body {
+  background-color: var(--body-bg-color);
+  background-image: var(--body-bg-image, none);
+  background-size: var(--body-bg-size, auto);
+  background-position: var(--body-bg-position, 0 0);
+  background-repeat: var(--body-bg-repeat, repeat);
+  background-attachment: var(--body-bg-attachment, scroll);
+}
+```
+
+E mova a pilha atual de 12 camadas para dentro de `:root` como valor padrão de `--body-bg-image` / `--body-bg-size` / `--body-bg-position` (é exatamente o que está nas linhas 132–148 — copie tal e qual). Em `:root[data-theme="light"]`, defina uma versão clara equivalente (mesma trama de fibra, com `rgba(0,0,0,0.03)` no lugar do branco e `rgba(255,255,255,0.6)` no lugar do preto, glows em opacidade ~0.04).
+
+O `html::before` (trama hexagonal, linhas 156–166): no tema claro, troque o `stroke='%23A855F7'` por `%237C3AED` e a `opacity` de `0.015` para `0.03`. Faça isso via variável `--hex-overlay-color` / `--hex-overlay-opacity` — mas atenção: a cor está dentro de uma data-URI, então a forma limpa é definir **duas** regras (`:root html::before` e `:root[data-theme="light"] html::before`) com a data-URI apropriada.
+
+### 8.4 Alternância de tema
+
+**No `src/layouts/Layout.astro`:**
+
+1. Troque `<html lang="pt-BR" class="dark">` por `<html lang="pt-BR" class="dark" data-theme="dark">`.
+2. Adicione no `<head>`, **antes de qualquer CSS**, um script inline síncrono (para evitar *flash of wrong theme*):
+
+```html
+<script is:inline>
+  (function () {
+    var DEFAULT = "__DEFAULT_THEME__"; /* substituido no build pelo valor da config */
+    var saved = null;
+    try { saved = localStorage.getItem("blog-theme"); } catch (e) {}
+    var theme = saved || DEFAULT || "dark";
+    document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    document.documentElement.classList.toggle("light", theme === "light");
+  })();
+</script>
+```
+
+O `__DEFAULT_THEME__` deve vir da configuração do blog (TAREFA 9) — leia o valor no frontmatter do componente Astro e interpole-o.
+
+3. Atualize a `<meta name="theme-color">` dinamicamente no mesmo script (`#050505` no escuro, `#F5F5F7` no claro).
+
+**Botão para o visitante:** crie `src/components/ThemeToggle.astro` — um botão com ícone sol/lua (use o componente `Icon.astro` já existente) e insira-o em `src/components/Header.astro`, ao lado dos demais controles. Ao clicar: alterna `data-theme`, alterna as classes `dark`/`light` no `<html>`, grava em `localStorage` sob a chave `blog-theme` e atualiza a `meta[name=theme-color]`. Respeite `prefers-reduced-motion` e adicione `aria-label` e `aria-pressed`.
+
+### 8.5 Alinhar o Tailwind
+
+Em `tailwind.config.mjs`, os tokens (`surface: #0d0d17`, `primary: #A855F7`, …) são uma **segunda fonte de verdade desalinhada** do `global.css`. Troque os valores hardcoded por referências às CSS vars, ex.: `primary: "var(--accent)"`, `surface: "var(--bg-primary)"`, `"on-surface": "var(--text-primary)"`, `outline: "var(--border)"`. Assim as classes utilitárias do Tailwind passam a seguir o tema automaticamente. Mantenha `darkMode: "class"`.
+
+### 8.6 Verificação de contraste
+
+Antes de encerrar a tarefa, verifique manualmente (ferramenta de contraste do DevTools ou cálculo) que no tema claro:
+- texto principal sobre `--bg-card` ≥ **7:1**;
+- texto secundário sobre `--bg-card` ≥ **4.5:1**;
+- `--accent` sobre `--bg-card` ≥ **4.5:1**;
+- texto branco sobre botão `--accent` ≥ **4.5:1**.
+Ajuste os hexadecimais se algum não passar.
+
+---
+
+## TAREFA 9 — Configuração do blog (arquivo de config real)
+
+Hoje não existe um arquivo de configuração — o admin reescreve CSS bruto. Para as TAREFAS 8, 10 e 11 funcionarem de forma limpa, crie um.
+
+### 9.1 Criar `src/data/blog-config.json`
+
+```json
+{
+  "theme": "dark",
+  "allowVisitorThemeToggle": true,
+  "background": {
+    "mode": "preset",
+    "preset": "carbono-roxo",
+    "solidColor": "#050505",
+    "imageUrl": "",
+    "imageSize": "cover",
+    "imagePosition": "center center",
+    "imageRepeat": "no-repeat",
+    "imageAttachment": "fixed",
+    "overlayOpacity": 0.55
+  }
+}
+```
+
+`mode` aceita: `"preset"` | `"image"` | `"solid"` | `"none"`.
+
+### 9.2 Consumir a config no `Layout.astro`
+
+No frontmatter de `src/layouts/Layout.astro`:
+
+```js
+import blogConfig from "../data/blog-config.json";
+```
+
+Use `blogConfig.theme` para o `__DEFAULT_THEME__` do script inline, `blogConfig.allowVisitorThemeToggle` para exibir ou não o `ThemeToggle`, e injete um `<style is:inline>` no `<head>` que traduz `blogConfig.background` para as variáveis `--body-bg-color` / `--body-bg-image` / `--body-bg-size` / `--body-bg-position` / `--body-bg-repeat` / `--body-bg-attachment` definidas na TAREFA 8.3.
+
+**Regra de precedência:** config do blog > bloco `EDITOR THEME OVERRIDES` do `global.css` > `:root` padrão. Como o `<style is:inline>` do Layout entra depois dos CSS importados, essa precedência acontece naturalmente. Confirme.
+
+### 9.3 Presets de plano de fundo
+
+Crie `src/data/background-presets.json` com **no mínimo 10** presets. Cada um:
+
+```json
+{
+  "id": "carbono-roxo",
+  "label": "Carbono Roxo (padrão)",
+  "themes": ["dark"],
+  "color": "#050505",
+  "image": "<valor CSS de background-image>",
+  "size": "10px 10px, ...",
+  "position": "0 0, ...",
+  "repeat": "repeat",
+  "attachment": "scroll",
+  "thumb": "<gradiente CSS curto para a miniatura no painel>"
+}
+```
+
+Presets obrigatórios (crie todos com CSS puro — gradientes e data-URIs SVG; **não use imagem externa, o site é estático e offline-first**):
+
+| id | descrição |
+|---|---|
+| `carbono-roxo` | o atual (copie exatamente as 12 camadas de `global.css:132–148`) — dark |
+| `carbono-neutro` | mesma trama, sem os glows coloridos — dark |
+| `grid-neon` | grade fina ciano/roxo com vinheta — dark |
+| `nebulosa` | gradientes radiais roxo/azul difusos, sem trama — dark |
+| `hexagonos` | trama hexagonal SVG (reaproveite a data-URI de `global.css:164`) — dark |
+| `preto-solido` | `#050505` puro — dark |
+| `scanlines` | linhas horizontais sutis estilo CRT — dark |
+| `papel-claro` | ruído sutil sobre `#F5F5F7` — light |
+| `grid-claro` | grade cinza-claro sobre branco — light |
+| `gradiente-suave` | gradiente lavanda→branco — light |
+| `branco-solido` | `#FFFFFF` puro — light |
+
+O campo `themes` indica em qual(is) tema(s) o preset faz sentido; o painel deve filtrar por ele.
+
+---
+
+## TAREFA 10 — Painel admin: aba "Aparência"
+
+**Arquivo a editar: `public/admin/index.html`** (fonte de verdade — ver TAREFA 12).
+
+Adicione um novo item na sidebar (o `<nav>` por volta das linhas 628–641) e uma nova `<section id="section-aparencia">`, seguindo **exatamente** o mesmo padrão visual e estrutural das seções existentes (`#section-settings` ~linha 923, `#section-layout` ~linha 846). Não introduza framework nem build — o admin é HTML+JS puro.
+
+### 10.1 Controles da aba
+
+**Bloco "Tema":**
+- Dois cartões clicáveis grandes, "Tema Escuro" e "Tema Claro", com prévia em miniatura.
+- Um checkbox: "Permitir que o visitante alterne o tema" → `allowVisitorThemeToggle`.
+
+**Bloco "Plano de fundo":**
+- Seletor de modo (4 botões de rádio): **Preset** | **Imagem** | **Cor sólida** | **Nenhum**.
+- **Preset:** grade de miniaturas carregadas de `src/data/background-presets.json` (busque o arquivo pela API do GitHub, mesma função `getFile` já existente no admin, ~linhas 1124–1195), filtrada pelo tema selecionado. Clicar seleciona.
+- **Imagem:** campo de URL + botão de upload. O upload deve reaproveitar o fluxo de upload de logo que já existe no admin (`putFileRaw`), gravando em `public/images/backgrounds/<nome>`; o valor salvo na config é `/blog-gamer/images/backgrounds/<nome>`. Ofereça também os seletores de `size` (cover/contain/auto), `position`, `repeat`, `attachment` (fixed/scroll) e um slider de **opacidade do overlay escurecedor** (0–1) — sem esse overlay, texto sobre foto fica ilegível.
+- **Cor sólida:** um `<input type="color">` + campo de texto hex sincronizado + a paleta de swatches já existente no admin (`BG_COLORS` em `admin/editor.js` tem 64 cores escuras — porte essa lista para `public/admin/index.html` e **acrescente** ~24 cores claras para dar suporte ao tema claro).
+- **Nenhum:** remove completamente imagem e presets; o fundo passa a ser apenas `--body-bg-color`.
+- Botão **"Remover imagem de fundo"** explícito (o usuário pediu nominalmente).
+
+**Prévia ao vivo:** reutilize o `<iframe>` de prévia e o `postMessage` que já existem (`src/components/EditorBridge.astro`). Adicione ao `EditorBridge.astro` o handler de uma nova mensagem `editor-apply-background` que recebe `{ theme, background }` e aplica `document.documentElement.setAttribute("data-theme", theme)` + as CSS vars de fundo. **Atenção:** hoje o `EditorBridge` aplica `body-bg-image` só na prévia e a função `resetBgImage()` do `admin/editor.js` referencia uma variável inexistente `--bg-image-original` — corrija isso usando as novas variáveis da TAREFA 8.3.
+
+### 10.2 Salvamento
+
+Crie no admin a função `saveAparencia()`, espelhada em `savePalette()` (linhas ~2058–2088). Ela deve fazer **um único commit** de `src/data/blog-config.json` via `putFile`, com mensagem `cms: atualiza aparencia (tema + plano de fundo)`, e em seguida disparar o `workflow_dispatch` de `deploy.yml` — exatamente como o `editor.js` já faz.
+
+Não reescreva `global.css` para isso. A config JSON é o novo caminho; o bloco `EDITOR THEME OVERRIDES` continua existindo apenas para os sliders de layout já existentes.
+
+### 10.3 Corrigir o bug de nomes de variáveis do editor
+
+Há um bug real hoje: o `COLOR_MAP` do admin escreve variáveis chamadas `--color-primary`, `--color-surface`, `--color-on-surface`, `--color-bg-card`, `--color-border` — **nenhuma delas é lida pelo `global.css`**, que usa `--accent`, `--bg-primary`, `--text-primary`, `--bg-card`, `--border`. Ou seja, as mudanças de cor do painel são commitadas e não fazem efeito nenhum no site.
+
+Corrija o `COLOR_MAP` para usar os nomes reais das variáveis do `global.css`. Faça um mapeamento explícito e comentado. Isso é pré-requisito para o painel de aparência funcionar de verdade.
+
+---
+
+## TAREFA 11 — Documentação
+
+Atualize:
+- `DESIGN.md` (raiz) — documente o sistema de dois temas, a lista de variáveis CSS e a regra de que nenhuma cor pode ser hardcoded.
+- `skills/produtos-gamer/SKILL.md` — a regra de categoria única agora É código: aponte para `scripts/product_naming.mjs`.
+- Crie `docs/METODOLOGIA.md` descrevendo os critérios de ranking da TAREFA 6 (é o documento que dá credibilidade pública ao "Top 5").
+- `README.md` — seção sobre `scripts/migrar-artigos.mjs` e `scripts/limpar-imagens-orfas.mjs`.
+
+---
+
+## TAREFA 12 — Unificar o painel admin
+
+Existem hoje duas cópias **divergentes**: `admin/index.html` (raiz, ~90 KB) e `public/admin/index.html` (o que é publicado). `admin/editor.js` e `admin/marked.min.js` são usados pela cópia da raiz.
+
+1. Faça de `public/admin/` a **única fonte de verdade**. Mova para lá qualquer coisa útil que só exista em `admin/` (em especial o conteúdo de `admin/editor.js` e `admin/marked.min.js`, se `public/admin/index.html` depender deles).
+2. Confirme, servindo o build (`npm run build` e servindo `dist/`), que `dist/admin/index.html` carrega e funciona sem referências quebradas.
+3. **Só então** remova o diretório `admin/` da raiz e adicione uma nota no `README.md` dizendo que o admin vive em `public/admin/`.
+4. Não remova nada antes de o passo 2 passar.
+
+---
+
+## ORDEM DE EXECUÇÃO E DEPENDÊNCIAS
+
+Execute nesta ordem. As dependências são reais.
+
+```
+1. TAREFA 1  (product_naming.mjs + limpeza de titulo)   <- base de tudo
+2. TAREFA 5  (categorias)   depende de 1 (mesma tabela/modulo)
+3. TAREFA 6  (ranking)      depende de 1 e 5
+4. TAREFA 2  (indice duplicado)          independente
+5. TAREFA 3  (indice hierarquico + FAQ)  depende de 2
+6. TAREFA 4  (imagens)      depende de 1 (usa raw_title)
+7. TAREFA 7  (migracao dos artigos antigos)  depende de 1, 2, 3
+8. TAREFA 9  (blog-config.json)          independente
+9. TAREFA 8  (tema claro)   depende de 9
+10. TAREFA 12 (unificar admin)           antes de mexer no admin
+11. TAREFA 10 (aba Aparencia no admin)   depende de 8, 9, 12
+12. TAREFA 11 (documentacao)             por ultimo
+```
+
+---
+
+## VERIFICAÇÃO — como saber que funcionou
+
+Rode tudo isto ao final. Nenhum passo é opcional.
+
+### V1 — Testes automatizados
+```powershell
+cd "c:\Users\sismais\Documents\Projetos Pessoais\blog-gamer"
+npm install
+npm test
+```
+Todos os testes de `scripts/test-injecao.mjs` devem passar, incluindo os que você adicionou nas TAREFAS 1, 4, 5 e 6.
+
+### V2 — Build do site
+```powershell
+npm run build
+```
+Zero erros. Os 31 artigos existentes devem continuar sendo gerados.
+
+### V3 — Geração de um artigo de ponta a ponta (o teste que mais importa)
+
+Com as variáveis de ambiente configuradas, rode:
+```powershell
+node scripts/gerar-artigo.mjs
+```
+Abra o `.md` recém-criado em `src/content/artigos/` e **confira item por item**:
+
+- [ ] Não existe nenhum `## Índice` no arquivo.
+- [ ] O arquivo começa pela introdução (parágrafos, sem heading).
+- [ ] Existe uma seção `## Como Escolhemos` com os critérios.
+- [ ] Cada produto é `### ` (H3), não `## `.
+- [ ] Todo nome de produto tem ≤ 60 caracteres, **não** começa com um ano, e contém marca e/ou modelo reconhecíveis.
+- [ ] Todos os produtos são da **mesma categoria** do título do artigo. Zero exceções.
+- [ ] Todo produto tem uma linha `<img ...>` e o arquivo existe em `public/images/produtos/`.
+- [ ] A tabela `## Comparativo` tem a coluna `Por que entrou` preenchida com dados objetivos.
+- [ ] As notas da tabela batem com a ordem dos produtos (o primeiro tem a maior nota).
+
+### V4 — Verificação visual (com o site rodando)
+```powershell
+npm run dev
+```
+Abra o artigo novo no navegador e confira:
+
+- [ ] Aparece **um** índice, rotulado "Neste artigo".
+- [ ] O primeiro item do índice é "Introdução" e ele leva ao topo do conteúdo.
+- [ ] O tópico "Os N Melhores ..." aparece **recolhido**; ao clicar, expande e mostra os 5 produtos como subitens; ao clicar de novo, recolhe.
+- [ ] O FAQ funciona como acordeão (recolhido por padrão, expande ao clicar).
+- [ ] Nenhuma imagem de produto aparece pixelada, esticada ou com menos de 500 px.
+- [ ] Alterne o tema pelo botão do header: **todo** elemento muda coerentemente — header, sidebar, cards, tabela, botões de compra, links, hover, bordas, sombras, scrollbar, imagens. Procure ativamente por qualquer elemento que ficou escuro no tema claro (ou vice-versa) e corrija.
+- [ ] Recarregue a página: o tema escolhido persiste e **não pisca** o tema errado antes de aplicar.
+- [ ] Reduza a janela para 375 px de largura: nada quebra em nenhum dos dois temas.
+
+### V5 — Painel admin
+```powershell
+npm run build
+npx serve dist   # ou qualquer servidor estatico
+```
+Abra `http://localhost:3000/blog-gamer/admin/` e confira:
+
+- [ ] A aba "Aparência" aparece e carrega.
+- [ ] Trocar o tema atualiza a prévia no iframe imediatamente.
+- [ ] Os 11+ presets de fundo aparecem como miniaturas e são aplicáveis.
+- [ ] Escolher uma cor sólida pelo seletor funciona.
+- [ ] Fazer upload de uma imagem de fundo funciona; o slider de overlay muda a legibilidade.
+- [ ] "Remover imagem de fundo" limpa de fato.
+- [ ] Salvar grava `src/data/blog-config.json` no GitHub (verifique o commit no repositório) e o site reflete a mudança após o deploy.
+
+### V6 — Migração
+```powershell
+node scripts/migrar-artigos.mjs           # dry-run: revise a saida
+node scripts/migrar-artigos.mjs --apply
+npm run build
+```
+- [ ] Nenhum artigo antigo tem mais `## Índice`.
+- [ ] Os títulos de produto dos artigos antigos estão curtos e limpos.
+- [ ] O build passa e as páginas antigas continuam abrindo.
+
+---
+
+## O QUE **NÃO** FAZER
+
+- ❌ Não crie um plano — execute este.
+- ❌ Não faça correção que só resolva um artigo específico.
+- ❌ Não coloque chave de API em código; use `process.env`.
+- ❌ Não altere `buildProductButtonHtml` nem `productButtonLabel`.
+- ❌ Não apague imagens de `public/images/produtos/` sem o dry-run e revisão.
+- ❌ Não remova `admin/` antes de confirmar que `public/admin/` funciona sozinho.
+- ❌ Não deixe cor hardcoded em CSS que participe do tema.
+- ❌ Não deixe o gerador lançar exceção não tratada — o CI roda sozinho todo dia.

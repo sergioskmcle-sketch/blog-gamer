@@ -1,10 +1,10 @@
-# Blog Gamer
+# Promo Gamer
 
 Blog estático sobre o mundo gamer com produtos de várias lojas (Google Shopping via Serper). Geração automática de artigos via GitHub Actions.
 
-**URL:** https://sergioskmcle-sketch.github.io/blog-gamer
+**URL:** https://promogamer.com.br
 
-**Status:** https://sergioskmcle-sketch.github.io/blog-gamer/status.json
+**Status:** https://promogamer.com.br/status.json
 
 > 💰 **Monetização em andamento (Frente 4).** Hoje os botões apontam para links **sem comissão**.
 > O serviço que fornece produtos **com link de afiliado** (Mercado Livre + Shopee) já está no ar;
@@ -14,7 +14,7 @@ Blog estático sobre o mundo gamer com produtos de várias lojas (Google Shoppin
 
 ## Monitoramento (Zero-Touch)
 
-O blog se auto-gerencia. Para verificar a saúde do sistema, abra o [`status.json`](https://sergioskmcle-sketch.github.io/blog-gamer/status.json) — 10 segundos, 1x por semana:
+O blog se auto-gerencia. Para verificar a saúde do sistema, abra o [`status.json`](https://promogamer.com.br/status.json) — 10 segundos, 1x por semana:
 
 ```json
 {
@@ -56,6 +56,8 @@ scripts/
   test-injecao.mjs          → Testes de validação (145 asserts): itens, TOC, fontes, portão de produtos, labels de loja e montagem segmentada
   download-images.mjs       → Baixa imagens dos produtos para o repo
   convert-banners.mjs       → Converter banners PNG → WebP
+  migrar-artigos.mjs        → Migra artigos antigos para o novo padrão (categorias, índice hierárquico, FAQ e nomes normalizados — ver TAREFA 7)
+  limpar-imagens-orfas.mjs  → Remove imagens sem uso no repo (públicas de produtos/apagadas) e atualiza frontmatter
 
 automation/                 → Suíte Python (pipelines locais/servidor)
   generate_article.py       → Gera artigos (modos: informativo/melhor/custo-beneficio/misto + capa IA + ml_query seed)
@@ -68,7 +70,7 @@ automation/                 → Suíte Python (pipelines locais/servidor)
   ml_affiliate.py           → API ML (versão Python)
   docs/TIPOS_ARTIGO.md      → Tipos/modos de artigo e regras de imagens
 
-admin/ + public/admin/      → Painel admin: layout editor (sliders de CSS/cores/logo) + CRUD de artigos, com deploy automático
+public/admin/             → Painel admin (fonte única de verdade — ver nota em "Manutenção"): editor de aparência/layout, CRUD de artigos e gestão de imagens, com deploy automático
 
 src/content/artigos/   → Artigos em markdown com frontmatter
 docs/                  → Estrutura de artigo (ARTICLE_STRUCTURE_DRAFT.md)
@@ -122,7 +124,7 @@ O blog publica **5 categorias** de artigos. Cada categoria tem uma **persona de 
 Usada para 3 das 5 categorias. O prompt define uma voz forte:
 
 ```
-PERSONA: Você é o "Mano Gamer", narrador raiz do Blog Gamer — um gamer brasileiro
+PERSONA: Você é o "Mano Gamer", narrador raiz do Promo Gamer — um gamer brasileiro
 que escreve como se estivesse trocando ideia com os amigos no Discord.
 ```
 
@@ -395,7 +397,7 @@ Fallback para tópicos de games: lista fixa de produtos (com `source: "Mercado L
 - **Ícones** — SVGs inline (sem dependência de fonte externa Material Symbols)
 - **Banners** — WebP otimizados (4.5 MB → 470 KB)
 - **Layout** — Container 1280px, conteúdo 780px, fonte 1.05rem com line-height 1.85
-- **Painel Admin** — `/admin/`: editor de layout visual (sliders de altura do nav, altura/posição lateral da logo, colunas do conteúdo/sidebar, altura do conteúdo, fontes e cores; upload de logo; salvamento em `global.css` + deploy automático), CRUD de artigos e gerenciamento de imagens
+- **Painel Admin** — `/admin/`: aba **Aparência** (tema claro/escuro, botão de alternância para visitantes e fundo do blog por preset/cor/imagem, salvos em `src/data/blog-config.json` + deploy automático), **Layout** (editor visual com sliders de altura do nav, altura/posição lateral da logo, colunas do conteúdo/sidebar, fontes e cores; upload de logo; salvamento em `global.css`), **Produtos** (texto + link de cada botão de compra) e **Artigos** (CRUD completo)
 
 ---
 
@@ -472,6 +474,8 @@ node scripts/gerar-cadeiras.mjs        # Gerar o artigo de cadeiras gamer (+ cap
 node scripts/gerar-status.cjs          # Gerar status.json
 node scripts/download-images.mjs       # Baixar imagens dos produtos
 node scripts/convert-banners.mjs       # Converter banners PNG → WebP
+node scripts/migrar-artigos.mjs        # Migrar artigos antigos para o novo padrão (categorias/índice/FAQ)
+node scripts/limpar-imagens-orfas.mjs  # Remover imagens órfãs do repo (dry-run com --dry-run)
 
 # — Capas IA —
 node scripts/regenerate-cadeiras-cover.mjs   # Regenerar capa de um artigo (ex: cadeiras)
@@ -495,7 +499,7 @@ python automation/admin_api.py         # Painel de controle (FastAPI)
 | Funcionalidade | Descrição |
 |----------------|-----------|
 | **Blocos de produto** | `buildProductButtonHtml()` + `buildProductImageTag()` geram foto do item + botão de afiliado (sem card/preço; preço só na tabela comparativa) |
-| **Índice automático** | `injectTableOfContents()` gera `## Índice` com links âncora para cada seção |
+| **Índice automático** | `injectHeadingAnchors()` insere âncoras únicas nos headings; o índice `Neste artigo` é gerado pelo componente `TableOfContents.astro` |
 | **Validação de fontes** | `validateSourceCoverage()` verifica se cada tópico tem fonte citada |
 | **Gemini primário** | `gemini-flash-latest` como IA principal, Groq como fallback |
 | **Budget 64K tokens** | Aumentado de 8K para 64K para evitar truncamento de artigos |
@@ -507,7 +511,7 @@ python automation/admin_api.py         # Painel de controle (FastAPI)
 | **Gerar Conteudo Automatico** | Cron (diário 09:30 UTC) + manual | Artigo com trending, produtos e deploy |
 | **Gerar Artigo Pilar** | Manual | Guia completo 3000+ palavras com 12+ produtos |
 | **Regenerar Capa** | Manual | Regenera a capa IA de um artigo |
-| **Deploy Blog Gamer** | Push na main + manual | Build e deploy GitHub Pages |
+| **Deploy Promo Gamer** | Push na main + manual | Build e deploy GitHub Pages |
 
 ---
 
@@ -515,7 +519,7 @@ python automation/admin_api.py         # Painel de controle (FastAPI)
 
 ### O blog parou de publicar artigos
 
-1. Verifique o [`status.json`](https://sergioskmcle-sketch.github.io/blog-gamer/status.json)
+1. Verifique o [`status.json`](https://promogamer.com.br/status.json)
 2. Veja os logs do workflow `Gerar Conteudo Automatico` em **Actions**
 3. Erro comum já corrigido (jul/2026): `Cannot read properties of undefined (reading 'slice')` — ocorria quando o script tentava logar um erro da API sem validar se a mensagem existia. O tratamento de erros agora converte valores `undefined` para string antes de usar `.slice()`.
 4. **Gemini 404/400:** se o Gemini retorna `"not found"` ou `"API key not valid"`, verifique se a chave `GEMINI_API_KEY` está atualizada no GitHub Secrets e se o modelo `gemini-flash-latest` está disponível na sua conta.
@@ -547,6 +551,10 @@ Se o total se aproximar do limite, considere uma conta GROQ separada para o blog
 
 ## Manutenção
 
+### Onde fica o painel admin
+
+O painel admin vive **exclusivamente em `public/admin/`** (`index.html` + `editor.js` + `marked.min.js`), que é publicado em `/admin/` pelo build. Não existe mais cópia na raiz — edite sempre `public/admin/`. O `src/data/blog-config.json` é o arquivo de configuração de tema/fundo alterado pela aba **Aparência**.
+
 ### Reativar produtos no pipeline (Serper)
 
 Os produtos vêm do **Google Shopping via Serper.dev** (sem cookies, sem OAuth). Para ativar:
@@ -568,4 +576,4 @@ Se a chave do Groq for recriada no console, atualize o GitHub Secret e o `.env` 
 ### Google Search Console
 
 O blog está verificado no Google Search Console. Sitemap enviado em:
-`https://sergioskmcle-sketch.github.io/blog-gamer/sitemap-index.xml`
+`https://promogamer.com.br/sitemap-index.xml`

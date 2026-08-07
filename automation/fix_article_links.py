@@ -48,7 +48,7 @@ print(f'Artigo atualizado: {ARTICLE_PATH}')
 
 os.chdir(BLOG_REPO_PATH)
 
-remote = f'https://x-access-token:{GITHUB_TOKEN}@github.com/sergioskmcle-sketch/blog-gamer.git'
+remote = f'https://x-access-token:{GITHUB_TOKEN}@github.com/sergioskmcle-sketch.git'
 subprocess.run(['git', 'remote', 'set-url', 'origin', remote], capture_output=True)
 subprocess.run(['git', 'add', '-A'], check=True)
 

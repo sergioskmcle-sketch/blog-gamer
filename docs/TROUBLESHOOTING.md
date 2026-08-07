@@ -208,7 +208,7 @@ sudo systemctl restart blog-gamer.service
 
 **Solução**: Verificar se `.env` existe no diretório de automação:
 ```bash
-ls -la /home/sergioskm_cle/blog-gamer-automation/.env
+ls -la /home/sergioskm_cle-automation/.env
 ```
 Se não existir, copiar do backup ou recriar com as chaves.
 
@@ -218,7 +218,7 @@ Se não existir, copiar do backup ou recriar com as chaves.
 
 **Solução**:
 ```bash
-cd /home/sergioskm_cle/blog-gamer
+cd /home/sergioskm_cle
 git pull --rebase origin main
 git push origin main
 ```

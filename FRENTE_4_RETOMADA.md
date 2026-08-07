@@ -233,7 +233,7 @@ nenhum para a VM.**
 
 Trabalhe na branch `feat/afiliados-ml-shopee` (já existe):
 ```bash
-cd "caminho/do/blog-gamer"
+cd "caminho/do"
 git checkout feat/afiliados-ml-shopee
 ```
 

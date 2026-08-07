@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Admin API - Blog Gamer Control Panel (FastAPI)"""
+"""Admin API - Promo Gamer Control Panel (FastAPI)"""
 import os, json, sqlite3, uuid, time, re, base64
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,7 +16,7 @@ from pydantic import BaseModel
 load_dotenv()
 
 GITHUB_TOKEN = os.environ.get('GITHUB_TOKEN', '')
-GITHUB_REPO = 'sergioskmcle-sketch/blog-gamer'
+GITHUB_REPO = 'sergioskmcle-sketch'
 GITHUB_BRANCH = 'main'
 API_KEY = os.environ.get('ADMIN_API_KEY', 'blog-gamer-admin-2026')
 DB_PATH = Path(__file__).parent / 'admin_data.sqlite'
@@ -68,7 +68,7 @@ async def lifespan(app):
     init_db()
     yield
 
-app = FastAPI(title='Blog Gamer Admin', lifespan=lifespan)
+app = FastAPI(title='Promo Gamer Admin', lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -514,7 +514,7 @@ if ADMIN_HTML_PATH.exists():
 def admin_spa(path: str = ''):
     if ADMIN_HTML:
         return ADMIN_HTML
-    return '''<!doctype html><html><head><meta charset="utf-8"/><title>Blog Gamer — Admin</title></head><body><p>Admin frontend not found. Run <code>python setup_admin.py</code> to generate.</p></body></html>'''
+    return '''<!doctype html><html><head><meta charset="utf-8"/><title>Promo Gamer — Admin</title></head><body><p>Admin frontend not found. Run <code>python setup_admin.py</code> to generate.</p></body></html>'''
 
 if __name__ == '__main__':
     import uvicorn

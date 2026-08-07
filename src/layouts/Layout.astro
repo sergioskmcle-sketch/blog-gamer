@@ -6,6 +6,8 @@ import Footer from "../components/Footer.astro";
 import CursorEffect from "../components/CursorEffect.astro";
 import SearchOverlay from "../components/SearchOverlay.astro";
 import EditorBridge from "../components/EditorBridge.astro";
+import blogConfig from "../data/blog-config.json";
+import backgroundPresets from "../data/background-presets.json";
 
 export interface Props {
   title: string;
@@ -30,16 +32,68 @@ const searchArticles = Object.entries(import.meta.glob("../content/artigos/*.md"
     tags: mod.frontmatter.tags || [],
     date: mod.frontmatter.pubDate ? new Date(mod.frontmatter.pubDate).toLocaleDateString("pt-BR") : "",
   }));
+
+const defaultTheme = blogConfig.theme === "light" ? "light" : "dark";
+const defaultThemeJson = JSON.stringify(defaultTheme);
+
+const bg = blogConfig.background || {};
+let bgVars = "--body-bg-image: none;";
+if (bg.mode === "preset") {
+  const preset = (backgroundPresets || []).find((p) => p.id === bg.preset) || backgroundPresets?.[0];
+  if (preset) {
+    bgVars = `
+      --body-bg-color: ${preset.color || "#050505"};
+      --body-bg-image: ${preset.image || "none"};
+      --body-bg-size: ${preset.size || "auto"};
+      --body-bg-position: ${preset.position || "0 0"};
+      --body-bg-repeat: ${preset.repeat || "repeat"};
+      --body-bg-attachment: ${preset.attachment || "scroll"};
+    `;
+  }
+} else if (bg.mode === "image") {
+  const overlay = Math.min(Math.max(Number(bg.overlayOpacity) || 0, 0), 1);
+  const img = (bg.imageUrl || "").trim();
+  const overlayLayer = `linear-gradient(rgba(0, 0, 0, ${overlay.toFixed(2)}), rgba(0, 0, 0, ${overlay.toFixed(2)}))`;
+  bgVars = `
+    --body-bg-color: ${bg.solidColor || "#050505"};
+    --body-bg-image: ${img ? `${overlayLayer}, url('${img}')` : "none"};
+    --body-bg-size: ${bg.imageSize || "cover"};
+    --body-bg-position: ${bg.imagePosition || "center center"};
+    --body-bg-repeat: ${bg.imageRepeat || "no-repeat"};
+    --body-bg-attachment: ${bg.imageAttachment || "fixed"};
+  `;
+} else if (bg.mode === "solid") {
+  bgVars = `
+    --body-bg-color: ${bg.solidColor || "#050505"};
+    --body-bg-image: none;
+  `;
+}
+
+const themeCss = `:root:root {\n${bgVars.trim()}\n}`;
+
+const themeScript = `(function () {
+  var DEFAULT = ${defaultThemeJson};
+  var saved = null;
+  try { saved = localStorage.getItem("blog-theme"); } catch (e) {}
+  var theme = saved || DEFAULT || "dark";
+  if (theme !== "light") theme = "dark";
+  document.documentElement.setAttribute("data-theme", theme);
+  document.documentElement.classList.toggle("dark", theme === "dark");
+  document.documentElement.classList.toggle("light", theme === "light");
+  var meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", theme === "dark" ? "#050505" : "#F5F5F7");
+})();`;
 ---
 
 <!doctype html>
-<html lang="pt-BR" class="dark">
+<html lang="pt-BR" class="dark" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="google-site-verification" content="kOOZLZ1vJ0aNnQUkmNDReiwSoYUJKZB0p-inN6ziszc" />
-    <meta name="description" content={description || "Blog Gamer — notícias, reviews e guias do mundo dos games"} />
     <meta name="theme-color" content="#050505" />
+    <script is:inline set:html={themeScript}></script>
+    <meta name="google-site-verification" content="kOOZLZ1vJ0aNnQUkmNDReiwSoYUJKZB0p-inN6ziszc" />
+    <meta name="description" content={description || "Promo Gamer — notícias, reviews e guias do mundo dos games"} />
 
     <link rel="canonical" href={canonicalURL.href} />
     {noindex && <meta name="robots" content="noindex, follow" />}
@@ -48,7 +102,7 @@ const searchArticles = Object.entries(import.meta.glob("../content/artigos/*.md"
     <meta property="og:description" content={description || "Blog sobre o mundo gamer"} />
     <meta property="og:url" content={canonicalURL.href} />
     <meta property="og:type" content={pubDate ? "article" : "website"} />
-    <meta property="og:site_name" content="Blog Gamer" />
+    <meta property="og:site_name" content="Promo Gamer" />
     {image && (
       <>
         <meta property="og:image" content={image} />
@@ -69,19 +123,19 @@ const searchArticles = Object.entries(import.meta.glob("../content/artigos/*.md"
         "@context": "https://schema.org",
         "@type": "Article",
         headline: title,
-        description: description || "Artigo do Blog Gamer sobre o mundo dos games",
+        description: description || "Artigo do Promo Gamer sobre o mundo dos games",
         url: canonicalURL.href,
         image: image || `${base}images/og-default.png`,
         datePublished: pubDate,
         dateModified: pubDate,
         author: {
           "@type": "Organization",
-          name: "Blog Gamer",
+          name: "Promo Gamer",
           url: Astro.site?.href || `${base}`,
         },
         publisher: {
           "@type": "Organization",
-          name: "Blog Gamer",
+          name: "Promo Gamer",
           logo: {
             "@type": "ImageObject",
             url: `${base}favicon.svg`,
@@ -96,7 +150,8 @@ const searchArticles = Object.entries(import.meta.glob("../content/artigos/*.md"
       })} />
     )}
 
-    <title>{title} — Blog Gamer</title>
+    <title>{title} — Promo Gamer</title>
+    <style is:inline set:html={themeCss}></style>
   </head>
   <body class="font-body selection:bg-primary selection:text-on-primary">
     <CursorEffect />

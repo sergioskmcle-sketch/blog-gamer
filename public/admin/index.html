@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Blog Gamer — Admin</title>
+<title>Promo Gamer — Admin</title>
 <script src="marked.min.js"></script>
 <style>
 :root {
@@ -592,7 +592,7 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
 <!-- Setup View -->
 <div id="setupView" class="login-container">
   <div class="login-box">
-    <h1>🎮 Blog Gamer</h1>
+    <h1>🎮 Promo Gamer</h1>
     <p>Painel de Administração</p>
     <p style="color:var(--text-sec);font-size:0.8rem;margin-bottom:16px;margin-top:-16px">
       Cole seu <strong>GitHub Personal Access Token</strong> para gerenciar o blog.
@@ -621,7 +621,7 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
 
 <div class="sidebar">
   <div class="sidebar-logo">
-    <span>🎮 Blog Gamer</span>
+    <span>🎮 Promo Gamer</span>
     <small>Admin Panel</small>
   </div>
   <div class="sidebar-nav">
@@ -636,6 +636,9 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
     </div>
     <div class="nav-item" data-tab="settings" onclick="switchTab('settings')">
       <span class="icon">⚙️</span><span>Configurações</span>
+    </div>
+    <div class="nav-item" data-tab="aparencia" onclick="switchTab('aparencia')">
+      <span class="icon">🌓</span><span>Aparência</span>
     </div>
     <div class="nav-item" data-tab="layout" onclick="switchTab('layout')">
       <span class="icon">🎨</span><span>Layout</span>
@@ -669,7 +672,7 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
       <button class="btn btn-primary" onclick="newArticle()">+ Novo Artigo</button>
       <button class="btn btn-secondary" onclick="switchTab('settings')">⚙️ Configurações</button>
-      <a href="https://github.com/sergioskmcle-sketch/blog-gamer" target="_blank" class="btn btn-secondary">📂 Ver Repositório</a>
+      <a href="https://github.com/sergioskmcle-sketch" target="_blank" class="btn btn-secondary">📂 Ver Repositório</a>
     </div>
   </div>
 </div>
@@ -764,9 +767,9 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
 
   <div id="editor-products" class="etab-content" style="display:none">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-      <span style="font-size:0.85rem;color:var(--text-sec);flex:1">Links dos botões de compra (product-btn). Edite abaixo e clique em "Aplicar links" para atualizar o conteúdo.</span>
+      <span style="font-size:0.85rem;color:var(--text-sec);flex:1">Botões de compra (product-btn). Edite o <b>texto</b> e o <b>link</b> de cada um e clique em "Aplicar botões". (Duplo-clique no botão da prévia também edita.)</span>
       <button class="btn btn-secondary btn-sm" onclick="renderProductButtons()">🔄 Recarregar</button>
-      <button class="btn btn-primary btn-sm" onclick="applyProductLinks()">✔️ Aplicar links</button>
+      <button class="btn btn-primary btn-sm" onclick="applyProductLinks()">✔️ Aplicar botões</button>
     </div>
     <div id="productsList">
       <div style="padding:24px;text-align:center;color:var(--text-muted);font-size:0.85rem">Carregando botões de produto...</div>
@@ -843,6 +846,82 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
 </div>
 
 <!-- Layout Editor -->
+<div id="section-aparencia" class="section">
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">🌓 Tema</div>
+    <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
+      <div class="form-group" style="flex:1;min-width:180px">
+        <label>Tema padrão do blog</label>
+        <select id="apTheme" class="form-control">
+          <option value="dark">Escuro</option>
+          <option value="light">Claro</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:1;min-width:180px">
+        <label>Permitir que visitantes alternem o tema</label>
+        <select id="apAllowVisitorToggle" class="form-control">
+          <option value="true">Sim</option>
+          <option value="false">Não</option>
+        </select>
+      </div>
+    </div>
+    <p style="font-size:0.8rem;color:var(--text-muted);margin-top:8px">
+      O tema claro/escuro e o botão de alternância valem para o site publicado. As cores precisas (roxo, fundos, textos) continuam sendo editadas na aba <strong>Layout</strong> ou em <strong>Configurações → Paleta</strong>.
+    </p>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">🖼️ Fundo do Blog</div>
+    <div style="margin-top:12px">
+      <div class="form-group">
+        <label>Modo do fundo</label>
+        <select id="apBgMode" class="form-control" onchange="onAparenciaModeChange()">
+          <option value="preset">Preset (fundo pronto)</option>
+          <option value="solid">Cor sólida</option>
+          <option value="image">Imagem personalizada</option>
+        </select>
+      </div>
+      <div id="apBgPresetWrap" class="form-group">
+        <label>Preset</label>
+        <select id="apBgPreset" class="form-control" onchange="apPreviewBackground()"></select>
+      </div>
+      <div id="apBgSolidWrap" class="form-group" style="display:none">
+        <label>Cor sólida</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="color" id="apBgSolidColor" value="#050505" style="width:48px;height:32px;border:none;background:none;cursor:pointer" onchange="apSyncSolidHex();apPreviewBackground()"/>
+          <code id="apBgSolidColorHex" style="font-size:0.75rem;color:var(--text-muted)">#050505</code>
+        </div>
+      </div>
+      <div id="apBgImageWrap" style="display:none">
+        <div class="form-group">
+          <label>URL da imagem</label>
+          <div style="display:flex;gap:4px">
+            <input type="text" id="apBgImageUrl" class="form-control" placeholder="https://... ou /blog-gamer/images/backgrounds/..."/>
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('apBgImageUpload').click()">📁</button>
+          </div>
+          <input type="file" id="apBgImageUpload" accept="image/*" style="display:none" onchange="handleBgUpload(event)"/>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="form-group"><label>Tamanho</label><select id="apBgImageSize" class="form-control" onchange="apPreviewBackground()"><option>cover</option><option>contain</option><option>auto</option></select></div>
+          <div class="form-group"><label>Posição</label><select id="apBgImagePosition" class="form-control" onchange="apPreviewBackground()"><option>center center</option><option>top left</option><option>top center</option><option>top right</option><option>center left</option><option>center right</option><option>bottom center</option></select></div>
+          <div class="form-group"><label>Repetição</label><select id="apBgImageRepeat" class="form-control" onchange="apPreviewBackground()"><option>no-repeat</option><option>repeat</option><option>repeat-x</option><option>repeat-y</option></select></div>
+          <div class="form-group"><label>Anexo</label><select id="apBgImageAttachment" class="form-control" onchange="apPreviewBackground()"><option>fixed</option><option>scroll</option></select></div>
+        </div>
+        <div class="form-group">
+          <label>Opacidade do overlay escuro: <span id="apBgOverlayVal" style="color:var(--text-muted)">0.55</span></label>
+          <input type="range" id="apBgOverlay" min="0" max="1" step="0.05" value="0.55" style="width:100%" oninput="document.getElementById('apBgOverlayVal').textContent=this.value;apPreviewBackground()"/>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn btn-secondary btn-sm" onclick="apPreviewBackground()">👁️ Pré-visualizar</button>
+        <button class="btn btn-secondary btn-sm" onclick="apResetBackgroundPreview()">↩️ Restaurar</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" onclick="saveAparencia()" id="btnSaveAparencia">💾 Salvar Aparência</button>
+</div>
+
 <div id="section-layout" class="section">
   <div id="layoutEditor">
     <div id="layoutToolbar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
@@ -939,7 +1018,7 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
       <div><div style="font-size:0.75rem;color:var(--text-muted)">GitHub</div><div style="font-size:1rem" id="sysGhStatus">—</div></div>
       <div><div style="font-size:0.75rem;color:var(--text-muted)">Artigos no repositório</div><div style="font-size:1rem" id="sysArticles">—</div></div>
       <div><div style="font-size:0.75rem;color:var(--text-muted)">Última sincronização</div><div style="font-size:1rem" id="sysLastSync">—</div></div>
-      <div><div style="font-size:0.75rem;color:var(--text-muted)">Repositório</div><div style="font-size:1rem"><a href="https://github.com/sergioskmcle-sketch/blog-gamer" target="_blank" style="color:var(--primary)">sergioskmcle-sketch/blog-gamer</a></div></div>
+      <div><div style="font-size:0.75rem;color:var(--text-muted)">Repositório</div><div style="font-size:1rem"><a href="https://github.com/sergioskmcle-sketch" target="_blank" style="color:var(--primary)">sergioskmcle-sketch</a></div></div>
     </div>
   </div>
 </div>
@@ -960,7 +1039,7 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
 
 <div id="buttonModal" class="modal-overlay">
   <div class="modal">
-    <h2>Inserir Botão de Compra</h2>
+    <h2 id="btnModalTitle">Inserir Botão de Compra</h2>
     <div class="form-group"><label>Texto do botão</label><input id="btnText" class="form-control" placeholder="VER NO MERCADO LIVRE"/></div>
     <div class="form-group"><label>Link (URL de redirecionamento)</label><input id="btnHref" class="form-control" placeholder="https://meli.la/..."/></div>
     <div class="form-group">
@@ -984,7 +1063,7 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
 <div id="toast" class="toast"></div>
 
 <script>
-const REPO = 'sergioskmcle-sketch/blog-gamer';
+const REPO = 'sergioskmcle-sketch';
 const BRANCH = 'main';
 const GH_API = 'https://api.github.com';
 const REPO_URL = `${GH_API}/repos/${REPO}`;
@@ -1017,11 +1096,14 @@ function closeModal() {
 }
 
 let savedBtnRange = null;
+let editingBtnAnchor = null;
 
 function wysiwygProductBtn() {
   const sel = window.getSelection();
   const body = document.getElementById('previewBody');
   savedBtnRange = (sel.rangeCount && body.contains(sel.getRangeAt(0).startContainer)) ? sel.getRangeAt(0).cloneRange() : null;
+  editingBtnAnchor = null;
+  document.getElementById('btnModalTitle').textContent = 'Inserir Botão de Compra';
   document.getElementById('btnText').value = 'VER NO MERCADO LIVRE';
   document.getElementById('btnHref').value = '';
   document.querySelector('input[name="btnColor"][value="verde"]').checked = true;
@@ -1029,7 +1111,21 @@ function wysiwygProductBtn() {
   setTimeout(() => document.getElementById('btnText').focus(), 50);
 }
 
+function editProductBtn(a) {
+  editingBtnAnchor = a;
+  document.getElementById('btnModalTitle').textContent = 'Editar Botão de Compra';
+  document.getElementById('btnText').value = a.textContent.trim();
+  document.getElementById('btnHref').value = a.getAttribute('href') || '';
+  const cls = a.className || '';
+  const color = ['verde', 'amarelo', 'vermelho', 'azul', 'laranja', 'roxo'].find(c => cls.includes('product-btn-' + c)) || 'verde';
+  const radio = document.querySelector('input[name="btnColor"][value="' + color + '"]');
+  if (radio) radio.checked = true;
+  document.getElementById('buttonModal').classList.add('active');
+  setTimeout(() => document.getElementById('btnText').focus(), 50);
+}
+
 function closeBtnModal() {
+  editingBtnAnchor = null;
   document.getElementById('buttonModal').classList.remove('active');
 }
 
@@ -1038,6 +1134,15 @@ function insertProductBtn() {
   const href = document.getElementById('btnHref').value.trim();
   if (!href) { toast('Informe o link do botão', 'error'); return; }
   const color = document.querySelector('input[name="btnColor"]:checked')?.value || 'verde';
+  if (editingBtnAnchor) {
+    editingBtnAnchor.href = href;
+    editingBtnAnchor.className = 'product-btn product-btn-' + color;
+    editingBtnAnchor.textContent = text;
+    editingBtnAnchor = null;
+    closeBtnModal();
+    toast('Botão atualizado!');
+    return;
+  }
   const body = document.getElementById('previewBody');
   const a = document.createElement('a');
   a.href = href;
@@ -1064,6 +1169,14 @@ function insertProductBtn() {
   closeBtnModal();
   toast('Botão de compra inserido!');
 }
+
+document.addEventListener('dblclick', function (e) {
+  const a = e.target && e.target.closest ? e.target.closest('a.product-btn') : null;
+  if (a && document.getElementById('previewBody').contains(a)) {
+    e.preventDefault();
+    editProductBtn(a);
+  }
+});
 
 function setLoading(btnId, loading) {
   const btn = document.getElementById(btnId);
@@ -1297,11 +1410,12 @@ function switchTab(tab) {
   document.getElementById('section-' + tab)?.classList.add('active');
   document.querySelectorAll('.nav-item[data-tab]').forEach(n => n.classList.remove('active'));
   document.querySelector(`.nav-item[data-tab="${tab}"]`)?.classList.add('active');
-  const titles = { dashboard: '📊 Dashboard', articles: '📝 Artigos', editor: '✏️ Editor', settings: '⚙️ Configurações', layout: '🎨 Layout' };
+  const titles = { dashboard: '📊 Dashboard', articles: '📝 Artigos', editor: '✏️ Editor', settings: '⚙️ Configurações', aparencia: '🌓 Aparência', layout: '🎨 Layout' };
   document.getElementById('pageTitle').textContent = titles[tab] || 'Admin';
   if (tab === 'dashboard') loadDashboard();
   if (tab === 'articles') loadArticles();
   if (tab === 'settings') loadSettings();
+  if (tab === 'aparencia') loadAparencia();
   if (tab === 'layout') initLayoutEditor();
   showFloatingSave(tab === 'editor');
 }
@@ -1797,7 +1911,7 @@ function syncPreviewToMarkdown(silent) {
 function imgUrl(url) {
   if (!url) return '';
   if (url.startsWith('http')) return url;
-  return `https://sergioskmcle-sketch.github.io${url.startsWith('/') ? '' : '/'}${url}`;
+  return `https://promogamer.com.br${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
 function editPreviewImage() {
@@ -1832,7 +1946,7 @@ async function handleCoverUpload(event) {
     const filename = `public/images/capas/${slug}.${ext}`;
     try {
       await putFileRaw(filename, b64, `cms: upload cover "${slug}"`);
-      const url = `/blog-gamer/images/capas/${slug}.${ext}`;
+      const url = `/images/capas/${slug}.${ext}`;
       document.getElementById('fieldImage').value = url;
       updateCoverPreview();
       toast('Imagem da capa enviada ao repositório!');
@@ -1890,13 +2004,20 @@ function renderProductButtons() {
   }
   listEl.innerHTML = anchors.map((a, i) => {
     const before = md.substring(0, a.index);
-    const h3s = before.match(/<h3[^>]*>[\s\S]*?<\/h3>/gi);
-    const title = h3s ? h3s[h3s.length - 1].replace(/<[^>]+>/g, '').trim() : 'Produto ' + (i + 1);
+    let title = 'Produto ' + (i + 1);
+    const mdHeadings = before.match(/^#{2,3}\s.+$/gm);
+    if (mdHeadings && mdHeadings.length > 0) {
+      title = mdHeadings[mdHeadings.length - 1].replace(/^#{2,3}\s*/, '').replace(/[#*_]/g, '').replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').trim();
+    } else {
+      const htmlHeadings = before.match(/<h[23][^>]*>[\s\S]*?<\/h[23]>/gi);
+      title = htmlHeadings ? htmlHeadings[htmlHeadings.length - 1].replace(/<[^>]+>/g, '').trim() : title;
+    }
     return `
       <div class="form-group" style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px">
         <label style="display:block;font-size:0.85rem;font-weight:600;color:var(--text)">${i + 1}. ${escapeHtml(title)}</label>
-        <div style="display:flex;gap:6px;margin-top:6px">
-          <input id="productLink_${i}" class="form-control" value="${escapeHtml(a.href)}" placeholder="https://..." style="flex:1"/>
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+          <input id="productText_${i}" class="form-control" value="${escapeHtml(a.text)}" placeholder="VER NA LOJA" title="Texto do botão" style="flex:1;min-width:150px"/>
+          <input id="productLink_${i}" class="form-control" value="${escapeHtml(a.href)}" placeholder="https://..." title="Link do botão" style="flex:2;min-width:220px"/>
           <button class="btn btn-secondary btn-sm" onclick="pickProductLink(${i})" title="Inserir link">🔗</button>
         </div>
       </div>`;
@@ -1915,18 +2036,21 @@ function applyProductLinks() {
   if (anchors.length === 0) { toast('Nenhum botão de produto encontrado', 'error'); return; }
   let next = md;
   for (let i = anchors.length - 1; i >= 0; i--) {
-    const input = document.getElementById('productLink_' + i);
-    if (!input) continue;
-    const href = input.value.trim();
-    if (!href) continue;
+    const linkInput = document.getElementById('productLink_' + i);
+    const textInput = document.getElementById('productText_' + i);
+    if (!linkInput && !textInput) continue;
+    const href = linkInput ? linkInput.value.trim() : '';
+    const text = textInput ? textInput.value.trim() : '';
+    if (!href && !text) continue;
     const anchor = anchors[i];
-    const raw = next.substring(anchor.index, anchor.end);
-    const updated = raw.replace(/href="[^"]*"/, `href="${href.replace(/"/g, '&quot;')}"`);
+    let updated = next.substring(anchor.index, anchor.end);
+    if (href) updated = updated.replace(/href="[^"]*"/, `href="${href.replace(/"/g, '&quot;')}"`);
+    if (text) updated = updated.replace(/>([^<]*)<\/a>/, `>${text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</a>`);
     next = next.substring(0, anchor.index) + updated + next.substring(anchor.end);
   }
   document.getElementById('fieldBody').value = next;
   renderProductButtons();
-  toast('Links dos botões atualizados no conteúdo!');
+  toast('Botões (texto + link) atualizados no conteúdo!');
 }
 
 async function saveArticle() {
@@ -2032,6 +2156,143 @@ async function savePalette() {
     toast('Erro ao salvar paleta: ' + e.message, 'error');
   } finally {
     setLoading('btnSavePalette', false);
+  }
+}
+
+// ===== APARÊNCIA =====
+let AP_CONFIG = null;
+let AP_PRESETS = [];
+
+async function loadAparencia() {
+  try {
+    const cfgFile = await getFile('src/data/blog-config.json');
+    if (cfgFile) AP_CONFIG = JSON.parse(cfgFile.content);
+  } catch (e) {}
+  try {
+    const presetsFile = await getFile('src/data/background-presets.json');
+    if (presetsFile) {
+      AP_PRESETS = JSON.parse(presetsFile.content);
+      window.BG_PRESETS = AP_PRESETS;
+    }
+  } catch (e) {}
+  fillAparenciaForm();
+}
+
+function fillAparenciaForm() {
+  const cfg = AP_CONFIG || {};
+  document.getElementById('apTheme').value = cfg.theme === 'light' ? 'light' : 'dark';
+  document.getElementById('apAllowVisitorToggle').value = cfg.allowVisitorThemeToggle === false ? 'false' : 'true';
+
+  const presetSelect = document.getElementById('apBgPreset');
+  if (AP_PRESETS && AP_PRESETS.length && !presetSelect.options.length) {
+    presetSelect.innerHTML = AP_PRESETS.map(p => `<option value="${p.id}">${p.label || p.id}</option>`).join('');
+  }
+
+  const bg = cfg.background || {};
+  document.getElementById('apBgMode').value = bg.mode || 'preset';
+  document.getElementById('apBgPreset').value = bg.preset || (AP_PRESETS && AP_PRESETS[0] && AP_PRESETS[0].id) || 'carbono-roxo';
+  document.getElementById('apBgSolidColor').value = bg.solidColor || '#050505';
+  document.getElementById('apBgSolidColorHex').textContent = bg.solidColor || '#050505';
+  document.getElementById('apBgImageUrl').value = bg.imageUrl || '';
+  document.getElementById('apBgImageSize').value = bg.imageSize || 'cover';
+  document.getElementById('apBgImagePosition').value = bg.imagePosition || 'center center';
+  document.getElementById('apBgImageRepeat').value = bg.imageRepeat || 'no-repeat';
+  document.getElementById('apBgImageAttachment').value = bg.imageAttachment || 'fixed';
+  document.getElementById('apBgOverlay').value = bg.overlayOpacity != null ? bg.overlayOpacity : 0.55;
+  document.getElementById('apBgOverlayVal').textContent = document.getElementById('apBgOverlay').value;
+  onAparenciaModeChange();
+}
+
+function onAparenciaModeChange() {
+  const mode = document.getElementById('apBgMode').value;
+  document.getElementById('apBgPresetWrap').style.display = mode === 'preset' ? '' : 'none';
+  document.getElementById('apBgSolidWrap').style.display = mode === 'solid' ? '' : 'none';
+  document.getElementById('apBgImageWrap').style.display = mode === 'image' ? '' : 'none';
+}
+
+function apSyncSolidHex() {
+  document.getElementById('apBgSolidColorHex').textContent = document.getElementById('apBgSolidColor').value;
+}
+
+function apResolveBackgroundVars() {
+  const mode = document.getElementById('apBgMode').value;
+  const vars = {};
+  if (mode === 'preset') {
+    const preset = AP_PRESETS.find(p => p.id === document.getElementById('apBgPreset').value) || AP_PRESETS[0];
+    if (preset) {
+      vars['--body-bg-color'] = preset.color;
+      vars['--body-bg-image'] = preset.image || 'none';
+      vars['--body-bg-size'] = preset.size || 'auto';
+      vars['--body-bg-position'] = preset.position || '0 0';
+      vars['--body-bg-repeat'] = preset.repeat || 'repeat';
+      vars['--body-bg-attachment'] = preset.attachment || 'scroll';
+    }
+    return vars;
+  }
+  const color = document.getElementById('apBgSolidColor').value || '#050505';
+  vars['--body-bg-color'] = color;
+  if (mode === 'solid') {
+    vars['--body-bg-image'] = 'none';
+    return vars;
+  }
+  const img = document.getElementById('apBgImageUrl').value.trim();
+  if (!img) {
+    vars['--body-bg-image'] = 'none';
+    return vars;
+  }
+  const overlay = Math.min(Math.max(Number(document.getElementById('apBgOverlay').value) || 0, 0), 1);
+  vars['--body-bg-image'] = `linear-gradient(rgba(0, 0, 0, ${overlay.toFixed(2)}), rgba(0, 0, 0, ${overlay.toFixed(2)})), url('${img}')`;
+  vars['--body-bg-size'] = document.getElementById('apBgImageSize').value;
+  vars['--body-bg-position'] = document.getElementById('apBgImagePosition').value;
+  vars['--body-bg-repeat'] = document.getElementById('apBgImageRepeat').value;
+  vars['--body-bg-attachment'] = document.getElementById('apBgImageAttachment').value;
+  return vars;
+}
+
+function apPreviewBackground() {
+  const vars = apResolveBackgroundVars();
+  sendToIframe({ type: 'editor-apply-background', payload: { action: 'apply', vars: vars } });
+}
+
+function apResetBackgroundPreview() {
+  sendToIframe({ type: 'editor-apply-background', payload: { action: 'reset' } });
+}
+
+function apCollectConfig() {
+  return {
+    theme: document.getElementById('apTheme').value,
+    allowVisitorThemeToggle: document.getElementById('apAllowVisitorToggle').value !== 'false',
+    background: {
+      mode: document.getElementById('apBgMode').value,
+      preset: document.getElementById('apBgPreset').value,
+      solidColor: document.getElementById('apBgSolidColor').value,
+      imageUrl: document.getElementById('apBgImageUrl').value.trim(),
+      imageSize: document.getElementById('apBgImageSize').value,
+      imagePosition: document.getElementById('apBgImagePosition').value,
+      imageRepeat: document.getElementById('apBgImageRepeat').value,
+      imageAttachment: document.getElementById('apBgImageAttachment').value,
+      overlayOpacity: Number(document.getElementById('apBgOverlay').value),
+    },
+  };
+}
+
+async function saveAparencia() {
+  setLoading('btnSaveAparencia', true);
+  try {
+    const cfg = apCollectConfig();
+    const file = await getFile('src/data/blog-config.json');
+    await putFile('src/data/blog-config.json', JSON.stringify(cfg, null, 2) + '\n', 'cms: update blog config (aparencia)', file ? file.sha : null);
+    await fetch(`${GH_API}/repos/${REPO}/actions/workflows/deploy.yml/dispatches`, {
+      method: 'POST',
+      headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ref: 'main' }),
+    }).catch(() => {});
+    AP_CONFIG = cfg;
+    toast('Aparência salva! Deploy em andamento 🚀', 'success');
+  } catch (e) {
+    toast('Erro ao salvar: ' + e.message, 'error');
+  } finally {
+    setLoading('btnSaveAparencia', false);
   }
 }
 

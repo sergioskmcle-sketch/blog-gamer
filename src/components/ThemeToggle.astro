@@ -1,0 +1,56 @@
+---
+import Icon from "./Icon.astro";
+---
+
+<button
+  id="themeToggle"
+  class="text-on-surface-variant hover:text-primary transition-all active:scale-95 p-2"
+  aria-label="Alternar tema claro e escuro"
+  aria-pressed="false"
+>
+  <Icon name="sun" id="themeIconSun" />
+  <Icon name="moon" id="themeIconMoon" />
+</button>
+
+<style>
+  #themeToggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  html[data-theme="dark"] #themeIconSun {
+    display: none;
+  }
+  html[data-theme="light"] #themeIconMoon {
+    display: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #themeToggle {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  const btn = document.getElementById("themeToggle");
+  const meta = document.querySelector('meta[name="theme-color"]');
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    document.documentElement.classList.toggle("light", theme === "light");
+    if (btn) btn.setAttribute("aria-pressed", theme === "light" ? "true" : "false");
+    if (meta) meta.setAttribute("content", theme === "dark" ? "#050505" : "#F5F5F7");
+  }
+
+  if (btn) {
+    btn.addEventListener("click", () => {
+      const current = document.documentElement.getAttribute("data-theme") || "dark";
+      const next = current === "dark" ? "light" : "dark";
+      applyTheme(next);
+      try {
+        localStorage.setItem("blog-theme", next);
+      } catch (e) {}
+    });
+  }
+</script>

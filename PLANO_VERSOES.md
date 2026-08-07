@@ -1,4 +1,4 @@
-# Plano de Versões — Blog Gamer
+# Plano de Versões — Promo Gamer
 
 > ⚠️ **Atualização (ago/2026):** a v1.2 (cookies de sessão do ML) está **aposentada** — os cookies foram removidos do projeto (`88c9127`) e o ML foi fechado como fonte. A versão atual é a **v1.4 (Serper)** descrita abaixo. As seções antigas ficam como histórico.
 

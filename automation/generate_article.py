@@ -665,7 +665,7 @@ def generate_ai_cover(topic, products, slug):
         out = cover_dir / f'{slug}.webp'
         out.write_bytes(img)
         log(f'  Capa IA salva: {out}')
-        return f'/blog-gamer/images/capas/{slug}.webp'
+        return f'/images/capas/{slug}.webp'
     except Exception as e:
         log(f'  OpenAI capa erro: {e}')
         return ''
@@ -925,7 +925,7 @@ def git_push(slug, repo_path):
             log('Nenhuma alteracao para commitar')
             return False
 
-        remote = f'https://x-access-token:{GITHUB_TOKEN}@github.com/sergioskmcle-sketch/blog-gamer.git'
+        remote = f'https://x-access-token:{GITHUB_TOKEN}@github.com/sergioskmcle-sketch.git'
         subprocess.run(['git', 'remote', 'set-url', 'origin', remote],
                        capture_output=True)
         subprocess.run(['git', 'add', '-A'], check=True)

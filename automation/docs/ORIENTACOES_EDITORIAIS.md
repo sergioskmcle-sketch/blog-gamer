@@ -11,7 +11,7 @@
 >
 > Mantido apenas como histórico.
 
-# Orientações Editoriais — Blog Gamer
+# Orientações Editoriais — Promo Gamer
 
 ## Índice
 1. [Papel do Editor-Chefe](#papel-do-editor-chefe)

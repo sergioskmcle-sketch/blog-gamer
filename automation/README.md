@@ -7,9 +7,9 @@
 >
 > Mantido apenas como histórico.
 
-﻿# Blog Gamer Automation
+﻿# Promo Gamer Automation
 
-Pipeline de geraÃ§Ã£o automÃ¡tica de artigos para o [Blog Gamer](https://sergioskmcle-sketch.github.io/blog-gamer/) com links de afiliado do Mercado Livre.
+Pipeline de geraÃ§Ã£o automÃ¡tica de artigos para o [Promo Gamer](https://promogamer.com.br/) com links de afiliado do Mercado Livre.
 
 ## Fluxo
 
@@ -75,8 +75,8 @@ Cookies de sessÃ£o do Mercado Livre extraÃ­dos via extensÃ£o Cookie-Editor
 | **OS** | Debian 13 (trixie) |
 | **UsuÃ¡rio** | `sergioskm_cle` |
 | **Chave SSH** | `~/.ssh/id_nova_vm` |
-| **Projeto** | `/home/sergioskm_cle/blog-gamer-automation/` |
-| **Frontend** | `/home/sergioskm_cle/blog-gamer/` |
+| **Projeto** | `/home/sergioskm_cle-automation/` |
+| **Frontend** | `/home/sergioskm_cle/` |
 | **Python** | 3.13.5 (venv em `blog-gamer-automation/venv/`) |
 | **Systemd** | `blog-gamer.service` |
 
@@ -89,7 +89,7 @@ Cookies de sessÃ£o do Mercado Livre extraÃ­dos via extensÃ£o Cookie-Editor
 
 ### RepositÃ³rios GitHub
 
-- **Blog (frontend):** `https://github.com/sergioskmcle-sketch/blog-gamer` (branch `main`)
+- **Blog (frontend):** `https://github.com/sergioskmcle-sketch` (branch `main`)
 - **Monitor Telegram:** `https://github.com/sergioskmcle-sketch/monitor-telegram` (projeto irmÃ£o, contÃ©m o scraper ML original)
 
 ## InstalaÃ§Ã£o (em mÃ¡quina nova)
@@ -99,21 +99,21 @@ Cookies de sessÃ£o do Mercado Livre extraÃ­dos via extensÃ£o Cookie-Editor
 sudo apt update && sudo apt install -y python3 python3-pip python3-venv git
 
 # 2. Clonar frontend do blog
-git clone https://github.com/sergioskmcle-sketch/blog-gamer.git
+git clone https://github.com/sergioskmcle-sketch.git
 cd blog-gamer
 git config user.name "blog-bot"
 git config user.email "bot@blog-gamer.com"
 
 # 3. Criar diretÃ³rio de automaÃ§Ã£o
-mkdir -p ~/blog-gamer-automation/logs
-cd ~/blog-gamer-automation
+mkdir -p ~-automation/logs
+cd ~-automation
 
 # 4. Criar virtualenv e instalar dependÃªncias
 python3 -m venv venv
 source venv/bin/activate
 pip install requests python-dotenv schedule PyYAML
 
-# 5. Copiar arquivos do projeto para ~/blog-gamer-automation/
+# 5. Copiar arquivos do projeto para ~-automation/
 #    (ml_affiliate.py, generate_article.py, scheduler.py, cookie_keepalive.py,
 #     ml_cookies.json, .gitignore, requirements.txt)
 
@@ -135,18 +135,18 @@ sudo systemctl start blog-gamer.service
 
 ## Systemd Service
 
-Arquivo: `/etc/systemd/system/blog-gamer.service`
+Arquivo: `/etc/systemd/system.service`
 
 ```ini
 [Unit]
-Description=Blog Gamer Automation - Geracao automatica de artigos
+Description=Promo Gamer Automation - Geracao automatica de artigos
 After=network.target
 
 [Service]
 Type=simple
 User=sergioskm_cle
-WorkingDirectory=/home/sergioskm_cle/blog-gamer-automation
-ExecStart=/home/sergioskm_cle/blog-gamer-automation/venv/bin/python3 scheduler.py
+WorkingDirectory=/home/sergioskm_cle-automation
+ExecStart=/home/sergioskm_cle-automation/venv/bin/python3 scheduler.py
 Restart=always
 RestartSec=30
 
@@ -210,7 +210,7 @@ ApÃ³s a 8Âª, volta para a 1Âª (cÃ­clico).
 # Sintoma: link de afiliado volta erro 403/CSRF invÃ¡lido.
 # SoluÃ§Ã£o: Exportar cookies frescos do navegador e scp pra VM:
 
-scp -i ~/.ssh/id_nova_vm ml_cookies.json sergioskm_cle@35.237.81.192:~/blog-gamer-automation/
+scp -i ~/.ssh/id_nova_vm ml_cookies.json sergioskm_cle@35.237.81.192:~-automation/
 
 # Depois reiniciar o scheduler:
 sudo systemctl restart blog-gamer.service
@@ -220,7 +220,7 @@ sudo systemctl restart blog-gamer.service
 
 ```bash
 # Ãšltima execuÃ§Ã£o
-cat ~/blog-gamer-automation/logs/geracao.log
+cat ~-automation/logs/geracao.log
 
 # Service logs
 sudo journalctl -u blog-gamer.service -n 50 --no-pager
@@ -229,7 +229,7 @@ sudo journalctl -u blog-gamer.service -n 50 --no-pager
 ### Testar manualmente
 
 ```bash
-cd ~/blog-gamer-automation
+cd ~-automation
 source venv/bin/activate
 python3 generate_article.py
 ```
@@ -254,7 +254,7 @@ Para evitar bloqueio por scraping, o projeto utiliza as mesmas medidas do monito
 
 ## URLs
 
-- **Blog:** https://sergioskmcle-sketch.github.io/blog-gamer/
-- **RepositÃ³rio frontend:** https://github.com/sergioskmcle-sketch/blog-gamer
+- **Blog:** https://promogamer.com.br/
+- **RepositÃ³rio frontend:** https://github.com/sergioskmcle-sketch
 - **VM SSH:** `ssh -i ~/.ssh/id_nova_vm sergioskm_cle@35.237.81.192`
 

@@ -1,7 +1,11 @@
 ---
 import Icon from "./Icon.astro";
+import ThemeToggle from "./ThemeToggle.astro";
+import blogConfig from "../data/blog-config.json";
 
 const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
+
+const allowVisitorThemeToggle = blogConfig.allowVisitorThemeToggle !== false;
 
 const navLinks = [
   { name: "Início", slug: "" },
@@ -13,10 +17,10 @@ const navLinks = [
 ];
 ---
 
-<header id="siteHeader" class="fixed top-0 w-full z-50 glass-nav border-b border-outline-variant/30 shadow-[0_4px_20px_-2px_rgba(168,85,247,0.15)]">
+<header id="siteHeader" class="fixed top-0 w-full z-50 glass-nav border-b border-outline-variant/30 shadow-[0_4px_20px_-2px_var(--accent-glow)]">
   <nav class="flex items-center justify-between px-gutter max-w-page mx-auto relative" style="height: var(--nav-height, 6rem)" data-editable="nav">
     <a href={base} class="no-underline hover:no-underline flex items-center" style="transform: translateX(var(--logo-offset, 0));">
-      <img src={`${base}images/logo-blog.webp`} alt="Blog Gamer" class="w-auto object-contain" style="height: var(--logo-height, 7rem)" data-editable="logo" />
+      <img src={`${base}images/logo-blog.webp`} alt="Promo Gamer" class="w-auto object-contain" style="height: var(--logo-height, 7rem)" data-editable="logo" />
     </a>
     <div class="hidden md:flex items-center gap-lg font-label text-label absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
       {navLinks.map((link, i) => (
@@ -29,6 +33,7 @@ const navLinks = [
       ))}
     </div>
     <div class="flex items-center gap-md">
+      {allowVisitorThemeToggle && <ThemeToggle />}
       <button class="text-on-surface-variant hover:text-primary transition-all active:scale-95 p-2" id="searchBtn" aria-label="Pesquisar">
         <Icon name="search" />
       </button>
@@ -61,10 +66,10 @@ const navLinks = [
         requestAnimationFrame(() => {
           if (window.scrollY > 20) {
             header.classList.add("shadow-xl");
-            header.classList.add("bg-black/90");
+            header.classList.add("scrolled");
           } else {
             header.classList.remove("shadow-xl");
-            header.classList.remove("bg-black/90");
+            header.classList.remove("scrolled");
           }
           ticking = false;
         });
@@ -76,7 +81,7 @@ const navLinks = [
   const searchBtn = document.getElementById("searchBtn");
   if (searchBtn) {
     searchBtn.addEventListener("click", () => {
-      const q = prompt("Buscar no Blog Gamer:");
+      const q = prompt("Buscar no Promo Gamer:");
       if (q && q.trim()) {
         window.location.href = `${window.location.pathname}?q=${encodeURIComponent(q.trim())}`;
       }

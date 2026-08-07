@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ARTIGOS_DIR = path.resolve(__dirname, '..', 'src', 'content', 'artigos');
 const IMAGES_DIR = path.resolve(__dirname, '..', 'public', 'images', 'produtos');
-const BASE = '/blog-gamer';
+const BASE = '';
 
 fs.mkdirSync(IMAGES_DIR, { recursive: true });
 

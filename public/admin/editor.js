@@ -20,21 +20,25 @@ const PALETTE_COLORS = [
 ];
 
 const COLOR_MAP = [
-  {key:'color-primary',label:'Principal (roxo)',default:'#A855F7'},
-  {key:'color-primary-dim',label:'Principal escuro',default:'#9c48ea'},
-  {key:'color-secondary',label:'Destaque (verde)',default:'#2ff801'},
-  {key:'color-secondary-dim',label:'Destaque escuro',default:'#2be800'},
-  {key:'color-surface',label:'Fundo página',default:'#0d0d17'},
-  {key:'color-surface-container',label:'Fundo card',default:'#181825'},
-  {key:'color-surface-container-low',label:'Hero BG',default:'#12121d'},
-  {key:'color-surface-container-high',label:'Fundo elevado',default:'#1e1e2c'},
-  {key:'color-on-surface',label:'Texto principal',default:'#efecfb'},
-  {key:'color-on-surface-variant',label:'Texto secundário',default:'#aca9b7'},
-  {key:'color-outline',label:'Bordas',default:'#757481'},
-  {key:'color-outline-variant',label:'Bordas suaves',default:'#474752'},
-  {key:'color-error',label:'Erro/Perigo',default:'#ff6e84'},
-  {key:'color-bg-card',label:'Card escuro',default:'#0A0A0F'},
-  {key:'color-border',label:'Linha divisória',default:'#1C1C2E'},
+  {key:'accent',label:'Principal (roxo)',default:'#A855F7'},
+  {key:'accent-hover',label:'Principal hover',default:'#9333EA'},
+  {key:'accent-dim',label:'Principal suave',default:'rgba(168, 85, 247, 0.08)'},
+  {key:'accent-glow',label:'Brilho do principal',default:'rgba(168, 85, 247, 0.25)'},
+  {key:'bg-primary',label:'Fundo página',default:'#050505'},
+  {key:'bg-secondary',label:'Fundo alternativo',default:'#020203'},
+  {key:'bg-card',label:'Fundo card',default:'#0A0A0F'},
+  {key:'bg-elevated',label:'Fundo elevado',default:'#12121D'},
+  {key:'text-primary',label:'Texto principal',default:'#efecfb'},
+  {key:'text-secondary',label:'Texto secundário',default:'#aca9b7'},
+  {key:'text-muted',label:'Texto esmaecido',default:'#757481'},
+  {key:'border',label:'Bordas',default:'#1C1C2E'},
+  {key:'border-hover',label:'Bordas hover',default:'#3D3D60'},
+  {key:'success',label:'Destaque (verde)',default:'#2ff801'},
+  {key:'warning',label:'Aviso',default:'#F97316'},
+  {key:'danger',label:'Erro/Perigo',default:'#EF4444'},
+  {key:'on-accent',label:'Texto sobre o principal',default:'#fff'},
+  {key:'selection-bg',label:'Seleção (fundo)',default:'rgba(204, 151, 255, 0.3)'},
+  {key:'selection-color',label:'Seleção (texto)',default:'#fff'},
 ];
 
 const BG_COLORS = [
@@ -58,7 +62,7 @@ function getBlogBase() {
   const path = window.location.pathname;
   const idx = path.indexOf('/admin');
   if (idx > 0) return path.substring(0, idx) + '/';
-  return '/blog-gamer/';
+  return '/';
 }
 
 function getPreviewUrl() {
@@ -246,13 +250,33 @@ function initBgColorSwatches() {
 function pickBgColor(color) {
   document.querySelectorAll('#bgColorSwatches .color-swatch').forEach(s => s.classList.remove('active'));
   event.target.classList.add('active');
-  applyStyle('body-bg-color', color);
+  applyBackgroundVars({ '--body-bg-color': color });
+}
+
+function applyBackgroundVars(vars) {
+  pendingChanges['__background_vars__'] = Object.assign({}, pendingChanges['__background_vars__'], vars);
+  sendToIframe({ type: 'editor-apply-background', payload: { action: 'apply', vars: vars } });
+}
+
+function resetBackgroundVars() {
+  delete pendingChanges['__background_vars__'];
+  sendToIframe({ type: 'editor-apply-background', payload: { action: 'reset' } });
+}
+
+function applyImageVars() {
+  const img = document.getElementById('bgImageUrl').value.trim();
+  if (!img) return;
+  applyBackgroundVars({
+    '--body-bg-image': `url('${img}')`,
+    '--body-bg-size': 'cover',
+    '--body-bg-position': 'center center',
+    '--body-bg-repeat': 'no-repeat',
+    '--body-bg-attachment': 'fixed',
+  });
 }
 
 function applyBgImage() {
-  const url = document.getElementById('bgImageUrl').value.trim();
-  if (!url) return;
-  applyStyle('body-bg-image', url);
+  applyImageVars();
   toast('Imagem de fundo aplicada!');
 }
 
@@ -260,18 +284,33 @@ function handleBgUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
   event.target.value = '';
+  const fromAparencia = event.target.id === 'apBgImageUpload';
   const reader = new FileReader();
   reader.onload = (e) => {
-    document.getElementById('bgImageUrl').value = e.target.result;
-    applyStyle('body-bg-image', e.target.result.split(',')[1] || e.target.result);
+    const dataUrl = e.target.result;
+    if (fromAparencia) {
+      const urlInput = document.getElementById('apBgImageUrl');
+      if (urlInput) urlInput.value = dataUrl;
+      const mode = document.getElementById('apBgMode');
+      if (mode) mode.value = 'image';
+      if (typeof onAparenciaModeChange === 'function') onAparenciaModeChange();
+      if (typeof apResolveBackgroundVars === 'function') {
+        applyBackgroundVars(apResolveBackgroundVars());
+      }
+    } else {
+      const urlInput = document.getElementById('bgImageUrl');
+      if (urlInput) urlInput.value = dataUrl;
+      applyImageVars();
+    }
     toast('Imagem de fundo carregada!');
   };
   reader.readAsDataURL(file);
 }
 
 function resetBgImage() {
-  document.getElementById('bgImageUrl').value = '';
-  sendToIframe({ type: 'editor-apply-css', css: 'body{background-image:var(--bg-image-original)!important}' });
+  if (document.getElementById('bgImageUrl')) document.getElementById('bgImageUrl').value = '';
+  if (document.getElementById('apBgImageUrl')) document.getElementById('apBgImageUrl').value = '';
+  resetBackgroundVars();
   toast('Fundo restaurado');
 }
 

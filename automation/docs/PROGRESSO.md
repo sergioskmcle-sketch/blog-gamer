@@ -11,7 +11,7 @@
 >
 > Mantido apenas como histórico.
 
-# Blog Gamer — Status do Projeto
+# Promo Gamer — Status do Projeto
 
 > Última atualização: 2026-07-02
 
@@ -61,7 +61,7 @@
 
 | Tarefa | Motivo |
 |--------|--------|
-| **Deploy do frontend no GitHub Pages** | O `dist/` com o design system novo está na VM, mas o blog ao vivo (`sergioskmcle-sketch.github.io/blog-gamer`) ainda exibe o tema neon roxo/verde antigo. Precisa comitar e dar push. |
+| **Deploy do frontend no GitHub Pages** | O `dist/` com o design system novo está na VM, mas o blog ao vivo (`sergioskmcle-sketch.github.io`) ainda exibe o tema neon roxo/verde antigo. Precisa comitar e dar push. |
 | **Corrigir YAML parsing do Groq** | O Groq retorna frontmatter YAML sem o `---` de fechamento. O `generate_article.py` tenta parsear e falha. Artigo gerado mas não salvo. Ajustar prompt ou parser. |
 
 ### 🟡 Média prioridade
@@ -99,12 +99,12 @@ PC local (dev)
 └── ~/.ssh/config               ← keepalive + alias blog-gamer
 
 VM (35.237.81.192)
-├── ~/blog-gamer-automation/    ← scripts Python
+├── ~-automation/    ← scripts Python
 │   ├── venv/                   ← virtualenv
 │   ├── heartbeat.txt           ← prova de vida
 │   └── logs/                   ← watchdog.log + geracao.log
 │
-├── ~/blog-gamer/               ← frontend (clone do GitHub)
+├── ~/               ← frontend (clone do GitHub)
 │   └── src/content/artigos/    ← artigos em .md
 │
 └── /etc/systemd/system/
@@ -124,25 +124,25 @@ ssh blog-gamer
 sudo systemctl status blog-gamer.service
 
 # Ver logs do scheduler
-cat ~/blog-gamer-automation/logs/geracao.log
+cat ~-automation/logs/geracao.log
 
 # Ver logs do watchdog
-cat ~/blog-gamer-automation/logs/watchdog.log
+cat ~-automation/logs/watchdog.log
 
 # Ver heartbeat
-cat ~/blog-gamer-automation/heartbeat.txt
+cat ~-automation/heartbeat.txt
 
 # Testar geração manual
-cd ~/blog-gamer-automation
+cd ~-automation
 source venv/bin/activate
 python3 generate_article.py
 
 # Build do frontend
-cd ~/blog-gamer
+cd ~
 npm run build
 
 # Commit e push dos artigos
-cd ~/blog-gamer
+cd ~
 git add .
 git commit -m "novo artigo"
 git push

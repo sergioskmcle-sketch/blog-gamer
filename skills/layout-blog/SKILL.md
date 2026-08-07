@@ -89,11 +89,11 @@ O TOC "Neste artigo" é extraído por `src/lib/headings.ts` (usa `tagSlug`); fun
 <section class="continue-exploring">
   <h2>Continue Explorando</h2>
   <div class="article-cards">
-    <a href="/blog-gamer/blog/artigo-1">
+    <a href="/blog/artigo-1">
       <img src="..." alt="..." />
       <h3>Título do Artigo</h3>
     </a>
-    <a href="/blog-gamer/blog/artigo-2">
+    <a href="/blog/artigo-2">
       <img src="..." alt="..." />
       <h3>Título do Artigo</h3>
     </a>

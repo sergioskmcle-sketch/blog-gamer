@@ -6,8 +6,7 @@ import articleSections from "./src/plugins/rehype-article-sections.mjs";
 import remarkHeadingBlocks from "./src/plugins/remark-heading-blocks.mjs";
 
 export default defineConfig({
-  site: "https://sergioskmcle-sketch.github.io",
-  base: "/blog-gamer",
+  site: "https://promogamer.com.br",
   output: "static",
   build: {
     assets: "_assets",

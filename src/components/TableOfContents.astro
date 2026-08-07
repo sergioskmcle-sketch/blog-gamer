@@ -185,7 +185,7 @@ for (const h of headings) {
 
   .toc-link:hover {
     color: var(--accent-hover);
-    background: rgba(168, 85, 247, 0.06);
+    background: var(--accent-dim);
     text-decoration: none;
   }
 
@@ -211,11 +211,13 @@ for (const h of headings) {
   .toc-link-sub {
     min-height: 36px;
     padding: 0.5rem 0.625rem;
-    color: #c4b5fd;
+    color: var(--accent);
+    opacity: 0.85;
     font-size: 1.05rem;
   }
 
   .toc-link-sub:hover {
-    color: #fff;
+    color: var(--text-primary);
+    opacity: 1;
   }
 </style>

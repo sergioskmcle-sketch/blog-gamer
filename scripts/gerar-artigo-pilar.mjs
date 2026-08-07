@@ -321,7 +321,7 @@ async function main() {
   // PASSO 2: Gerar draft
   log("INFO", "Passo 1/2: gerando draft...");
 
-  const systemDraft = `Voce e um jornalista especializado em hardware e games. Escreva para o Blog Gamer, site brasileiro.
+  const systemDraft = `Voce e um jornalista especializado em hardware e games. Escreva para o Promo Gamer, site brasileiro.
 
 REGRAS:
 - Artigo de 2000-3000 palavras
@@ -333,7 +333,7 @@ REGRAS:
 - Inclua precos em reais (R$)
 - NUNCA invente URLs de imagens — o sistema injeta os produtos automaticamente depois. Voce so precisa mencionar os nomes dos produtos no texto.
 - ${produtosPorSecao.size > 0 ? `MENCIONE os produtos listados no corpo do texto pelo nome (ex: "A **RTX 4060** por R$ 1.899..."). O sistema inserira as imagens e botoes depois.` : ""}
-- Inclua links internos para: /blog-gamer/blog/as-10-melhores-placas-de-video-custo-beneficio-do-mercado-livre-em-2026/ e /blog-gamer/blog/os-10-melhores-monitores-gamer-custo-beneficio-do-mercado-livre-em-2026/
+- Inclua links internos para: /blog/as-10-melhores-placas-de-video-custo-beneficio-do-mercado-livre-em-2026/ e /blog/os-10-melhores-monitores-gamer-custo-beneficio-do-mercado-livre-em-2026/
 - Ao final: ## Quer montar seu setup?\\n\\nEntre no [grupo VIP do Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) para ofertas diarias de hardware!
 - NUNCA mencione IA. Sem emojis.
 - Saida: frontmatter YAML "---" + markdown
@@ -411,7 +411,7 @@ No final ## Fontes com links.`;
       context: "setup gamer completo: pc, placa de video, monitor e perifericos",
     });
     if (capaIA) {
-      const capaPath = capaIA.startsWith("/") && !capaIA.startsWith("/blog-gamer") ? "/blog-gamer" + capaIA : capaIA;
+      const capaPath = capaIA;
       finalArticle = finalArticle.replace(/^image:\s*".*"$/m, `image: "${capaPath}"`);
       log("INFO", `Capa IA: ${capaPath}`);
     } else {

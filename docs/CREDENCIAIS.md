@@ -20,9 +20,9 @@
 
 | Recurso | URL |
 |---------|-----|
-| Repositório | `https://github.com/sergioskmcle-sketch/blog-gamer.git` |
-| Blog (GitHub Pages) | `https://sergioskmcle-sketch.github.io/blog-gamer/` |
-| Status / Saúde | `https://sergioskmcle-sketch.github.io/blog-gamer/status.json` |
+| Repositório | `https://github.com/sergioskmcle-sketch.git` |
+| Blog (GitHub Pages) | `https://promogamer.com.br/` |
+| Status / Saúde | `https://promogamer.com.br/status.json` |
 | Groq API | `https://api.groq.com/openai/v1/chat/completions` |
 | Tavily API | `https://api.tavily.com/search` |
 | Serper (Shopping) | `https://google.serper.dev/shopping` |
@@ -100,8 +100,8 @@ silêncio. Só `sendMessage`.
 | Usuário | `sergioskm_cle` |
 | Chave SSH | `C:\Users\Sérgio PC\.ssh\id_nova_vm` |
 | Acesso | `ssh -i "C:\Users\Sérgio PC\.ssh\id_nova_vm" sergioskm_cle@35.237.81.192` |
-| Path automação | `/home/sergioskm_cle/blog-gamer-automation/` |
-| Path blog | `/home/sergioskm_cle/blog-gamer/` |
+| Path automação | `/home/sergioskm_cle-automation/` |
+| Path blog | `/home/sergioskm_cle/` |
 | Service | `blog-gamer.service` |
 
 > A pipeline Python na VM está separada e não integrada ao CI do GitHub Actions.

@@ -111,8 +111,8 @@
 ### Criação
 - Projeto `blog-gamer` iniciado em `C:\Users\Sérgio PC\Documents\Expxagents\blog-gamer`
 - Frontend Astro 5 criado em `C:\Users\Sérgio PC\Documents\blog-gamer-frontend`
-- Repositório GitHub criado: `sergioskmcle-sketch/blog-gamer`
-- `astro.config.mjs`: site `https://sergioskmcle-sketch.github.io`, base `/blog-gamer`, output static
+- Repositório GitHub criado: `sergioskmcle-sketch`
+- `astro.config.mjs`: site `https://promogamer.com.br`, base ``, output static
 - GitHub Actions configurado para deploy automático no GitHub Pages
 - `docs/ORIENTACOES_EDITORIAIS.md` com diretrizes editoriais e regras de tom gamer
 

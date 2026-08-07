@@ -60,7 +60,7 @@ scheduler.py (10:00 UTC)
     │       ├── Para cada imagem CDN:
     │       │   ├── Baixa para public/images/produtos/
     │       │   └── Se bloqueado (GIF): segue link → extrai og:image
-    │       └── Substitui URLs CDN por /blog-gamer/images/produtos/...
+    │       └── Substitui URLs CDN por /images/produtos/...
     │
     └── 3. Git commit + push das imagens
 ```
@@ -130,7 +130,7 @@ download-images.mjs tenta baixar
                     ↓
             Salva JPG na pasta
                         ↓
-Artigo atualizado: /blog-gamer/images/produtos/D_NQ_NP_698387-...webp
+Artigo atualizado: /images/produtos/D_NQ_NP_698387-...webp
 ```
 
 ## Watchdog e Heartbeat

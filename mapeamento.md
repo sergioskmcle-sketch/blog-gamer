@@ -1,10 +1,10 @@
-# Mapeamento do Blog Gamer
+# Mapeamento do Promo Gamer
 
 Este documento explica **como o blog funciona**, do início ao fim, em linguagem simples.
 
 ---
 
-## 1. O que é o Blog Gamer
+## 1. O que é o Promo Gamer
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -51,7 +51,7 @@ Todo artigo é um arquivo `.md` (Markdown). No topo dele, tem uma parte chamada 
 │  category: "noticia"                                        │
 │  tags: ["gta 6", "rockstar games", "ps5", "xbox"]          │
 │  affiliate: true                                            │
-│  image: "/blog-gamer/images/produtos/capa-gta6.webp"       │
+│  image: "/images/produtos/capa-gta6.webp"       │
 │  ---                                                        │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -80,7 +80,7 @@ Cada campo significa:
 ├────────────────┼────────────────────────────────┼────────────────────────────────────┤
 │  affiliate     │  Se tem link de afiliado       │  true  (ou  false)                 │
 ├────────────────┼────────────────────────────────┼────────────────────────────────────┤
-│  image         │  URL da imagem de capa         │  "/blog-gamer/images/produtos/     │
+│  image         │  URL da imagem de capa         │  "/images/produtos/     │
 │                │                                │   capa-gta6.webp"                  │
 └────────────────┴────────────────────────────────┴────────────────────────────────────┘
 ```
@@ -206,7 +206,7 @@ pubDate: 2026-07-26
 category: "lista"
 tags: ["headset gamer", "headset barato", "periférico gamer", "custo benefício", "mercado livre"]
 affiliate: true
-image: "/blog-gamer/images/produtos/headset-capa.webp"
+image: "/images/produtos/headset-capa.webp"
 ---
 
 ## Introdução

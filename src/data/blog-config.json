@@ -1,0 +1,15 @@
+{
+  "theme": "dark",
+  "allowVisitorThemeToggle": true,
+  "background": {
+    "mode": "preset",
+    "preset": "carbono-roxo",
+    "solidColor": "#050505",
+    "imageUrl": "",
+    "imageSize": "cover",
+    "imagePosition": "center center",
+    "imageRepeat": "no-repeat",
+    "imageAttachment": "fixed",
+    "overlayOpacity": 0.55
+  }
+}

@@ -18,7 +18,7 @@ const date = new Date(pubDate).toLocaleDateString("pt-BR", { timeZone: "UTC" }).
 const bgImage = image || `${base}images/banner-grupo.webp`;
 ---
 
-<section class="relative group overflow-hidden rounded-xl bg-surface-container-low h-[300px] sm:h-[400px] lg:h-[500px] flex flex-col justify-end shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_4px_24px_rgba(0,0,0,0.6)]">
+<section class="relative group overflow-hidden rounded-xl bg-surface-container-low h-[300px] sm:h-[400px] lg:h-[500px] flex flex-col justify-end shadow-[inset_0_1px_0_var(--emboss-high),var(--shadow-lg)]">
   <div class="absolute inset-0 z-0">
     <div
       class="w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
@@ -29,7 +29,7 @@ const bgImage = image || `${base}images/banner-grupo.webp`;
   </div>
   <div class="relative z-10 p-xl space-y-md">
     {category && (
-      <span class="inline-block px-md py-1 rounded-full bg-surface-container-high/80 border border-white/10 text-primary font-label text-label uppercase tracking-widest shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_1px_3px_rgba(0,0,0,0.5)]">
+      <span class="inline-block px-md py-1 rounded-full bg-surface-container-high/80 border border-outline-variant/30 text-primary font-label text-label uppercase tracking-widest shadow-[inset_0_1px_0_var(--emboss-high),0_1px_3px_var(--emboss-mid)]">
         {category}
       </span>
     )}
@@ -37,7 +37,7 @@ const bgImage = image || `${base}images/banner-grupo.webp`;
       {title}
     </h1>
     <div class="flex items-center gap-md font-label text-label text-outline-variant uppercase tracking-widest">
-      <span class="text-outline-variant">Blog Gamer</span>
+      <span class="text-outline-variant">Promo Gamer</span>
       <span class="w-1 h-1 bg-outline-variant rounded-full"></span>
       <span class="text-outline-variant">{date}</span>
     </div>

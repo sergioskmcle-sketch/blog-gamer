@@ -32,9 +32,6 @@ async function main() {
   console.log("Nova capa gerada:", result);
 
   let imagePath = result;
-  if (imagePath.startsWith("/") && !imagePath.startsWith("/blog-gamer") && !imagePath.startsWith("http")) {
-    imagePath = "/blog-gamer" + imagePath;
-  }
 
   let artigo = fs.readFileSync(ARTIGO_PATH, "utf-8");
   artigo = artigo.replace(/^image:\s*.+$/m, `image: "${imagePath}"`);

@@ -7,7 +7,7 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
   const params = new URLSearchParams(window.location.search);
   if (params.get("edit") !== "true") return;
 
-  const BASE_URL = document.querySelector("base")?.getAttribute("href") || window.__base__ || "/blog-gamer/";
+  const BASE_URL = document.querySelector("base")?.getAttribute("href") || window.__base__ || "/";
   const root = document.documentElement;
 
   function addDataAttributes() {
@@ -86,7 +86,6 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
       return;
     }
     if (property.startsWith("color-")) {
-      const colorName = property.replace("color-", "color-").replace(/-/g, "-");
       root.style.setProperty(`--${property}`, value);
       return;
     }
@@ -116,11 +115,12 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
       "font-size-body", "font-size-label",
     ];
     const colors = [
-      "color-primary", "color-primary-dim", "color-secondary",
-      "color-surface", "color-surface-container",
-      "color-on-surface", "color-on-surface-variant",
-      "color-outline", "color-outline-variant",
-      "color-error", "color-bg-card", "color-border",
+      "accent", "accent-hover", "accent-dim", "accent-glow",
+      "bg-primary", "bg-secondary", "bg-card", "bg-elevated",
+      "text-primary", "text-secondary", "text-muted",
+      "border", "border-hover",
+      "success", "warning", "danger",
+      "on-accent", "selection-bg", "selection-color",
     ];
     const result = {};
     props.forEach(p => result[p] = getCSSValue(p));
@@ -185,6 +185,21 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
         styleEl.textContent = css;
       }
       window.parent.postMessage({ type: "editor-css-applied" }, "*");
+    }
+    if (msg.type === "editor-apply-background") {
+      const payload = msg.payload || {};
+      if (payload.action === "reset") {
+        ["--body-bg-color", "--body-bg-image", "--body-bg-size", "--body-bg-position", "--body-bg-repeat", "--body-bg-attachment"].forEach((p) => root.style.removeProperty(p));
+      } else if (payload.vars) {
+        Object.entries(payload.vars).forEach(([prop, value]) => {
+          if (value === "" || value === undefined || value === null) {
+            root.style.removeProperty(prop);
+          } else {
+            root.style.setProperty(prop, value);
+          }
+        });
+      }
+      window.parent.postMessage({ type: "editor-background-applied" }, "*");
     }
     if (msg.type === "editor-ready") {
       window.parent.postMessage({
