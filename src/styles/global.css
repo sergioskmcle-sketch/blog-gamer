@@ -67,10 +67,14 @@
 :root {
   --nav-height: 119px;
   --logo-height: 155px;
-  --logo-offset: 56px;
-  --body-bg-color: #0d0d17;
+  --logo-offset: 27px;
+  --main-cols: 8;
+  --body-bg-color: #0a1628;
 }
 /* --- END EDITOR THEME --- */
+
+
+
 
 
 
