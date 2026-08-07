@@ -11,6 +11,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { generateArticle } from "./gerar-artigo.mjs";
+import { CATEGORY_BRANDS, PRODUCT_CATEGORIES, detectArticleCategory, detectBrand, detectModel } from "./product_naming.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ARTIGOS_DIR = path.resolve(__dirname, "..", "src", "content", "artigos");
@@ -72,21 +73,28 @@ function buildReuseImageMap(body) {
   return map;
 }
 
-// Nomes dos produtos antigos viram consultas extras na busca ML: a API remota
-// encontra os MESMOS produtos (com titulo completo) em vez de itens genericos
-// para a query ampla do topico.
-function buildExtraQueries(body) {
-  const titles = [];
+// Consultas extras para a busca remota na regeneracao. Queries de marca da
+// categoria (ex.: "teclado Redragon") trazem produtos com nome reconhecivel;
+// titulos antigos genéricos re-trazem os MESMOS produtos sem marca que o
+// portao de qualidade reprova — por isso so entram os que tem marca/modelo.
+function buildExtraQueries(body, fm) {
+  const topic = buildTopic(fm, "");
+  const categoria = detectArticleCategory(topic);
+  const label = PRODUCT_CATEGORIES[categoria]?.label || "";
+  const marcas = CATEGORY_BRANDS[categoria] || [];
+  const queries = [];
+  if (label && marcas.length > 0) {
+    queries.push(...marcas.slice(0, 3).map((marca) => `${label} ${marca}`));
+  }
+
   for (const line of body.split(/\r?\n/)) {
     const h = line.match(/^###\s+(?:<a\s+id="[^"]*"[^>]*>\s*<\/a>\s*)?(.+)$/);
-    if (h) {
-      const t = h[1].trim().replace(/\s*—\s*.+$/, "").trim();
-      if (t && !titles.includes(t)) titles.push(t);
-    }
+    if (!h) continue;
+    const t = h[1].trim().replace(/\s*—\s*.+$/, "").trim();
+    if (!t || queries.includes(t)) continue;
+    if (detectBrand(t) || detectModel(t)) queries.push(t);
   }
-  return titles
-    .filter((t) => t.split(/\s+/).length >= 3 || /[A-Z]{2,}/.test(t))
-    .slice(0, 4);
+  return queries.slice(0, 5);
 }
 
 function buildTopic(fm, slug) {
@@ -151,7 +159,7 @@ async function main() {
     const { fm, body } = parseFrontmatter(content);
     const topic = buildTopic(fm, targetSlug);
     const reuseImageMap = buildReuseImageMap(body);
-    const extraMlQueries = buildExtraQueries(body);
+    const extraMlQueries = buildExtraQueries(body, fm);
 
     console.log(`\n--- ${targetSlug}.md ---`);
     console.log(`  titulo: ${topic.hint}`);
