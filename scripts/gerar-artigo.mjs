@@ -1044,16 +1044,18 @@ function sanitizeProducts(products, topic, ctx = {}) {
 }
 
 // TAREFA 5.4: queries especificas de retry quando sobrarem menos de
-// MIN_PRODUCTS itens da categoria do artigo apos o filtro.
+// MIN_PRODUCTS itens da categoria do artigo apos o filtro. Marcas primeiro:
+// trazem produto com nome reconhecivel (o portao de qualidade reprova nome
+// generico); as genericas da categoria entram depois.
 function buildCategoryRetryQueries(articleCat) {
   if (!articleCat || !PRODUCT_CATEGORIES[articleCat]) return [];
   const label = PRODUCT_CATEGORIES[articleCat].label;
   const ano = new Date().getFullYear();
   const marcas = CATEGORY_BRANDS[articleCat] || [];
   return [
+    ...marcas.slice(0, 3).map((marca) => `${label} ${marca}`),
     `${label} gamer ${ano}`,
     `melhor ${label} gamer custo beneficio`,
-    ...marcas.slice(0, 3).map((marca) => `${label} ${marca}`),
   ];
 }
 
@@ -2264,14 +2266,17 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
     if (AFFILIATE_MODE === "remote") {
       try {
         const trendingKws = topic.trending_keywords || [];
+        // Marcas da categoria entram JÁ na primeira rodada (seed), para artigo
+        // novo nascer com produto de nome reconhecivel — nao so no retry.
         const queriesRemotas = [
           ...(opts.extraMlQueries || []),
-          ...(extraRound > 0 ? retryQ : []),
+          ...retryQ,
           topic.ml_query,
           ...trendingKws.slice(0, 2),
-        ].filter(Boolean).slice(0, 5 + retryQ.length);
+        ].filter(Boolean);
+        const queriesUnicas = [...new Set(queriesRemotas)].slice(0, 5);
 
-        const remotos = await buscarProdutosLoteRemoto(queriesRemotas, { limitPorQuery: 3 });
+        const remotos = await buscarProdutosLoteRemoto(queriesUnicas, { limitPorQuery: 3 });
         // Prioriza produtos da categoria do artigo com marca/modelo
         // reconheciveis: o portao de qualidade (validar-artigo.mjs) reprova
         // artigo com nome generico, e a lista e re-rankeada depois, entao a

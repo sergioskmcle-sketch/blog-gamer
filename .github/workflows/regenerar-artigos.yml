@@ -67,6 +67,7 @@ jobs:
           MONITOR_API_KEY: ${{ secrets.MONITOR_API_KEY }}
 
       - name: Validar artigo regenerado (portao de qualidade)
+        id: validacao
         run: |
           node scripts/validar-artigo.mjs "${{ steps.slug.outputs.slug }}"
 
@@ -80,7 +81,7 @@ jobs:
           fi
 
       - name: Commit e push
-        if: steps.check.outputs.changed == 'true' && github.event.inputs.apply == 'true'
+        if: steps.check.outputs.changed == 'true' && github.event.inputs.apply == 'true' && success()
         run: |
           git config user.name "blog-bot"
           git config user.email "bot@blog-gamer.com"
@@ -90,7 +91,7 @@ jobs:
           git push origin "${GITHUB_REF_NAME}"
 
       - name: Disparar deploy
-        if: steps.check.outputs.changed == 'true' && github.event.inputs.apply == 'true'
+        if: steps.check.outputs.changed == 'true' && github.event.inputs.apply == 'true' && success()
         run: gh workflow run deploy.yml
         env:
           GH_TOKEN: ${{ github.token }}
