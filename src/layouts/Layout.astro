@@ -3,7 +3,6 @@ import "../styles/global.css";
 import "../styles/effects.css";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
-import CursorEffect from "../components/CursorEffect.astro";
 import SearchOverlay from "../components/SearchOverlay.astro";
 import EditorBridge from "../components/EditorBridge.astro";
 import blogConfig from "../data/blog-config.json";
@@ -37,13 +36,13 @@ const defaultTheme = blogConfig.theme === "light" ? "light" : "dark";
 const defaultThemeJson = JSON.stringify(defaultTheme);
 
 const bg = blogConfig.background || {};
-let bgVars = "--body-bg-image: none;";
+let bgVars = "--body-bg-image: none !important;";
 if (bg.mode === "preset") {
   const preset = (backgroundPresets || []).find((p) => p.id === bg.preset) || backgroundPresets?.[0];
   if (preset) {
     bgVars = `
       --body-bg-color: ${preset.color || "#050505"};
-      --body-bg-image: ${preset.image || "none"};
+      --body-bg-image: ${preset.image || "none"} !important;
       --body-bg-size: ${preset.size || "auto"};
       --body-bg-position: ${preset.position || "0 0"};
       --body-bg-repeat: ${preset.repeat || "repeat"};
@@ -56,7 +55,7 @@ if (bg.mode === "preset") {
   const overlayLayer = `linear-gradient(rgba(0, 0, 0, ${overlay.toFixed(2)}), rgba(0, 0, 0, ${overlay.toFixed(2)}))`;
   bgVars = `
     --body-bg-color: ${bg.solidColor || "#050505"};
-    --body-bg-image: ${img ? `${overlayLayer}, url('${img}')` : "none"};
+    --body-bg-image: ${img ? `${overlayLayer}, url('${img}')` : "none"} !important;
     --body-bg-size: ${bg.imageSize || "cover"};
     --body-bg-position: ${bg.imagePosition || "center center"};
     --body-bg-repeat: ${bg.imageRepeat || "no-repeat"};
@@ -65,7 +64,7 @@ if (bg.mode === "preset") {
 } else if (bg.mode === "solid") {
   bgVars = `
     --body-bg-color: ${bg.solidColor || "#050505"};
-    --body-bg-image: none;
+    --body-bg-image: none !important;
   `;
 }
 
@@ -154,9 +153,7 @@ const themeScript = `(function () {
     <style is:inline set:html={themeCss}></style>
   </head>
   <body class="font-body selection:bg-primary selection:text-on-primary">
-    <CursorEffect />
     <Header />
-
     <main style="padding-top: calc(max(var(--content-top, var(--nav-height)), var(--nav-height)) + 8px)">
       <slot />
     </main>

@@ -1911,7 +1911,8 @@ function syncPreviewToMarkdown(silent) {
 function imgUrl(url) {
   if (!url) return '';
   if (url.startsWith('http')) return url;
-  return `https://promogamer.com.br${url.startsWith('/') ? '' : '/'}${url}`;
+  const base = (typeof getBlogBase === 'function') ? getBlogBase() : '/';
+  return window.location.origin + base + url.replace(/^\//, '');
 }
 
 function editPreviewImage() {

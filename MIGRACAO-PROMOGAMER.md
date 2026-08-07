@@ -97,28 +97,26 @@ Blocos que ficaram inválidos após a remoção do prefixo `""`/`startsWith("")`
 - Logo mantida (decisão do usuário).
 
 ### 5.2 Aguardando o usuário (bloqueado)
-O domínio `promogamer.com.br` ainda **não está ativo/configurado**. Pendências:
+O domínio `promogamer.com.br` está **registrado e com DNS configurado** no Registro.br, mas ainda **não está ativo/propagado**. Pendências:
 
-1. **Registro.br** — confirmar pagamento/ativação do domínio.
-2. **DNS** — apontar o domínio para o GitHub Pages com um dos registros A:
-   - `185.199.108.153`
-   - `185.199.109.153`
-   - `185.199.110.153`
-   - `185.199.111.153`
-   - (ou CNAME para `sergioskmcle-sketch.github.io`, se o Registro.br suportar)
-3. **GitHub** → Settings → Pages → Custom domain: `promogamer.com.br`.
+1. **DNS (já adicionado no painel Registro.br, aguardando propagação de até 1h–3h):**
+   - `A` → `185.199.108.153` (raiz; campo Nome **vazio**, o painel não aceita `@`)
+   - `CNAME www` → `sergioskmcle-sketch.github.io`
+2. **GitHub** → Settings → Pages → Custom domain: `promogamer.com.br` (deve ser feito na conta dona `sergioskmcle-sketch`, após a propagação do DNS).
+3. Habilitar **Enforce HTTPS** após o certificado ser emitido.
 
 ---
 
 ## 6. Próximos passos
 
-1. Usuário termina o registro/ativação do domínio e aponta o DNS.
-2. Configurar Custom domain no GitHub Pages.
-3. **Commit + push** das alterações.
-4. **Google Search Console**:
+1. Usuário aguarda a propagação do DNS (até 1h para alterações, até 3h para mudança de modo) e confirma no painel do Registro.br.
+2. Configurar Custom domain `promogamer.com.br` no GitHub Pages (conta dona `sergioskmcle-sketch`).
+3. Habilitar **Enforce HTTPS**.
+4. **Commit + push** das alterações.
+5. **Google Search Console**:
    - Verificar propriedade do domínio `promogamer.com.br`.
    - Enviar o sitemap `https://promogamer.com.br/sitemap-index.xml`.
-5. A URL antiga (`sergioskmcle-sketch.github.io/blog-gamer`) redireciona automaticamente para o novo domínio.
+6. A URL antiga (`sergioskmcle-sketch.github.io/blog-gamer`) redireciona automaticamente para o novo domínio.
 
 ---
 
@@ -134,5 +132,6 @@ O domínio `promogamer.com.br` ainda **não está ativo/configurado**. Pendênci
 | `scripts/gerar-artigo-pilar.mjs` | Capa |
 | `scripts/regenerate-*-cover.mjs` | Capas regeneradas sem prefixo |
 | `src/components/Header.astro` | Logo e nome "Promo Gamer" |
-| `admin/editor.js` | Upload de logo e base `/` na raiz |
+| `admin/editor.js` | Upload de logo e base dinâmica via `getBlogBase()` |
+| `admin/index.html` | `imgUrl()` com base dinâmica (`window.location`), sem URL fixa |
 | `dist/sitemap-index.xml` | Sitemap gerado no build |
