@@ -7,9 +7,10 @@ import { searchGoogleShopping } from "./google_shopping.mjs";
 import { buscarProdutosLoteRemoto } from "./monitor_api.mjs";
 import { gerarCapaStability } from "./stability-cover.mjs";
 import { gerarCapaOpenAI, downloadImage, searchTavilyImage } from "./openai-cover.mjs";
-import { cleanProductTitle, detectArticleCategory, productMatchesCategory, PRODUCT_CATEGORIES, CATEGORY_BRANDS } from "./product_naming.mjs";
+import { cleanProductTitle, detectArticleCategory, productMatchesCategory, PRODUCT_CATEGORIES, CATEGORY_BRANDS, KNOWN_BRANDS } from "./product_naming.mjs";
 import { rankProducts, applyMinCriteria, MIN_CRITERIA } from "./product_ranking.mjs";
 import { upgradeImageUrl, imageDimensions, isImageUsable, searchSerperImage } from "./product_images.mjs";
+import { SESSION_HEADERS, extractMLProductData } from "./ml_affiliate.mjs";
 
 const rssParser = new Parser({
   timeout: 15000,
@@ -843,6 +844,42 @@ function mlProductRelevanceScore(p, tokens) {
 
 // Portao de sanidade aplicado a TODA fonte de produtos: blog/categoria/listagem
 // nunca viram item; exige id ou permalink real e preco; prefere itens relevantes ao topico.
+// Enriquecimento de nome de produto: quando o titulo vindo do catalogo e
+// generico (sem marca/modelo), busca a pagina do produto no Mercado Livre e
+// extrai o nome completo. So roda em regeneracao (opts.enrichNames) para nao
+// custar chamadas extras no cron — e nunca quebra o pipeline se a pagina falhar.
+const BRAND_RE = new RegExp(`(^|[^a-z])(${Object.keys(KNOWN_BRANDS).map((b) => b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})([^a-z]|$)`, "i");
+const MODEL_RE = /\b[A-Z]{1,4}[- ]?\d{2,5}[A-Z-]{0,4}\b/;
+
+async function enrichProductTitles(mlProducts) {
+  let enriched = 0;
+  for (const p of mlProducts) {
+    if (!p || !p.permalink) continue;
+    const raw = String(p.raw_title || p.title || "").trim();
+    if (!raw || BRAND_RE.test(raw) || MODEL_RE.test(raw)) continue;
+    const url = String(p.permalink || "");
+    if (!/mercadolivre/i.test(url)) continue;
+    try {
+      const res = await fetch(url, {
+        headers: SESSION_HEADERS,
+        redirect: "follow",
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!res.ok) continue;
+      const html = await res.text();
+      const data = extractMLProductData(html, url);
+      if (!data.title || data.title.length < 10 || data.title === raw) continue;
+      p.raw_title = data.title;
+      p.title = data.title;
+      enriched++;
+      log("INFO", `Titulo enriquecido: "${raw}" -> "${data.title.slice(0, 60)}"`);
+    } catch (e) {
+      log("WARN", `Enriquecimento falhou para ${url.slice(0, 60)}: ${e.message}`);
+    }
+  }
+  return enriched;
+}
+
 function sanitizeProducts(products, topic, ctx = {}) {
   if (!Array.isArray(products) || products.length === 0) return [];
   const seen = new Set();
@@ -2225,6 +2262,11 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
       }
     } else {
       log("WARN", "SERPER_API_KEY nao configurada — pulando busca de produtos");
+    }
+
+    if (opts.enrichNames) {
+      const n = await enrichProductTitles(mlProducts);
+      if (n > 0) log("INFO", `${n} titulo(s) enriquecido(s) com o nome completo do produto`);
     }
 
     mlProducts = sanitizeProducts(mlProducts.filter((p) => isGamerProduct(p.title)), topic, { rankingContext });

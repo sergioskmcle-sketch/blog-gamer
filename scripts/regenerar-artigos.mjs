@@ -173,6 +173,7 @@ async function main() {
         keepPubDate: true,
         reuseImageMap,
         extraMlQueries,
+        enrichNames: true,
         updateState: false,
       },
     });

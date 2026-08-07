@@ -6,7 +6,7 @@ const API_BASE = "https://api.mercadolibre.com";
 const CREATE_LINK = "/affiliate-program/api/v2/affiliates/createLink";
 const STRIPE_LINK = "/affiliate-program/api/v2/stripe/user/links";
 const AFFILIATE_TAG = process.env.ML_AFFILIATE_TAG || "sergioskm";
-const SESSION_HEADERS = {
+export const SESSION_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
   "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
   "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -183,7 +183,7 @@ export async function searchML(query, clientId, clientSecret, tavilyKey, cookieP
   return products.slice(0, limit);
 }
 
-function extractMLProductData(html, url) {
+export function extractMLProductData(html, url) {
   const title = (html.match(/<title>([^<]+)/)?.[1] || "")
     .replace(/\s*\|\s*Mercado\s*Livre.*$/i, "")
     .replace(/\s*\|\s*Mercado\s*L(i|í)vre.*$/i, "")
