@@ -7,7 +7,7 @@ import { searchGoogleShopping } from "./google_shopping.mjs";
 import { buscarProdutosLoteRemoto } from "./monitor_api.mjs";
 import { gerarCapaStability } from "./stability-cover.mjs";
 import { gerarCapaOpenAI, downloadImage, searchTavilyImage } from "./openai-cover.mjs";
-import { cleanProductTitle, detectArticleCategory, productMatchesCategory, PRODUCT_CATEGORIES, CATEGORY_BRANDS, KNOWN_BRANDS } from "./product_naming.mjs";
+import { cleanProductTitle, detectArticleCategory, detectBrand, detectModel, productMatchesCategory, PRODUCT_CATEGORIES, CATEGORY_BRANDS, KNOWN_BRANDS } from "./product_naming.mjs";
 import { rankProducts, applyMinCriteria, MIN_CRITERIA } from "./product_ranking.mjs";
 import { upgradeImageUrl, imageDimensions, isImageUsable, searchSerperImage } from "./product_images.mjs";
 import { SESSION_HEADERS, extractMLProductData } from "./ml_affiliate.mjs";
@@ -60,6 +60,10 @@ const TOPIC_SEEDS = [
 ];
 
 // Temas proibidos: apostas, cassino, caça-níqueis e afins. Nunca podem virar artigo.
+// A lista completa vale para topicos curtos (titulo, keyword, headline), onde
+// "aposta/apostar" indica tema de jogo de dinheiro. Em texto livre (description,
+// corpo) o termo aparece figurativamente demais ("a aposta mais segura", "nao
+// aposte em marcas baratas"), entao so bloqueamos termos inequivocos de jogo.
 const FORBIDDEN_PATTERNS = [
   /\bca[çc]a[- ]?n[ií]queis?\b/,
   /\bn[ií]queis?\b/,
@@ -84,11 +88,45 @@ const FORBIDDEN_PATTERNS = [
   /\bjogo do tigrinho\b/,
 ];
 
+// Termos inequivocos de jogo de dinheiro para aplicar em prosa gerada por IA
+// (description e corpo), evitando falso positivo com "aposta" figurativo.
+const FORBIDDEN_PROSE_PATTERNS = [
+  /\bca[çc]a[- ]?n[ií]queis?\b/,
+  /\bn[ií]queis?\b/,
+  /\bcassinos?\b/,
+  /\bcasinos?\b/,
+  /\broletas?\b/,
+  /\btigrinho\b/,
+  /\bfortune tiger\b/,
+  /\bjackpots?\b/,
+  /\bpoker\b/,
+  /\bbingo\b/,
+  /\bjogos? de azar\b/,
+  /\bcasas? de apostas\b/,
+  /\bbet365\b/,
+  /\bbetano\b/,
+  /\besportes? da sorte\b/,
+  /\bblaze\b/,
+  /\bgambling\b/,
+  /\bslots? online\b/,
+  /\bslot machines?\b/,
+  /\bjogo do tigrinho\b/,
+];
+
 function hasForbiddenTerm(...texts) {
   for (const text of texts) {
     if (!text) continue;
     const lower = String(text).toLowerCase();
     if (FORBIDDEN_PATTERNS.some((re) => re.test(lower))) return true;
+  }
+  return false;
+}
+
+function hasForbiddenProseTerm(...texts) {
+  for (const text of texts) {
+    if (!text) continue;
+    const lower = String(text).toLowerCase();
+    if (FORBIDDEN_PROSE_PATTERNS.some((re) => re.test(lower))) return true;
   }
   return false;
 }
@@ -1878,7 +1916,7 @@ function validate(fm, body, ctx = {}) {
   if (!fm.tags || !Array.isArray(fm.tags) || fm.tags.length < 3) hard.push("tags: minimo 3");
   if (fm.affiliate === undefined) hard.push("affiliate: ausente");
 
-  if (hasForbiddenTerm(fm.title, fm.description, fm.category, (fm.tags || []).join(" "), body)) {
+  if (hasForbiddenTerm(fm.title, fm.category, (fm.tags || []).join(" ")) || hasForbiddenProseTerm(fm.description, body)) {
     hard.push("Tema proibido detectado (apostas, cassino, caça-níqueis, jogos de azar)");
   }
 
@@ -2227,14 +2265,25 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
       try {
         const trendingKws = topic.trending_keywords || [];
         const queriesRemotas = [
-          ...trendingKws.slice(0, 2),
-          topic.ml_query,
           ...(opts.extraMlQueries || []),
           ...(extraRound > 0 ? retryQ : []),
+          topic.ml_query,
+          ...trendingKws.slice(0, 2),
         ].filter(Boolean).slice(0, 5 + retryQ.length);
 
         const remotos = await buscarProdutosLoteRemoto(queriesRemotas, { limitPorQuery: 3 });
-        for (const p of remotos) {
+        // Prioriza produtos da categoria do artigo com marca/modelo
+        // reconheciveis: o portao de qualidade (validar-artigo.mjs) reprova
+        // artigo com nome generico, e a lista e re-rankeada depois, entao a
+        // ordem aqui so define o conjunto.
+        const artigoCat = detectArticleCategory(topic);
+        const peso = (p) => {
+          const cat = artigoCat && productMatchesCategory(p.title, artigoCat) ? 2 : 0;
+          const id = detectBrand(p.title) || detectModel(p.title) ? 1 : 0;
+          return cat + id;
+        };
+        const comIdentidade = [...remotos].sort((a, b) => peso(b) - peso(a));
+        for (const p of comIdentidade) {
           if (mlProducts.length >= MAX_PRODUCTS) break;
           if (p.permalink && seen.has(p.permalink)) continue;
           if (p.permalink) seen.add(p.permalink);
