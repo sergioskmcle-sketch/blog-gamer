@@ -8,7 +8,6 @@ affiliate: true
 image: "https://media.rawg.io/media/crop/600/400/games/ed6/ed613937e113a4d43fa0db771e527a2f.jpg?auto=format&fit=crop&w=800&h=450"
 ---
 
-## Introdução
 
 Descubra o que a Capcom trouxe com Resident Evil Requiem, os detalhes da nova Persona 5 Tactica e se vale a pena investir nos lançamentos de 2026.
 
@@ -172,4 +171,4 @@ Entre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e rec
 - Qoo10, “Late 2026 Could Turn Into Gaming’s Toughest Clash, With GTA VI and Wolverine Headlining” – https://www.qoo10.co.id/en/tech/122261/late-2026-gta-vi-wolverine-modern-warfare-4/
 - GameSpot, “The Biggest New Game Releases Of July 2026” – https://www.gamespot.com/articles/the-biggest-new-game-releases-of-july-2026/
 
-[Veja o ranking dos melhores RPGs de 2026](/blog-gamer/blog/top-rpgs-2026/)
+[Veja o ranking dos melhores RPGs de 2026](/blog/top-rpgs-2026/)

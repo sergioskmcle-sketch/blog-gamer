@@ -10,10 +10,9 @@ tags:
   - "final fantasy"
 category: noticia
 affiliate: true
-image: "/blog-gamer/images/capas/god-of-war-laufey-chega-em-2027-tudo-que-voce-precisa-saber.webp"
+image: "/images/capas/god-of-war-laufey-chega-em-2027-tudo-que-voce-precisa-saber.webp"
 ---
 
-## Introdução
 
 Descubra a data de lançamento de God of War Laufey, o que muda para quem tem Ragnarok e como garantir seu próximo título na PS5. Tudo com análise sincera.
 
@@ -76,5 +75,5 @@ Entre para o nosso grupo VIP no Telegram e receba ofertas diárias de games, con
 
 ### Links internos
 
-- [Confira o guia completo de Laufey](https://sergioskmcle-sketch.github.io/blog-gamer/blog/god-of-war-laufey-2027-data-trama-e-se-liga-no-guia-completo/)
-- [Veja como o lançamento de Ragnarok se encaixa nas novidades de 2026](https://sergioskmcle-sketch.github.io/blog-gamer/blog/lancamento-2026-resident-evil-persona-e-as-novidades-que-vao-bombar/)
+- [Confira o guia completo de Laufey](https://promogamer.com.br/blog/god-of-war-laufey-2027-data-trama-e-se-liga-no-guia-completo/)
+- [Veja como o lançamento de Ragnarok se encaixa nas novidades de 2026](https://promogamer.com.br/blog/lancamento-2026-resident-evil-persona-e-as-novidades-que-vao-bombar/)

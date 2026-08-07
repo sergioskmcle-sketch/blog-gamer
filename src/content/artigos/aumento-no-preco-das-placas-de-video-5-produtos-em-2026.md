@@ -5,10 +5,9 @@ pubDate: 2026-08-03
 tags: ["placas de vídeo", "preços", "gamers", "setup", "impacto"]
 category: "noticia"
 affiliate: true
-image: "/blog-gamer/images/capas/aumento-no-preco-das-placas-de-video-5-produtos-em-2026.png"
+image: "/images/capas/aumento-no-preco-das-placas-de-video-5-produtos-em-2026.png"
 ---
 
-## Introdução
 
 Saiba como o aumento no preço das placas de vídeo impacta os gamers e confira 5 produtos que podem ser a solução para o teu setup.
 
@@ -22,7 +21,7 @@ Boatos baseados em um relatório do Economic Daily News indicam um reajuste glob
 
 ### <a id="placa-de-video-pcyes-nvidia-geforce-rtx-3050-6gb-gddr6-poder"></a>Placa de Vídeo Pcyes Nvidia Geforce RTX 3050 6GB Gddr6 — Poder gráfico sem quebrar o bolso
 
-<img src="/blog-gamer/images/produtos/placa-de-video-pcyes-nvidia-geforce-rtx-3050-6gb-gddr6.webp" alt="Placa de Vídeo Pcyes Nvidia Geforce RTX 3050 6GB Gddr6" class="article-game-img" loading="lazy" decoding="async">
+<img src="/images/produtos/placa-de-video-pcyes-nvidia-geforce-rtx-3050-6gb-gddr6.webp" alt="Placa de Vídeo Pcyes Nvidia Geforce RTX 3050 6GB Gddr6" class="article-game-img" loading="lazy" decoding="async">
 
 A Placa de Vídeo Pcyes Nvidia Geforce RTX 3050 6GB Gddr6 é uma opção que, mesmo com a alta de preços no mercado, ainda consegue entregar um desempenho interessante para quem não quer gastar uma fortuna. Ideal para você que tá ligado nas novas gerações de jogos e quer dar uma turbinada no teu setup sem precisar vender o rim. Ela garante uma jogatina fluida na maioria dos títulos, além de ter um suporte bacana para ray tracing e DLSS.
 
@@ -32,7 +31,7 @@ Porém, não se engane: o bagulho não é uma máquina de matar como as RTX 3080
 
 ### <a id="placa-de-video-gigabyte-radeon-rx-9070-gaming-oc-a-potencia-"></a>Placa de Vídeo Gigabyte Radeon RX 9070 Gaming OC — A potência que seu setup merece
 
-<img src="/blog-gamer/images/produtos/placa-de-video-gigabyte-radeon-rx-9070-gaming-oc.webp" alt="Placa de Vídeo Gigabyte Radeon RX 9070 Gaming OC" class="article-game-img" loading="lazy" decoding="async">
+<img src="/images/produtos/placa-de-video-gigabyte-radeon-rx-9070-gaming-oc.webp" alt="Placa de Vídeo Gigabyte Radeon RX 9070 Gaming OC" class="article-game-img" loading="lazy" decoding="async">
 
 Se você tá de olho na Placa de Vídeo Gigabyte Radeon RX 9070 Gaming OC, saiba que tá fazendo uma escolha braba. Essa belezura foi feita pra quem quer jogar em alta performance, sem engasgos, mesmo nos jogos mais pesados. O design ousado e o resfriamento eficiente fazem dela a rainha do teu setup, garantindo que você não passe raiva durante as partidas.
 
@@ -42,7 +41,7 @@ Mas não dá pra ignorar que o preço das placas tá mais alto que a dificuldade
 
 ### <a id="placa-de-video-galax-geforce-rtx-3050-ex-v2-6gb-gddr6-desemp"></a>Placa de Vídeo Galax GeForce RTX 3050 EX V2 6GB GDDR6 — desempenho brabo sem furar o bolso
 
-<img src="/blog-gamer/images/produtos/placa-de-video-galax-geforce-rtx-3050-ex-v2-6gb-gddr6.webp" alt="Placa de Vídeo Galax GeForce RTX 3050 EX V2 6GB GDDR6" class="article-game-img" loading="lazy" decoding="async">
+<img src="/images/produtos/placa-de-video-galax-geforce-rtx-3050-ex-v2-6gb-gddr6.webp" alt="Placa de Vídeo Galax GeForce RTX 3050 EX V2 6GB GDDR6" class="article-game-img" loading="lazy" decoding="async">
 
 Se você tá na onda de dar um upgrade no teu setup, a Galax GeForce RTX 3050 EX V2 6GB GDDR6 é uma escolha que merece seu respeito. Essa placa é tipo aquele amigo que sempre chega na hora certa, trazendo aquele desempenho que faz a diferença nos jogos mais pesados. Com ela, você vai poder jogar tudo no talo, sem aquele lag insuportável que faz a gente querer rage quit.
 
@@ -52,7 +51,7 @@ Além disso, o design dela é estiloso, com um sistema de refrigeração que nã
 
 ### <a id="placa-de-video-palit-geforce-rtx-5060-ti-infinity-3-potencia"></a>Placa de Video Palit GeForce RTX 5060 Ti Infinity 3 — Potência que não decepciona
 
-<img src="/blog-gamer/images/produtos/placa-de-video-palit-geforce-rtx-5060-ti-infinity-3.webp" alt="Placa de Video Palit GeForce RTX 5060 Ti Infinity 3" class="article-game-img" loading="lazy" decoding="async">
+<img src="/images/produtos/placa-de-video-palit-geforce-rtx-5060-ti-infinity-3.webp" alt="Placa de Video Palit GeForce RTX 5060 Ti Infinity 3" class="article-game-img" loading="lazy" decoding="async">
 
 A Palit GeForce RTX 5060 Ti Infinity 3 chega como uma opção sólida para quem não quer tankar na hora de jogar. Com um desempenho brabo, essa placa promete entregar gráficos de alto nível em todas as paradas, desde o último lançamento até aquele game indie que você adora. É tipo ter um cheat code na mão, só que sem precisar rodar o jogo no mínimo!
 
@@ -62,7 +61,7 @@ Com essa placa, você vai finalmente poder esquecer os gráficos pixelados e as 
 
 ### <a id="placa-de-video-pny-geforce-rtx-5060-ti-dual-oc-16gb-gddr7-12"></a>Placa de Video PNY GeForce RTX 5060 Ti Dual OC 16GB GDDR7 128-bit — performance bruta sem escalper
 
-<img src="/blog-gamer/images/produtos/placa-de-video-pny-geforce-rtx-5060-ti-dual-oc-16gb-gddr7-128-bit.webp" alt="Placa de Video PNY GeForce RTX 5060 Ti Dual OC 16GB GDDR7 128-bit" class="article-game-img" loading="lazy" decoding="async">
+<img src="/images/produtos/placa-de-video-pny-geforce-rtx-5060-ti-dual-oc-16gb-gddr7-128-bit.webp" alt="Placa de Video PNY GeForce RTX 5060 Ti Dual OC 16GB GDDR7 128-bit" class="article-game-img" loading="lazy" decoding="async">
 
 Se você tá pensando em dar aquele upgrade no teu setup, a PNY GeForce RTX 5060 Ti Dual OC é uma opção que chega com tudo. Com 16GB de GDDR7, o bagulho é pra rodar tudo no talo, desde o último lançamento até aqueles jogos mais pesados que fazem seu PC chorar. E o OC no nome não é só enfeite, mermão, a placa entrega um desempenho que vai deixar muito gamer de queixo caído, sem contar que a eficiência térmica é mais braba que chefão de jogo que você não consegue derrotar.
 
@@ -121,6 +120,6 @@ Entre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e rec
 <img src="https://external-preview.redd.it/skyrim-frost-dragon-papercraft-links-inside-v0-40eIfRLLRUry1RFU1JAKn7dkUsVYG06AspsVY8CxFBI.jpeg?width=640&crop=smart&auto=webp&s=5d7f72cfea47e8c4856a745fde6e528db405052c" alt="Links Internos" class="article-game-img" loading="lazy" decoding="async">
 ## Continue Explorando
 
-- [Aumento em placas de vídeo da AMD: Guia de Preços](/blog-gamer/blog/aumento-em-placas-de-video-da-amd-guia-de-precos-em-2026/)
-- [GTA 6 e Jogos de 2026: Performance e O Que Esperar no PS5](/blog-gamer/blog/gta-6-e-jogos-de-2026-performance-e-o-que-esperar-no-ps5/)
-- [Switch 2 e PS5: 7 Ofertas Quentes que Você Não Pode Perder](/blog-gamer/blog/switch-2-e-ps5-7-ofertas-quentes-que-voce-nao-pode-perder-em-2026/)
+- [Aumento em placas de vídeo da AMD: Guia de Preços](/blog/aumento-em-placas-de-video-da-amd-guia-de-precos-em-2026/)
+- [GTA 6 e Jogos de 2026: Performance e O Que Esperar no PS5](/blog/gta-6-e-jogos-de-2026-performance-e-o-que-esperar-no-ps5/)
+- [Switch 2 e PS5: 7 Ofertas Quentes que Você Não Pode Perder](/blog/switch-2-e-ps5-7-ofertas-quentes-que-voce-nao-pode-perder-em-2026/)

@@ -13,10 +13,9 @@ tags:
   - "hardware gamer"
 category: guia
 affiliate: true
-image: "/blog-gamer/images/capas/melhores-cadeiras-gamer-de-2026.png"
+image: "/images/capas/melhores-cadeiras-gamer-de-2026.png"
 ---
 
-## Introdução
 
 Comparativo completo das melhores cadeiras gamers de 2026: DT3 Rhino, ThunderX3 Yama, Husky Storm, Corsair T3 Rush, LuvinCo Genebra G500 e DT3 Vita. Preços, características e onde comprar.
 

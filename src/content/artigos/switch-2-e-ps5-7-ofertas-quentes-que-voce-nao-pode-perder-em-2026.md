@@ -8,7 +8,6 @@ affiliate: false
 image: "https://assets.nintendo.com/image/upload/ar_16:9,b_auto:border,c_lpad/b_white/f_auto/q_auto/dpr_1.5/c_scale,w_500/ncom/My%20Nintendo%20Store/EN-US/Nintendo%20Switch%202/Hardware/123669-nintendo-switch-2-handheld-1200x675"
 ---
 
-## Introdução
 
 Descubra as promoções imperdíveis do PS5, os jogos do PS Plus e por que o Switch 2 domina as conversas dos gamers agora.
 
@@ -88,9 +87,9 @@ Se teu objetivo é montar uma biblioteca de jogos sem estourar o orçamento, a c
 
 Curtiu? Então vai lá garantir o teu PS5 na sale, assina o PS Plus e fica de olho nas novidades do Switch 2. Não perde tempo, porque as ofertas evaporam mais rápido que um loot box raro.
 
-[PlayStation Julho 2026: Guia de Jogos, PS Plus e Acessó](/blog-gamer/blog/playstation-julho-2026-guia-de-jogos-ps-plus-e-acessorios/)
+[PlayStation Julho 2026: Guia de Jogos, PS Plus e Acessó](/blog/playstation-julho-2026-guia-de-jogos-ps-plus-e-acessorios/)
 
-[Novidades, jogos e acessórios PS5: ofertas imperdíveis](/blog-gamer/blog/novidades-jogos-e-acessorios-ps5-ofertas-imperdiveis-2026/)
+[Novidades, jogos e acessórios PS5: ofertas imperdíveis](/blog/novidades-jogos-e-acessorios-ps5-ofertas-imperdiveis-2026/)
 
 ## Quer mais ofertas?
 Entre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e receba ofertas diárias de games e consoles!

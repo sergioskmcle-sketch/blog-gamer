@@ -14,7 +14,6 @@ affiliate: false
 image: https://media.rawg.io/media/screenshots/117/117f546b7555ab1f3af14a3adff066d0.jpg
 mode: informativo
 ---
-## Introdução ao Mundo dos Consoles Clássicos
 
 Quem nunca passou horas jogando **Super Mario Bros.**
 <img src="https://media.rawg.io/media/games/154/154fea9689109f26c49c6a2db6263ef9.jpg" alt="Super Mario Bros." class="article-game-img"> ou **The Legend of Zelda**

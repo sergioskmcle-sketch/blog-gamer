@@ -15,7 +15,6 @@ affiliate: false
 image: https://media.rawg.io/media/games/dcb/dcbb67f371a9a28ea38ffd73ee0f53f3.jpg
 mode: informativo
 ---
-## Introdução
 
 Descubra quais são os jogos battle royale mais populares em 2026, incluindo Fortnite, Free Fire, PUBG, Apex Legends e Warzone, e veja o ranking dos mais jogados.
 

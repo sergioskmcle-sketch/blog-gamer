@@ -5,10 +5,9 @@ pubDate: 2026-07-29
 tags: ["xbox", "game-pass", "forzahorizon6", "cloudgaming", "lancamentos"]
 category: "promocao"
 affiliate: false
-image: "/blog-gamer/images/capas/xbox-game-pass-julho-2026-10-jogos-forza-6-e-cloud-gaming.png"
+image: "/images/capas/xbox-game-pass-julho-2026-10-jogos-forza-6-e-cloud-gaming.png"
 ---
 
-## Introdução
 
 Descubra os 10 novos títulos do Xbox Game Pass de julho, a estreia de Forza Horizon 6 e como o Xbox Cloud Gaming permite jogar sem console.
 
@@ -68,7 +67,7 @@ A assinatura renova mensalmente até que você cancele; o cancelamento pode ser 
 
 Se você curte jogar tudo que há de novo sem ficar vendendo a alma por DLC, o Xbox Game Pass de julho 2026 entrega mais do que promessa. **Forza Horizon 6**, **Gears of War: Reloaded** e a nuvem que permite jogar sem console são motivos de sobra pra garantir a assinatura. Quem ainda está na dúvida, dê uma olhada nas promoções de consoles – elas realmente compensam. Vale a pena? Pra quem quer economizar e ter acesso imediato aos lançamentos, vale. Pra quem prefere comprar cada jogo separadamente, talvez ainda não seja o momento.
 
-Quer comparar com outras plataformas? Dá uma olhada no nosso guia de [PlayStation Julho 2026: Guia de Jogos, PS Plus e Acessórios](/blog-gamer/blog/playstation-julho-2026-guia-de-jogos-ps-plus-e-acessorios/) e no artigo de [Novidades, jogos e acessórios PS5: ofertas imperdíveis](/blog-gamer/blog/novidades-jogos-e-acessorios-ps5-ofertas-imperdiveis-2026/).
+Quer comparar com outras plataformas? Dá uma olhada no nosso guia de [PlayStation Julho 2026: Guia de Jogos, PS Plus e Acessórios](/blog/playstation-julho-2026-guia-de-jogos-ps-plus-e-acessorios/) e no artigo de [Novidades, jogos e acessórios PS5: ofertas imperdíveis](/blog/novidades-jogos-e-acessorios-ps5-ofertas-imperdiveis-2026/).
 
 ## Quer mais ofertas?
 Entre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e receba ofertas diárias de games e consoles!

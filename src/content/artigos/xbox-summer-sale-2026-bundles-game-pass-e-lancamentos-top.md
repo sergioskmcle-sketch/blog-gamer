@@ -8,7 +8,6 @@ affiliate: false
 image: "https://media.rawg.io/media/crop/600/400/games/26d/26d4437715bee60138dab4a7c8c59c92.jpg?auto=format&fit=crop&w=800&h=450"
 ---
 
-## Introdução
 
 Descubra os descontos da Xbox Summer Sale 2026, os bundles mais vantajosos, os novos títulos do Game Pass e as novidades que valem a sua jogatina.
 

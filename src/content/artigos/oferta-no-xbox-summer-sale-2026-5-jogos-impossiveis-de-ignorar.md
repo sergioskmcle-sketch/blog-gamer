@@ -5,10 +5,9 @@ pubDate: 2026-07-29
 tags: ["xbox", "ofertas", "summer sale", "game pass", "consoles"]
 category: "lista"
 affiliate: true
-image: "/blog-gamer/images/capas/oferta-no-xbox-summer-sale-2026-5-jogos-impossiveis-de-ignorar.png"
+image: "/images/capas/oferta-no-xbox-summer-sale-2026-5-jogos-impossiveis-de-ignorar.png"
 ---
 
-## Introdução
 
 Confira as melhores ofertas do Xbox Summer Sale 2026, com ate 90% de desconto em grandes jogos, novidades no Game Pass e novidades da Gamescom 2026.
 
@@ -20,7 +19,7 @@ Bora conferir o que esta valendo a pena de verdade nessa onda de descontos e com
 
 Se voce estava esperando o momento certo para encher a biblioteca do teu console sem falir, a hora e agora. A loja do Xbox liberou o corte de precos em massa para centenas de franquias famosas. Tem jogo saindo por preco irrisorio, como **Suicide Squad: KTJL Deluxe Edition**, que sofreu um tombo gigantesco de 90% no preco e esta custando apenas $9.99 na loja americana. Por esse valor, ate quem torceu o nariz no lancamento precisa admitir que vale o teste pelo modo historia.
 
-Outro destaque brabo e **Cyberpunk 2077: Ultimate Edition**, saindo com 58% de desconto por $33.60. Esse pacote ja vem com a expansao Phantom Liberty, entregando a experiencia completa que a CD Projekt Red prometeu la no inicio. Para quem prefere um terror psicologico tenso, **Silent Hill f** baixou 50% e saiu por $34.99, enquanto o carismatico **Stray** ficou pela metade do preco por $14.99. Para conferir mais detalhes sobre pacotes em promocao, da uma olhada no artigo sobre a [Xbox Summer Sale 2026](/blog-gamer/blog/xbox-summer-sale-2026-bundles-game-pass-e-lancamentos-top/).
+Outro destaque brabo e **Cyberpunk 2077: Ultimate Edition**, saindo com 58% de desconto por $33.60. Esse pacote ja vem com a expansao Phantom Liberty, entregando a experiencia completa que a CD Projekt Red prometeu la no inicio. Para quem prefere um terror psicologico tenso, **Silent Hill f** baixou 50% e saiu por $34.99, enquanto o carismatico **Stray** ficou pela metade do preco por $14.99. Para conferir mais detalhes sobre pacotes em promocao, da uma olhada no artigo sobre a [Xbox Summer Sale 2026](/blog/xbox-summer-sale-2026-bundles-game-pass-e-lancamentos-top/).
 
 <img src="https://cdn.thewirecutter.com/wp-content/media/2023/11/gamingconsoles-2048px-00651-3x2-1.jpg?auto=webp&quality=75&crop=1:1,smart&width=1024" alt="Consoles Gamer em Destaque" class="article-game-img" loading="lazy" decoding="async">
 ## <a id="onde-jogar-a-batalha-dos-consoles-em-2026"></a>Onde Jogar: A Batalha dos Consoles em 2026
@@ -37,7 +36,7 @@ Nao adianta nada ter uma lista gigante de jogos na promocao se o teu console nao
   </div>
 </div>
 
-A briga no mercado e forte e a concorrencia nao facilita. O PlayStation 5 Slim vem garantindo seu espaco com ofertas agressivas no mercado brasileiro, principalmente pela expectativa dos grandes titulos que estao por vir. Se quiser saber mais sobre a movimentacao da concorrente, leia nossa materia sobre o [desconto em GTA 6 e PS5](/blog-gamer/blog/desconto-em-gta-6-e-ps5-quebra-recorde-de-vendas-em-2026/).
+A briga no mercado e forte e a concorrencia nao facilita. O PlayStation 5 Slim vem garantindo seu espaco com ofertas agressivas no mercado brasileiro, principalmente pela expectativa dos grandes titulos que estao por vir. Se quiser saber mais sobre a movimentacao da concorrente, leia nossa materia sobre o [desconto em GTA 6 e PS5](/blog/desconto-em-gta-6-e-ps5-quebra-recorde-de-vendas-em-2026/).
 
 <div class="product-card">
   <img src="https://store.sony.com.au/dw/image/v2/ABBC_PRD/on/demandware.static/-/Sites-sony-master-catalog/default/dwf11f74b4/images/PLAYSTATION5WSLIM/PLAYSTATION5WSLIM.png" alt="Console Sony PlayStation 5 Slim 1TB + GTA 6" class="product-card-img" loading="lazy" decoding="async">
@@ -78,7 +77,7 @@ E para quem gosta de alternar a jogatina entre o console e outras plataformas, t
 
 O servico de assinatura da Microsoft nao vive so de descontos diretos na loja. No dia 13 de julho, o insanamente veloz **Ascend to Zero** chega no Day One para assinantes do Game Pass Ultimate no console e na nuvem. O jogo foca em tiro arcade em corredores mutaveis, onde reflexo e precisao sao as unicas coisas que te mantêm vivo.
 
-Alem dos downloads no catalogo, a marca ja confirmou presenca massiva na Gamescom 2026. O estande do Xbox vai contar com 140 estacoes de jogo para os fas testarem 25 titulos futuros antes do lancamento oficial. A lista de testes inclui pesos-pesados como **Gears of War: E-Day**, **Call of Duty: Modern Warfare 4**, **METRO 2039** e **Minecraft Dungeons II**. Quer ver a lista dos proximos anos? Veja tambem nosso guia sobre o [Xbox Game Pass](/blog-gamer/blog/xbox-game-pass-julho-2026-10-jogos-forza-6-e-cloud-gaming/).
+Alem dos downloads no catalogo, a marca ja confirmou presenca massiva na Gamescom 2026. O estande do Xbox vai contar com 140 estacoes de jogo para os fas testarem 25 titulos futuros antes do lancamento oficial. A lista de testes inclui pesos-pesados como **Gears of War: E-Day**, **Call of Duty: Modern Warfare 4**, **METRO 2039** e **Minecraft Dungeons II**. Quer ver a lista dos proximos anos? Veja tambem nosso guia sobre o [Xbox Game Pass](/blog/xbox-game-pass-julho-2026-10-jogos-forza-6-e-cloud-gaming/).
 
 <img src="https://external-preview.redd.it/heres-a-more-comprehensive-factually-accurate-comparison-of-v0--rfTA9-JSQMIb8l3qFOwulaWxSgyl-AhnaViuXlGtdU.jpg?auto=webp&s=3b506808a720760b15075776651c74a209b59b3d" alt="Comparativo de Jogos e Consoles" class="article-game-img" loading="lazy" decoding="async">
 ## <a id="comparativo-das-melhores-ofertas-e-consoles"></a>Comparativo das Melhores Ofertas e Consoles

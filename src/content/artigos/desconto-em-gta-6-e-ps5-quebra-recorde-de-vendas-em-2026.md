@@ -8,7 +8,6 @@ affiliate: false
 image: "https://media.rawg.io/media/crop/600/400/screenshots/9bb/9bbfe3487d34adbdd5d642ec49545030.jpg?auto=format&fit=crop&w=800&h=450"
 ---
 
-## Introdução
 
 Confira as melhores ofertas de pré-venda do GTA 6 no Brasil, cortes no preço do PS5 e promoções de jogos para consoles em julho de 2026.
 
@@ -20,21 +19,21 @@ Com a dona Rockstar Games confirmando a chegada do título para novembro de 2026
 
 Se você tava esperando uma oportunidade real pra meter a mão na pré-venda do jogo mais aguardado da década, a hora é agora. A Amazon Brasil aproveitou a janela do Prime Day 2026, que rola de 1º a 7 de julho, e colocou **Grand Theft Auto VI** como o verdadeiro carro-chefe da campanha. O bagulho é tão sério que os caras aplicaram o menor valor já registrado na pré-venda até o momento.
 
-O jogo sai por R$ 328 à vista para novas contas que fizerem a primeira compra direto pelo aplicativo da loja utilizando o cupom APPAMAZON. Pra quem prefere dar aquela aliviada no bolso e parcelar a facada, o valor fica em R$ 359 em até 12 vezes sem juros. Ninguém esperava um corte desse nível tão longe do lançamento, e isso já tá fazendo outras varejistas correrem atrás do prejuízo pra não perder o cliente. Se você quer saber mais sobre a movimentação no mercado de consoles, vale a pena conferir nosso artigo sobre [Switch 2 e PS5](/blog-gamer/blog/switch-2-e-ps5-7-ofertas-quentes-que-voce-nao-pode-perder-em-2026/).
+O jogo sai por R$ 328 à vista para novas contas que fizerem a primeira compra direto pelo aplicativo da loja utilizando o cupom APPAMAZON. Pra quem prefere dar aquela aliviada no bolso e parcelar a facada, o valor fica em R$ 359 em até 12 vezes sem juros. Ninguém esperava um corte desse nível tão longe do lançamento, e isso já tá fazendo outras varejistas correrem atrás do prejuízo pra não perder o cliente. Se você quer saber mais sobre a movimentação no mercado de consoles, vale a pena conferir nosso artigo sobre [Switch 2 e PS5](/blog/switch-2-e-ps5-7-ofertas-quentes-que-voce-nao-pode-perder-em-2026/).
 
 <img src="https://i.ytimg.com/vi_webp/hWdvg8oVKsU/maxresdefault.webp" alt="PlayStation 5" class="article-game-img" loading="lazy" decoding="async">
 ## <a id="ps5-slim-digital-despenca-de-preco-no-prime-day-2026"></a>PS5 Slim Digital despenca de preço no Prime Day 2026
 
 Não adianta nada garantir a mídia do GTA novo se o seu console tá ultrapassado ou se você ainda não deu o salto pra geração atual. Sabendo disso, a Sony e as varejistas meteram o pé no acelerador durante as ofertas de julho. O PlayStation 5 Slim Digital, em um bundle brabo embalado com os jogos **Astro Bot** e **Gran Turismo 7**, entrou em promoção direta caindo de R$ 4.599,90 para R$ 3.699,90.
 
-Estamos falando de um desconto direto de R$ 900 na máquina, o que muda totalmente o jogo pra quem tava na dúvida. A tática é clara: preparar a base instalada de jogadores antes de novembro chegar. Afinal, tankar a nova aventura da Rockstar em 4K exige um hardware atualizado no rack da sala. E convenhamos, levar dois jogaços de brinde num preço desses é o tipo de gol de placa que a gente raramente vê no Brasil. Para acompanhar todas as novidades do ecossistema da Sony, dê uma olhada no nosso [guia de jogos e PS Plus de Julho](/blog-gamer/blog/playstation-julho-2026-guia-de-jogos-ps-plus-e-acessorios/).
+Estamos falando de um desconto direto de R$ 900 na máquina, o que muda totalmente o jogo pra quem tava na dúvida. A tática é clara: preparar a base instalada de jogadores antes de novembro chegar. Afinal, tankar a nova aventura da Rockstar em 4K exige um hardware atualizado no rack da sala. E convenhamos, levar dois jogaços de brinde num preço desses é o tipo de gol de placa que a gente raramente vê no Brasil. Para acompanhar todas as novidades do ecossistema da Sony, dê uma olhada no nosso [guia de jogos e PS Plus de Julho](/blog/playstation-julho-2026-guia-de-jogos-ps-plus-e-acessorios/).
 
 <img src="https://media.rawg.io/media/crop/600/400/games/1c0/1c0548b761f7c4e4c0da71172b3362bf.jpg?auto=format&fit=crop&w=800&h=450" alt="Metal Gear Solid Delta" class="article-game-img" loading="lazy" decoding="async">
 ## <a id="jogos-em-promocao-e-o-bonus-do-gta"></a>Jogos em promoção e o bônus do GTA+
 
 As surpresas não param na compra do jogo base ou do videogame novo. Quem garantir a pré-venda de **Grand Theft Auto VI** nesta janela promocional leva de bônus 1 mês inteiro de assinatura do serviço GTA+, garantindo regalias extras no modo online e vantagens acumuladas para quando o novo título finalmente desembarcar. É aquele tipo de agrado que ajuda a segurar a ansiedade até o final do ano.
 
-Além disso, o evento Black Friday in July de varejistas internacionais como a Best Buy e as promoções de meio de ano no Brasil abriram espaço para pechinchas em outros títulos gigantescos. Um dos maiores destaques é a pré-venda e reserva de **Metal Gear Solid Delta**, que tá saindo por menos de $26 em ofertas selecionadas de fim de semana. E se você curte negociar jogos digitais na concorrência, não deixe de ler o nosso resumo sobre a [Xbox Summer Sale 2026](/blog-gamer/blog/xbox-summer-sale-2026-bundles-game-pass-e-lancamentos-top/).
+Além disso, o evento Black Friday in July de varejistas internacionais como a Best Buy e as promoções de meio de ano no Brasil abriram espaço para pechinchas em outros títulos gigantescos. Um dos maiores destaques é a pré-venda e reserva de **Metal Gear Solid Delta**, que tá saindo por menos de $26 em ofertas selecionadas de fim de semana. E se você curte negociar jogos digitais na concorrência, não deixe de ler o nosso resumo sobre a [Xbox Summer Sale 2026](/blog/xbox-summer-sale-2026-bundles-game-pass-e-lancamentos-top/).
 
 <img src="https://lookaside.fbsbx.com/lookaside/crawler/media/?media_id=1410405514453549" alt="Comparativo de Ofertas de Consoles e Jogos" class="article-game-img" loading="lazy" decoding="async">
 ## <a id="comparativo-das-principais-promocoes-de-games-em-2026"></a>Comparativo das principais promoções de games em 2026
