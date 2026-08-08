@@ -17,6 +17,7 @@ import {
 } from "./gerar-artigo.mjs";
 import { parsePriceBRL } from "./google_shopping.mjs";
 import { normalizarProdutoRemoto } from "./monitor_api.mjs";
+import { extractMLProductData } from "./ml_affiliate.mjs";
 import { cleanProductTitle, detectCategory, productMatchesCategory, detectArticleCategory } from "./product_naming.mjs";
 import { medianPrice, valueForMoneyScore, countEditorialMentions, scoreProduct, rankProducts, applyMinCriteria, eligibilityCheck, RANKING_WEIGHTS, MIN_CRITERIA } from "./product_ranking.mjs";
 import { upgradeImageUrl, imageDimensions, isImageUsable, MIN_IMAGE_SIZE } from "./product_images.mjs";
@@ -711,5 +712,25 @@ const imgTag4 = buildProductImageTag({ title: "Produto X", local_thumbnail: "/im
 ok(imgTag4.includes('width="1200"') && imgTag4.includes('height="630"'), "tag de imagem carrega largura/altura reais");
 const imgTag4Sem = buildProductImageTag({ title: "Produto X", local_thumbnail: "/images/produtos/x.webp" });
 ok(!imgTag4Sem.includes("width="), "sem dimensao conhecida a tag nao inventa largura");
+
+// ---- Dados ricos: marca, descricao e specs do produto ----
+const htmlRico = `<!doctype html><html><head>
+<title>Mouse Gamer Redragon Cobra 6400DPI — Preco no Mercado Livre | Mercado Livre</title>
+<meta name="description" content="Mouse gamer Redragon Cobra com sensor 6400 DPI e 6 botoes programaveis.">
+<script type="application/ld+json">{"@type":"Product","name":"Mouse Gamer Redragon Cobra","brand":{"name":"Redragon"},"description":"Mouse com sensor 6400 DPI.","additionalProperty":[{"name":"DPI","value":"6400"},{"name":"Botoes","value":"6 programaveis"},{"name":"Conexao","value":"USB"}]}</script>
+</head><body></body></html>`;
+const ricos = extractMLProductData(htmlRico, "https://www.mercadolivre.com.br/p/MLB12345678");
+igual(ricos.brand, "Redragon", "marca vem do JSON-LD brand.name");
+ok(String(ricos.description).includes("sensor 6400 DPI"), "descricao vem da meta description/JSON-LD");
+igual(ricos.specs.length, 3, "specs vem de additionalProperty");
+igual(ricos.specs[0], { key: "DPI", value: "6400" }, "spec vira {key, value}");
+igual(ricos.id, "MLB12345678", "shape anterior preservado (id)");
+
+const htmlSimples = `<!doctype html><html><head><title>Mouse Gamer Logitech G203 | Mercado Livre</title></head><body></body></html>`;
+const simples = extractMLProductData(htmlSimples, "https://www.mercadolivre.com.br/p/MLB99999999");
+igual(simples.brand, "Logitech", "sem JSON-LD, marca detectada do titulo via KNOWN_BRANDS");
+igual(simples.description, "", "sem meta description, descricao vazia");
+igual(simples.specs, [], "sem JSON-LD, specs vazia");
+igual(simples.title, "Mouse Gamer Logitech G203", "titulo limpo preservado");
 
 console.log(`${passou} asserts OK`);

@@ -295,6 +295,11 @@ function mesclar(alvo, extra) {
     alvo.ratingCount = extra.ratingCount;
   }
   if (!(Number(alvo.price) > 0) && Number(extra.price) > 0) alvo.price = extra.price;
+  if (!alvo.brand && extra.brand) alvo.brand = extra.brand;
+  if (!alvo.description && extra.description) alvo.description = extra.description;
+  if (!(alvo.specs && alvo.specs.length) && Array.isArray(extra.specs) && extra.specs.length) {
+    alvo.specs = extra.specs;
+  }
   alvo.duplicatas = [...(alvo.duplicatas || []), String(extra.raw_title || extra.title || "")];
   return alvo;
 }

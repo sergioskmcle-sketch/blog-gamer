@@ -278,6 +278,15 @@ Os artigos **não dependem da IA** incluir produtos no texto. Após a IA gerar o
 
 Os artigos com produtos saem com `affiliate: true` e botões apontando para as lojas reais. Links com comissão (Amazon Associates, AliExpress) podem ser adicionados depois via painel ou API dedicada.
 
+### Detalhes do Produto (marca, descrição, specs) — disponível na geração
+
+As fontes de produto (Frente 4 e Google Shopping) entregam apenas título, preço, imagem e link. Desde **ago/2026**, a **regeneração de artigos** também enriquece cada produto com **marca, descrição e especificações**, que passam a ser usados na geração do texto:
+
+- **Fonte dos dados:** página oficial do produto (`extractMLProductData` em `scripts/ml_affiliate.mjs`) — `brand` (JSON-LD/meta/`detectBrand`), `description` (meta/`og:description`/JSON-LD) e `specs` (JSON-LD `additionalProperty`); fallback **Tavily** (`enrichWithTavilyDetails`).
+- **Onde são usados:** os campos `p.brand`, `p.description` e `p.specs` entram no prompt da LLM (blurbs + corpo) como **fonte de verdade** — o texto pode citar as specs fornecidas, mas **nunca** inventa número fora delas.
+- **Quando roda:** apenas na regeneração (`regenerar-artigos.mjs`, `opts.enrichNames`); o cron diário não paga o custo extra. Falha de enriquecimento nunca quebra o pipeline.
+- **Sem mudança visual:** os dados orientam o texto; os cards e botões continuam montados pelo sistema. Ver `docs/METODOLOGIA.md`.
+
 ### Editar Botões de um Artigo Publicado
 
 Edite no painel `/admin/` (aba **Produtos**): o painel lista cada `product-btn` do artigo e permite alterar o **texto** e o **link** do botão (ex.: trocar o link da loja pelo seu link de afiliado). Salve e o deploy é automático.
@@ -294,9 +303,10 @@ O texto usa o nome da loja retornada pelo Google Shopping (`VER NA KABUM`, `VER 
 
 ### A IA e os Produtos
 
-A IA recebe a lista de produtos no prompt, mas é instruída a **apenas mencioná-los naturalmente** no texto — sem imagens, preços ou links. O sistema cuida de toda a parte visual. Isso evita:
+A IA recebe a lista de produtos no prompt, mas é instruída a **apenas mencioná-los naturalmente** no texto — sem imagens, preços ou links. O sistema cuida de toda a parte visual. Quando o produto tem detalhes capturados (marca, descrição, specs), eles também vão no prompt como **fonte de verdade** — a IA só cita o que está listado, nunca inventa especificação. Isso evita:
 - Produtos duplicados (botão do sistema + texto da IA)
 - Links quebrados ou preços errados
+- Specs inventadas (fps, DPI, GHz, GB que não existem no anúncio)
 
 ### Tabela + Pros/Contras
 

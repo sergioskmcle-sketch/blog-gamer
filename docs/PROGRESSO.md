@@ -96,6 +96,23 @@ retroiluminação em 2024"* (5 produtos: 3 ML + 2 Shopee).
 | Docs: `DESIGN.md` (temas), `METODOLOGIA.md` (ranking), `SKILL.md` (categoria única), `README.md` | ✅ |
 | Migração do domínio para `promogamer.com.br` (raiz, sem `/blog-gamer`) | ✅ |
 
+### ✅ Concluído em 08/08/2026 — detalhes do produto na regeneração
+
+O catálogo da Frente 4 e o Google Shopping não entregam marca/descrição/specs.
+Na regeneração (`regenerar-artigos.mjs`), cada produto agora é enriquecido pela
+**página oficial** (`extractMLProductData`: brand/description/specs via JSON-LD
+e metas) com fallback **Tavily** (snippet). Os dados vão apenas para o prompt da
+LLM (blurbs + corpo) como fonte de verdade — sem mudança visual nos cards.
+
+| Tarefa | Estado |
+|---|---|
+| `extractMLProductData` devolve `brand`/`description`/`specs` | ✅ |
+| `enrichProducts` (página oficial → fallback Tavily) | ✅ |
+| Detalhes no `productBlock` + blurbs (regra: só specs fornecidas) | ✅ |
+| Merge de detalhes em `product_dedupe.mjs` (mesclar) | ✅ |
+| Testes (`extractMLProductData` com/sem JSON-LD) | ✅ |
+| Docs (`METODOLOGIA.md`) | ✅ |
+
 ### 🟢 Baixa prioridade
 | Tarefa | Motivo |
 |---|---|

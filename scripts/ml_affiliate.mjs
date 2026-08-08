@@ -1,5 +1,6 @@
 ﻿import fs from "fs";
 import { CookieJar } from "tough-cookie";
+import { detectBrand } from "./product_naming.mjs";
 
 const ML_BASE = "https://www.mercadolivre.com.br";
 const API_BASE = "https://api.mercadolibre.com";
@@ -240,7 +241,39 @@ export function extractMLProductData(html, url) {
     if (bodyPid) pid = bodyPid[1] || bodyPid[2] || "";
   }
 
-  return { title, price, thumbnail: ogImg, permalink, id: pid };
+  // --- Dados ricos (marca, descricao, specs) para o enriquecimento de detalhe.
+  // Nunca lançam: ausencia vira campo vazio, e quem consome decide se usa.
+  let ld = null;
+  const jsonScript = html.match(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/);
+  if (jsonScript) {
+    try {
+      ld = JSON.parse(jsonScript[1]);
+    } catch {}
+  }
+  const mainEntity = ld && ld.mainEntity && typeof ld.mainEntity === "object" ? ld.mainEntity : (ld || {});
+
+  const brandMeta = html.match(/<meta[^>]+itemprop="brand"[^>]+content="([^"]+)"/)?.[1] || "";
+  const brand = String(
+    mainEntity.brand?.name || mainEntity.manufacturer?.name || brandMeta || detectBrand(title) || ""
+  ).trim();
+
+  const description = String(
+    html.match(/<meta[^>]+name="description"[^>]+content="([^"]+)"/)?.[1]
+    || html.match(/<meta[^>]+property="og:description"[^>]+content="([^"]+)"/)?.[1]
+    || mainEntity.description || ""
+  ).trim();
+
+  const specs = [];
+  if (Array.isArray(mainEntity.additionalProperty)) {
+    for (const ap of mainEntity.additionalProperty) {
+      if (!ap || typeof ap !== "object") continue;
+      const key = String(ap.name || ap.propertyID || "").trim();
+      const value = String(ap.value ?? "").trim();
+      if (key && value) specs.push({ key, value });
+    }
+  }
+
+  return { title, price, thumbnail: ogImg, permalink, id: pid, brand, description, specs };
 }
 
 // URLs que NAO sao paginas de produto real: blog, categoria, listagem,

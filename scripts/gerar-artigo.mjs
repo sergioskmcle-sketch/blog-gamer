@@ -972,13 +972,13 @@ async function enrichWithProductPage(p) {
     const data = extractMLProductData(html, url);
     const t = String(data.title || "").trim();
     if (t.length < 10 || FAKE_TITLE_RE.test(t)) return null;
-    return t;
+    return data;
   } catch {
     return null;
   }
 }
 
-async function enrichWithTavily(p) {
+async function enrichWithTavilyDetails(p) {
   if (!TAVILY_API_KEY) return null;
   const raw = String(p.raw_title || p.title || "").trim();
   if (!raw || raw.length < 5) return null;
@@ -988,7 +988,7 @@ async function enrichWithTavily(p) {
     body: JSON.stringify({
       api_key: TAVILY_API_KEY,
       query: `"${raw}"`,
-      search_depth: "basic",
+      search_depth: "advanced",
       max_results: 6,
     }),
     signal: AbortSignal.timeout(15000),
@@ -1002,24 +1002,47 @@ async function enrichWithTavily(p) {
     const t = String(r.title || "").trim().replace(STORE_SUFFIX_RE, "").trim();
     if (t.length < 10 || FAKE_TITLE_RE.test(t)) continue;
     if (t.toLowerCase() === raw.toLowerCase()) continue;
-    return t;
+    const desc = String(r.content || "").replace(/\s+/g, " ").trim().slice(0, 500);
+    return { title: t, description: desc, brand: detectBrand(`${t} ${desc}`) };
   }
   return null;
 }
 
-async function enrichProductTitles(mlProducts) {
+// Captura marca, descricao e specs do produto: pagina oficial primeiro, busca
+// web (Tavily) depois. Nunca quebra o pipeline — se nada vier, o produto segue
+// sem detalhe (mesma tolerancia do enriquecimento de titulo).
+async function enrichProductDetails(p) {
+  const page = await enrichWithProductPage(p);
+  if (page) return page;
+  return enrichWithTavilyDetails(p);
+}
+
+async function enrichProducts(mlProducts) {
   let enriched = 0;
   for (const p of mlProducts) {
     if (!p || typeof p !== "object") continue;
+    const d = await enrichProductDetails(p);
+    if (!d) continue;
     const raw = String(p.raw_title || p.title || "").trim();
-    if (!raw || BRAND_RE.test(raw) || MODEL_RE.test(raw)) continue;
-    let full = await enrichWithProductPage(p);
-    if (!full) full = await enrichWithTavily(p);
-    if (!full) continue;
-    p.raw_title = full;
-    p.title = full;
-    enriched++;
-    log("INFO", `Titulo enriquecido: "${raw}" -> "${full.slice(0, 60)}"`);
+    const t = String(d.title || "").trim();
+    if (
+      t.length >= 10
+      && !FAKE_TITLE_RE.test(t)
+      && !BRAND_RE.test(raw)
+      && !MODEL_RE.test(raw)
+      && t.toLowerCase() !== raw.toLowerCase()
+    ) {
+      p.raw_title = t;
+      p.title = t;
+      log("INFO", `Titulo enriquecido: "${raw}" -> "${t.slice(0, 60)}"`);
+    }
+    if (d.brand) p.brand = String(d.brand).trim();
+    if (d.description) p.description = String(d.description).trim();
+    if (Array.isArray(d.specs) && d.specs.length) p.specs = d.specs;
+    if (p.brand || p.description || (p.specs && p.specs.length)) {
+      enriched++;
+      log("INFO", `Detalhe enriquecido: "${(p.title || "").slice(0, 45)}" (marca: ${p.brand || "-"}, desc: ${p.description ? "sim" : "nao"}, specs: ${(p.specs || []).length})`);
+    }
   }
   return enriched;
 }
@@ -2517,8 +2540,8 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
     }
 
     if (opts.enrichNames) {
-      const n = await enrichProductTitles(mlProducts);
-      if (n > 0) log("INFO", `${n} titulo(s) enriquecido(s) com o nome completo do produto`);
+      const n = await enrichProducts(mlProducts);
+      if (n > 0) log("INFO", `${n} produto(s) enriquecido(s) com nome completo e detalhes`);
     }
 
     mlProducts = sanitizeProducts(mlProducts.filter((p) => isGamerProduct(p.title)), topic, { rankingContext });
@@ -2536,11 +2559,19 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
   }
 
   const productBlock = mlProducts.length > 0
-    ? `\nPRODUTOS DISPONIVEIS (cada um vira um item da secao de Itens):\n${mlProducts.map((p, i) =>
-        `Marcador: [PRODUTO:${i + 1}]\n` +
-        `Nome: ${p.title}\n` +
-        `Preco: ${formatProductPriceForPrompt(p)}\n`
-      ).join("\n")}\nO sistema monta a foto e o botao de compra do item no lugar do marcador. Voce NAO escreve preco, link nem imagem desses produtos — so decide ONDE cada item entra. O nome do item vira o heading "## Nome do Produto — Subtitulo". NUNCA escreva "R$ X" no texto para produtos listados — o preco fica so na tabela comparativa.\nREGRA DE PRECO AUSENTE: se o produto estiver marcado como "Preco: NAO DISPONIVEL", voce NAO escreve preco, NUNCA diz gratis, gratuito, preco zero ou de graca, e orienta o leitor a conferir o preco atual na tabela.`
+    ? `\nPRODUTOS DISPONIVEIS (cada um vira um item da secao de Itens):\n${mlProducts.map((p, i) => {
+        const marca = p.brand ? `Marca: ${p.brand}\n` : "";
+        const desc = p.description ? `Descricao: ${p.description}\n` : "";
+        const specs = Array.isArray(p.specs) && p.specs.length
+          ? `Especificacoes: ${p.specs.map((s) => `${s.key}: ${s.value}`).join("; ")}\n`
+          : "";
+        return (
+          `Marcador: [PRODUTO:${i + 1}]\n` +
+          `Nome: ${p.title}\n` +
+          `Preco: ${formatProductPriceForPrompt(p)}\n` +
+          marca + desc + specs
+        );
+      }).join("\n")}\nO sistema monta a foto e o botao de compra do item no lugar do marcador. Voce NAO escreve preco, link nem imagem desses produtos — so decide ONDE cada item entra. O nome do item vira o heading "## Nome do Produto — Subtitulo". NUNCA escreva "R$ X" no texto para produtos listados — o preco fica so na tabela comparativa.\nREGRA DE PRECO AUSENTE: se o produto estiver marcado como "Preco: NAO DISPONIVEL", voce NAO escreve preco, NUNCA diz gratis, gratuito, preco zero ou de graca, e orienta o leitor a conferir o preco atual na tabela.\nREGRA DE DETALHES: quando o produto tiver "Marca:", "Descricao:" ou "Especificacoes:", use-os como FONTE DE VERDADE nos itens — o leitor pode comparar com o que esta listado. NUNCA invente especificacao numerica (GHz, GB, W, fps, cores, DPI, sensor) fora do que aparecer nesses campos.`
     : "";
 
   const internalLinksBlock = buildInternalLinksBlock();
@@ -3201,11 +3232,19 @@ ${categoriaUnicaPrompt(articleCat)}
 - NUNCA escreva preco, "R$", card, botao, "confira o preco", nem mencione tabela ou comparativo.
 - NUNCA use "#" nem markdown de titulo. Paragrafos separados por linha em branco.
 - NUNCA compare com outros produtos nem fale de marcas concorrentes.
-- NUNCA invente especificacao numerica (GHz, GB, W, fps, cores) que nao esteja no nome do produto. Fale de categoria, uso, publico-alvo e do que o proprio nome afirma.
+- NUNCA invente especificacao numerica (GHz, GB, W, fps, cores, DPI, sensor). Use APENAS as que vierem no bloco "Detalhes do produto (fonte de verdade)" — se ele nao existir, fale de categoria, uso, publico-alvo e do que o proprio nome afirma.
 - Nao repita o nome do produto mais de 2 vezes.
 - O nome do produto citado no texto precisa bater com o titulo recebido (mesmo modelo).`;
 
-  const user = `Produto ${index}: ${product.title}\nTopico do artigo: ${topic.hint}`;
+  const detalhes = [];
+  if (product.brand) detalhes.push(`Marca: ${product.brand}`);
+  if (Array.isArray(product.specs) && product.specs.length) {
+    detalhes.push(`Especificacoes: ${product.specs.map((s) => `${s.key}: ${s.value}`).join("; ")}`);
+  }
+  if (product.description) detalhes.push(`Descricao: ${product.description}`);
+  const blocoDetalhes = detalhes.length ? `\nDetalhes do produto (fonte de verdade):\n${detalhes.join("\n")}` : "";
+
+  const user = `Produto ${index}: ${product.title}\nTopico do artigo: ${topic.hint}${blocoDetalhes}`;
   try {
     const out = await fetchLLM(sys, user, 3, { maxTokens: 900, temperature: 0.8 });
     const parsed = parseBlurb(out);

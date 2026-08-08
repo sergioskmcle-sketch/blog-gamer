@@ -29,6 +29,30 @@ O sistema coleta até um **pool de ~20 candidatos** (`CANDIDATE_POOL` em
 não é mais "os 5 primeiros que a busca devolveu", é o resultado de comparar um
 pool maior.
 
+## Detalhes do produto (marca, descrição, specs)
+
+O catálogo da Frente 4 e o Google Shopping entregam apenas **título, preço,
+imagem, link de afiliado** e (quando a loja fornece) nota/avaliações — **não**
+marca, descrição ou especificações. Para os itens do artigo não ficarem com
+prosa genérica, a **regeneração** (`scripts/regenerar-artigos.mjs`,
+`opts.enrichNames`) enriquece cada produto com:
+
+- **Página oficial do produto** (`extractMLProductData` em
+  `scripts/ml_affiliate.mjs`) — lê o HTML da página (sem sessão/cookie):
+  `brand` via JSON-LD (`brand.name`) ou `meta[itemprop="brand"]`, com fallback
+  de `detectBrand` no título; `description` via `meta[name=description]`,
+  `og:description` ou JSON-LD; `specs` via JSON-LD `additionalProperty`.
+- **Fallback Tavily** (`enrichWithTavilyDetails` em
+  `scripts/gerar-artigo.mjs`) — busca `"<titulo>"` e usa o título + snippet do
+  resultado como descrição, com marca detectada no texto.
+
+Esses campos (`p.brand`, `p.description`, `p.specs`) **só alimentam o prompt da
+LLM** (blurbs e corpo) como **fonte de verdade**: o texto pode citar as specs
+listadas, mas **nunca** inventar número fora delas. Não há mudança visual nos
+cards. Falha de enriquecimento nunca quebra o pipeline — o item segue sem o
+campo. O cron diário **não** roda este passo (só a regeneração), para não
+adicionar chamadas extras.
+
 ## Pipeline de limpeza (`sanitizeProducts`)
 
 Antes de qualquer ranking, o pipeline, nesta ordem:
