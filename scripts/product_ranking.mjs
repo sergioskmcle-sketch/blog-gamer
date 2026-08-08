@@ -194,11 +194,14 @@ export function eligibilityCheck(p, ctx = {}) {
     if (ratio < PRECO_MIN_RATIO) motivos.push(`preco muito abaixo da mediana (${ratio.toFixed(2)}x)`);
     if (ratio > PRECO_MAX_RATIO) motivos.push(`preco muito acima da mediana (${ratio.toFixed(2)}x)`);
   }
-  if (!(rating >= 4.0) && !(ratingCount >= 100)) {
-    motivos.push("sem nota >= 4.0 e sem volume de avaliacoes que compense (>= 100)");
-  }
-  if (!(ratingCount >= ratingCountMinimo)) {
-    motivos.push(`menos de ${ratingCountMinimo} avaliacoes`);
+  const semDadosDeAvaliacao = !(rating > 0) && !(ratingCount > 0);
+  if (!semDadosDeAvaliacao) {
+    if (!(rating >= 4.0) && !(ratingCount >= 100)) {
+      motivos.push("sem nota >= 4.0 e sem volume de avaliacoes que compense (>= 100)");
+    }
+    if (!(ratingCount >= ratingCountMinimo)) {
+      motivos.push(`menos de ${ratingCountMinimo} avaliacoes`);
+    }
   }
   // Reputacao: marca conhecida OU mencao editorial OU modelo reconhecivel (o
   // proprio codigo/serie ja atesta identidade — "RTX 4060" diz tanto quanto

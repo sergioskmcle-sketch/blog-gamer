@@ -172,6 +172,9 @@ const HARDWARE_KEYWORDS = [
   "monitor", "headset", "teclado", "mouse", "cadeira", "placa de video",
   "processador", "ssd", "memoria", "rtx", "nvidia", "geforce", "radeon",
   "amd", "intel",   "fonte de alimentação", "water cooler", "gabinete",
+  "periféricos", "perifericos", "mousepad", "mouse pad", "webcam",
+  "microfone", "cooler", "ventoinha", "notebook", "gpu", "cpu",
+  "placa mãe", "placa mae", "placa-mae",
 ];
 
 const EVENT_KEYWORDS = ["e3", "game awards", "gamescom", "brasil game show", "bgs", "lançamento", "lancamento"];
@@ -221,6 +224,54 @@ function filterSameDomain(keywords, targetDomain) {
     const d = classifyDomain(k);
     return d === targetDomain || d === "promo" || d === "unknown";
   });
+}
+
+// Vira query de busca de produto de verdade: tira a frase editorial do topico
+// ("melhores periféricos gamer sustentáveis de 2024") e fica so com o
+// vocabulario de produto que existe no catalogo da Frente 4 ("perifericos
+// gamer"). A busca da Frente 4 exige casar pelo menos metade dos termos do
+// titulo — palavra editorial ("sustentaveis", "melhores", ano antigo) nunca
+// aparece em titulo de produto, entao query literal = zero resultados.
+function sanitizeProductQuery(query, domain) {
+  const norm = normalizarAnos(String(query || ""))
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const kws = domain === "hardware" ? HARDWARE_KEYWORDS : [...GAME_KEYWORDS, ...CONSOLE_KEYWORDS];
+  const hits = [];
+  for (const k of kws) {
+    const esc = k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (new RegExp(`(^|[^a-z0-9])${esc}(?![a-z0-9])`).test(norm)) hits.push(esc);
+  }
+  hits.sort((a, b) => b.length - a.length);
+  const base = [...new Set(hits)].slice(0, 4);
+
+  if (domain === "hardware") {
+    const palavraProduto = base.filter((h) => h !== "gamer");
+    if (palavraProduto.length === 0) return "";
+    return `${palavraProduto.slice(0, 2).join(" ")} gamer`.trim();
+  }
+  const words = new Set(norm.split(/\s+/).filter(Boolean));
+  if (words.has("jogo") || words.has("jogos")) base.push("jogo");
+  return [...new Set(base)].slice(0, 4).join(" ");
+}
+
+// Normaliza anos no corpo do artigo SEM tocar em URLs: links internos
+// (/blog/...-2024-.../) e imagens externas com ano no path continuam intactos.
+// So o texto corrido e corrigido — "em 2024" vira "em 2026" na prosa, o link
+// continua apontando pro mesmo artigo.
+function normalizarAnosBody(body) {
+  if (typeof body !== "string" || !body) return body;
+  const urls = [];
+  const tmp = body.replace(/https?:\/\/[^\s"')<>]+|\/blog\/[^\s)"']+/g, (m) => {
+    urls.push(m);
+    return `\u0000${urls.length - 1}\u0000`;
+  });
+  const normalizado = normalizarAnos(tmp);
+  return normalizado.replace(/\u0000(\d+)\u0000/g, (_, i) => urls[Number(i)] || "");
 }
 
 function domainLabel(domain) {
@@ -2373,8 +2424,8 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
           ...shortlistQueries,
           ...(opts.extraMlQueries || []),
           ...retryQ,
-          topic.ml_query,
-          ...trendingKws.slice(0, 2),
+          sanitizeProductQuery(topic.ml_query, effectiveDomain) || topic.ml_query,
+          ...trendingKws.slice(0, 2).map((k) => sanitizeProductQuery(k, effectiveDomain) || k),
         ].filter(Boolean);
         const queriesUnicas = [...new Set(queriesRemotas)].slice(0, 5);
 
@@ -2409,12 +2460,13 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
         // Queries seguem o dominio do artigo: games -> jogos; hardware -> perifericos
         const searchQueries = [
           ...shortlistQueries,
-          ...trendingKws.slice(0, 2).flatMap((kw) =>
-            effectiveDomain === "hardware"
-              ? [`${kw} gamer ${ANO_ATUAL}`, `${kw} ${ANO_ATUAL}`]
-              : [`${kw} jogo ps5`, `${kw} jogo xbox`]
-          ),
-          topic.ml_query,
+          ...trendingKws.slice(0, 2).flatMap((kw) => {
+            const q = sanitizeProductQuery(kw, effectiveDomain) || kw;
+            return effectiveDomain === "hardware"
+              ? [`${q} gamer ${ANO_ATUAL}`, `${q} ${ANO_ATUAL}`]
+              : [`${q} jogo ps5`, `${q} jogo xbox`];
+          }),
+          sanitizeProductQuery(topic.ml_query, effectiveDomain) || topic.ml_query,
           ...(extraRound > 0 ? retryQ : []),
         ].slice(0, CANDIDATE_POOL);
 
@@ -2761,6 +2813,11 @@ Checklist antes de responder:
   if (tituloCorrigido !== fm.title) log("WARN", `Ano corrigido no titulo final: "${fm.title}" -> "${tituloCorrigido}"`);
   fm.title = tituloCorrigido;
   fm.description = normalizarAnos(fm.description);
+  // Mesma trava no corpo e nas tags: a LLM copia ano velho do topico/fontes
+  // ("melhores ... de 2024") pro texto corrido, e so titulo/description/heading
+  // passavam por normalizarAnos. URLs de links internos sao protegidas.
+  body = normalizarAnosBody(body);
+  fm.tags = (fm.tags || []).map((t) => normalizarAnos(String(t)));
 
   log("INFO", "Validando links internos...");
   body = validateInternalLinks(body);
@@ -3392,6 +3449,8 @@ export {
   buildComparativoTable,
   buildItemSection,
   injectSegmentedItems,
+  sanitizeProductQuery,
+  normalizarAnosBody,
   injectHeadingAnchors,
   validateSourceCoverage,
   formatProductPriceForPrompt,

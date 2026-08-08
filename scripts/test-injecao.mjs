@@ -12,11 +12,13 @@ import {
   buildMetodologiaSection,
   extendDescription,
   buildOfferButtonsHtml,
+  sanitizeProductQuery,
+  normalizarAnosBody,
 } from "./gerar-artigo.mjs";
 import { parsePriceBRL } from "./google_shopping.mjs";
 import { normalizarProdutoRemoto } from "./monitor_api.mjs";
 import { cleanProductTitle, detectCategory, productMatchesCategory, detectArticleCategory } from "./product_naming.mjs";
-import { medianPrice, valueForMoneyScore, countEditorialMentions, scoreProduct, rankProducts, applyMinCriteria, RANKING_WEIGHTS, MIN_CRITERIA } from "./product_ranking.mjs";
+import { medianPrice, valueForMoneyScore, countEditorialMentions, scoreProduct, rankProducts, applyMinCriteria, eligibilityCheck, RANKING_WEIGHTS, MIN_CRITERIA } from "./product_ranking.mjs";
 import { upgradeImageUrl, imageDimensions, isImageUsable, MIN_IMAGE_SIZE } from "./product_images.mjs";
 
 let passou = 0;
@@ -624,6 +626,43 @@ ok(norm !== null, "produto valido e aceito");
 igual(norm.sources.length, 1, "sources vem de offers");
 igual(normalizarProdutoRemoto({ title: "" }), null, "produto sem titulo e descartado");
 igual(normalizarProdutoRemoto({ title: "X", offers: {} }), null, "produto sem oferta e descartado");
+
+// Piso de elegibilidade: Frente 4 nao fornece rating/ratingCount (catalogo so
+// guarda titulo/preco/afiliado), entao o piso de avaliacoes so vale quando o
+// produto CHEGA com nota/volume. Identidade e preco continuam obrigatorios.
+const remotoOk = eligibilityCheck(
+  { title: "Teclado Redragon Kumara K552", price: 250, origem: "remoto" },
+  { median: 260 },
+);
+ok(remotoOk.elegivel, "produto remoto sem rating passa com marca/modelo e preco na faixa");
+ok(remotoOk.motivos.length === 0, "nenhum motivo de reprova para remoto valido");
+ok(!eligibilityCheck({ title: "Teclado Gamer", price: 250, origem: "remoto" }, { median: 260 }).elegivel, "remoto sem marca nem modelo continua reprovado");
+ok(!eligibilityCheck(
+  { title: "Teclado Redragon Kumara K552", price: 250, rating: 3.2, ratingCount: 5, origem: "remoto" },
+  { median: 260 },
+).elegivel, "produto COM nota continua sujeito ao piso de avaliacoes");
+ok(eligibilityCheck(
+  { title: "Teclado Redragon Kumara K552", price: 250, rating: 4.5, ratingCount: 60, origem: "remoto" },
+  { median: 260 },
+).elegivel, "produto remoto com nota real valida passa normalmente");
+
+// Query de produto: tira a frase editorial do topico e fica so com o
+// vocabulario que existe no catalogo (substantivos de hardware / jogos).
+igual(sanitizeProductQuery("melhores periféricos gamer sustentáveis de 2024", "hardware"), "perifericos gamer", "query editorial de perifericos vira termo de produto");
+igual(sanitizeProductQuery("melhor mouse gamer wireless 2026", "hardware"), "mouse gamer", "query com substantivo de hardware mantem categoria + gamer");
+igual(sanitizeProductQuery("melhor headset gamer custo benefício", "hardware"), "headset gamer", "palavra editorial (custo beneficio) sai da query");
+igual(sanitizeProductQuery("melhor setup gamer", "hardware"), "", "sem substantivo de hardware reconhecivel retorna vazio");
+const qGta = sanitizeProductQuery("gta 6 novidades ps5", "games");
+ok(qGta.includes("gta 6") && qGta.includes("ps5"), "query de games mantem nome do jogo e console");
+const qJogo = sanitizeProductQuery("lançamentos de jogos para ps5", "games");
+ok(qJogo.includes("ps5") && qJogo.includes("jogo"), "query de games mantem console e termo jogo");
+
+// Ano unico tambem no corpo e nas tags: corrige a prosa mas protege URLs.
+const corpoComAno = "Os melhores mouses de 2024 para PC gamer. Veja o [mouse ergonomico de 2024](/blog/top-5-mouse-gamer-ergonomico-de-2024-para-conforto-duradouro/) em 2024.";
+const corpoCorrigido = normalizarAnosBody(corpoComAno);
+ok(!corpoCorrigido.includes("mouses de 2024") && !corpoCorrigido.includes("mouse ergonomico de 2024") && !corpoCorrigido.includes(") em 2024."), "ano velho vira o corrente na prosa do corpo");
+ok(corpoCorrigido.includes("/blog/top-5-mouse-gamer-ergonomico-de-2024-para-conforto-duradouro/"), "URL do link interno com 2024 continua intacta");
+igual(normalizarAnosBody(null), null, "body nulo volta nulo");
 
 // ---- TAREFA 4: upgrade de URL, dimensoes reais e validacao ----
 igual(upgradeImageUrl(""), "", "url vazia volta vazia");
