@@ -310,55 +310,51 @@ function extractTrendingTopics(headlines) {
   return Object.entries(scores).sort((a, b) => b[1] - a[1]);
 }
 
-// Google Trends (Brasil) via Serper — terceiro sinal de tendencia, somado ao RSS/Reddit.
-async function fetchGoogleTrends() {
-  if (!SERPER_API_KEY) return [];
+// Tavily News (Brasil) — terceiro sinal de tendencia, somado ao RSS/Reddit.
+// (Google Trends foi descartado: o endpoint publico do Google morreu (404) e o
+// Serper nao tem endpoint de trends.)
+async function fetchTavilyTrends() {
+  if (!TAVILY_API_KEY) return [];
   try {
-    const res = await fetch("https://google.serper.dev/trends", {
+    const res = await fetch("https://api.tavily.com/search", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-API-KEY": SERPER_API_KEY },
-      body: JSON.stringify({ geo: "BR", hl: "pt-br" }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        api_key: TAVILY_API_KEY,
+        query: "videogames games",
+        topic: "news",
+        time_range: "day",
+        max_results: 10,
+      }),
       signal: AbortSignal.timeout(15000),
     });
-    if (!res.ok) { log("WARN", `Google Trends: HTTP ${res.status}`); return []; }
+    if (!res.ok) { log("WARN", `Tavily News: HTTP ${res.status}`); return []; }
     const data = await res.json();
-    const out = [];
-    const ts = data.trendingSearches;
-    if (ts && typeof ts === "object") {
-      for (const key of Object.keys(ts)) {
-        const val = ts[key];
-        const items = Array.isArray(val) ? val : (val && Array.isArray(val.items) ? val.items : null);
-        if (!items) continue;
-        for (const it of items) {
-          const t = String(it?.title || it?.formattedTitle || "").trim();
-          if (t) out.push(t);
-          for (const q of (it?.relatedQueries || [])) {
-            const qt = String(q?.title || "").trim();
-            if (qt) out.push(qt);
-          }
-        }
-      }
-    }
-    log("INFO", `Google Trends (BR): ${out.length} topicos`);
-    return out.slice(0, 30);
+    const out = (data.results || []).map((r) => String(r.title || "").trim()).filter(Boolean);
+    log("INFO", `Tavily News (BR): ${out.length} noticias`);
+    return out.slice(0, 20);
   } catch (e) {
-    log("WARN", `Google Trends falhou: ${e.message}`);
+    log("WARN", `Tavily News falhou: ${e.message}`);
     return [];
   }
 }
 
 // Janela para a "familia" de tema poder ser republicada (refresh mensal de listas).
-const REFRESH_WINDOW_DAYS = 28;
+// Configuravel via FAMILY_REFRESH_DAYS para permitir tuning sem mexer no codigo.
+const REFRESH_WINDOW_DAYS = Number(process.env.FAMILY_REFRESH_DAYS) || 28;
 
-// "Familia" de um texto: o periferico OU jogo/console central. Serve para
-// anti-repeticao por familia — nao basta repetir a palavra exata — com excecao
-// de refresh mensal (a mesma familia volta depois de REFRESH_WINDOW_DAYS dias).
+// "Familias" de um texto: TODOS os perifericos/jogos/consoles que ele toca.
+// Serve para anti-repeticao por familia — nao basta repetir a palavra exata —
+// com excecao de refresh mensal (a mesma familia volta depois de
+// REFRESH_WINDOW_DAYS dias). Registrar todas as familias evita que um artigo
+// misto (ex.: "GTA 6 e PS5") esconda uma delas (o "gta" sumia por causa do "ps5").
 function familyOf(text) {
   const lower = String(text || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  for (const kw of HARDWARE_KEYWORDS) if (lower.includes(kw)) return `hw:${kw}`;
-  for (const kw of CONSOLE_KEYWORDS) if (lower.includes(kw)) return `console:${kw}`;
-  for (const kw of GAME_KEYWORDS) if (lower.includes(kw)) return `game:${kw}`;
-  return null;
+  const fams = new Set();
+  for (const kw of HARDWARE_KEYWORDS) if (lower.includes(kw)) fams.add(`hw:${kw}`);
+  for (const kw of CONSOLE_KEYWORDS) if (lower.includes(kw)) fams.add(`console:${kw}`);
+  for (const kw of GAME_KEYWORDS) if (lower.includes(kw)) fams.add(`game:${kw}`);
+  return [...fams];
 }
 
 // Data da publicacao mais recente por familia, lendo os artigos ja publicados.
@@ -369,11 +365,13 @@ function buildFamilyDates() {
     const c = fs.readFileSync(path.join(ARTIGOS_DIR, f), "utf-8");
     const fm = (c.split("---")[1] || "");
     const mDate = fm.match(/pubDate:\s*["']?([^"'\s]+)/);
-    const fam = familyOf(fm);
-    if (!mDate || !fam) continue;
+    const fams = familyOf(fm);
+    if (!mDate || fams.length === 0) continue;
     const d = new Date(mDate[1]);
     if (isNaN(d.getTime())) continue;
-    if (!dates[fam] || d > dates[fam]) dates[fam] = d;
+    for (const fam of fams) {
+      if (!dates[fam] || d > dates[fam]) dates[fam] = d;
+    }
   }
   return dates;
 }
@@ -394,14 +392,19 @@ function getDomainCoverage() {
 function isTopicDuplicate(keyword, existingTopics, recentKeywords = [], familyDates = {}) {
   const kw = keyword.toLowerCase();
 
-  // Anti-repeticao por familia com janela de refresh mensal: a mesma familia
-  // (ex.: mouses) so pode voltar depois de REFRESH_WINDOW_DAYS dias.
-  const fam = familyOf(keyword);
-  if (fam && familyDates[fam]) {
+  // Anti-repeticao por familia com janela de refresh mensal: basta que UMA das
+  // familias do keyword esteja coberta recentemente para bloquear.
+  const fams = familyOf(keyword);
+  let covered = false;
+  let blocked = false;
+  for (const fam of fams) {
+    if (!familyDates[fam]) continue;
+    covered = true;
     const ageDays = (Date.now() - familyDates[fam].getTime()) / (24 * 3600 * 1000);
-    if (ageDays >= REFRESH_WINDOW_DAYS) return false;
-    return true;
+    if (ageDays < REFRESH_WINDOW_DAYS) { blocked = true; break; }
   }
+  if (blocked) return true;
+  if (covered) return false; // refresh mensal liberado (mesma familia, janela vencida)
 
   for (const rk of recentKeywords) {
     if (kw === rk.toLowerCase()) return true;
@@ -567,13 +570,17 @@ Analise as headlines e os trending topics. Escolha um assunto que seja NOVO e IN
   log("INFO", `IA escolheu: "${parsed.topic}" [${parsed.category}] — ${parsed.reasoning || "sem reasoning"}`);
 
   // Rejeita familia ja coberta recentemente (anti-repeticao com refresh mensal)
-  const famAI = familyOf(parsed.topic);
-  if (famAI && familyDates[famAI]) {
-    const ageDays = (Date.now() - familyDates[famAI].getTime()) / (24 * 3600 * 1000);
-    if (ageDays < REFRESH_WINDOW_DAYS) {
-      log("WARN", `IA escolheu familia ja coberta ha ${Math.round(ageDays)}d: ${famAI}`);
-      return null;
+  const famsAI = familyOf(parsed.topic);
+  let famBloqueada = null;
+  for (const fam of famsAI) {
+    if (familyDates[fam]) {
+      const ageDays = (Date.now() - familyDates[fam].getTime()) / (24 * 3600 * 1000);
+      if (ageDays < REFRESH_WINDOW_DAYS) { famBloqueada = fam; break; }
     }
+  }
+  if (famBloqueada) {
+    log("WARN", `IA escolheu familia ja coberta recentemente: ${famBloqueada}`);
+    return null;
   }
 
   // Mantem palavras-chave trending apenas do mesmo dominio escolhido
@@ -590,7 +597,7 @@ Analise as headlines e os trending topics. Escolha um assunto que seja NOVO e IN
 }
 
 async function discoverTrendingTopic(existingTopics = [], recentKeywords = [], familyDates = {}, coverage = {}) {
-  log("INFO", "Buscando topicos trending (RSS + Reddit + Google Trends)...");
+  log("INFO", "Buscando topicos trending (RSS + Reddit + Tavily News)...");
 
   const headlines = [];
 
@@ -625,9 +632,9 @@ async function discoverTrendingTopic(existingTopics = [], recentKeywords = [], f
     }
   }
 
-  const trends = await fetchGoogleTrends();
+  const trends = await fetchTavilyTrends();
   for (const t of trends) headlines.push(t);
-  log("INFO", `Google Trends: ${trends.length} topicos`);
+  log("INFO", `Tavily News: ${trends.length} noticias`);
 
   const antes = headlines.length;
   const filteredHeadlines = headlines.filter((h) => !hasForbiddenTerm(h));
@@ -2443,7 +2450,9 @@ async function main() {
   let trendingSource = "estatico";
   const existingTopics = state.recent_topics || [];
   const recentKeywords = state.recent_keywords || [];
-  const familyDates = buildFamilyDates();
+  // FORCE_GENERATE e a sobreposicao do operador: ignora a janela de 28d por
+  // familia (mantem duplicidade exata). O cron diario segue estrito.
+  const familyDates = process.env.FORCE_GENERATE ? {} : buildFamilyDates();
   const coverage = getDomainCoverage();
   log("INFO", `Cobertura: ${coverage.games} games / ${coverage.hardware} hardware | familias monitoradas: ${Object.keys(familyDates).length}`);
 
