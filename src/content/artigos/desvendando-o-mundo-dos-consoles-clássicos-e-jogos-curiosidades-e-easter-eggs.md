@@ -9,7 +9,7 @@ tags:
 - jogos
 - easter eggs
 - curiosidades
-category: curiosidade
+category: noticia
 affiliate: false
 image: https://media.rawg.io/media/screenshots/117/117f546b7555ab1f3af14a3adff066d0.jpg
 mode: informativo

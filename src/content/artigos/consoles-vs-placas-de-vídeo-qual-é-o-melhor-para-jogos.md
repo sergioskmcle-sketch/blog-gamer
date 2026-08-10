@@ -9,7 +9,7 @@ tags:
 - jogos
 - Xbox Series X
 - Xbox Series S
-category: comparativo
+category: lista
 affiliate: true
 image: https://http2.mlstatic.com/D_NQ_NP_781248-MLA99600546022_122025-O.webp
 mode: melhores

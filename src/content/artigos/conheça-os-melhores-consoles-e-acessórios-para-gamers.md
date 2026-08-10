@@ -8,7 +8,7 @@ tags:
 - jogos
 - gamers
 - acessórios
-category: comparativo
+category: lista
 affiliate: true
 image: https://http2.mlstatic.com/D_NQ_NP_842335-MLA110554097252_052026-O.webp
 mode: melhores

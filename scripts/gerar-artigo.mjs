@@ -142,11 +142,23 @@ const RSS_FEEDS = [
   { name: "GameVicio", url: "https://www.gamevicio.com/feed/" },
   { name: "IGN Brasil", url: "https://br.ign.com/feed.xml" },
   { name: "TecMundo Games", url: "https://rss.tecmundo.com.br/games" },
+  { name: "Adrenaline", url: "https://www.adrenaline.com.br/feed/" },
+  { name: "PC Gamer", url: "https://www.pcgamer.com/rss/" },
+  { name: "Gematsu", url: "https://www.gematsu.com/feed" },
+  { name: "Push Square", url: "https://www.pushsquare.com/feeds/news" },
+  { name: "Eurogamer PT", url: "https://www.eurogamer.pt/feed" },
+  { name: "GameSpot", url: "https://www.gamespot.com/feeds/game-news/" },
+  { name: "VG247", url: "https://www.vg247.com/feed" },
 ];
 
 const REDDIT_SUBS = [
   { name: "r/gaming", url: "https://old.reddit.com/r/gaming/hot.json?limit=15" },
   { name: "r/gamesEcultura", url: "https://old.reddit.com/r/gamesEcultura/hot.json?limit=10" },
+  { name: "r/pcgaming", url: "https://old.reddit.com/r/pcgaming/hot.json?limit=15" },
+  { name: "r/PS5", url: "https://old.reddit.com/r/PS5/hot.json?limit=10" },
+  { name: "r/XboxSeriesX", url: "https://old.reddit.com/r/XboxSeriesX/hot.json?limit=10" },
+  { name: "r/GameDealsBR", url: "https://old.reddit.com/r/GameDealsBR/hot.json?limit=10" },
+  { name: "r/Steam", url: "https://old.reddit.com/r/Steam/hot.json?limit=10" },
 ];
 
 const GAME_KEYWORDS = [
@@ -161,11 +173,15 @@ const GAME_KEYWORDS = [
   "the witcher", "skyrim", "dark souls", "bloodborne", "ghost of",
   "horizon zero", "horizon forbidden", "uncharted", "god of war",
   "death stranding", "kingdom hearts", "monster hunter",
+  "nintendo", "indie", "esports", "e-sports", "mobile", "marvel", "x-men",
+  "mcu", "remake", "remaster", "crossplay", "multiplataforma",
+  "cross-platform", "battle pass",
 ];
 
 const CONSOLE_KEYWORDS = [
   "playstation", "playstation 5", "xbox", "xbox series", "nintendo switch",
-  "switch 2", "steam deck", "pc gamer", "ps5", "ps4",
+  "switch 2", "steam deck", "pc gamer", "ps5", "ps4", "steam",
+  "game pass", "ps plus", "playstation plus", "cloud gaming",
 ];
 
 const HARDWARE_KEYWORDS = [
@@ -174,10 +190,10 @@ const HARDWARE_KEYWORDS = [
   "amd", "intel",   "fonte de alimentação", "water cooler", "gabinete",
   "periféricos", "perifericos", "mousepad", "mouse pad", "webcam",
   "microfone", "cooler", "ventoinha", "notebook", "gpu", "cpu",
-  "placa mãe", "placa mae", "placa-mae",
+  "placa mãe", "placa mae", "placa-mae", "acessório", "acessorio",
 ];
 
-const EVENT_KEYWORDS = ["e3", "game awards", "gamescom", "brasil game show", "bgs", "lançamento", "lancamento"];
+const EVENT_KEYWORDS = ["e3", "game awards", "gamescom", "brasil game show", "bgs", "lançamento", "lancamento", "colaboração", "colaboracao", "collab", "crossover", "parceria", "atualização", "atualizacao", "queda de preço", "queda de preco", "recorde de vendas", "trailer", "gameplay", "beta", "demo", "dlc", "expansão", "expansao", "anúncio", "anuncio", "skin", "temporada", "season"];
 
 const KEYWORD_CATEGORY_MAP = {};
 
@@ -294,8 +310,98 @@ function extractTrendingTopics(headlines) {
   return Object.entries(scores).sort((a, b) => b[1] - a[1]);
 }
 
-function isTopicDuplicate(keyword, existingTopics, recentKeywords = []) {
+// Google Trends (Brasil) via Serper — terceiro sinal de tendencia, somado ao RSS/Reddit.
+async function fetchGoogleTrends() {
+  if (!SERPER_API_KEY) return [];
+  try {
+    const res = await fetch("https://google.serper.dev/trends", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-API-KEY": SERPER_API_KEY },
+      body: JSON.stringify({ geo: "BR", hl: "pt-br" }),
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) { log("WARN", `Google Trends: HTTP ${res.status}`); return []; }
+    const data = await res.json();
+    const out = [];
+    const ts = data.trendingSearches;
+    if (ts && typeof ts === "object") {
+      for (const key of Object.keys(ts)) {
+        const val = ts[key];
+        const items = Array.isArray(val) ? val : (val && Array.isArray(val.items) ? val.items : null);
+        if (!items) continue;
+        for (const it of items) {
+          const t = String(it?.title || it?.formattedTitle || "").trim();
+          if (t) out.push(t);
+          for (const q of (it?.relatedQueries || [])) {
+            const qt = String(q?.title || "").trim();
+            if (qt) out.push(qt);
+          }
+        }
+      }
+    }
+    log("INFO", `Google Trends (BR): ${out.length} topicos`);
+    return out.slice(0, 30);
+  } catch (e) {
+    log("WARN", `Google Trends falhou: ${e.message}`);
+    return [];
+  }
+}
+
+// Janela para a "familia" de tema poder ser republicada (refresh mensal de listas).
+const REFRESH_WINDOW_DAYS = 28;
+
+// "Familia" de um texto: o periferico OU jogo/console central. Serve para
+// anti-repeticao por familia — nao basta repetir a palavra exata — com excecao
+// de refresh mensal (a mesma familia volta depois de REFRESH_WINDOW_DAYS dias).
+function familyOf(text) {
+  const lower = String(text || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  for (const kw of HARDWARE_KEYWORDS) if (lower.includes(kw)) return `hw:${kw}`;
+  for (const kw of CONSOLE_KEYWORDS) if (lower.includes(kw)) return `console:${kw}`;
+  for (const kw of GAME_KEYWORDS) if (lower.includes(kw)) return `game:${kw}`;
+  return null;
+}
+
+// Data da publicacao mais recente por familia, lendo os artigos ja publicados.
+function buildFamilyDates() {
+  const dates = {};
+  if (!fs.existsSync(ARTIGOS_DIR)) return dates;
+  for (const f of fs.readdirSync(ARTIGOS_DIR).filter((f) => f.endsWith(".md"))) {
+    const c = fs.readFileSync(path.join(ARTIGOS_DIR, f), "utf-8");
+    const fm = (c.split("---")[1] || "");
+    const mDate = fm.match(/pubDate:\s*["']?([^"'\s]+)/);
+    const fam = familyOf(fm);
+    if (!mDate || !fam) continue;
+    const d = new Date(mDate[1]);
+    if (isNaN(d.getTime())) continue;
+    if (!dates[fam] || d > dates[fam]) dates[fam] = d;
+  }
+  return dates;
+}
+
+// Cobertura por dominio (games vs hardware) para favorecer temas sub-representados.
+function getDomainCoverage() {
+  const counts = { games: 0, hardware: 0 };
+  if (!fs.existsSync(ARTIGOS_DIR)) return counts;
+  for (const f of fs.readdirSync(ARTIGOS_DIR).filter((f) => f.endsWith(".md"))) {
+    const c = fs.readFileSync(path.join(ARTIGOS_DIR, f), "utf-8");
+    const d = classifyDomain(c.split("---")[1] || "");
+    if (d === "games" || d === "mixed") counts.games += 1;
+    else if (d === "hardware") counts.hardware += 1;
+  }
+  return counts;
+}
+
+function isTopicDuplicate(keyword, existingTopics, recentKeywords = [], familyDates = {}) {
   const kw = keyword.toLowerCase();
+
+  // Anti-repeticao por familia com janela de refresh mensal: a mesma familia
+  // (ex.: mouses) so pode voltar depois de REFRESH_WINDOW_DAYS dias.
+  const fam = familyOf(keyword);
+  if (fam && familyDates[fam]) {
+    const ageDays = (Date.now() - familyDates[fam].getTime()) / (24 * 3600 * 1000);
+    if (ageDays >= REFRESH_WINDOW_DAYS) return false;
+    return true;
+  }
 
   for (const rk of recentKeywords) {
     if (kw === rk.toLowerCase()) return true;
@@ -377,11 +483,12 @@ function buildTopicFromKeyword(topKeyword, topKeywords, existingTopics = [], rec
   return { category, hint, ml_query, trending_score: topKeywords[0]?.[1] || 0, trending_keywords: top3 };
 }
 
-async function analyzeTrendsWithAI(headlines, trending, existingTopics, recentKeywords) {
+async function analyzeTrendsWithAI(headlines, trending, existingTopics, recentKeywords, familyDates = {}, coverage = {}) {
   const topHeadlines = headlines.slice(0, 15).map((h, i) => `${i + 1}. ${h}`).join("\n");
   const topTrending = trending.slice(0, 6).map(([k, v]) => `- "${k}" (${v}x mencoes)`).join("\n");
   const covered = [...new Set([...recentKeywords, ...existingTopics.map(t => t.slice(0, 60))])].slice(0, 15);
   const coveredList = covered.length > 0 ? covered.map((c, i) => `${i + 1}. ${c}`).join("\n") : "(nenhum)";
+  const cobertura = `- Dominio GAMES/JOGOS/CONSOLES: ${coverage.games || 0} artigos no blog\n- Dominio PERIFERICOS/HARDWARE: ${coverage.hardware || 0} artigos no blog`;
 
   const systemPrompt = `Você é um editor de blog de games do Brasil. Analisa trending topics e decide qual assunto NOVO e INÉDITO escrever sobre.
 
@@ -393,6 +500,7 @@ REGRAS:
   - Se escolher hardware/periférico: o hint, o ml_query e o conteudo devem ser sobre perifericos gamer (ex: "mouse gamer", "headset gamer", "monitor gamer ${ANO_ATUAL}").
   - NUNCA escreva algo como "games e perifericos" no mesmo tema.
 - PROIBIDO escolher temas de apostas, cassino, slots, caça-níqueis, roleta, jogos de azar ou qualquer conteúdo de jogo de dinheiro real. O blog não cobre esse tipo de assunto.
+- EQUILIBRIO ENTRE DOMINIOS: se um dos dois dominios tem muito mais artigos no blog que o outro, prefira um tema do dominio MENOS coberto.
 - Se TODOS os trending são sobre assuntos já cobertos, sugira um assunto diferente que esteja em alta mas não está nos trending principais
 - Responda APENAS com JSON válido, sem markdown, sem explicação extra
 
@@ -415,6 +523,9 @@ ${topTrending}
 
 ARTIGOS JÁ ESCritos NO BLOG:
 ${coveredList}
+
+COBERTURA ATUAL DO BLOG:
+${cobertura}
 
 Analise as headlines e os trending topics. Escolha um assunto que seja NOVO e INÉDITO no blog. Se todos os trending são repetidos, invente um assunto relevante que esteja em alta.`;
 
@@ -455,6 +566,16 @@ Analise as headlines e os trending topics. Escolha um assunto que seja NOVO e IN
 
   log("INFO", `IA escolheu: "${parsed.topic}" [${parsed.category}] — ${parsed.reasoning || "sem reasoning"}`);
 
+  // Rejeita familia ja coberta recentemente (anti-repeticao com refresh mensal)
+  const famAI = familyOf(parsed.topic);
+  if (famAI && familyDates[famAI]) {
+    const ageDays = (Date.now() - familyDates[famAI].getTime()) / (24 * 3600 * 1000);
+    if (ageDays < REFRESH_WINDOW_DAYS) {
+      log("WARN", `IA escolheu familia ja coberta ha ${Math.round(ageDays)}d: ${famAI}`);
+      return null;
+    }
+  }
+
   // Mantem palavras-chave trending apenas do mesmo dominio escolhido
   const trendingKws = [parsed.topic, ...trending.slice(0, 4).map(([k]) => k)];
   const sameDomainKws = filterSameDomain(trendingKws, domain).slice(0, 3);
@@ -468,8 +589,8 @@ Analise as headlines e os trending topics. Escolha um assunto que seja NOVO e IN
   };
 }
 
-async function discoverTrendingTopic(existingTopics = [], recentKeywords = []) {
-  log("INFO", "Buscando topicos trending (RSS + Reddit)...");
+async function discoverTrendingTopic(existingTopics = [], recentKeywords = [], familyDates = {}, coverage = {}) {
+  log("INFO", "Buscando topicos trending (RSS + Reddit + Google Trends)...");
 
   const headlines = [];
 
@@ -504,6 +625,10 @@ async function discoverTrendingTopic(existingTopics = [], recentKeywords = []) {
     }
   }
 
+  const trends = await fetchGoogleTrends();
+  for (const t of trends) headlines.push(t);
+  log("INFO", `Google Trends: ${trends.length} topicos`);
+
   const antes = headlines.length;
   const filteredHeadlines = headlines.filter((h) => !hasForbiddenTerm(h));
   if (filteredHeadlines.length !== antes) {
@@ -527,7 +652,7 @@ async function discoverTrendingTopic(existingTopics = [], recentKeywords = []) {
 
   if (GROQ_API_KEY) {
     try {
-      const aiResult = await analyzeTrendsWithAI(filteredHeadlines, trending, existingTopics, recentKeywords);
+      const aiResult = await analyzeTrendsWithAI(filteredHeadlines, trending, existingTopics, recentKeywords, familyDates, coverage);
       if (aiResult) {
         log("INFO", `IA escolheu topico novo: [${aiResult.category}] ${aiResult.hint}`);
         return aiResult;
@@ -538,7 +663,7 @@ async function discoverTrendingTopic(existingTopics = [], recentKeywords = []) {
   }
 
   for (const [kw, score] of trending) {
-    if (isTopicDuplicate(kw, existingTopics, recentKeywords)) {
+    if (isTopicDuplicate(kw, existingTopics, recentKeywords, familyDates)) {
       log("INFO", `Topico "${kw}" ja usado recentemente, tentando proximo...`);
       continue;
     }
@@ -2318,9 +2443,12 @@ async function main() {
   let trendingSource = "estatico";
   const existingTopics = state.recent_topics || [];
   const recentKeywords = state.recent_keywords || [];
+  const familyDates = buildFamilyDates();
+  const coverage = getDomainCoverage();
+  log("INFO", `Cobertura: ${coverage.games} games / ${coverage.hardware} hardware | familias monitoradas: ${Object.keys(familyDates).length}`);
 
   try {
-    const trending = await discoverTrendingTopic(existingTopics, recentKeywords);
+    const trending = await discoverTrendingTopic(existingTopics, recentKeywords, familyDates, coverage);
     if (trending && trending.trending_score >= 1) {
       topic = trending;
       trendingSource = "trending";

@@ -3,7 +3,7 @@ title: "Xbox Summer Sale 2026: Bundles, Game Pass e Lançamentos Top"
 description: "Descubra os descontos da Xbox Summer Sale 2026, os bundles mais vantajosos, os novos títulos do Game Pass e as novidades que valem a sua jogatina."
 pubDate: 2026-07-29
 tags: ["xbox", "sale", "game-pass", "bundles", "2026"]
-category: "promocao"
+category: "lista"
 affiliate: false
 image: "https://media.rawg.io/media/crop/600/400/games/26d/26d4437715bee60138dab4a7c8c59c92.jpg?auto=format&fit=crop&w=800&h=450"
 ---

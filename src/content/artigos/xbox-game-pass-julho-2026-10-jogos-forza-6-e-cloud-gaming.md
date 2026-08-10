@@ -3,7 +3,7 @@ title: "Xbox Game Pass Julho 2026: 10 Jogos, Forza 6 e Cloud Gaming"
 description: "Descubra os 10 novos títulos do Xbox Game Pass de julho, a estreia de Forza Horizon 6 e como o Xbox Cloud Gaming permite jogar sem console."
 pubDate: 2026-07-29
 tags: ["xbox", "game-pass", "forzahorizon6", "cloudgaming", "lancamentos"]
-category: "promocao"
+category: "lista"
 affiliate: false
 image: "/images/capas/xbox-game-pass-julho-2026-10-jogos-forza-6-e-cloud-gaming.png"
 ---
