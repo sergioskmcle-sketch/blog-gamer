@@ -81,7 +81,7 @@ const todosArtigos = Object.entries(import.meta.glob("../../content/artigos/*.md
           {frontmatter.title}
         </h1>
 
-        <div class="flex items-center gap-md mb-xl text-outline font-label text-label">
+        <div class="flex flex-wrap items-center gap-y-sm gap-x-md mb-xl text-outline font-label text-label">
           <div class="flex items-center gap-xs">
               <Icon name="person" size={18} />
             <span>BLOG GAMER</span>
@@ -602,6 +602,25 @@ const todosArtigos = Object.entries(import.meta.glob("../../content/artigos/*.md
     }
 
     @media (max-width: 640px) {
+      #articleBody {
+        font-size: 1.05rem;
+        line-height: 1.7;
+      }
+      #articleBody p {
+        font-size: 1.05rem;
+        line-height: 1.7;
+      }
+      #articleBody h2 {
+        font-size: 1.3rem;
+      }
+      #articleBody h3 {
+        font-size: 1.1rem;
+      }
+      #articleBody table {
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
       #articleBody .article-section {
         padding: 1.25rem;
       }

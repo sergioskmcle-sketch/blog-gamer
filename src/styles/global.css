@@ -462,3 +462,40 @@ tr:hover td {
   --body-bg-color: #0a1628;
 }
 /* --- END EDITOR THEME --- */
+
+/* --- MOBILE-FIRST: tipografia fluida e header compacto --- */
+@media (max-width: 640px) {
+  :root {
+    --nav-height: 3.5rem;
+    --logo-height: 3rem;
+  }
+
+  h1 {
+    font-size: clamp(1.6rem, 6vw, 2.2rem);
+  }
+
+  h2 {
+    font-size: clamp(1.35rem, 5vw, 1.75rem);
+  }
+
+  h3 {
+    font-size: 1.15rem;
+  }
+
+  h4 {
+    font-size: 1rem;
+  }
+
+  .text-h1 {
+    font-size: clamp(1.6rem, 6vw, 2.2rem);
+  }
+
+  .text-h2 {
+    font-size: clamp(1.35rem, 5vw, 1.75rem);
+  }
+
+  .px-gutter {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
