@@ -3,17 +3,23 @@
 // produtos sanitizados (Fase 1) e montagem segmentada (Fases 2/3).
 // Rodar com: npm test
 import assert from "assert";
+import fs from "fs";
+import path from "path";
 import {
   injectProductCards, injectGameImages, extractImageMarkers, repositionImageMarkers,
   stripLeftoverMarkers, validate, checkTitle, capitalizeTitle, similarity, nameSimilarity,
   computeMaxTokens, buildProductButtonHtml, productButtonLabel, buildProductImageTag, injectHeadingAnchors, validateSourceCoverage,
-  formatProductPriceForPrompt, findPricesInBody,
-  sanitizeProducts, splitMainBody, parseBlurb, buildComparativoTable, buildItemSection, injectSegmentedItems,
+  formatProductPriceForPrompt, findPricesInBody, stripPricesFromBody, keywordTokensMatch, parseFrontmatter,
+  sanitizeProducts, splitMainBody, buildListHeading, LISTA_MARKER, temFocoMisto, dominiosNoTexto, parseBlurb, buildComparativoTable, buildItemSection, injectSegmentedItems,
   buildMetodologiaSection,
   extendDescription,
   buildOfferButtonsHtml,
   sanitizeProductQuery,
   normalizarAnosBody,
+  shouldAbortProductSourcing,
+  resolverAfiliados,
+  DEFAULT_COVER_BY_PRODUCT_CATEGORY,
+  DEFAULT_COVER_GENERIC,
 } from "./gerar-artigo.mjs";
 import { parsePriceBRL } from "./google_shopping.mjs";
 import { normalizarProdutoRemoto } from "./monitor_api.mjs";
@@ -258,7 +264,7 @@ const fm = {
   description: "x".repeat(130), pubDate: "2026-07-23", category: "guia",
   tags: ["a", "b", "c"], affiliate: true,
 };
-const corpoLongo = corpo + "\n\n" + "palavra ".repeat(900);
+const corpoLongo = corpo + "\n\n" + "palavra ".repeat(1000);
 let r = validate(fm, corpoLongo, { category: "guia", productCount: 2, primaryKeyword: "headset gamer" });
 igual(r.hard, [], "artigo bom: sem bloqueantes");
 igual(r.soft, [], "artigo bom: sem alertas");
@@ -374,6 +380,48 @@ ok(warnings.some((w) => /2027/.test(w)), "detecta ano nao suportado pelas fontes
 ok(warnings.some((w) => /15\/10/.test(w)), "detecta nota nao suportada pelas fontes");
 ok(warnings.some((w) => /Secao ## Fontes ausente/.test(w)), "detecta secao Fontes ausente");
 
+const corpoComTabela = `## Introducao
+
+O teclado A e o mais recomendado para competitivo.
+
+## Comparativo
+
+| Produto | Preco |
+|---|---|
+| Teclado A | R$ 299,00 |
+| Teclado B | R$ 348,00 |
+
+## Fontes
+
+- [Review Tech](http://tech.com)`;
+warnings = validateSourceCoverage(corpoComTabela, fontes);
+ok(!warnings.some((w) => /Precos em prosa/.test(w)), "precos dentro da tabela comparativa nao geram warning de preco em prosa");
+
+const corpoComPrecoProsa = `## Introducao
+
+Este teclado custa R$ 299,00 e entrega 8 KHz.
+
+## Fontes
+
+- [Review Tech](http://tech.com)`;
+warnings = validateSourceCoverage(corpoComPrecoProsa, fontes);
+ok(warnings.some((w) => /Precos em prosa/.test(w)), "preco em prosa fora da tabela gera warning");
+
+const corpoComLinksInternos = `## Introducao
+
+O teclado chegou ao Brasil em 2026.
+
+## Fontes
+
+- [Review Tech](http://tech.com)
+
+## Continue Explorando
+
+- [Melhores teclados de 2025](/blog/teclados-de-2025/)
+- [Mouse gamer de 2024](/blog/mouse-2024/)`;
+warnings = validateSourceCoverage(corpoComLinksInternos, fontes);
+ok(!warnings.some((w) => /Anos mencionados/.test(w)), "anos em links internos do rodape nao geram warning");
+
 // --- Fase 1: portao sanitizeProducts ---
 const topicProd = { hint: "placas de video amd 2026", ml_query: "placa de video gamer", trending_keywords: ["rx 580"] };
 const candidatos = [
@@ -405,6 +453,27 @@ igual(splitMainBody("## Veredito\n\nx"), null, "split rejeita heading final como
 igual(splitMainBody("so texto"), null, "split rejeita texto sem heading");
 igual(splitMainBody(null), null, "split rejeita null");
 
+// --- Fase 2: marcador [LISTA] (montagem a prova de IA) ---
+const comMarcador = splitMainBody("Fala! Bora ver as placas.\n\n[LISTA]\n\n## Veredito\n\nVale.");
+igual(comMarcador.listHeading, null, "marcador: heading NAO vem da LLM (null = gerado em codigo)");
+ok(comMarcador.intro.startsWith("Fala!") && !/[LISTA]/.test(comMarcador.intro), "marcador: intro sem marcador");
+ok(comMarcador.rest.startsWith("## Veredito"), "marcador: resto comeca apos a linha [LISTA]");
+igual(splitMainBody("[LISTA]\n\n## Veredito").intro, "", "marcador: intro vazia e aceita");
+igual(splitMainBody("## Veredito antes do marcador\n\n[LISTA]"), null, "marcador: H2 antes de [LISTA] e estrutura invalida");
+
+// --- Fase 2: buildListHeading (heading deterministico em codigo) ---
+igual(buildListHeading([{ title: "A" }, { title: "B" }], "headset gamer som espacial"), "Os 2 Melhores Headset Gamer Som Espacial em 2026", "heading: keyword vira titulo da secao");
+igual(buildListHeading([{ title: "A" }], "", {}), "Os 1 Melhores Itens em 2026", "heading: sem keyword usa 'Itens'");
+ok(buildListHeading([{ title: "A" }, { title: "B" }], "melhores teclados gamer em 2024").endsWith("2026"), "heading: ano normalizado para o ano corrente");
+
+// --- Fase 2: foco misto (falso positivo nao conta como misto) ---
+ok(!temFocoMisto("Teclado Redragon com switches brown. Mouse gamer leve. Monitor 165Hz."), "foco: artigo de hardware nao e misto");
+ok(!temFocoMisto("Teclado gamer ideal para Valorant e Counter-Strike 2."), "foco: mencao de jogo como contexto NAO e misto");
+ok(!temFocoMisto("Headset com som espacial para partidas de CS2."), "foco: citacao unica de jogo nao e misto");
+ok(temFocoMisto("Consoles vs Placas de Video: o PS5 e a RTX 4060 disputam. Xbox e GeForce."), "foco: tema dividido entre games e hardware e misto");
+ok(temFocoMisto("O GTA 6 no PS5. Headset gamer. Mouse gamer. Valorant. Teclado gamer. Monitor gamer."), "foco: pesos equivalentes dos dois dominios");
+ok(dominiosNoTexto("").games === 0 && dominiosNoTexto("").hardware === 0, "foco: texto vazio zerado");
+
 // --- Fase 2: parseBlurb ---
 const blurbOk = parseBlurb("TAGLINE: melhor custo-beneficio\n\nCORPO:\nParagrafo um.\n\nParagrafo dois.\n\nNOTA: 4.5\nDESTAQUE: 60fps estaveis");
 igual(blurbOk.tagline, "melhor custo-beneficio", "blurb: tagline extraida");
@@ -426,9 +495,9 @@ ok(tab.includes("| P2 | Ver no ML | — | — | — |"), "tabela: sem preco/nota
 ok(!/\/10/.test(tab), "tabela: nunca escala 0-10");
 
 // --- Fase 2: buildItemSection (montagem deterministica) ---
-const sec = buildItemSection({ title: "Placa de Video RTX 4060", tagline: "60fps", blurbText: "Texto do item.", rating: 4.5, local_thumbnail: "/images/produtos/x.png", affiliate_link: "http://ml/x" });
+const sec = buildItemSection({ title: "Placa de Video RTX 4060", tagline: "60fps", blurbText: "Texto do item.", rating: 4.5, local_thumbnail: "/images/produtos/_placeholder.webp", affiliate_link: "http://ml/x" });
 ok(sec.startsWith("### Placa de Video RTX 4060 — 60fps"), "item: heading com tagline");
-ok(sec.includes('src="/images/produtos/x.png"'), "item: foto local do produto");
+ok(sec.includes('src="/images/produtos/_placeholder.webp"'), "item: foto local do produto (arquivo existente)");
 ok(sec.includes("VER NO MERCADO LIVRE") && sec.includes("http://ml/x"), "item: botao aponta para o produto real");
 ok(!sec.includes("R$"), "item: sem preco no texto");
 
@@ -453,6 +522,21 @@ const secVazia = validate(fmSeg, "Intro.\n\n## Secao Vazia\n\n## Outra\n\ntexto.
 ok(secVazia.hard.some((e) => /vazia/.test(e)), "segmentado: secao ## vazia bloqueia");
 const refCard = validate(fmSeg, "Intro.\n\n## X\n\nconfira o preco atual no card", { category: "lista", segmented: true, listHeading: "Lista Principal", products: prodsSeg, productCount: 2, relaxedWordCount: true, lastAttempt: true });
 ok(refCard.hard.some((e) => /card/.test(e)), "segmentado: vocabulario antigo 'card' bloqueia");
+
+// --- Fase 3: pipeline segmentado ponta a ponta (mesmo caminho do main()) ---
+{
+  const corpo = "Fala! Bora ver os produtos.\n\nCriterio: entrega por real.\n\n[LISTA]\n\n## Veredito\n\nVale.\n\n## FAQ\n\nP1";
+  const p = splitMainBody(corpo);
+  p.listHeading = buildListHeading(prodsSeg, "produtos gamer", {});
+  const body = [p.intro, `## ${p.listHeading}`, p.rest].filter(Boolean).join("\n\n");
+  const final = injectSegmentedItems(body, p.listHeading, prodsSeg, true);
+  ok(final.includes(`## ${p.listHeading}`), "e2e: heading deterministico presente no corpo");
+  ok(final.indexOf("### Produto A") > final.indexOf(`## ${p.listHeading}`), "e2e: itens apos o heading da lista");
+  ok(final.indexOf("## Veredito") > final.indexOf("## Comparativo"), "e2e: veredito depois da tabela");
+  ok(!final.includes("[LISTA]"), "e2e: marcador [LISTA] consumido na montagem");
+  const rv = validate(fmSeg, final, { category: "lista", segmented: true, listHeading: p.listHeading, products: prodsSeg, productCount: 2, relaxedWordCount: true, lastAttempt: true });
+  igual(rv.hard, [], "e2e: artigo montado passa sem bloqueantes");
+}
 
 // ---- Frente 4: botao duplo ----
 const produtoDuasLojas = {
@@ -708,9 +792,9 @@ ok(isImageUsable(pngGrande), "PNG grande e aprovado");
 ok(isImageUsable(Buffer.alloc(12000)), "formato desconhecido com bytes suficientes e aceito (nao descarta por limite do parser)");
 
 // buildProductImageTag respeita a ordem e passa dimensoes quando conhecidas.
-const imgTag4 = buildProductImageTag({ title: "Produto X", local_thumbnail: "/images/produtos/x.webp", image_width: 1200, image_height: 630 });
+const imgTag4 = buildProductImageTag({ title: "Produto X", local_thumbnail: "/images/produtos/_placeholder.webp", image_width: 1200, image_height: 630 });
 ok(imgTag4.includes('width="1200"') && imgTag4.includes('height="630"'), "tag de imagem carrega largura/altura reais");
-const imgTag4Sem = buildProductImageTag({ title: "Produto X", local_thumbnail: "/images/produtos/x.webp" });
+const imgTag4Sem = buildProductImageTag({ title: "Produto X", local_thumbnail: "/images/produtos/_placeholder.webp" });
 ok(!imgTag4Sem.includes("width="), "sem dimensao conhecida a tag nao inventa largura");
 
 // ---- Dados ricos: marca, descricao e specs do produto ----
@@ -733,4 +817,118 @@ igual(simples.description, "", "sem meta description, descricao vazia");
 igual(simples.specs, [], "sem JSON-LD, specs vazia");
 igual(simples.title, "Mouse Gamer Logitech G203", "titulo limpo preservado");
 
-console.log(`${passou} asserts OK`);
+// ---- Gate de sourcing: noticia nunca aborta, lista/hardware aborta so sem produtos ----
+igual(shouldAbortProductSourcing({ count: 0, articleCat: "console", isNoticia: true }), false, "noticia com 0 produtos NAO aborta (publica informativo)");
+igual(shouldAbortProductSourcing({ count: 2, articleCat: "mouse", isNoticia: true }), false, "noticia com poucos produtos NAO aborta");
+igual(shouldAbortProductSourcing({ count: 0, articleCat: null, isNoticia: false }), false, "sem categoria de produto detectada NAO aborta");
+igual(shouldAbortProductSourcing({ count: 3, articleCat: "mouse" }), false, "MIN_PRODUCTS atingido NAO aborta");
+igual(shouldAbortProductSourcing({ count: 2, articleCat: "mouse" }), true, "lista/hardware com menos de MIN_PRODUCTS e categoria detectada ABORTA (nunca artigo errado)");
+igual(shouldAbortProductSourcing({ count: 0, articleCat: "monitor" }), true, "lista sem nenhum produto e categoria detectada ABORTA");
+
+// ---- resolverAfiliados: produto sem link NAO e mais descartado, vira pendente ----
+(async () => {
+  const comLink = { title: "Mouse Redragon Cobra", permalink: "http://ml/1", affiliate_link: "http://ml/aff/1" };
+  const comOffers = { title: "Headset HyperX", permalink: "http://ml/2", offers: { shopee: { affiliate_link: "http://s/aff" } } };
+  const semLink = { title: "Console PS5 Slim", permalink: "http://ml/3", source: "Mercado Livre" };
+  const resultado = await resolverAfiliados([comLink, comOffers, semLink]);
+  igual(resultado.length, 3, "resolverAfiliados mantem todos os produtos (nenhum descartado)");
+  igual(resultado[0].affiliate_pending, false, "produto com affiliate_link fica sem flag");
+  igual(resultado[1].affiliate_pending, false, "produto com offer de afiliado fica sem flag");
+  igual(resultado[2].affiliate_pending, true, "produto sem link de afiliado vira affiliate_pending");
+  const pendHtml = buildProductButtonHtml(resultado[2]);
+  ok(pendHtml.includes("product-btn--pending"), "botao do produto pendente leva a classe product-btn--pending");
+  ok(pendHtml.includes('href="http://ml/3"'), "botao pendente publica com o permalink");
+  const normalHtml = buildProductButtonHtml(resultado[0]);
+  ok(!normalHtml.includes("product-btn--pending"), "botao normal nao tem a classe pendente");
+  ok(buildProductButtonHtml(semLink).includes("product-btn--pending"), "diretamente: produto sem link vira botao pendente");
+
+  // ---- Etapa 7.1: keyword tolerante a plural/posicao no titulo ----
+  igual(
+    keywordTokensMatch("5 Melhores Headsets Gamer Com Som Espacial Em 2026", "headset gamer"),
+    { ok: true, idx: 11 },
+    "plural real: headsets casa com a keyword headset"
+  );
+  igual(keywordTokensMatch("Headset com microfone embutido em 2026", "headset gamer").ok, false, "token ausente (gamer) reprova");
+  igual(keywordTokensMatch("Headset", "").ok, true, "keyword vazia nao reprova");
+  igual(
+    checkTitle("5 Melhores Headsets Gamer Com Som Espacial Em 2026", "headset gamer"),
+    [],
+    "titulo com headsets (plural) e keyword headset gamer passa no gate"
+  );
+  ok(
+    checkTitle("Headset com microfone embutido em 2026", "headset gamer").some((p) => p.includes("nao contem a palavra-chave")),
+    "keyword sem token presente continua reprovando"
+  );
+  ok(
+    checkTitle("O que voce precisa saber sobre headset gamer em 2026", "headset gamer").some((p) => p.includes("tarde demais")),
+    "keyword nos 40%+ continua reprovando"
+  );
+
+  // ---- Etapa 7.2: strip de precos em prosa (so artigos com produtos) ----
+  const bodyPrecos = [
+    "## Introducao",
+    "",
+    "Este headset custa R$ 349,90 na promocao e o mouse sai por R$ 89,90.",
+    "",
+    "### Headset Gamer HyperX Cloud II",
+    "",
+    "Som limpo por R$ 349,90 neste modelo.",
+    "",
+    "## Comparativo",
+    "",
+    "| Produto | Preco | Destaque |",
+    "|---|---|---|",
+    "| Headset Gamer HyperX Cloud II | R$ 349,90 | som |",
+    "| Mouse Logitech G Pro X | R$ 89,90 | precisao |",
+  ].join("\n");
+  const bodyStripped = stripPricesFromBody(bodyPrecos, [349.9, 89.9]);
+  ok(!bodyStripped.includes("custa R$"), "preco em prosa removido do texto corrido");
+  ok(bodyStripped.includes("custa na promocao"), "espacos duplos colapsados apos remocao");
+  ok(bodyStripped.includes("Som limpo por R$ 349,90"), "preco dentro da secao ### do produto preservado");
+  ok(bodyStripped.includes("| Headset Gamer HyperX Cloud II | R$ 349,90 |"), "preco na tabela Comparativo preservado");
+  igual(
+    stripPricesFromBody("preco R$ 1.299 em prosa", []),
+    "preco R$ 1.299 em prosa",
+    "sem precos de produto, corpo intacto"
+  );
+
+  // ---- Etapa 7.3: frontmatter com CRLF nao corrompe pubDate (keepPubDate) ----
+  const fmCrlf = [
+    `---`,
+    `title: "Headset X"`,
+    `description: "Descricao longa o suficiente para o frontmatter."`,
+    `pubDate: 2024-05-01`,
+    `category: "review"`,
+    `affiliate: true`,
+    `---`,
+    ``,
+    `## Introducao`,
+    ``,
+    `Texto.`,
+  ].join("\r\n");
+  const parsedCrlf = parseFrontmatter(fmCrlf);
+  igual(parsedCrlf.frontmatter.pubDate, "2024-05-01", "pubDate limpa (sem \\r) em frontmatter CRLF");
+  igual(parsedCrlf.frontmatter.category, "review", "category limpa (sem \\r) em frontmatter CRLF");
+
+  // ---- Etapa 8.1: imagem local inexistente nunca vai para o markup ----
+  const imgMissing = { title: "Fake", local_thumbnail: "/images/produtos/nao-existe-999.png", thumbnail: "http://img/1.jpg" };
+  ok(buildProductImageTag(imgMissing).includes('src="http://img/1.jpg"'), "local inexistente cai para a thumbnail web");
+  const imgPlaceholder = { title: "Fake", local_thumbnail: "/images/produtos/_placeholder.webp" };
+  ok(buildProductImageTag(imgPlaceholder).includes('src="/images/produtos/_placeholder.webp"'), "arquivo local existente mantido no markup");
+  igual(
+    buildProductImageTag({ title: "Fake", local_thumbnail: "/images/produtos/nao-existe-999.png" }),
+    "",
+    "sem thumbnail web e local inexistente: <img> omitido"
+  );
+
+  // ---- Etapa 8.2: capas default por categoria referenciam arquivos reais ----
+  for (const [cat, cover] of Object.entries(DEFAULT_COVER_BY_PRODUCT_CATEGORY)) {
+    ok(fs.existsSync(path.resolve("public", cover.replace(/^\//, ""))), `capa default da categoria "${cat}" existe (${cover})`);
+  }
+  ok(fs.existsSync(path.resolve("public", DEFAULT_COVER_GENERIC.replace(/^\//, ""))), "capa default generica existe");
+
+  console.log(`${passou} asserts OK`);
+})().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

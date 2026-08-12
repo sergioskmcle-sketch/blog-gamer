@@ -1,6 +1,6 @@
 # Promo Gamer — Status do Projeto
 
-> Última atualização: 2026-08-07
+> Última atualização: 2026-08-12
 
 > ⚠️ **Este arquivo foi reescrito em 06/08/2026.** A versão anterior descrevia o pipeline Python
 > na VM (`scheduler.py`, `generate_article.py`, `ml_affiliate.py`) como se fosse o sistema ativo.
@@ -112,6 +112,84 @@ LLM (blurbs + corpo) como fonte de verdade — sem mudança visual nos cards.
 | Merge de detalhes em `product_dedupe.mjs` (mesclar) | ✅ |
 | Testes (`extractMLProductData` com/sem JSON-LD) | ✅ |
 | Docs (`METODOLOGIA.md`) | ✅ |
+
+### ✅ Concluído em 11/08/2026 — notícias nunca abortam + pendências de afiliado
+
+O abort de 10–11/08 (categoria console <3 produtos válidos → `exit(1)`) foi removido:
+**artigos de notícia nunca abortam por falta de produtos** — rodam em fluxo informativo
+(seção "Onde Jogar", sem cards de produto). E produto bom **sem link de afiliado**
+não é mais descartado: é publicado com o botão `product-btn--pending` e registrado em
+`src/data/afiliados_pendentes.json`, para o autor colar o link na aba **Pendências** do `/admin/`.
+
+| Tarefa | Estado |
+|---|---|
+| `shouldAbortProductSourcing` (notícia nunca aborta; exportado) | ✅ |
+| `isNoticia` pula retry por categoria e shortlist | ✅ |
+| `main()` preserva `noticia` quando tema vem de trending | ✅ |
+| `resolverAfiliados` mantém produto sem link com `affiliate_pending: true` | ✅ |
+| Botão `product-btn--pending` + seção "Onde Jogar" no prompt | ✅ |
+| Registro `src/data/afiliados_pendentes.json` | ✅ |
+| Aba **Pendências** no `/admin/` (copiar link, substituir `<a href>`, marcar resolvido, deploy) | ✅ |
+| Testes (**304 asserts OK**) + build (**154 páginas**) | ✅ |
+| Docs: `PIPELINE_ETAPAS.md`, `METODOLOGIA.md`, `TROUBLESHOOTING.md`, `README.md` | ✅ |
+
+### ✅ Concluído em 11/08/2026 — etapa 6 (redação): montagem à prova de IA + foco misto
+
+O P0 "5 Melhores sem seção por produto" saiu: a LLM não decide mais o posicionamento nem o
+título da seção principal. Ela escreve a linha `[LISTA]` (sozinha, após a intro) e o heading
+`## Os N Melhores…` é gerado em código (`buildListHeading`). O foco misto games×hardware foi
+atacado em duas frentes: tema híbrido é rejeitado na descoberta (`isMixedDomain(kw)`) e o corpo
+usa `temFocoMisto` (menção de jogo como contexto em artigo de hardware não conta como misto),
+com retry de domínio no fluxo segmentado.
+
+| Tarefa | Estado |
+|---|---|
+| Marcador `[LISTA]` + heading determinístico (`buildListHeading`) | ✅ |
+| `splitMainBody` tolera contrato antigo (primeira linha `##`) | ✅ |
+| `temFocoMisto`/`dominiosNoTexto` (foco real, sem falso positivo) | ✅ |
+| Bloqueio de tema misto na descoberta (`isMixedDomain(kw)`) | ✅ |
+| Feedback de domínio no fluxo segmentado (retry máx. 2) | ✅ |
+| Word count alinhado com mínimos por categoria (`MIN_WORDS`) | ✅ |
+| Testes (**323 asserts OK**) + build (**154 páginas**) | ✅ |
+| Docs: `PIPELINE_ETAPAS.md` | ✅ |
+
+### ✅ Concluído em 12/08/2026 — gate de revisão + funil de sourcing medido
+
+Os relatórios de revisão (7 etapas) passaram de **documentação pós-fato** para **portão real**:
+qualquer etapa reprovada (P0/P1) agora impede a publicação — o artigo novo é removido, a
+regeneração restaura o backup do artigo anterior, o estado é revertido (`last_success`/`last_slug`)
+e o pipeline aborta com `exit(1)`. Os dossiês são persistidos **antes** do gate (sempre existem,
+mesmo no aborto) e há escape do operador (`IGNORE_REVIEW_GATE=1` ou `opts.forcePublicar`).
+Também foram corrigidos o bug de severidade do título (SEO) e a medição do funil de sourcing.
+
+| Tarefa | Estado |
+|---|---|
+| Gate de revisão com rollback em `gerar-artigo.mjs` | ✅ |
+| Dossiês persistidos antes do gate (visíveis mesmo reprovados) | ✅ |
+| Reversão de estado no aborto + `consecutive_failures` | ✅ |
+| Escape do operador (`IGNORE_REVIEW_GATE=1` / `opts.forcePublicar`) | ✅ |
+| Bug de severidade do título — keyword ausente/clickbait agora P1 (`revisar-etapas.mjs`) | ✅ |
+| `revisarSourcing` com score formal: `queriesUsadas` no relatório (C1) | ✅ |
+| Rodada vazia registra métrica (`sanitizeProducts`) — funil sem `undefined` (C2) | ✅ |
+| `aposPiso` pós-truncamento + `descartadosTruncados` (C3) | ✅ |
+| Testes (**347 asserts OK**) | ✅ |
+| Docs: `PIPELINE_ETAPAS.md`, `PROGRESSO.md` | ✅ |
+
+### ✅ Concluído em 12/08/2026 — gate em produção (P8) + desarme de falsos positivos (P12)
+
+Os hooks de revisão e o gate foram **commitados** — o CI passa a rodar com o pipeline completo.
+Antes do commit foram desarmados os falsos positivos que travariam o gate em **todo artigo de
+produto** (o `validateSourceCoverage` contava os `R$` da tabela Comparativo como "preço em prosa"
+→ P1 → rollback + `exit(1)`):
+
+| Tarefa | Estado |
+|---|---|
+| `validateSourceCoverage` ignora linhas de tabela (`\|`), seção "Continue Explorando" e anchors `<a id>` nos checks de `R$`/ano/nota (`gerar-artigo.mjs`) | ✅ |
+| Anos em links internos do rodapé não geram "ano sem suporte nas fontes" | ✅ |
+| `fontesComUrl < 2` rebaixado de P1 para P2 (fecha P12); `description < 120` mantido P1 (o `validate()` já garante ≥120) | ✅ |
+| Re-verificação do artigo publicado (hooks atuais): **10/10 em todas as etapas** — gate simulado aprovado | ✅ |
+| Testes (**350 asserts OK**) | ✅ |
+| Docs: `PIPELINE_ETAPAS.md` (seção "Verificação de código"), `PROGRESSO.md` | ✅ |
 
 ### 🟢 Baixa prioridade
 | Tarefa | Motivo |

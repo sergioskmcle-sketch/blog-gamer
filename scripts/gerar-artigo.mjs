@@ -14,6 +14,11 @@ import { SESSION_HEADERS, extractMLProductData } from "./ml_affiliate.mjs";
 import { dedupeProducts } from "./product_dedupe.mjs";
 import { buildEditorialShortlist } from "./editorial_shortlist.mjs";
 import { ANO_ATUAL, normalizarAnos } from "./tempo.mjs";
+import { pesquisarFundo } from "./pesquisar-fundo.mjs";
+import {
+  revisarPesquisa, revisarSourcing, revisarRedacao, revisarSeo, revisarDesign, revisarFinal, revisarPublicacao,
+  emitirParecer, statusGeraLLM, salvarRevisoes, salvarOcorrencias,
+} from "./revisar-etapas.mjs";
 
 const rssParser = new Parser({
   timeout: 15000,
@@ -27,6 +32,20 @@ const PROD_IMAGES_DIR = path.resolve("public/images/produtos");
 // usa /images (site servido na raiz, com dominio proprio); o arquivo vive em
 // public/images/produtos/_placeholder.webp.
 const PLACEHOLDER_IMAGE = "/images/produtos/_placeholder.webp";
+
+// Ultima rede de seguranca de capa: reutiliza capas genericas ja publicadas
+// quando a cadeia inteira falha (IA contextual -> getBestCoverImage -> RAWG).
+// Melhor uma capa generica do que um artigo publicado sem imagem principal.
+const DEFAULT_COVER_BY_PRODUCT_CATEGORY = {
+  cadeira: "/images/capas/melhores-cadeiras-gamer-de-2026.png",
+  headset: "/images/capas/melhores-fones-de-ouvido-gamer-custo-beneficio-2026.png",
+  monitor: "/images/capas/monitor-gamer-2026-top-5-para-alta-performance-em-jogos.png",
+  mouse: "/images/capas/3-melhores-mouses-gamer-com-tecnologia-de-rastreamento-otico-em-2026.png",
+  teclado: "/images/capas/5-melhores-teclados-gamer-mecanicos-de-2025-para-desempenho.png",
+  placa_video: "/images/capas/aumento-em-placas-de-video-da-amd-guia-de-precos-em-2026.png",
+  console: "/images/capas/playstation-julho-2026-guia-de-jogos-ps-plus-e-acessorios.png",
+};
+const DEFAULT_COVER_GENERIC = "/images/capas/gta-6-e-jogos-de-2026-performance-e-o-que-esperar-no-ps5.png";
 
 function loadState() {
   try {
@@ -231,6 +250,28 @@ function explainMixedDomain(text) {
     .filter((k) => lower.includes(k));
   const hardwareMatches = HARDWARE_KEYWORDS.filter((k) => lower.includes(k));
   return { gameMatches: gameMatches.slice(0, 10), hardwareMatches: hardwareMatches.slice(0, 10) };
+}
+
+// Contagem de mencoes por dominio — detecta FOCO misto real. Artigo de hardware
+// cita jogos como contexto ("ideal para Valorant") sem ser misto; o foco so e
+// dividido quando os DOIS lados tem peso equivalente no corpo.
+function dominiosNoTexto(text) {
+  const lower = String(text || "").replace(/##?\s*Fontes[\s\S]*$/im, "").toLowerCase();
+  let games = 0;
+  let hardware = 0;
+  for (const k of GAME_KEYWORDS) if (k) games += lower.split(k).length - 1;
+  for (const k of CONSOLE_KEYWORDS) if (k) games += lower.split(k).length - 1;
+  for (const k of EVENT_KEYWORDS) if (k && k !== "lancamento" && k !== "lançamento") games += lower.split(k).length - 1;
+  for (const k of HARDWARE_KEYWORDS) if (k) hardware += lower.split(k).length - 1;
+  return { games, hardware };
+}
+
+function temFocoMisto(text) {
+  const { games, hardware } = dominiosNoTexto(text);
+  if (games === 0 || hardware === 0) return false;
+  const min = Math.min(games, hardware);
+  const max = Math.max(games, hardware);
+  return min >= 2 && max <= min * 2;
 }
 
 // Filtra palavras-chave mantendo apenas as do mesmo dominio da palavra principal.
@@ -477,8 +518,9 @@ function buildTopicFromKeyword(topKeyword, topKeywords, existingTopics = [], rec
     ml_query = `${top2names} gamer ${ANO_ATUAL}`;
   }
 
-  // Guard: se por algum motivo o hint ficou misto, descarta
-  if (isMixedDomain(hint) || isMixedDomain(ml_query)) {
+  // Guard: tema hibrido (games + hardware) nunca chega a redacao — bloqueado aqui
+  // na descoberta, incluindo a keyword em si ("console vs placa de video").
+  if (isMixedDomain(kw) || isMixedDomain(hint) || isMixedDomain(ml_query)) {
     log("WARN", `buildTopicFromKeyword gerou tema misto para "${kw}": ${hint}`);
     return null;
   }
@@ -703,7 +745,7 @@ const CANDIDATE_POOL = 20;
 // TAREFA 5.3: quantidade minima de produtos da categoria certa para o artigo
 // "Top N" valer a pena. Abaixo disso o gerador tenta mais buscas e, se ainda
 // faltar, aborta em vez de publicar um artigo cheio de produto errado.
-const MIN_PRODUCTS = 3;
+const MIN_PRODUCTS = Number(process.env.MIN_PRODUCTS) || 3;
 // remote = usa a Frente 4 (produtos com comissao). legacy = so Google Shopping.
 const AFFILIATE_MODE = process.env.AFFILIATE_MODE || "legacy";
 
@@ -730,10 +772,29 @@ function slugify(text) {
 function normalizeForMatch(text) {
   return String(text || "")
     .toLowerCase()
-    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9 ]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+// Match tolerante de keyword no titulo: cada token da keyword precisa aparecer
+// como prefixo de palavra (cobre plural real: "headsets" casa com "headset",
+// "mouses" com "mouse"), e a primeira ocorrencia deve ficar nos 40% iniciais.
+// Retorna { ok, idx } com o indice de caractere normalizado da ocorrencia.
+function keywordTokensMatch(title, primaryKeyword) {
+  const tokens = normalizeForMatch(primaryKeyword).split(" ").filter(Boolean);
+  if (tokens.length === 0) return { ok: true, idx: -1 };
+  const words = normalizeForMatch(title).split(" ").filter(Boolean);
+  if (words.length === 0) return { ok: false, idx: -1 };
+  let firstIdx = -1;
+  for (const token of tokens) {
+    const found = words.findIndex((w) => w === token || w.startsWith(token));
+    if (found === -1) return { ok: false, idx: -1 };
+    const charIdx = words.slice(0, found).reduce((acc, w) => acc + w.length + 1, 0);
+    if (firstIdx === -1 || charIdx < firstIdx) firstIdx = charIdx;
+  }
+  return { ok: true, idx: firstIdx };
 }
 
 function levenshtein(a, b) {
@@ -1180,6 +1241,23 @@ async function enrichProducts(mlProducts) {
 }
 
 function sanitizeProducts(products, topic, ctx = {}) {
+  const metrics = ctx.metrics;
+  // Metrica registrada ANTES do guard: uma rodada que chega com lista vazia
+  // tambem e uma rodada real (entra no funil com 0) — sem isso `rodadas` podia
+  // ficar vazio mesmo havendo tentativas de retry.
+  if (metrics) {
+    metrics.ultimoRound = {
+      bruto: Array.isArray(products) ? products.length : 0,
+      semPreco: 0,
+      aposCategoria: 0,
+      descartadosCategoria: 0,
+      aposDedup: 0,
+      descartadosDedup: 0,
+      aposPiso: 0,
+      descartadosPiso: 0,
+      descartadosTruncados: 0,
+    };
+  }
   if (!Array.isArray(products) || products.length === 0) return [];
   const seen = new Set();
   const candidates = [];
@@ -1206,6 +1284,7 @@ function sanitizeProducts(products, topic, ctx = {}) {
   if (out !== candidates && out.length < candidates.length) {
     log("WARN", `${candidates.length - out.length} produto(s) sem preco descartados — tabela comparativa exige preco`);
   }
+  if (metrics) metrics.ultimoRound.semPreco = candidates.length - out.length;
 
   // TAREFA 5.3: filtra produtos que NAO pertencem a categoria do artigo.
   const articleCat = detectArticleCategory(topic);
@@ -1221,6 +1300,12 @@ function sanitizeProducts(products, topic, ctx = {}) {
       log("WARN", `Filtro de categoria "${articleCat}" deixaria so ${matched.length} produto(s) — mantendo os que casam e sinalizando falta`);
       out = matched;
     }
+    if (metrics) {
+      metrics.ultimoRound.aposCategoria = out.length;
+      metrics.ultimoRound.descartadosCategoria = before - out.length;
+    }
+  } else if (metrics) {
+    metrics.ultimoRound.aposCategoria = out.length;
   }
 
   const tokens = mlTopicTokens(topic);
@@ -1254,6 +1339,10 @@ function sanitizeProducts(products, topic, ctx = {}) {
     if (before > out.length) {
       log("INFO", `${before - out.length} produto(s) duplicado(s) semanticamente removido(s)`);
     }
+    if (metrics) {
+      metrics.ultimoRound.aposDedup = out.length;
+      metrics.ultimoRound.descartadosDedup = before - out.length;
+    }
   }
 
   // TAREFA 6.2/6.3: ordena por score objetivo (rankProducts) em vez de so
@@ -1277,12 +1366,23 @@ function sanitizeProducts(products, topic, ctx = {}) {
       }
     }
     out = items;
+    if (metrics) {
+      metrics.ultimoRound.aposPiso = out.length;
+      metrics.ultimoRound.descartadosPiso = descartados.length;
+    }
   }
 
   // Trunca para MAX_PRODUCTS so agora, depois de ranking+elegibilidade — antes
   // o corte acontecia na coleta ("os 5 primeiros que a busca achou"), agora
   // acontece depois de comparar um pool maior de candidatos.
+  const antesTrunc = out.length;
   if (out.length > MAX_PRODUCTS) out = out.slice(0, MAX_PRODUCTS);
+  if (metrics) {
+    // aposPiso passa a refletir a entrega FINAL (pos-truncamento), fiel ao
+    // campo `final` do relatorio — o funil mostra a perda real do pipeline.
+    metrics.ultimoRound.aposPiso = out.length;
+    metrics.ultimoRound.descartadosTruncados = antesTrunc - out.length;
+  }
 
   return out;
 }
@@ -1303,6 +1403,37 @@ function buildCategoryRetryQueries(articleCat) {
   ];
 }
 
+// Fallback de tema (TAREFA 5.4/ideia 1): quando a lista/review abortaria por
+// falta de produtos da categoria certa, antes de morrer o sourcing tenta a
+// "proxima keyword da mesma familia/categoria" — cada variacao de keyword da
+// categoria vira query de retry, aumentando a chance de achar produto com nome
+// reconhecivel. O process.exit(1) so acontece se TODAS falharem.
+const CATEGORY_FALLBACK_KEYWORDS = {
+  teclado: ["teclado mecanico gamer", "teclado gamer sem fio", "teclado gamer compacto", "teclado gamer rgb"],
+  mouse: ["mouse gamer sem fio", "mouse gamer rgb", "mouse gamer leve", "mouse gamer ergonomico"],
+  mousepad: ["mousepad gamer grande", "mousepad gamer speed", "mousepad gamer XL"],
+  headset: ["headset gamer sem fio", "headset gamer com microfone", "headset gamer 7.1"],
+  monitor: ["monitor gamer 144hz", "monitor gamer 240hz", "monitor curvo gamer", "monitor gamer 2k"],
+  cadeira: ["cadeira gamer ergonomica", "cadeira gamer reclinavel", "cadeira gamer premium", "cadeira gamer com apoio lombar"],
+  placa_video: ["placa de video rtx", "placa de video rx", "placa de video barata gamer"],
+  processador: ["processador ryzen", "processador intel core i5", "processador gamer"],
+  console: ["console playstation 5", "console xbox series x", "console nintendo switch 2"],
+  controle: ["controle sem fio gamer", "controle ps5", "controle xbox wireless"],
+  notebook: ["notebook gamer", "notebook gamer barato"],
+  webcam: ["webcam gamer", "webcam full hd 1080p"],
+  microfone: ["microfone gamer", "microfone usb gamer"],
+  gabinete: ["gabinete gamer rgb", "gabinete gamer mid tower"],
+  cooler: ["water cooler gamer", "cooler para processador gamer"],
+  fonte: ["fonte 650w 80 plus", "fonte gamer 80 plus bronze"],
+  ssd: ["ssd nvme gamer", "ssd 1tb gamer"],
+  memoria: ["memoria ram 16gb ddr4", "memoria ram ddr5 gamer"],
+};
+
+function buildCategoryFallbackKeywords(articleCat) {
+  if (!articleCat || !PRODUCT_CATEGORIES[articleCat]) return [];
+  return CATEGORY_FALLBACK_KEYWORDS[articleCat] || [];
+}
+
 // Detecta a extensao real pelo magic bytes do buffer baixado.
 function imageExtension(buf) {
   if (!buf || buf.length < 4) return ".jpg";
@@ -1314,7 +1445,16 @@ function imageExtension(buf) {
 }
 
 function buildProductImageTag(p) {
-  const url = p.local_thumbnail || (p.thumbnail && p.thumbnail.startsWith("http") ? p.thumbnail : "");
+  let url = p.local_thumbnail || (p.thumbnail && p.thumbnail.startsWith("http") ? p.thumbnail : "");
+  if (!url) return "";
+  // Imagem local so entra no markup se o arquivo existir de verdade: o portao
+  // (validar-artigo.mjs) reprova referencia a /images/... inexistente, e o
+  // artigo nao pode ser salvo apontando para um arquivo que nao existe.
+  if (url.startsWith("/images/") || url.startsWith("images/")) {
+    if (!fs.existsSync(path.resolve("public", url.replace(/^\//, "")))) {
+      url = p.thumbnail && p.thumbnail.startsWith("http") ? p.thumbnail : "";
+    }
+  }
   if (!url) return "";
   const title = p.title || "Produto no Mercado Livre";
   const size =
@@ -1386,23 +1526,84 @@ function produtoTemAfiliado(p) {
 // o monitor-telegram e nao suporta um segundo consumidor — uma chamada feita
 // a partir do processo do blog ja derrubou a sessao em producao (06/08/2026),
 // tirando as Frentes 1/2 do ar. Produtos do ML SO entram com link de afiliado
-// vindo pronto da Frente 4 (monitor_api.mjs). Sem isso, o produto e
-// DESCARTADO da lista com log ERROR — nunca publicado com link cru, e
-// NUNCA tentamos gerar o link aqui.
+// vindo pronto da Frente 4 (monitor_api.mjs).
+//
+// POLITICA ATUAL (ago/2026): produto bom SEM link de afiliado NAO e mais
+// descartado — e publicado com o permalink cru e a flag `affiliate_pending:
+// true`, e registrado em src/data/afiliados_pendentes.json para o autor
+// corrigir o link na aba "Pendencias" do painel /admin/. A geracao de link de
+// afiliado continua NUNCA sendo feita aqui.
 async function resolverAfiliados(produtos) {
   const out = [];
   for (const p of produtos) {
     if (produtoTemAfiliado(p)) {
+      p.affiliate_pending = false;
       out.push(p);
     } else {
-      log("ERROR", `Sem link de afiliado para "${(p.title || "").slice(0, 60)}" (produto nao veio da Frente 4 com link pronto) — produto descartado`);
+      p.affiliate_pending = true;
+      out.push(p);
+      log("WARN", `Sem link de afiliado para "${(p.title || "").slice(0, 60)}" — publicado com permalink pendente (corrigir na aba Pendencias do /admin/)`);
     }
   }
-  const descartados = produtos.length - out.length;
-  if (descartados > 0) {
-    log("WARN", `${descartados} produto(s) descartado(s) por falta de link de afiliado`);
+  const pendentes = out.filter((p) => p.affiliate_pending).length;
+  if (pendentes > 0) {
+    log("WARN", `${pendentes} produto(s) com link de afiliado pendente (publicados com permalink; corrija no /admin/)`);
   }
   return out;
+}
+
+// Gate de abandono do sourcing de produtos. Retorna true apenas quando ha
+// motivo para abortar: menos de MIN_PRODUCTS E categoria de produto detectada.
+// Noticias nunca abortam (o artigo informativo segue com 0..n produtos) e tema
+// sem categoria de produto detectavel tambem segue adiante.
+function shouldAbortProductSourcing({ count, articleCat, isNoticia = false }) {
+  if (isNoticia) return false;
+  if (count >= MIN_PRODUCTS) return false;
+  if (!articleCat) return false;
+  return true;
+}
+
+const AFILIADOS_PENDENTES_PATH = path.resolve("src/data/afiliados_pendentes.json");
+
+// Registra produtos publicados sem link de afiliado (perm ranhamento do autor).
+// A aba "Pendencias" do /admin/ le este arquivo e, ao salvar o link, marca o
+// item como resolvido e atualiza o <a href> do botao no markdown do artigo.
+function salvarPendentesAfiliados(slug, produtos) {
+  try {
+    let registry = { updatedAt: new Date().toISOString(), items: [] };
+    if (fs.existsSync(AFILIADOS_PENDENTES_PATH)) {
+      try {
+        const existente = JSON.parse(fs.readFileSync(AFILIADOS_PENDENTES_PATH, "utf-8"));
+        if (Array.isArray(existente?.items)) registry.items = existente.items;
+      } catch {
+        log("WARN", "afiliados_pendentes.json corrompido — reiniciando registro");
+      }
+    }
+    // Remove entradas antigas deste slug (o artigo foi regerado) e re-adiciona
+    // os pendentes atuais. Entradas de outros artigos e as resolvidas ficam.
+    const outros = registry.items.filter((e) => e.slug !== slug);
+    const pendentes = (produtos || [])
+      .filter((p) => p.affiliate_pending && p.permalink)
+      .map((p) => ({
+        id: `${slug}::${p.permalink}`,
+        slug,
+        produto: p.title,
+        botao: productButtonLabel(p),
+        permalink: p.permalink,
+        imagem: p.local_thumbnail || p.thumbnail || "",
+        artigo: `/blog/${slug}/`,
+        status: "pendente",
+      }));
+    registry.items = [...outros, ...pendentes];
+    registry.updatedAt = new Date().toISOString();
+    fs.mkdirSync(path.dirname(AFILIADOS_PENDENTES_PATH), { recursive: true });
+    fs.writeFileSync(AFILIADOS_PENDENTES_PATH, JSON.stringify(registry, null, 2), "utf-8");
+    if (pendentes.length > 0) {
+      log("WARN", `${pendentes.length} produto(s) registrado(s) em src/data/afiliados_pendentes.json (aba Pendencias do /admin/)`);
+    }
+  } catch (e) {
+    log("WARN", `Registro de afiliados pendentes falhou: ${e.message}`);
+  }
 }
 
 function buildProductButtonHtml(p) {
@@ -1417,12 +1618,15 @@ function buildProductButtonHtml(p) {
     return "";
   }
   const label = productButtonLabel(p);
-  return `<a href="${link}" class="product-btn" target="_blank" rel="nofollow">${label}</a>`;
+  // Produto pendente de afiliado sai com classe propria (product-btn--pending):
+  // a aba Pendencias do /admin/ usa essa marca para localizar o botao a corrigir.
+  const pendingClass = p.affiliate_pending ? " product-btn--pending" : "";
+  return `<a href="${link}" class="product-btn${pendingClass}" target="_blank" rel="nofollow">${label}</a>`;
 }
 
 // Ultimo recurso de imagem do item: gera uma foto de catalogo via OpenAI.
 async function gerarImagemItemIA(title, slug) {
-  if (!OPENAI_API_KEY || !title) return null;
+  if (!OPENAI_API_KEY || process.env.SKIP_COVER || !title) return null;
   try {
     const res = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
@@ -2089,6 +2293,10 @@ ${primaryKeyword ? `- A palavra-chave "${primaryKeyword}" nos primeiros 40% do t
 }
 
 function parseFrontmatter(text) {
+  // Arquivo existente pode vir com CRLF (Windows/git). Sem normalizar, o valor
+  // de pubDate fica com \r e o keepPubDate nao reconhece a data original — o
+  // artigo "vira novo" no RSS/SEO a cada regeneracao.
+  text = String(text || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   let match = text.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!match) {
     match = text.match(/^---\n([\s\S]*?)\n+## /);
@@ -2124,7 +2332,7 @@ function parseRaw(raw) {
 
 // Alinhado ao orcamento de saida da Groq (8000 TPM): pedir mais que isso faz
 // o artigo ser truncado no meio.
-const MIN_WORDS = { guia: 800, review: 800, noticia: 650, lista: 650 };
+const MIN_WORDS = { guia: 1000, review: 800, noticia: 600, lista: 800 };
 const ABSOLUTE_MIN_WORDS = 500;
 
 const GENERIC_TITLE_PATTERNS = [
@@ -2163,8 +2371,8 @@ function checkTitle(title, primaryKeyword) {
   }
   if (primaryKeyword) {
     const nt = normalizeForMatch(t);
-    const idx = nt.indexOf(normalizeForMatch(primaryKeyword));
-    if (idx === -1) problems.push(`title: nao contem a palavra-chave "${primaryKeyword}"`);
+    const { ok, idx } = keywordTokensMatch(t, primaryKeyword);
+    if (!ok) problems.push(`title: nao contem a palavra-chave "${primaryKeyword}"`);
     else if (nt.length > 0 && idx / nt.length > 0.4) problems.push(`title: palavra-chave "${primaryKeyword}" aparece tarde demais (${Math.round((idx / nt.length) * 100)}% do titulo)`);
   }
   return problems;
@@ -2186,6 +2394,51 @@ function findPricesInBody(body, prices) {
     }
   }
   return matches;
+}
+
+// Remove do corpo os precos de produto que aparecem em prosa (a regra e: preco
+// fica so na tabela comparativa e nos cards). Protege a tabela "## Comparativo"
+// e as secoes "### <produto>" para nao apagar o que ja esta no lugar certo.
+// So deve ser chamado em artigos com produtos (tabela/cards presentes).
+function stripPricesFromBody(body, productPrices = []) {
+  const prices = (productPrices || []).filter((p) => Number.isFinite(Number(p))).map((p) => Number(p));
+  if (prices.length === 0) return body;
+
+  const ranges = [];
+  const tableMatch = body.match(/^##\s+Comparativo[^\n]*$/m);
+  if (tableMatch) {
+    const start = tableMatch.index;
+    const after = body.slice(tableMatch.index + tableMatch[0].length);
+    const next = after.search(/\n##\s+/);
+    ranges.push([start, next === -1 ? body.length : tableMatch.index + tableMatch[0].length + next]);
+  }
+  for (const m of body.matchAll(/^###\s+[^\n]+$/gm)) {
+    const start = m.index;
+    const after = body.slice(m.index + m[0].length);
+    const next = after.search(/\n(?:##|###)\s+/);
+    ranges.push([start, next === -1 ? body.length : m.index + m[0].length + next]);
+  }
+  ranges.sort((a, b) => a[0] - b[0]);
+
+  const stripProse = (chunk) =>
+    chunk
+      .replace(/R\$\s*([\d.,]+)/g, (full, raw) => {
+        const val = Math.round(parseFloat(raw.replace(/\./g, "").replace(",", ".")) * 100) / 100;
+        if (Number.isNaN(val)) return full;
+        if (prices.some((p) => Math.abs(p - val) < 0.01)) return "";
+        return full;
+      })
+      .replace(/[ \t]{2,}/g, " ");
+
+  let cursor = 0;
+  let out = "";
+  for (const [s, e] of ranges) {
+    if (s > cursor) out += stripProse(body.slice(cursor, s));
+    out += body.slice(Math.max(cursor, s), e);
+    cursor = Math.max(cursor, e);
+  }
+  if (cursor < body.length) out += stripProse(body.slice(cursor));
+  return out;
 }
 
 function validate(fm, body, ctx = {}) {
@@ -2220,7 +2473,7 @@ function validate(fm, body, ctx = {}) {
     const msg = `Titulo mistura dominios: games=[${gameMatches.join(", ")}], hardware=[${hardwareMatches.join(", ")}]`;
     domainBlocking ? hard.push(msg) : soft.push(msg);
   }
-  if (isMixedDomain(body)) {
+  if (temFocoMisto(body)) {
     const { gameMatches, hardwareMatches } = explainMixedDomain(body);
     const msg = `Corpo mistura dominios: games=[${gameMatches.join(", ")}], hardware=[${hardwareMatches.join(", ")}]`;
     domainBlocking ? hard.push(msg) : soft.push(msg);
@@ -2258,9 +2511,13 @@ function validate(fm, body, ctx = {}) {
     const missingInTable = [];
     for (const p of ctx.products || []) {
       if (!p?.title) continue;
-      if (!headings.some((h) => h === p.title || h.startsWith(`${p.title} — `))) {
-        missingAsHeading.push(p.title.slice(0, 60));
-      }
+      // injectHeadingAnchors adiciona <a id="..."></a> no inicio dos headings;
+      // limpa antes de comparar com o titulo do produto.
+      const okHeading = headings.some((h) => {
+        const ch = h.replace(/<a\s[^>]*>[^<]*<\/a>\s*/i, "").trim();
+        return ch === p.title || ch.startsWith(`${p.title} `) || ch.startsWith(`${p.title} - `);
+      });
+      if (!okHeading) missingAsHeading.push(p.title.slice(0, 60));
       if (!tableRows.includes(p.title)) missingInTable.push(p.title.slice(0, 60));
     }
     if (missingAsHeading.length > 0) hard.push(`Itens sem secao propria (montagem quebrou): ${missingAsHeading.join(" | ")}`);
@@ -2285,8 +2542,11 @@ function validate(fm, body, ctx = {}) {
     hard.push('Texto menciona "card" — a estrutura nova usa botao "VER NO MERCADO LIVRE" e tabela comparativa');
   }
 
-  if (extractImageMarkers(body).length === 0) {
-    soft.push("Nenhum marcador [IMG:Nome do Jogo] usado — artigo ficara sem imagens no corpo");
+  // Aviso de [IMG:] vale para artigos de jogo/noticia (imagens via marcador).
+  // Artigos de produto usam fotos locais injetadas nos cards - nao exigem [IMG:].
+  const temProdutos = (ctx.products?.length || 0) > 0 || Boolean(ctx.segmented);
+  if (!temProdutos && extractImageMarkers(body).length === 0) {
+    soft.push("Nenhum marcador [IMG:Nome do Jogo] usado - artigo ficara sem imagens no corpo");
   }
 
   soft.push(...checkTitle(fm.title, ctx.primaryKeyword));
@@ -2355,8 +2615,20 @@ function validateSourceCoverage(body, sources = []) {
   const sourceText = sources.map((s) => String(s.title || "") + " " + String(s.content || "") + " " + String(s.url || "")).join("\n");
   const sourceTextLower = sourceText.toLowerCase();
 
+  // Regioes de estrutura (tabela comparativa, links internos do rodape e
+  // anchors de heading) nao sao claims editoriais: anos/notas/precos que
+  // aparecem so nelas nao podem gerar aviso de suporte. Tabela e filtrada
+  // por linha "|" (mesmo criterio de revisarRedacao); "Continue Explorando"
+  // carrega apenas slugs internos com anos; anchors tem o ano da keyword.
+  const regioesNaoClaim = body
+    .split("\n")
+    .filter((l) => !l.trim().startsWith("|"))
+    .join("\n")
+    .replace(/^##\s+Continue Explorando[\s\S]*$/im, "")
+    .replace(/<a id="[^"]*"><\/a>/g, "");
+
   // Extrai anos (ex: 2026, 2027) e verifica se estão nas fontes
-  const years = [...new Set([...(body.match(/\b20[2-9]\d\b/g) || [])])];
+  const years = [...new Set([...(regioesNaoClaim.match(/\b20[2-9]\d\b/g) || [])])];
   const missingYears = years.filter((y) => !sourceTextLower.includes(y));
   if (missingYears.length > 0) {
     warnings.push(`Anos mencionados sem suporte nas fontes: ${missingYears.join(", ")}`);
@@ -2364,17 +2636,18 @@ function validateSourceCoverage(body, sources = []) {
 
   // Extrai notas de review (ex: 8/10, 9.5, Metacritic 85)
   const scores = [...new Set([
-    ...(body.match(/\b\d{1,2}(?:[.,]\d+)?\s*\/\s*10\b/gi) || []),
-    ...(body.match(/\bMetacritic\s*[:\-]?\s*\d{1,3}\b/gi) || []),
-    ...(body.match(/\bnota\s*[:\-]?\s*\d{1,2}(?:[.,]\d+)?\b/gi) || []),
+    ...(regioesNaoClaim.match(/\b\d{1,2}(?:[.,]\d+)?\s*\/\s*10\b/gi) || []),
+    ...(regioesNaoClaim.match(/\bMetacritic\s*[:\-]?\s*\d{1,3}\b/gi) || []),
+    ...(regioesNaoClaim.match(/\bnota\s*[:\-]?\s*\d{1,2}(?:[.,]\d+)?\b/gi) || []),
   ])];
   const missingScores = scores.filter((s) => !sourceTextLower.includes(s.toLowerCase()));
   if (missingScores.length > 0) {
     warnings.push(`Notas/reviews mencionadas sem suporte nas fontes: ${missingScores.join(", ")}`);
   }
 
-  // Verifica se há preços em prosa (preços de produtos devem ficar nos cards)
-  const prosePrices = [...body.matchAll(/R\$\s*([\d.,]+)/g)].map((m) => m[0]);
+  // Verifica se há preços em prosa (preços de produtos devem ficar nos cards
+  // e na tabela comparativa — linhas "|" foram excluidas acima)
+  const prosePrices = [...regioesNaoClaim.matchAll(/R\$\s*([\d.,]+)/g)].map((m) => m[0]);
   if (prosePrices.length > 0) {
     warnings.push(`Precos em prosa detectados (${prosePrices.length}x) — preco deve ficar apenas no card do produto`);
   }
@@ -2448,6 +2721,21 @@ async function main() {
 
   let topic = null;
   let trendingSource = "estatico";
+  // FORCE_TOPIC=<keyword>|<categoria>: topico deterministico (teste/operacao),
+  // ignora a descoberta de trending e a esteira de categoria.
+  if (process.env.FORCE_TOPIC && process.env.FORCE_TOPIC.includes("|")) {
+    const [kw, cat] = process.env.FORCE_TOPIC.split("|").map((s) => s.trim());
+    if (kw && cat) {
+      topic = {
+        category: cat,
+        hint: `Descubra os melhores ${kw}.`,
+        ml_query: `${kw} ${ANO_ATUAL}`,
+        trending_keywords: [kw],
+      };
+      trendingSource = "forcado";
+      log("INFO", `FORCE_TOPIC: [${cat}] ${kw}`);
+    }
+  }
   const existingTopics = state.recent_topics || [];
   const recentKeywords = state.recent_keywords || [];
   // FORCE_GENERATE e a sobreposicao do operador: ignora a janela de 28d por
@@ -2456,26 +2744,38 @@ async function main() {
   const coverage = getDomainCoverage();
   log("INFO", `Cobertura: ${coverage.games} games / ${coverage.hardware} hardware | familias monitoradas: ${Object.keys(familyDates).length}`);
 
-  try {
-    const trending = await discoverTrendingTopic(existingTopics, recentKeywords, familyDates, coverage);
-    if (trending && trending.trending_score >= 1) {
-      topic = trending;
-      trendingSource = "trending";
-    }
-  } catch (e) {
-    log("WARN", `Trending discovery falhou, usando fallback: ${e.message}`);
-  }
-
   if (!topic) {
-    topic = pickTopic(getCategoryCounts());
-    log("INFO", `Tema estatico: ${topic.category} - ${topic.hint}`);
-  } else {
-    log("INFO", `Tema trending (${trendingSource}): [${topic.category}] ${topic.hint}`);
+    try {
+      const trending = await discoverTrendingTopic(existingTopics, recentKeywords, familyDates, coverage);
+      if (trending && trending.trending_score >= 1) {
+        topic = trending;
+        trendingSource = "trending";
+      }
+    } catch (e) {
+      log("WARN", `Trending discovery falhou, usando fallback: ${e.message}`);
+    }
+
+    if (!topic) {
+      topic = pickTopic(getCategoryCounts());
+      log("INFO", `Tema estatico: ${topic.category} - ${topic.hint}`);
+    } else {
+      log("INFO", `Tema trending (${trendingSource}): [${topic.category}] ${topic.hint}`);
+    }
   }
 
-  const assignedCategory = nextCategory(state.last_category || "");
-  topic.category = assignedCategory;
-  log("INFO", `Categoria esteira: ${topic.category} (anterior: ${state.last_category || "nenhuma"})`);
+  // Noticia vinda de TRENDING mantem a propria categoria — a esteira so roda
+  // para outros temas. Sem isto, uma noticia quente (ex: Marvel's Wolverine)
+  // era forcada para "review"/"lista" da rotacao, abrindo busca de produtos de
+  // console e abortando o artigo (10/08/2026). Temas estaticos seguem a esteira.
+  if (process.env.FORCE_TOPIC) {
+    log("INFO", `FORCE_TOPIC: categoria ${topic.category} preservada (sem esteira)`);
+  } else if (topic.category === "noticia" && trendingSource !== "estatico") {
+    log("INFO", `Categoria noticia preservada (tema trending) — sem esteira`);
+  } else {
+    const assignedCategory = nextCategory(state.last_category || "");
+    topic.category = assignedCategory;
+    log("INFO", `Categoria esteira: ${topic.category} (anterior: ${state.last_category || "nenhuma"})`);
+  }
 
   await generateArticle({ topic, state, trendingSource, opts: {} });
 }
@@ -2515,20 +2815,48 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
 
   let researchContext = "";
   let researchSources = [];
+  let verifiedFacts = [];
+  let coberturaPesquisa = null;
+  let subQueries = [];
   try {
     const query = topic.category === "noticia"
       ? `${topic.hint} Brasil ${ANO_ATUAL}`
       : `melhores ${topic.hint} Brasil ${ANO_ATUAL}`;
-    const sr = await fetchTavily(query);
-    researchSources = sr?.results || [];
-    // 450 chars por fonte: o limite de 8000 TPM da Groq divide o orcamento
-    // entre pesquisa e tamanho do artigo.
-    researchContext = researchSources
-      .map((r, i) => `[Fonte ${i + 1}] ${r.title}\nURL: ${r.url}\n${r.content?.slice(0, 450)}`)
-      .join("\n\n");
+    const pesquisa = await pesquisarFundo({
+      topic,
+      query,
+      categoria: topic.category,
+      tavilyKey: TAVILY_API_KEY,
+      fetchLLM,
+    });
+    researchContext = pesquisa?.researchContext || "";
+    researchSources = pesquisa?.researchSources || [];
+    verifiedFacts = pesquisa?.verifiedFacts || [];
+    coberturaPesquisa = pesquisa?.cobertura || null;
+    subQueries = pesquisa?.subQueries || [];
+    log("INFO", `Pesquisa concluida: ${researchSources.length} fontes, ${verifiedFacts.length} fatos verificados (nivel ${pesquisa?.nivel || "basico"})`);
   } catch (err) {
-    log("WARN", `Tavily: ${err.message}`);
+    log("WARN", `Pesquisa: ${err.message}`);
   }
+
+  const revPesquisa = revisarPesquisa({
+    topic,
+    researchSources,
+    cobertura: coberturaPesquisa || {},
+    topicDomain,
+    temaProibido: hasForbiddenTerm(topic.hint, topic.category),
+    subQueries,
+  });
+  let revPesquisaParecer = null;
+  if (statusGeraLLM(revPesquisa)) {
+    revPesquisaParecer = await emitirParecer({
+      etapa: "pesquisa",
+      rel: revPesquisa,
+      contexto: { topico: topic.hint, categoria: topic.category, fontes: researchSources.slice(0, 5).map((f) => f.url) },
+      fetchLLM,
+    });
+  }
+  revPesquisa.parecer = revPesquisaParecer;
 
   let mlProducts = [];
   // Dedup compartilhado entre Frente 4 e Google Shopping: sem isto, o Serper
@@ -2541,8 +2869,32 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
   // extras. Se ainda faltar, aborta: melhor nao publicar do que publicar um
   // artigo de teclado cheio de mouse.
   const articleCat = detectArticleCategory(topic);
-  const retryQueries = buildCategoryRetryQueries(articleCat);
+  // Noticia nao participa do funil de produtos por categoria: sem retry de
+  // queries especificas, sem shortlist editorial e sem aborto. Produtos
+  // relacionados (ex: console/jogo citado na noticia) entram so se a busca
+  // principal achar com link — nunca sao condicao para publicar.
+  const isNoticia = topic.category === "noticia";
+  const fallbackKeywords = isNoticia ? [] : buildCategoryFallbackKeywords(articleCat);
+  const retryQueries = isNoticia ? [] : [...buildCategoryRetryQueries(articleCat), ...fallbackKeywords];
+  if (fallbackKeywords.length > 0) {
+    log("INFO", `Fallback de tema pronto (proxima keyword da mesma familia): ${fallbackKeywords.join(" | ")}`);
+  }
   const triedQueries = new Set();
+  // Medicao da etapa 5 (ideia 8): funil busca -> categoria -> dedup -> piso,
+  // registrado por rodada. O helper monta o relatorio revisarSourcing no padrao
+  // das demais etapas (salvo no aborto e no sucesso junto das outras).
+  const sourcingMetrics = { rodadas: [] };
+  const montarRevSourcing = ({ abortado, gateAtingido }) => revisarSourcing({
+    categoria: articleCat || "",
+    noticia: isNoticia,
+    minProdutos: MIN_PRODUCTS,
+    rodadas: sourcingMetrics.rodadas,
+    comAfiliado: mlProducts.filter((p) => !p.affiliate_pending).length,
+    final: mlProducts.length,
+    abortado,
+    gateAtingido,
+    queriesUsadas: [...triedQueries],
+  });
 
   // TAREFA 6.1: consenso editorial coletado UMA vez, fora do laço de retry.
   const rankingContext = await fetchRankingContext(articleCat, topic.hint);
@@ -2553,7 +2905,7 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
   // devolvesse — agora ela mira nomeadamente "Logitech G Pro X Superlight 2"
   // quando esse e o modelo que o mercado esta recomendando.
   let shortlistQueries = [];
-  if (articleCat && PRODUCT_CATEGORIES[articleCat]) {
+  if (articleCat && PRODUCT_CATEGORIES[articleCat] && !isNoticia) {
     try {
       const shortlist = await buildEditorialShortlist({
         categoriaLabel: PRODUCT_CATEGORIES[articleCat].label,
@@ -2681,19 +3033,37 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
       if (n > 0) log("INFO", `${n} produto(s) enriquecido(s) com nome completo e detalhes`);
     }
 
-    mlProducts = sanitizeProducts(mlProducts.filter((p) => isGamerProduct(p.title)), topic, { rankingContext });
+    mlProducts = sanitizeProducts(mlProducts.filter((p) => isGamerProduct(p.title)), topic, { rankingContext, metrics: sourcingMetrics });
     mlProducts = await resolverAfiliados(mlProducts);
+    if (sourcingMetrics.ultimoRound) {
+      sourcingMetrics.rodadas.push({ round: extraRound, ...sourcingMetrics.ultimoRound });
+      sourcingMetrics.ultimoRound = null;
+    }
 
-    if (mlProducts.length >= MIN_PRODUCTS || !articleCat) break;
+    if (!shouldAbortProductSourcing({ count: mlProducts.length, articleCat, isNoticia })) break;
 
     if (extraRound < 3 && retryQ.length > 0) {
-      log("WARN", `Filtro de categoria "${articleCat}" deixou ${mlProducts.length} produto(s) — rodada ${extraRound + 1}/3 com queries especificas`);
+      log("WARN", `Filtro de categoria "${articleCat}" deixou ${mlProducts.length} produto(s) — rodada ${extraRound + 1}/3, tentando proxima keyword da mesma familia: ${retryQ.join(" | ")}`);
       continue;
     }
 
+    // Ideia 1: antes de morrer, salva o funil da etapa 5 para o operador ver
+    // onde os produtos se perderam (busca -> categoria -> dedup -> piso).
+    const revSourcingAbort = montarRevSourcing({ abortado: true, gateAtingido: false });
+    const abortSlug = `${slugify(topic.hint || topic.ml_query || "artigo")}-sourcing-abort-${today}`;
+    try {
+      salvarRevisoes(abortSlug, [revSourcingAbort]);
+      salvarOcorrencias(abortSlug, [revSourcingAbort]);
+    } catch (e) {
+      log("WARN", `Falha ao salvar relatorio de sourcing: ${e.message}`);
+    }
+    const ultimaRodadaAbort = sourcingMetrics.rodadas[sourcingMetrics.rodadas.length - 1] || {};
+    log("ERROR", `Funil de sourcing (rodadas: ${sourcingMetrics.rodadas.length}): ${ultimaRodadaAbort.bruto} brutos -> ${ultimaRodadaAbort.aposCategoria} categoria -> ${ultimaRodadaAbort.aposDedup} dedup -> ${ultimaRodadaAbort.aposPiso} piso -> ${mlProducts.length} final`);
     log("ERROR", `Menos de ${MIN_PRODUCTS} produtos da categoria "${articleCat}" (so ${mlProducts.length}) — abortando para nao publicar artigo errado`);
     process.exit(1);
   }
+
+  const revSourcing = montarRevSourcing({ abortado: false, gateAtingido: true });
 
   const productBlock = mlProducts.length > 0
     ? `\nPRODUTOS DISPONIVEIS (cada um vira um item da secao de Itens):\n${mlProducts.map((p, i) => {
@@ -2837,6 +3207,9 @@ PROIBIDO NO TEXTO: mouse, teclado, headset, monitor, placa de video, RTX, proces
 
 ${research ? `PESQUISA (use estes fatos — nao invente dados fora daqui):\n${research}\n` : "SEM PESQUISA DISPONIVEL: escreva so o que e conhecimento consolidado, sem inventar numeros, datas ou precos.\n"}
 ${productBlock}${internalLinksBlock}
+${isNoticia && mlProducts.length === 0 ? `
+NOTICIA SEM CARDS: alem da noticia em si, inclua perto do fim (antes de ## Fontes) uma secao "## Onde Jogar" (ou "Consoles e Plataformas") que menciona em texto natural quais consoles/plataformas rodam os jogos citados e o que o leitor precisa para jogar — sem cards de produto, sem links de compra, sem precos. Se as fontes nao sustentarem o detalhe, mantenha generico ("disponivel para as principais plataformas").
+` : ""}
 
 Checklist antes de responder:
 1. Titulo com 55-65 chars${primaryKeyword ? `, com "${primaryKeyword}" no comeco` : ""}, sem frase generica.
@@ -2953,12 +3326,40 @@ Checklist antes de responder:
       break;
     }
 
-    const domainFeedback = (isMixedDomain(parsed.frontmatter.title) || isMixedDomain(parsed.body))
+    const domainFeedback = (isMixedDomain(parsed.frontmatter.title) || temFocoMisto(parsed.body))
       ? `\n\nREGRA DE DOMINIO VIOLADA: voce misturou games e hardware no mesmo texto. Escolha APENAS UM dos lados e remova TODO o outro. Se o artigo for sobre jogos/consoles, remova qualquer mencao a mouse, teclado, headset, monitor, placa de video, processador, fonte, SSD, gabinete, cadeira, setup gamer. Se for sobre hardware, remova qualquer mencao a jogos especificos, lancamentos de jogos, eventos de games, gameplay.`
       : "";
     feedback = `\n\nA versao anterior foi rejeitada. Corrija TUDO isto e reescreva o artigo inteiro:\n- ${[...hard, ...soft].join("\n- ")}${domainFeedback}`;
   }
   }
+
+  // Categoria e decisao do pipeline (esteira/trending/FORCE_TOPIC), nunca da
+  // LLM: o frontmatter segmentado ja re-afirma dentro de generateArticleFrontmatter;
+  // o fluxo de chamada unica precisa da mesma trava, senao um "review" planejado
+  // vira "lista" (ou qualquer outra) no arquivo final.
+  if (fm && fm.category !== categoria) {
+    log("WARN", `Categoria sobrescrita pela LLM (${fm.category}) — reafirmando para "${categoria}"`);
+    fm.category = categoria;
+  }
+
+  const revRedacao = revisarRedacao({
+    fm,
+    body,
+    categoria,
+    minWords,
+    mixedDomain: isMixedDomain(fm.title) || temFocoMisto(body),
+    primaryKeyword,
+  });
+  let revRedacaoParecer = null;
+  if (statusGeraLLM(revRedacao)) {
+    revRedacaoParecer = await emitirParecer({
+      etapa: "redacao",
+      rel: revRedacao,
+      contexto: { titulo: fm.title, descricao: fm.description, palavras: body.split(/\s+/).filter(Boolean).length },
+      fetchLLM,
+    });
+  }
+  revRedacao.parecer = revRedacaoParecer;
 
   // Ultimo recurso pro titulo: uma chamada curta so pra reescrever o titulo.
   const titleProblems = checkTitle(fm.title, primaryKeyword);
@@ -3023,19 +3424,25 @@ Checklist antes de responder:
 
   // CAPA IA CONTEXTUAL: tentada SEMPRE, para qualquer tipo de artigo.
   // Produtos (ou arte de jogo, na ausencia deles) sao inseridos na cena pela IA.
+  // SKIP_COVER=1 pula a geracao por IA (OpenAI/Stability) e usa so os fallbacks
+  // gratuitos (thumbnail de produto / RAWG) — util para testes sem gasto.
   const capaSlug = slugify(fm.title);
   const coverContext = topic.hint || fm.title || "";
   const gameRefs = Object.values(gameImages);
   const hasProducts = mlProducts.length > 0;
 
-  log("INFO", `Gerando capa IA contextual (categoria: ${categoria}, ${hasProducts ? mlProducts.length + " produtos" : "sem produtos"}, ${gameRefs.length} imagens de jogo)...`);
-  if (hasProducts) {
-    coverImage = await gerarCapaOpenAI({ mlProducts, category: categoria, slug: capaSlug, context: coverContext }) || "";
+  if (process.env.SKIP_COVER) {
+    log("INFO", "SKIP_COVER: capa IA pulada — usando fallbacks gratuitos");
   } else {
-    coverImage = await gerarCapaOpenAI({ mlProducts: [], category: categoria, slug: capaSlug, contentType: "game", context: coverContext, gameRefs }) || "";
-  }
-  if (!coverImage) {
-    coverImage = await gerarCapaStability({ mlProducts, category: categoria, slug: capaSlug, context: coverContext, gameRefs }) || "";
+    log("INFO", `Gerando capa IA contextual (categoria: ${categoria}, ${hasProducts ? mlProducts.length + " produtos" : "sem produtos"}, ${gameRefs.length} imagens de jogo)...`);
+    if (hasProducts) {
+      coverImage = await gerarCapaOpenAI({ mlProducts, category: categoria, slug: capaSlug, context: coverContext }) || "";
+    } else {
+      coverImage = await gerarCapaOpenAI({ mlProducts: [], category: categoria, slug: capaSlug, contentType: "game", context: coverContext, gameRefs }) || "";
+    }
+    if (!coverImage) {
+      coverImage = await gerarCapaStability({ mlProducts, category: categoria, slug: capaSlug, context: coverContext, gameRefs }) || "";
+    }
   }
 
   // Fallbacks sem IA (mantidos como rede de seguranca)
@@ -3106,6 +3513,16 @@ Checklist antes de responder:
 
   body = stripLeftoverMarkers(body);
 
+  // Preco de produto so vive na tabela comparativa / no card, nunca em prosa.
+  if (mlProducts.length > 0 && validationCtx.productPrices.length > 0) {
+    const proseAntes = findPricesInBody(body, validationCtx.productPrices);
+    body = stripPricesFromBody(body, validationCtx.productPrices);
+    const proseDepois = findPricesInBody(body, validationCtx.productPrices);
+    if (proseDepois.length < proseAntes.length) {
+      log("INFO", `Precos em prosa removidos (${proseAntes.length} -> ${proseDepois.length})`);
+    }
+  }
+
   // Gera sumário/índice com links âncora para melhor navegação e SEO
   body = injectHeadingAnchors(body);
 
@@ -3113,12 +3530,70 @@ Checklist antes de responder:
     const fallbackKw = trendingKeywordForCover || (topic.ml_query ? topic.ml_query.split(" ").slice(0, 2).join(" ") : "") || "";
     if (fallbackKw) coverImage = await fetchRAWGImage(fallbackKw) || "";
   }
+  // Ultima rede de seguranca: capa padrao por categoria de produto (reutiliza
+  // capas genericas ja publicadas) — melhor uma capa generica do que nenhuma.
+  if (!coverImage) {
+    const defaultPath = (articleCat && DEFAULT_COVER_BY_PRODUCT_CATEGORY[articleCat]) || DEFAULT_COVER_GENERIC;
+    if (fs.existsSync(path.resolve("public", defaultPath.replace(/^\//, "")))) {
+      coverImage = defaultPath;
+      log("INFO", `Capa padrao por categoria: ${defaultPath}`);
+    }
+  }
   if (coverImage) {
     fm.image = coverImage;
     log("INFO", `Imagem de capa: ${coverImage.slice(0, 80)}`);
   } else {
-    log("WARN", "Nenhuma imagem de capa encontrada — artigo ficara sem imagem principal");
+    log("WARN", "Nenhuma imagem de capa encontrada - artigo ficara sem imagem principal");
   }
+
+  // Revisao SEO roda DEPOIS da capa resolvida (fm.image preenchida acima):
+  // o hook mede "imagem de capa presente" contra o frontmatter final.
+  const internalLinksCount = [...body.matchAll(/\/blog\/[^)\s"'#]+/g)].length;
+  const fontesSection = body.match(/^##\s+Fontes\s*$/im);
+  // Fontes sao escritas como URLs cruas ("- https://...") ou links markdown:
+  // conta os dois formatos para nao submedir a cobertura.
+  const fontesComUrl = fontesSection
+    ? [...body.slice(fontesSection.index).matchAll(/(?:\[[^\]]*\]\()?https?:\/\/[^\s)\]>]+/g)].length
+    : 0;
+  const revSeo = revisarSeo({
+    fm,
+    body,
+    primaryKeyword,
+    internalLinks: internalLinksCount,
+    fontesComUrl,
+    titleProblems: checkTitle(fm.title, primaryKeyword),
+  });
+  let revSeoParecer = null;
+  if (statusGeraLLM(revSeo)) {
+    revSeoParecer = await emitirParecer({
+      etapa: "seo",
+      rel: revSeo,
+      contexto: { titulo: fm.title, descricao: fm.description, tags: fm.tags, linksInternos: internalLinksCount },
+      fetchLLM,
+    });
+  }
+  revSeo.parecer = revSeoParecer;
+
+  const produtoImagensRevisao = mlProducts
+    .filter((p) => p.local_thumbnail)
+    .map((p) => ({ title: p.title, path: p.local_thumbnail }));
+  const revDesign = revisarDesign({
+    body,
+    fm,
+    coverImage,
+    produtoImagens: produtoImagensRevisao,
+    gameImages: Object.keys(gameImages),
+  });
+  let revDesignParecer = null;
+  if (statusGeraLLM(revDesign)) {
+    revDesignParecer = await emitirParecer({
+      etapa: "design",
+      rel: revDesign,
+      contexto: { imagensJogos: Object.keys(gameImages).length, imagensProdutos: produtoImagensRevisao.length, capa: coverImage.slice(0, 60) },
+      fetchLLM,
+    });
+  }
+  revDesign.parecer = revDesignParecer;
 
   const slug = opts.overwriteSlug || slugify(fm.title);
   const published = fs.existsSync(ARTIGOS_DIR)
@@ -3148,6 +3623,36 @@ Checklist antes de responder:
   }
 
   const cover = fm.image || mlProducts[0]?.thumbnail || "";
+  const finalValidate = validate(fm, body, {
+    ...validationCtx,
+    segmented: mlProducts.length > 0 && Boolean(parts),
+    listHeading: parts?.listHeading,
+    products: mlProducts,
+    productCount: mlProducts.length,
+    relaxedWordCount: true,
+    softMixedDomain: true,
+    lastAttempt: true,
+  });
+  const finalWarnings = validateSourceCoverage(body, researchSources);
+  const revFinal = revisarFinal({
+    hard: finalValidate.hard,
+    soft: finalValidate.soft,
+    sourceWarnings: finalWarnings,
+    wc: body.split(/\s+/).filter(Boolean).length,
+    minWords,
+    productCount: mlProducts.length,
+  });
+  let revFinalParecer = null;
+  if (statusGeraLLM(revFinal)) {
+    revFinalParecer = await emitirParecer({
+      etapa: "revisao",
+      rel: revFinal,
+      contexto: { titulo: fm.title, fontes: researchSources.slice(0, 5).map((f) => f.url) },
+      fetchLLM,
+    });
+  }
+  revFinal.parecer = revFinalParecer;
+
   const markdown = `---
 title: "${fm.title.replace(/"/g, '\\"')}"
 description: "${fm.description.replace(/"/g, '\\"')}"
@@ -3162,8 +3667,12 @@ ${body}
 `;
 
   const fp = path.join(ARTIGOS_DIR, `${slug}.md`);
+  // Backup do conteudo anterior (regeneracao): o gate de revisao pode precisar
+  // restaurar o artigo antigo se a nova versao for reprovada.
+  const backupOriginal = fs.existsSync(fp) ? fs.readFileSync(fp, "utf-8") : null;
   fs.writeFileSync(fp, markdown, "utf-8");
   log("INFO", `Artigo salvo: ${slug}.md`);
+  salvarPendentesAfiliados(slug, mlProducts);
 
   if (opts.updateState !== false) {
     state.last_success = today;
@@ -3179,6 +3688,74 @@ ${body}
     state.recent_topics = [...((state.recent_topics || []).slice(-9)), topic.hint.slice(0, 60)];
     persistState();
     log("INFO", `Estado atualizado: ${state.total_articles} artigos, ultimo hoje`);
+  }
+
+  const revPublicacao = revisarPublicacao({
+    slug,
+    fm,
+    body,
+    arquivoExiste: fs.existsSync(fp),
+    linksInternos: internalLinksCount,
+  });
+  let revPublicacaoParecer = null;
+  if (statusGeraLLM(revPublicacao)) {
+    revPublicacaoParecer = await emitirParecer({
+      etapa: "publicacao",
+      rel: revPublicacao,
+      contexto: { titulo: fm.title, slug, tamanhoMarkdown: markdown.length },
+      fetchLLM,
+    });
+  }
+  revPublicacao.parecer = revPublicacaoParecer;
+
+  const relatoriosPiloto = [
+    revPesquisa,
+    revSourcing,
+    revRedacao,
+    revSeo,
+    revDesign,
+    revFinal,
+    revPublicacao,
+  ];
+  try {
+    salvarRevisoes(slug, relatoriosPiloto);
+    salvarOcorrencias(slug, relatoriosPiloto);
+  } catch (err) {
+    log("WARN", `Falha ao persistir relatorios de revisao: ${err.message}`);
+  }
+
+  // GATE DE REVISAO: etapa reprovada (qualquer P0/P1) bloqueia a publicacao.
+  // Os relatorios ja foram persistidos acima; se o gate falhar, o artigo e
+  // removido (novo) ou restaurado (regeneracao) e o pipeline aborta.
+  const gateReprovados = relatoriosPiloto.filter((r) => r.status === "reprovado");
+  if (gateReprovados.length > 0) {
+    log("ERROR", `Gate de revisao: ${gateReprovados.length} etapa(s) reprovada(s) — ${gateReprovados.map((r) => `${r.etapa} (${r.score}/10)`).join(", ")}`);
+    for (const r of gateReprovados) {
+      for (const p of r.problemas.filter((x) => x.severidade === "P0" || x.severidade === "P1")) {
+        log("ERROR", `  [${r.etapa}] ${p.severidade}: ${p.mensagem} (${p.evidencia || "sem evidencia"})`);
+      }
+    }
+    if (!(opts.forcePublicar || process.env.IGNORE_REVIEW_GATE === "1")) {
+      if (backupOriginal != null) {
+        fs.writeFileSync(fp, backupOriginal, "utf-8");
+        log("ERROR", "Artigo anterior restaurado (regeneracao reprovada pelo gate).");
+      } else {
+        fs.rmSync(fp, { force: true });
+        log("ERROR", "Artigo removido (reprovado pelo gate).");
+      }
+      state.last_error = `Gate de revisao reprovou: ${gateReprovados.map((r) => r.etapa).join(", ")}`;
+      state.last_error_date = today;
+      state.consecutive_failures = (state.consecutive_failures || 0) + 1;
+      // O bloco acima ja tinha marcado last_success/last_slug como publicados;
+      // revert para o artigo nao contar como sucesso (cooldown reaberto).
+      state.last_success = null;
+      state.last_slug = null;
+      state.total_articles = countArticlesInDir();
+      persistState();
+      process.exit(1);
+    } else {
+      log("WARN", "Gate ignorado (IGNORE_REVIEW_GATE/forcePublicar) — publicando mesmo assim.");
+    }
   }
 
   log("INFO", "=== CONCLUIDO ===");
@@ -3398,9 +3975,10 @@ ${categoriaUnicaPrompt(articleCat)}
   }
 }
 
-// 1 chamada: intro SEM H2, o heading da lista, e as secoes finais. Nao escreve
-// os itens (o sistema monta) nem a tabela comparativa (o sistema monta).
-async function generateMainBody({ mlProducts, topic, domain, categoria, researchContext, internalLinksBlock, primaryKeyword, mainMinWords, articleCat }) {
+// 1 chamada: intro SEM H2, a linha [LISTA], e as secoes finais. Nao escreve
+// os itens (o sistema monta) nem a tabela comparativa (o sistema monta) nem o
+// heading da lista (o sistema gera em codigo a partir do marcador [LISTA]).
+async function generateMainBody({ mlProducts, topic, domain, categoria, researchContext, internalLinksBlock, primaryKeyword, mainMinWords, articleCat, feedback = "" }) {
   const estilo = segStyle(categoria, domain);
   const productLines = mlProducts
     .map((p, i) => `${i + 1}. ${p.title}${p.price ? ` (${formatPriceBRL(p.price)})` : ""}`)
@@ -3415,7 +3993,7 @@ Este artigo e APENAS sobre ${domainLabel(domain)}. Nunca misture games e hardwar
 
 ## ESTRUTURA EXATA (em ordem)
 1. INTRODUCAO SEM H2: 1-2 paragrafos com gancho direto. Nos primeiros 2-3 paragrafos, resuma em 2 frases os criterios que definem os itens (o que diferencia um bom item). NAO crie secao ## para isso.
-2. A LINHA "## Os ${mlProducts.length} Melhores {tipo} em ${ANO_ATUAL}" — a PRIMEIRA linha ## do seu texto. Apos essa linha, NAO escreva mais nada na secao: o sistema insere os itens e a tabela ali.
+2. A LINHA "[LISTA]" SOZINHA em uma linha, logo apos a introducao. NAO escreva "## Os ... Melhores" nem nenhum outro heading ##: o sistema gera o heading da lista em codigo e o substitui por "[LISTA]". Apos essa linha, NAO escreva mais nada na secao: o sistema insere os itens e a tabela ali.
 3. "## Veredito" (ou "## Qual X Escolher?"): bullets por perfil de usuario — nunca "depende do orcamento".
 4. "## FAQ": 3-4 perguntas que as pessoas pesquisam no Google sobre o tema.
 5. "## Quer mais ofertas?": "Entre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e receba ofertas diarias de ${domain === "hardware" ? "perifericos e hardware gamer" : "games e consoles"}!"
@@ -3423,7 +4001,7 @@ Este artigo e APENAS sobre ${domainLabel(domain)}. Nunca misture games e hardwar
 7. "## Continue Explorando": 2-3 links internos SOMENTE dos slugs fornecidos, formato [texto](/blog/slug-do-artigo/).
 
 ## MARCADORES DE IMAGEM
-- [IMG:Nome] em linha sozinha ANTES de cada heading ## das secoes 3 a 7 (pelo menos 2 delas). Ex: [IMG:Setup Gamer], [IMG:Perguntas Frequentes]. NUNCA em linhas de itens (nao existem no seu texto) nem antes de "## Os ... Melhores".
+- [IMG:Nome] em linha sozinha ANTES de cada heading ## das secoes 3 a 7 (pelo menos 2 delas). Ex: [IMG:Setup Gamer], [IMG:Perguntas Frequentes]. NUNCA em linhas de itens (nao existem no seu texto) nem antes de "[LISTA]".
 
 ## REGRAS DE CONTEUDO
 - GROUNDING: todo dado concreto (spec, data, numero, nota) vem da pesquisa fornecida. Se nao esta la, use "segundo rumores"/"ainda sem confirmacao".
@@ -3432,7 +4010,7 @@ Este artigo e APENAS sobre ${domainLabel(domain)}. Nunca misture games e hardwar
 - NUNCA escreva "R$" nem preco de produto listado.
 - NUNCA diga "confira no card" — os itens tem botao "VER NO MERCADO LIVRE". Se precisar, diga "confira o preco atual no Mercado Livre".
 - NUNCA deixe secao ## vazia ou sem conteudo abaixo dela.
-- NUNCA escreva "## Comparativo" nem "## Os ${mlProducts.length} Melhores" duas vezes, nem use [PRODUTO:N].
+- NUNCA escreva "## Comparativo" nem a linha "[LISTA]" mais de uma vez, nem use [PRODUTO:N].
 - Jogos/produtos citados pela primeira vez em **negrito**.
 - Emojis, voz passiva, termos corporativos: proibido.
 
@@ -3461,13 +4039,54 @@ Somente o markdown das secoes acima, na ordem. Sem frontmatter, sem comentario.`
 
   const user = `${topic.hint ? `Escreva a parte do artigo sobre: ${topic.hint}\n\n` : ""}${
     researchContext ? `PESQUISA (use estes fatos — nao invente dados fora daqui):\n${researchContext}\n\n` : "SEM PESQUISA DISPONIVEL: escreva so conhecimento consolidado, sem inventar numeros, datas ou precos.\n\n"
-  }${rankingBlock}${internalLinksBlock}`;
+  }${rankingBlock}${internalLinksBlock}${feedback}`;
   return fetchLLM(sys, user, 3, { maxTokens: 6000, temperature: 0.7 });
+}
+
+// Marcador do heading da lista no fluxo segmentado: a LLM escreve "[LISTA]"
+// (sozinho, em uma linha) no lugar do heading; o sistema o substitui por um
+// heading deterministico. Nada de posicionamento fica a criterio da IA.
+const LISTA_MARKER = "[LISTA]";
+
+// Heading da lista gerado em codigo — nunca vem da LLM. A IA so escreve intro,
+// [LISTA] e as secoes finais; o titulo da secao principal e regra, nao pedido.
+function buildListHeading(mlProducts, primaryKeyword, topic) {
+  const n = mlProducts.length;
+  const stop = new Set(["os", "as", "um", "uma", "uns", "umas", "de", "da", "do", "das", "dos", "para", "com", "em", "na", "no", "nas", "nos", "melhores", "melhor", "top", "guia", "review", "o", "a", "e", "melhor", "melhores"]);
+  const kw = String(primaryKeyword || topic?.hint || "itens")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((w) => !stop.has(w) && !/^\d{4}$/.test(w))
+    .slice(0, 5)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+  const base = kw ? ` ${kw}` : "";
+  return normalizarAnos(`Os ${n} Melhores${base} em ${ANO_ATUAL}`);
 }
 
 // Separa o corpo principal em intro / heading da lista / resto.
 function splitMainBody(mainBody) {
   if (typeof mainBody !== "string" || !mainBody.trim()) return null;
+
+  // Contrato atual: a LLM escreve "[LISTA]" sozinho em uma linha. O heading e
+  // gerado em codigo depois (buildListHeading) — listHeading vem null aqui.
+  const marker = mainBody.match(/^\[LISTA\]\s*$/m);
+  if (marker) {
+    const intro = mainBody.slice(0, marker.index).trim();
+    // H2 antes do marcador = estrutura invalida (intro deve ser SEM heading).
+    if (/^##\s/m.test(intro)) return null;
+    return {
+      intro,
+      listHeading: null,
+      rest: mainBody.slice(marker.index + marker[0].length).trim(),
+    };
+  }
+
+  // Tolerancia com o contrato antigo (primeira linha ## valida).
   const m = mainBody.match(/^##\s+([^\n]+)\n([\s\S]*)$/m);
   if (!m) return null;
   const listHeading = normalizarAnos(m[1].trim());
@@ -3561,13 +4180,29 @@ async function generateSegmentedArticle({ mlProducts, topic, domain, categoria, 
     log("INFO", `Blurb ok (${i + 1}/${mlProducts.length}): "${mlProducts[i].title?.slice(0, 45)}"`);
   }
 
-  const mainMinWords = Math.max(350, Math.round(minWords * 0.75));
+  const mainMinWords = Math.max(450, Math.round(minWords * 0.8));
   let parts = null;
+  let feedback = "";
   for (let attempt = 1; attempt <= 2 && !parts; attempt++) {
     try {
-      const raw = await generateMainBody({ mlProducts, topic, domain, categoria, researchContext, internalLinksBlock, primaryKeyword, mainMinWords, articleCat });
+      const raw = await generateMainBody({ mlProducts, topic, domain, categoria, researchContext, internalLinksBlock, primaryKeyword, mainMinWords, articleCat, feedback });
+      if (temFocoMisto(raw)) {
+        if (attempt === 1) {
+          feedback = `\n\nREGRA DE DOMINIO VIOLADA: voce misturou games e hardware no mesmo texto. Este artigo e APENAS sobre ${domainLabel(domain)}. Escolha APENAS UM dos lados, remova TODO o conteudo do outro dominio (no maximo uma mencao de passagem como exemplo de uso) e reescreva o texto inteiro.`;
+          log("WARN", `Corpo principal mistura dominios (games+hardware) — regenerando (tentativa ${attempt}/2)`);
+          continue;
+        }
+        log("WARN", "Corpo principal ainda com dominio misto na 2a tentativa — publicando com ressalva (portao soft)");
+      }
       parts = splitMainBody(raw);
-      if (!parts) log("WARN", `Corpo principal sem estrutura valida (tentativa ${attempt}/2)`);
+      if (!parts) {
+        if (attempt === 1) {
+          feedback = "\n\nESTRUTURA INVALIDA: seu texto nao tinha a linha [LISTA] sozinha (exigida na ESTRUTURA EXATA, logo apos a introducao). Reescreva com [LISTA] em uma linha sozinha.";
+          log("WARN", `Corpo principal sem marcador [LISTA] (tentativa ${attempt}/2) — regenerando`);
+          continue;
+        }
+        log("WARN", `Corpo principal sem marcador [LISTA] na 2a tentativa — usando estrutura minima`);
+      }
     } catch (e) {
       log("WARN", `Corpo principal falhou (tentativa ${attempt}/2): ${e.message}`);
     }
@@ -3576,10 +4211,13 @@ async function generateSegmentedArticle({ mlProducts, topic, domain, categoria, 
     const fallbackKw = (topic.hint || primaryKeyword || "").split(" ").slice(0, 3).join(" ");
     parts = {
       intro: `Fala, gamer! Bora conferir quais ${fallbackKw} valem a pena em ${ANO_ATUAL} — a lista considera o que entrega mais por real, o que segura o tranco no dia a dia e o que a galera anda comprando.`,
-      listHeading: `Os ${mlProducts.length} Melhores ${fallbackKw || "Itens"} em ${ANO_ATUAL}`,
+      listHeading: buildListHeading(mlProducts, primaryKeyword, topic),
       rest: "",
     };
     log("WARN", "Usando corpo principal fallback (estrutura minima)");
+  }
+  if (!parts.listHeading) {
+    parts.listHeading = buildListHeading(mlProducts, primaryKeyword, topic);
   }
 
   return { fm, parts };
@@ -3620,6 +4258,10 @@ export {
   imageExtension,
   sanitizeProducts,
   splitMainBody,
+  buildListHeading,
+  LISTA_MARKER,
+  temFocoMisto,
+  dominiosNoTexto,
   parseBlurb,
   buildMetodologiaSection,
   buildComparativoTable,
@@ -3637,7 +4279,14 @@ export {
   extendDescription,
   validate,
   findPricesInBody,
+  stripPricesFromBody,
+  keywordTokensMatch,
+  parseFrontmatter,
+  DEFAULT_COVER_BY_PRODUCT_CATEGORY,
+  DEFAULT_COVER_GENERIC,
   computeMaxTokens,
   MIN_WORDS,
   GENERIC_TITLE_PATTERNS,
+  shouldAbortProductSourcing,
+  resolverAfiliados,
 };
