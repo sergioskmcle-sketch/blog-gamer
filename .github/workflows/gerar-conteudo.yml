@@ -14,6 +14,7 @@ on:
 permissions:
   contents: write
   actions: write
+  issues: write
 
 concurrency:
   group: content-generation
@@ -88,5 +89,20 @@ jobs:
       - name: Disparar deploy
         if: steps.check.outputs.changed == 'true' && success()
         run: gh workflow run deploy.yml
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Notificar falha (V11 — issue unica aberta)
+        if: failure()
+        run: |
+          OPEN=$(gh issue list --state open --label "pipeline" --json number --jq 'length')
+          if [ "$OPEN" = "0" ]; then
+            gh issue create \
+              --title "⚠️ Pipeline diário falhou" \
+              --body "O job de geração falhou em: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. Corrija e feche esta issue para o próximo ciclo voltar a notificar." \
+              --label "pipeline" || true
+          else
+            echo "Issue de pipeline já aberta — pulando nova notificação."
+          fi
         env:
           GH_TOKEN: ${{ github.token }}

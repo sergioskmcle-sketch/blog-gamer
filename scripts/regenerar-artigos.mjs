@@ -9,6 +9,7 @@
 //   node scripts/regenerar-artigos.mjs --slug <slug>   # dry-run padrao
 import fs from "fs";
 import path from "path";
+import { execFileSync } from "child_process";
 import { fileURLToPath } from "url";
 import { generateArticle } from "./gerar-artigo.mjs";
 import { CATEGORY_BRANDS, PRODUCT_CATEGORIES, detectArticleCategory, detectBrand, detectModel } from "./product_naming.mjs";
@@ -185,6 +186,19 @@ async function main() {
         updateState: false,
       },
     });
+
+    // Portao de qualidade real (V10): o validate() interno do gerador nao
+    // cobre tudo que o validar-artigo.mjs exige (marca/modelo, anos, duplicados,
+    // imagem local). Sem isto a regeneracao local podia gravar artigo reprovado.
+    console.log("  Validando com portao de qualidade (validar-artigo.mjs)...");
+    try {
+      execFileSync(process.execPath, ["scripts/validar-artigo.mjs", targetSlug], { stdio: "inherit" });
+      console.log("  Validacao OK.");
+    } catch (e) {
+      console.error(`  [FALHA] Portao reprovou ${targetSlug}.md — nada do artigo sera usado`);
+      process.exit(1);
+    }
+
     console.log(`  OK: ${targetSlug}.md regenerado (pubDate preservada)`);
   }
 

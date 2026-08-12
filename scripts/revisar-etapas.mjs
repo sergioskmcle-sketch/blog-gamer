@@ -154,7 +154,7 @@ export function revisarSourcing({ categoria = "", noticia = false, minProdutos =
   return concluir(rel);
 }
 
-export function revisarRedacao({ fm, body, categoria, minWords = 650, mixedDomain = false, primaryKeyword = "" }) {
+export function revisarRedacao({ fm, body, categoria, minWords = 700, mixedDomain = false, primaryKeyword = "" }) {
   const rel = novoRelatorio("redacao");
   const textoSemFM = String(body || "");
   const texto = normalizar(textoSemFM);
@@ -285,7 +285,7 @@ export function revisarDesign({ body, fm, coverImage = "", produtoImagens = [], 
   return concluir(rel);
 }
 
-export function revisarFinal({ hard = [], soft = [], sourceWarnings = [], wc = 0, minWords = 650, productCount = 0 }) {
+export function revisarFinal({ hard = [], soft = [], sourceWarnings = [], wc = 0, minWords = 700, productCount = 0 }) {
   const rel = novoRelatorio("revisao");
   item(rel, "Portao HARD (bloqueantes)", hard.length === 0, "P0", `${hard.length} bloqueante(s)`, hard.join(" | "));
   item(rel, "Portao SOFT (qualidade)", soft.length === 0, "P2", `${soft.length} ressalva(s) de qualidade`, soft.slice(0, 5).join(" | "));

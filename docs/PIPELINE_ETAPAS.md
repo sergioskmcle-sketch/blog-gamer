@@ -2,7 +2,7 @@
 
 Documento de trabalho para resolver o pipeline **um problema de cada vez**, até deixar tudo funcionando.
 
-**Status geral:** teste completo publicado em **11/08/2026** (`3-melhores-teclados-gamer-para-investir-em-2026`, 38 artigos) e re-medido em **12/08/2026** com os hooks atuais + 6 fixes de medição → **10/10 nas 6 etapas centrais** (Pesquisa, Redação, SEO, Design, Revisão, Publicação). Em **12/08/2026** foram adicionados: **gate de revisão** (relatórios agora BLOQUEIAM a publicação com rollback), correção do bug de severidade do título (SEO) e medição completa do funil de sourcing (C1-C3). Em **12/08/2026** o gate foi **commitado para produção (P8)** após **desarmar 2 falsos positivos** (`validateSourceCoverage` contava `R$` da tabela Comparativo e anos de links internos como claim) e rebaixar `fontesComUrl < 2` de P1 para P2 (P12). Resta: etapa 5 (sourcing) ainda aborta para *cadeiras* (1 produto passou no piso, precisa 3), fallback de tema, `AFFILIATE_MODE=remote` e buracos de medição (1/2/11).
+**Status geral:** teste completo publicado em **11/08/2026** (`3-melhores-teclados-gamer-para-investir-em-2026`, 38 artigos) e re-medido em **12/08/2026** com os hooks atuais + 6 fixes de medição → **10/10 nas 6 etapas centrais** (Pesquisa, Redação, SEO, Design, Revisão, Publicação). Em **12/08/2026** foram adicionados: **gate de revisão** (relatórios agora BLOQUEIAM a publicação com rollback), correção do bug de severidade do título (SEO) e medição completa do funil de sourcing (C1-C3). Em **12/08/2026** o gate foi **commitado para produção (P8)** após **desarmar 2 falsos positivos** (`validateSourceCoverage` contava `R$` da tabela Comparativo e anos de links internos como claim) e rebaixar `fontesComUrl < 2` de P1 para P2 (P12). **Fases 3 e 4 (12/08/2026):** todas as pendências de verificação foram fechadas — V4 (`familiaRepetida` real no hook de pesquisa), V5 (portão de tema com Gemini), V9 (`.env.example` completo), V10 (regeneração passa pelo portão `validar-artigo.mjs`), V11 (notificação de falha no cron via issue única), V13 (OpenAI como LLM primário), V16 (Reddit com UA real + `AbortSignal.timeout`) e V20 (`MIN_WORDS` alinhado à persona). Restam abertos apenas os problemas operacionais: etapa 5 (sourcing) ainda aborta para *cadeiras*, fallback de tema e `AFFILIATE_MODE=remote`.
 **Scores de referência:** re-medição dos 6 hooks de revisão sobre o artigo publicado (12/08, working dir, não commitado).
 **Legenda:** ✅ funciona / ❌ falha / ⚠️ parcial. "Sem score formal" = não existe hook de revisão para a etapa.
 **Legenda do gate:** "Bloqueia?" = se um P0/P1 nessa etapa impedir a publicação (via gate agregado ou portão hard).
@@ -53,6 +53,19 @@ Antes de 12/08/2026 existiam **2 portões reais** e 5 scorecards que apenas docu
 
 ---
 
+## Fases 3 e 4 (12/08/2026 — fechamento das pendências de verificação)
+
+- **V4 — `familiaRepetida` real no hook de pesquisa** (`gerar-artigo.mjs`): `buildFamilyDates(excludeSlug)` lê `pubDate` dos artigos publicados (ignorando o próprio arquivo em regeneração) e `isFamiliaRepetida(hint)` retorna `true` se alguma família foi coberta nos últimos `FAMILY_REFRESH_DAYS`; o resultado é passado a `revisarPesquisa` — o item do checklist agora mede de verdade em vez de passar sempre.
+- **V5 — Portão de tema por IA com Gemini**: o gate `analyzeTrendsWithAI` roda quando `GROQ_API_KEY || GEMINI_API_KEY` (antes só GROQ), alinhado ao `fetchLLM` que tenta Gemini 1º.
+- **V9 — `.env.example` completo**: todas as chaves usadas em `scripts/` documentadas em 5 seções (IA, ML, monitor, automação, comportamento).
+- **V10 — Regeneração passa pelo portão**: `regenerar-artigos.mjs` executa `node scripts/validar-artigo.mjs <slug>` após gravar com `--apply` e `exit(1)` se reprovar.
+- **V11 — Notificação de falha no cron**: `gerar-conteudo.yml` ganhou step `if: failure()` que abre uma issue única (label `pipeline`; não duplica se já aberta) com link do run; requer `permissions: issues: write`. Oportunamente pode virar webhook/Telegram reaproveitando o mesmo step.
+- **V13 — OpenAI como LLM primário**: o pre-flight do `main()` aceita `OPENAI_API_KEY` sozinha (antes exigia Gemini/Groq e só usava OpenAI como fallback).
+- **V16 — Reddit como sinal vivo**: UA de Chrome real + `AbortSignal.timeout(15000)` (a option `timeout` não existe no fetch do Node — era bug certo de 403/timeout).
+- **V20 — `MIN_WORDS` alinhado à persona**: `noticia` 600→900; defaults dos hooks standalone 650→700.
+
+---
+
 ## Verificação de código (12/08/2026 — Fase 0+1)
 
 Levantamento do que funciona / não funciona em cada etapa, validado contra o código (`file:line`).
@@ -63,21 +76,22 @@ Itens **[CORRIGIDO]** saíram na Fase 0+1 (desarme de falsos positivos + gate co
 | V1 | Revisão | `validateSourceCoverage` (`gerar-artigo.mjs:2637`) contava `R$` da tabela Comparativo (linhas `\|`) como "preço em prosa" → P1 no gate → **reprovava todo artigo de produto** | **[CORRIGIDO]** linhas `\|`, seção "Continue Explorando" e anchors `<a id>` excluídas antes dos checks de preço/ano/nota |
 | V2 | Revisão | Anos em links internos do rodapé (ex.: `/blog/...-2025-.../`) geravam "ano sem suporte nas fontes" | **[CORRIGIDO]** mesmo filtro acima |
 | V3 | SEO | `fontesComUrl < 2` era P1 (bloqueante) — tema com 1 fonte boa abortava | **[CORRIGIDO]** rebaixado para P2 (fecha P12) |
-| V4 | Pesquisa | `familiaRepetida` é recebido pelo hook (`revisar-etapas.mjs:105`) mas nunca passado pelo gerador (`gerar-artigo.mjs:2829-2836`) → o item "Família não repetida" passa sempre (a trava real está só na descoberta) | Aberto (Fase 3) |
-| V5 | Descoberta | Portão de tema por IA chaveado em `GROQ_API_KEY` (`gerar-artigo.mjs:702`) mas `fetchLLM` tenta Gemini 1º → só-GEMINI pula a escolha por IA | Aberto (Fase 3) |
-| V6 | Sourcing | `triedQueries` só é populado no ramo Google Shopping (`gerar-artigo.mjs:2974`) → lote remoto da Monitor API reenviado idêntico 4× nas rodadas extras | Aberto (Fase 2) |
-| V7 | Sourcing | Piso de qualidade: produto com rating mas sem `ratingCount` vira `NaN >= 20 === false` (`product_ranking.mjs:197-205`) → **principal causa de *cadeiras* abortar com 1 produto** | Aberto (Fase 2) |
-| V8 | Sourcing | `KNOWN_BRANDS` (`product_naming.mjs:83-154`) sem marcas de cadeira (ThunderX3, LuvinCo, MyMax); `detectModel` quase nunca pega modelo de cadeira | Aberto (Fase 2) |
-| V9 | Setup | `.env.example` não lista `RAWG_API_KEY`, `STABILITY_API_KEY`, `FAMILY_REFRESH_DAYS`, `MIN_PRODUCTS`, `FORCE_TOPIC`, `SKIP_COVER`, `IGNORE_REVIEW_GATE` nem os extras reais (`GITHUB_TOKEN`, `ADMIN_API_KEY`, `JWT_SECRET`, `ML_COOKIES_B64`, `ML_AFFILIATE_TAG`) | Aberto (Fase 4) |
-| V10 | Pós | `regenerar-artigos.mjs` não passa por `validar-artigo.mjs` (confia só no `validate()` interno) | Aberto (Fase 3) |
-| V11 | Global | Cron sem notificação de falha — se o gate abortar, ninguém é avisado | Aberto (Fase 3) |
+| V4 | Pesquisa | `familiaRepetida` é recebido pelo hook (`revisar-etapas.mjs:105`) mas nunca passado pelo gerador (`gerar-artigo.mjs:2829-2836`) → o item "Família não repetida" passa sempre (a trava real está só na descoberta) | **[CORRIGIDO (Fase 3)]** `buildFamilyDates(excludeSlug)` + `isFamiliaRepetida()` reais passados a `revisarPesquisa` (`gerar-artigo.mjs`) — o item do checklist mede a janela de `FAMILY_REFRESH_DAYS` |
+| V5 | Descoberta | Portão de tema por IA chaveado em `GROQ_API_KEY` (`gerar-artigo.mjs:702`) mas `fetchLLM` tenta Gemini 1º → só-GEMINI pula a escolha por IA | **[CORRIGIDO (Fase 3)]** portão roda quando `GROQ_API_KEY || GEMINI_API_KEY` (`gerar-artigo.mjs:722`) |
+| V6 | Sourcing | `triedQueries` só é populado no ramo Google Shopping (`gerar-artigo.mjs:2974`) → lote remoto da Monitor API reenviado idêntico 4× nas rodadas extras | **[CORRIGIDO (12/08)]** consultas enviadas pelo lote remoto agora entram em `triedQueries` (`gerar-artigo.mjs:2942-2946`) — as rodadas extras giram as keywords de retry em vez de repetir a mesma busca |
+| V7 | Sourcing | Piso de qualidade: produto com rating mas sem `ratingCount` vira `NaN >= 20 === false` (`product_ranking.mjs:197-205`) → **principal causa de *cadeiras* abortar com 1 produto** | **[CORRIGIDO (12/08)]** volume só reprova quando `ratingCount` chega (`product_ranking.mjs:198-213`) — nota sem volume segue valendo; piso da nota/volume combinados mantido |
+| V8 | Sourcing | `KNOWN_BRANDS` (`product_naming.mjs:83-154`) sem marcas de cadeira (ThunderX3, LuvinCo, MyMax); `detectModel` quase nunca pega modelo de cadeira | **[CORRIGIDO (12/08)]** `ThunderX3`, `LuvinCo` e `MyMax` adicionados ao `KNOWN_BRANDS` (`product_naming.mjs:155-157`) |
+| V9 | Setup | `.env.example` não lista `RAWG_API_KEY`, `STABILITY_API_KEY`, `FAMILY_REFRESH_DAYS`, `MIN_PRODUCTS`, `FORCE_TOPIC`, `SKIP_COVER`, `IGNORE_REVIEW_GATE` nem os extras reais (`GITHUB_TOKEN`, `ADMIN_API_KEY`, `JWT_SECRET`, `ML_COOKIES_B64`, `ML_AFFILIATE_TAG`) | **[CORRIGIDO (Fase 4)]** `.env.example` reescrito com as 5 seções (IA, ML, monitor, automação, comportamento) cobrindo todos os `process.env` usados em `scripts/` |
+| V10 | Pós | `regenerar-artigos.mjs` não passa por `validar-artigo.mjs` (confia só no `validate()` interno) | **[CORRIGIDO (Fase 3)]** após `generateArticle` com `--apply`, o script roda `node scripts/validar-artigo.mjs <slug>` via `execFileSync` e `exit(1)` se reprovar |
+| V11 | Global | Cron sem notificação de falha — se o gate abortar, ninguém é avisado | **[CORRIGIDO (Fase 3)]** step `if: failure()` no `gerar-conteudo.yml` cria **issue única** (label `pipeline`, não duplica se já aberta) com link do run; permission `issues: write` |
 | V12 | Revisão | Doc afirmava cobertura de fontes "soft", mas o hook marca **P1** (`revisar-etapas.mjs:292`) — na prática bloqueia | Comportamento intencional (P1) |
-| V13 | Setup | `main()` exige GEMINI ou GROQ (`gerar-artigo.mjs:2687`) — OpenAI sozinho não roda o pipeline (só fallback) | Aberto (Fase 4) |
+| V13 | Setup | `main()` exige GEMINI ou GROQ (`gerar-artigo.mjs:2687`) — OpenAI sozinho não roda o pipeline (só fallback) | **[CORRIGIDO (Fase 4)]** `OPENAI_API_KEY` também conta como LLM primário no pre-flight (`gerar-artigo.mjs:2722`) |
 | V14 | Redação | Fluxo segmentado usa máx. **2** tentativas no corpo (`gerar-artigo.mjs:4173`); fluxo único usa 3 (`:3223`) | Documentado |
 | V15 | Redação | "minWords 650 default" do hook só vale em chamada standalone — no pipeline o caller passa `MIN_WORDS` por categoria (`:3110, 3336, 3629`), que bate com `MIN_WORDS_SEO` | Documentado; sem gap real |
-| V16 | Disparo | Reddit 403 sempre (`gerar-artigo.mjs:659-675`): UA fraco + `timeout: 15000` inválido no fetch do Node (`:663`) — sinal morto | Aberto (Fase 4) |
+| V16 | Disparo | Reddit 403 sempre (`gerar-artigo.mjs:659-675`): UA fraco + `timeout: 15000` inválido no fetch do Node (`:663`) — sinal morto | **[CORRIGIDO (Fase 4)]** UA de Chrome real + `AbortSignal.timeout(15000)` (`gerar-artigo.mjs:678`) — Reddit volta a ser sinal vivo (datacenter ainda pode 403, mas o timeout inválido era bug certo) |
 | V17 | Disparo | RSS real: **11 feeds** (`:159-171`), doc antiga dizia 10 | Documentado |
-| V18 | Testes | Asserts reais após Fase 0+1: **350** (`npm test`) | Atualizado |
+| V18 | Testes | Asserts reais: **365** (`npm test`, 12/08 — after Fase 0+1 + Fases 3/4) | Atualizado |
+| V20 | Redação | `MIN_WORDS.noticia = 600` vs alvo da persona 900-1100 → notícia passava bem abaixo do objetivo editorial (`gerar-artigo.mjs:2357`) | **[CORRIGIDO (Fase 4)]** `noticia` subiu para 900; defaults standalone dos hooks (650) alinhados a 700 (`revisar-etapas.mjs:157,288`). `ABSOLUTE_MIN_WORDS=500` segue como piso de última tentativa |
 
 ---
 
@@ -115,7 +129,7 @@ FLUXO ÚNICO (sem produtos): LLM escreve tudo → validate → feedback → até
 - **Corrigido (11/08/2026) — foco misto:** `temFocoMisto` mede o peso real dos dois
   domínios no corpo — menção de jogo como contexto em artigo de hardware não conta como
   misto. Tema híbrido (`isMixedDomain(kw)`) é rejeitado na descoberta.
-- **Pendência (12/08):** `minWords` default 650 ≠ alvo da persona (700-900 lista/review, 900-1100 guia/notícia) — artigos entre 650 e o alvo passam no hook abaixo do objetivo editorial. Anti-padrões IA (confira/descubra) são P2, não bloqueiam.
+- **Corrigido (12/08, V20):** `minWords` agora segue a persona — `MIN_WORDS` por categoria (guia 1000, review 800, lista 800, notícia **900**) e defaults standalone dos hooks em 700; o piso de última tentativa segue `ABSOLUTE_MIN_WORDS=500`. Anti-padrões IA (confira/descubra) continuam P2, não bloqueiam.
 
 ---
 
@@ -134,7 +148,7 @@ FLUXO ÚNICO (sem produtos): LLM escreve tudo → validate → feedback → até
 | 2 | Pesquisa | Claims só checados se `cobertura.claims > 0` (cobertura vazia = sem verificação) | Média | Fatos não verificados passam |
 | 3 | Pesquisa | "Mínimo de 3 fontes" é P2 (só 0 fontes é P1) → artigo com 1-2 fontes publica | Baixa | Cobertura rasa |
 | 4 | Sourcing | Produto sem link de afiliado publica se ao menos 1 tiver link (P1 só com `comAfiliado === 0`) | Alta | Artigo "com afiliado" sem comissão |
-| 5 | Redação | `minWords` 650 ≠ alvo da persona (700-1100) | Média | Texto abaixo do editorial passa |
+| 5 | Redação | `minWords` 650 ≠ alvo da persona (700-1100) — **CORRIGIDO (Fase 4, V20)**: `noticia` 600→900, defaults 650→700 | — | Fechado em V20 |
 | 6 | Redação | Anti-padrões IA (confira/descubra) são P2 (não bloqueiam) | Baixa | Tom robotizado publica |
 | 7 | SEO | `fontesComUrl < 2` era P1 → tema com poucas fontes abortava artigo bom (falso positivo) — **CORRIGIDO (Fase 0): agora P2** | — | Fechado em P12 |
 | 8 | SEO | `description < 120` é P1 (assimétrico: `> 160` é P2) | Média | Falso positivo |
@@ -145,13 +159,13 @@ FLUXO ÚNICO (sem produtos): LLM escreve tudo → validate → feedback → até
 | 13 | Global | Nenhuma UI/admin lê os dossiês (`output/reviews/`) | Média | Auditoria só manual |
 | 14 | Global | Parecer LLM é registro morto em todas as etapas | Média | LLM gasto sem uso |
 | 15 | Global | Afiliados pendentes publicados até correção manual no `/admin/` | Média | Rendimento zero até arrumar |
-| 16 | Pesquisa | `familiaRepetida` nunca passado ao hook `revisarPesquisa` (V4) | Média | Item do checklist sempre passa |
-| 17 | Descoberta | Portão de tema chaveado em GROQ (V5) | Baixa | Só-GEMINI pula escolha por IA |
-| 18 | Sourcing | Lote remoto reenviado idêntico nas rodadas extras (V6) | Média | Custo de API desperdiçado, sem diversidade |
-| 19 | Sourcing | Piso mata rating sem `ratingCount` (V7) | Alta | Cadeiras/categorias abortam |
-| 20 | Setup | `.env.example` incompleto (V9) | Baixa | Config local difícil |
-| 21 | Pós | Regeneração sem `validar-artigo.mjs` (V10) | Média | Regenerado pode furar o portão |
-| 22 | Global | Sem notificação de falha no cron (V11) | Média | Falha silenciosa |
+| 16 | Pesquisa | `familiaRepetida` nunca passado ao hook `revisarPesquisa` (V4) — **CORRIGIDO (Fase 3)** | — | Fechado em V4 |
+| 17 | Descoberta | Portão de tema chaveado em GROQ (V5) — **CORRIGIDO (Fase 3)** | — | Fechado em V5 |
+| 18 | Sourcing | Lote remoto reenviado idêntico nas rodadas extras (V6) — **CORRIGIDO (12/08)** | — | Fechado em V6 |
+| 19 | Sourcing | Piso mata rating sem `ratingCount` (V7) — **CORRIGIDO (12/08)** | — | Fechado em V7 |
+| 20 | Setup | `.env.example` incompleto (V9) — **CORRIGIDO (Fase 4)** | — | Fechado em V9 |
+| 21 | Pós | Regeneração sem `validar-artigo.mjs` (V10) — **CORRIGIDO (Fase 3)** | — | Fechado em V10 |
+| 22 | Global | Sem notificação de falha no cron (V11) — **CORRIGIDO (Fase 3)** | — | Fechado em V11 |
 
 ---
 
@@ -171,7 +185,7 @@ publicado. Os 6 problemas restantes eram **falsos positivos dos medidores** (nã
 5. **Revisão `[IMG:]`** — aviso de "sem marcador [IMG:]" disparava em artigo de produto (que usa fotos locais nos cards). Agora só vale para artigos sem produtos.
 6. **Revisão headings** — o check "produto como seção própria" quebrava quando `injectHeadingAnchors` insere `<a id="..."></a>` no heading. Agora limpa o anchor antes de comparar.
 
-Re-medição (12/08): **Pesquisa 10/10 · Redação 10/10 · SEO 10/10 · Design 10/10 · Revisão 10/10 · Publicação 10/10**. `npm test` (350 asserts) passou sem regressão após os ajustes A/B/C e a Fase 0+1.
+Re-medição (12/08): **Pesquisa 10/10 · Redação 10/10 · SEO 10/10 · Design 10/10 · Revisão 10/10 · Publicação 10/10**. `npm test` (365 asserts) passou sem regressão após os ajustes A/B/C, a Fase 0+1 e as Fases 3/4 (V4/V5/V9/V10/V11/V13/V16/V20).
 
 ---
 
@@ -200,11 +214,12 @@ Re-medição (12/08): **Pesquisa 10/10 · Redação 10/10 · SEO 10/10 · Design
 - [x] **P11 — Bug de severidade do título (SEO, 12/08/2026)** — keyword ausente/clickbait agora P1; curto/longo P2; minúscula P3 (`revisar-etapas.mjs`).
 - [ ] **P12 — Falsos positivos do gate no SEO** — **CORRIGIDO (12/08, Fase 0):** `validateSourceCoverage` ignora tabela Comparativo, "Continue Explorando" e anchors `<a id>` (preço/ano/nota); `fontesComUrl < 2` rebaixado de P1 para P2. `description < 120` mantido P1 (o `validate()` do gerador já garante ≥120 antes do write — sem risco real de falso positivo).
 - [x] **P8 — Commit dos hooks (concluído em 12/08/2026)** — `pesquisar-fundo.mjs`, `revisar-etapas.mjs`, `auto-melhoria.mjs`, `prompts/` + mudanças de `gerar-artigo.mjs`/`test-injecao.mjs` commitados; o CI passa a rodar com o gate ativo.
-- [ ] **P13 — Etapa 5: piso de avaliação tolera rating sem `ratingCount`** (`product_ranking.mjs:197-205`) — destravar cadeiras.
-- [ ] **P14 — Etapa 5: `triedQueries` no ramo remoto** — acabar com reenvio idêntico nas rodadas extras.
-- [ ] **P15 — Etapa 5: ampliar `KNOWN_BRANDS`/`detectModel`** para cadeiras e acessórios.
-- [ ] **P16 — Etapa 3: passar `familiaRepetida` ao hook `revisarPesquisa`**.
-- [ ] **P17 — Etapa 3: portão de tema usa o mesmo fallback do `fetchLLM`** (não só GROQ).
-- [ ] **P18 — Etapa 11: `regenerar-artigos.mjs` passa por `validar-artigo.mjs`**.
-- [ ] **P19 — Global: notificação de falha no cron** (Telegram/webhook).
+- [x] **P13 — Etapa 5: piso de avaliação tolera rating sem `ratingCount`** (`product_ranking.mjs:197-205`) — concluído em 12/08 (V7).
+- [x] **P14 — Etapa 5: `triedQueries` no ramo remoto** — concluído em 12/08 (V6).
+- [x] **P15 — Etapa 5: ampliar `KNOWN_BRANDS`/`detectModel`** para cadeiras e acessórios — concluído em 12/08 (V8).
+- [x] **P16 — Etapa 3: passar `familiaRepetida` ao hook `revisarPesquisa`** — concluído na Fase 3 (V4).
+- [x] **P17 — Etapa 3: portão de tema usa o mesmo fallback do `fetchLLM`** (não só GROQ) — concluído na Fase 3 (V5).
+- [x] **P18 — Etapa 11: `regenerar-artigos.mjs` passa por `validar-artigo.mjs`** — concluído na Fase 3 (V10).
+- [x] **P19 — Global: notificação de falha no cron** — concluído na Fase 3 (V11): issue única do GitHub (label `pipeline`) no `gerar-conteudo.yml` em vez de Telegram/webhook (não depende de secret novo).
+- [x] **P21 — Redação: `MIN_WORDS` alinhado à persona** — concluído na Fase 4 (V20): `noticia` 600→900, defaults 650→700.
 - [ ] **P20 — Higiene**: `.env.example` completo, remover scripts mortos (`deploy*.mjs`, `check*.mjs`, `status.mjs`, `runs.mjs`, `wait.mjs`, `fixpush*.mjs`, `nojekyll.mjs`, `automation/*.py`), tirar `promocao` das categorias, alinhar whitelists (16 vs 19 domínios).

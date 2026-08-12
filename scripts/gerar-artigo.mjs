@@ -399,10 +399,14 @@ function familyOf(text) {
 }
 
 // Data da publicacao mais recente por familia, lendo os artigos ja publicados.
-function buildFamilyDates() {
+// `excludeSlug` ignora um arquivo (o proprio artigo em regeneracao — ele nao
+// pode "repetir" a propria familia).
+function buildFamilyDates(excludeSlug) {
   const dates = {};
   if (!fs.existsSync(ARTIGOS_DIR)) return dates;
+  const excl = excludeSlug ? `${excludeSlug}.md` : null;
   for (const f of fs.readdirSync(ARTIGOS_DIR).filter((f) => f.endsWith(".md"))) {
+    if (excl && f === excl) continue;
     const c = fs.readFileSync(path.join(ARTIGOS_DIR, f), "utf-8");
     const fm = (c.split("---")[1] || "");
     const mDate = fm.match(/pubDate:\s*["']?([^"'\s]+)/);
@@ -415,6 +419,19 @@ function buildFamilyDates() {
     }
   }
   return dates;
+}
+
+// true se alguma familia do texto foi coberta nos ultimos
+// REFRESH_WINDOW_DAYS dias (mesma logica da descoberta, para o hook de
+// pesquisa receber um sinal real em vez de um "passa sempre").
+function isFamiliaRepetida(hint, familyDates = {}) {
+  const fams = familyOf(hint);
+  for (const fam of fams) {
+    if (!familyDates[fam]) continue;
+    const ageDays = (Date.now() - familyDates[fam].getTime()) / (24 * 3600 * 1000);
+    if (ageDays < REFRESH_WINDOW_DAYS) return true;
+  }
+  return false;
 }
 
 // Cobertura por dominio (games vs hardware) para favorecer temas sub-representados.
@@ -659,8 +676,10 @@ async function discoverTrendingTopic(existingTopics = [], recentKeywords = [], f
   for (const sub of REDDIT_SUBS) {
     try {
       const res = await fetch(sub.url, {
-        headers: { "User-Agent": "BlogGamer/1.0 (trending-discovery)" },
-        timeout: 15000,
+        // V16: timeout como option nao existe no fetch do Node (era sinal morto)
+        // e o UA "BlogGamer/1.0" e bloqueado pelo Reddit (403 em todos os subs).
+        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36" },
+        signal: AbortSignal.timeout(15000),
       });
       if (!res.ok) { log("WARN", `Reddit ${sub.name}: ${res.status}`); continue; }
       const data = await res.json();
@@ -699,7 +718,10 @@ async function discoverTrendingTopic(existingTopics = [], recentKeywords = [], f
 
   log("INFO", `Top trending: ${trending.slice(0, 8).map(([k, v]) => `${k} (${v}x)`).join(", ")}`);
 
-  if (GROQ_API_KEY) {
+  // Portao de tema por IA: roda quando QUALQUER LLM esta disponivel — o
+  // fetchLLM tenta Gemini 1º (V5), entao chavear so em GROQ pulava a escolha
+  // por IA em ambientes so-GEMINI.
+  if (GROQ_API_KEY || GEMINI_API_KEY) {
     try {
       const aiResult = await analyzeTrendsWithAI(filteredHeadlines, trending, existingTopics, recentKeywords, familyDates, coverage);
       if (aiResult) {
@@ -746,8 +768,10 @@ const CANDIDATE_POOL = 20;
 // "Top N" valer a pena. Abaixo disso o gerador tenta mais buscas e, se ainda
 // faltar, aborta em vez de publicar um artigo cheio de produto errado.
 const MIN_PRODUCTS = Number(process.env.MIN_PRODUCTS) || 3;
-// remote = usa a Frente 4 (produtos com comissao). legacy = so Google Shopping.
-const AFFILIATE_MODE = process.env.AFFILIATE_MODE || "legacy";
+// remote = usa a Frente 4 (produtos com comissao) e completa com Google
+// Shopping. legacy = so Google Shopping. Default remote: a Frente 4 e o fluxo
+// primario; sem ela o ramo remote falha limpo e cai no Shopping.
+const AFFILIATE_MODE = process.env.AFFILIATE_MODE || "remote";
 
 const GAME_IMAGE_CACHE = {};
 
@@ -2332,7 +2356,10 @@ function parseRaw(raw) {
 
 // Alinhado ao orcamento de saida da Groq (8000 TPM): pedir mais que isso faz
 // o artigo ser truncado no meio.
-const MIN_WORDS = { guia: 1000, review: 800, noticia: 600, lista: 800 };
+// V20: alinhado ao alvo da persona (700-900 lista/review, 900-1100 guia/noticia).
+// noticia subiu de 600 para 900 — antes noticia passava bem abaixo do alvo
+// editorial. ABSOLUTE_MIN_WORDS continua sendo o piso de ultima tentativa.
+const MIN_WORDS = { guia: 1000, review: 800, noticia: 900, lista: 800 };
 const ABSOLUTE_MIN_WORDS = 500;
 
 const GENERIC_TITLE_PATTERNS = [
@@ -2697,7 +2724,12 @@ async function main() {
   log("INFO", `TAVILY_API_KEY definida: ${!!TAVILY_API_KEY}`);
   log("INFO", `SERPER_API_KEY definida: ${!!SERPER_API_KEY}`);
 
-  if (!GEMINI_API_KEY && !GROQ_API_KEY) { log("ERROR", "Nenhuma chave de IA configurada (GEMINI_API_KEY ou GROQ_API_KEY)"); process.exit(1); }
+  // V13: OPENAI_API_KEY tambem conta como LLM primario — antes OpenAI sozinho
+  // nao rodava o pipeline (exigia GEMINI ou GROQ e so caia na OpenAI por fallback).
+  if (!GEMINI_API_KEY && !GROQ_API_KEY && !OPENAI_API_KEY) {
+    log("ERROR", "Nenhuma chave de IA configurada (GEMINI_API_KEY, GROQ_API_KEY ou OPENAI_API_KEY)");
+    process.exit(1);
+  }
   if (!TAVILY_API_KEY) log("WARN", "TAVILY_API_KEY nao definida — artigo seguira sem fontes pesquisadas");
 
   const state = loadState();
@@ -2844,6 +2876,7 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
     researchSources,
     cobertura: coberturaPesquisa || {},
     topicDomain,
+    familiaRepetida: isFamiliaRepetida(topic.hint, buildFamilyDates(opts.overwriteSlug)),
     temaProibido: hasForbiddenTerm(topic.hint, topic.category),
     subQueries,
   });
@@ -2940,6 +2973,10 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
           ...trendingKws.slice(0, 2).map((k) => sanitizeProductQuery(k, effectiveDomain) || k),
         ].filter(Boolean);
         const queriesUnicas = [...new Set(queriesRemotas)].slice(0, 5);
+        // Registra as consultas enviadas (V6): sem isso o lote remoto era
+        // reenviado identico a cada rodada extra — o funil gastava 4 rodadas
+        // repetindo a mesma busca em vez de girar as keywords de retry.
+        for (const q of queriesUnicas) triedQueries.add(q);
 
         const remotos = await buscarProdutosLoteRemoto(queriesUnicas, { limitPorQuery: 3 });
         // Prioriza produtos da categoria do artigo com marca/modelo
