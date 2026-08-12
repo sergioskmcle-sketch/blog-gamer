@@ -151,6 +151,9 @@ export const KNOWN_BRANDS = {
   a4tech: "A4Tech",
   forcegamer: "ForceGamer",
   aula: "Aula",
+  thunderx3: "ThunderX3",
+  luvinco: "LuvinCo",
+  mymax: "MyMax",
 };
 
 // 3 marcas conhecidas por categoria — usadas nas queries de retry (PLANO §5.4).

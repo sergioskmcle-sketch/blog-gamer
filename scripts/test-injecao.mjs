@@ -755,6 +755,23 @@ ok(eligibilityCheck(
   { median: 260 },
 ).elegivel, "volume >= 100 compensa nota mediana (3.8) no piso");
 
+// V7: produto COM nota mas SEM ratingCount (comum na Frente 4) nao reprova
+// por volume — o piso de volume so vale quando o dado chega.
+ok(eligibilityCheck(
+  { title: "Cadeira Gamer ThunderX3", rating: 4.5, price: 1100 },
+  { median: 1000 },
+).elegivel, "nota sem volume passa (volume nao chega da Frente 4)");
+ok(!eligibilityCheck(
+  { title: "Cadeira Gamer ThunderX3", rating: 3.2, price: 1100 },
+  { median: 1000 },
+).elegivel, "nota baixa sem volume continua reprovada");
+
+// V8: marcas de cadeira agora sao conhecidas (antes passavam o gate so com
+// modelo, que raramente existe em cadeira).
+igual(detectBrand("Cadeira Gamer ThunderX3 TC3"), "ThunderX3", "ThunderX3 reconhecida");
+igual(detectBrand("Cadeira Gamer LuvinCo Confort"), "LuvinCo", "LuvinCo reconhecida");
+igual(detectBrand("Cadeira Gamer MyMax K3"), "MyMax", "MyMax reconhecida");
+
 // Query de produto: tira a frase editorial do topico e fica so com o
 // vocabulario que existe no catalogo (substantivos de hardware / jogos).
 igual(sanitizeProductQuery("melhores periféricos gamer sustentáveis de 2024", "hardware"), "perifericos gamer", "query editorial de perifericos vira termo de produto");

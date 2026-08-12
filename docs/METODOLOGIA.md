@@ -118,8 +118,8 @@ barato:
 | Critério | Regra |
 |----------|-------|
 | **Preço plausível** | Entre 0,35× e 2,2× a mediana de preço da lista. Fora disso: risco de anúncio errado/acessório (muito abaixo) ou preço fora de mercado (muito acima). |
-| **Prova de compra real** | `rating >= 4.0` **ou** `ratingCount >= 100` com `rating >= 3.5` (nota alta compensa poucas avaliações; muitas avaliações compensam nota mediana — **nunca** nota catastrófica). |
-| **Volume mínimo de avaliações** | `ratingCount >= 20` (relaxado para `>= 10` só se isso for necessário para não deixar a lista abaixo do mínimo de produtos do artigo). |
+| **Prova de compra real** | `rating >= 4.0` **ou** `ratingCount >= 100` com `rating >= 3.5` (nota alta compensa poucas avaliações; muitas avaliações compensam nota mediana — **nunca** nota catastrófica). O piso de volume só vale quando o produto **chega** com `ratingCount` (a Frente 4 não entrega volume em várias categorias). |
+| **Volume mínimo de avaliações** | `ratingCount >= 20` quando `ratingCount` existe (relaxado para `>= 10` só se isso for necessário para não deixar a lista abaixo do mínimo de produtos do artigo). |
 | **Identidade reconhecível** | Marca conhecida (`KNOWN_BRANDS`) **ou** modelo detectável (`detectModel`, ex. "RTX 4060", "K552") **ou** ao menos 1 menção editorial. |
 
 Para não deixar falso positivo passar só por parecer identificável, a detecção é

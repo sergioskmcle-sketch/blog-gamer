@@ -191,6 +191,22 @@ produto** (o `validateSourceCoverage` contava os `R$` da tabela Comparativo como
 | Testes (**350 asserts OK**) | ✅ |
 | Docs: `PIPELINE_ETAPAS.md` (seção "Verificação de código"), `PROGRESSO.md` | ✅ |
 
+### ✅ Concluído em 12/08/2026 — sourcing destravado (V6, V7, V8) + P12 contínuo
+
+As pendências de Fase 2 que faziam **cadeiras/teclados abortarem** e repetiam
+busca idêntica nas rodadas extras foram fechadas junto com a continuação do
+desarme de falsos positivos (P12) no gate de produto:
+
+| Tarefa | Estado |
+|---|---|
+| **V6** — queries do lote remoto entram em `triedQueries` (`gerar-artigo.mjs:2942-2946`): rodadas extras giram keywords de retry em vez de reenviar a mesma busca 4× | ✅ |
+| **V7** — produto com nota mas **sem** `ratingCount` não reprova por volume (`product_ranking.mjs:198-213`): piso de volume só vale quando o dado chega (Frente 4 não manda volume em várias categorias) | ✅ |
+| **V8** — `ThunderX3`, `LuvinCo`, `MyMax` no `KNOWN_BRANDS` (`product_naming.mjs:155-157`): cadeira passa o gate de identidade pela marca | ✅ |
+| `AFFILIATE_MODE` default `remote` (Frente 4 primária) + `.env.example` sincronizado | ✅ |
+| **P12 cont.** — marca "Blue" só com contexto (Yeti/Snowball/etc., nunca "light blue"); `1080P`/`60FPS` não são modelo (`product_naming.mjs`); volume `>=100` não compensa nota < 3.5 (`product_ranking.mjs`) | ✅ |
+| Testes (**365 asserts OK**) | ✅ |
+| Docs: `PIPELINE_ETAPAS.md`, `PROGRESSO.md`, `METODOLOGIA.md` | ✅ |
+
 ### 🟢 Baixa prioridade
 | Tarefa | Motivo |
 |---|---|
