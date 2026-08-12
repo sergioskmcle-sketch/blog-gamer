@@ -256,6 +256,28 @@ gh workflow run deploy.yml --ref main
 
 ---
 
+## Gemini estoura TPM/trunca (503) e Groq recusa prompt grande (413)
+
+**Sintoma (observado em 12/08/2026, geração da notícia da Gamescom):** o Gemini falha em cadeia —
+`"Gemini: resposta truncada (maxOutputTokens=8192)"`, `503`, `"resposta vazia"` — e o Groq responde
+`413 Request too large for model openai/gpt-oss-120b` (prompt + `max_tokens=8192` estouram o
+limite de 64000 TPM). O artigo acaba sendo gerado pelo **OpenAI** (3º da reserva em cadeia), então
+**o blog não para de publicar** — mas a geração fica lenta (3 tentativas × retries no Gemini).
+
+**Causa:** dois problemas distintos: (1) o Gemini está instável/sobrecarregado no momento
+(truncamento e 503 intermitentes); (2) o prompt do corpo fica **grande demais para o Groq**
+(limite de 64k TPM do modelo `openai/gpt-oss-120b`) quando o contexto inclui pesquisa + fontes.
+
+**O que funciona hoje:** a reserva em cadeia (Gemini → Groq → OpenAI) absorve as falhas e o artigo
+sai normalmente. O `MIN_WORDS` também forçou o corpo a chegar a 900+ palavras, o que **aumenta** o
+tamanho do prompt e agrava o 413 do Groq.
+
+**Mitigações possíveis (não aplicadas ainda):** reduzir `max_tokens` do corpo (o prompt é o que
+estoura, não a saída); cortar parte do contexto de pesquisa quando o prompt passar de um teto;
+ou subir a prioridade do OpenAI como primário enquanto o Gemini estiver instável.
+
+---
+
 ## 06/08/2026 — Pane global do GitHub Actions (webhooks throttled)
 
 **Sintoma:** runs ficam em `queued` por muitos minutos; push ao `main` não cria run de deploy;

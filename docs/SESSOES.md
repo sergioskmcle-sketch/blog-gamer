@@ -4,7 +4,28 @@
 
 ---
 
-## Sessão 6 — 2026-08-05 (atual)
+## Sessão 7 — 2026-08-12 (atual)
+
+**Rodízio de categorias + Fallback de tema (P2) + Gate corretor + Reserva Tavily + 900 palavras**
+
+### Pipeline (`scripts/`)
+- **Rodízio `N→G→N→L→N→R`** por posição (`rotation_pos` no `state.json`, migração por `indexOf` de `last_category`): notícia ocupa posições pares e vira a maioria dos dias (notícia nunca aborta no sourcing). `gerar-status.cjs` sincronizado (removeu `promocao`, categoria morta).
+- **Fallback de tema (fecha P2):** `main()` monta pool de candidatos (tema principal → keywords alternativas do trending → seeds estáticos da categoria do dia → notícia por último). O sourcing aborta com `throw` em vez de `exit(1)`, e o próximo candidato é tentado.
+- **Gate com correção (Tarefa E):** antes de rollback, `corrigirPeloGate` corrige P0/P1 determinísticos (seções `##` vazias, imagens base64, imagens frágeis de redes sociais, abertura proibida, marcadores `[IMG:]/[PRODUTO:]` restantes, `description` < 120, `tags` < 3), reaplica os passos deterministas (`stripPricesFromBody` → `stripLeftoverMarkers` → `injectHeadingAnchors`) e revalida as 5 etapas determinísticas. Só remove/restaura se a correção não zerar as reprovações.
+- **Reserva da Tavily via Serper** (`buscarComReserva` em `pesquisar-fundo.mjs`): se a Tavily cair/estourar cota, usa o Serper já presente no projeto — cobre as 3 profundidades.
+- **Regra das 900 palavras:** `MIN_WORDS.noticia` 800→900 e faixa-alvo única `900-1100` (a antiga `700-900` era contraditória com o mínimo 900).
+- **Workflow:** 2ª execução diária (21:30 UTC) + fechamento automático da issue do pipeline quando o ciclo volta.
+
+### Publicação (12/08/2026)
+- Artigo **"Gamescom 2026: principais anúncios, jogos, datas e novidades"** (notícia, 39º artigo) gerado, aprovado no gate (**0 P0 / 0 P1 / 5 P2**, média ~9,3/10) e publicado.
+- Observação operacional: na geração o **Gemini** estourou TPM/truncou (503) e o **Groq** recusou prompt grande (413) — a reserva em cadeia caiu no **OpenAI** e o artigo saiu normalmente.
+
+### Verificação
+- `npm test` → **381 asserts OK**; `npm run build` → **162 páginas**; portão `validar-artigo.mjs` → 0 falhas.
+
+---
+
+## Sessão 6 — 2026-08-05
 
 **Cards por Seção + TOC no Topo + Sidebar Padrão + Alinhamento à Esquerda**
 
@@ -86,28 +107,6 @@
 - "As 8 Melhores Placas de Video Custo-Beneficio do Mercado Livre em 2026"
 - "Lançamento de Games e Anúncios de Consoles"
 - "GTA 6: Data de Lançamento, Preço, Pré-venda"
-
----
-
-## Sessão 2 — 2026-06-27
-
-**VM + Systemd + Primeiro Deploy**
-
-### Infraestrutura
-- VM Google Cloud criada (IP `35.237.81.192`, Debian, usuário `sergioskm_cle`)
-- Chave SSH `id_nova_vm` configurada
-- `blog-gamer.service` criado: systemd com `Restart=always`, `RestartSec=30`
-- Python venv + dependências instalados na VM
-- Repositório do frontend clonado na VM
-- Teste de geração de link de afiliado na VM
-- `cookie_keepalive.py`: visita ML 1x/dia pra manter sessão ativa
-
-### Documentação
-- `docs/CREDENCIAIS.md` criado (versão inicial, sem valores das chaves)
-- `docs/ESTRUTURA.md` criado
-- `docs/FLUXO.md` criado
-- `docs/REGRAS.md` criado
-- `docs/TROUBLESHOOTING.md` criado
 
 ---
 

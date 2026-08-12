@@ -1,23 +1,51 @@
-> ⚠️ **DOCUMENTO LEGADO — NÃO USE COMO REFERÊNCIA (marcado em 06/08/2026)**
->
-> Este arquivo descreve o pipeline **Python na VM** (`scheduler.py`, `generate_article.py`,
-> `ml_affiliate.py`), que **não é mais o sistema ativo** e não funciona (o `GITHUB_TOKEN` da VM
-> está expirado). Quem gera os artigos hoje é o **GitHub Actions**
-> (`.github/workflows/gerar-conteudo.yml` → `scripts/gerar-artigo.mjs`).
->
-> **A versão correta e atualizada está em [`docs/SESSOES.md`](../../docs/SESSOES.md).**
-> Para o trabalho em andamento (monetização), veja
-> [`FRENTE_4_RETOMADA.md`](../../FRENTE_4_RETOMADA.md).
->
-> Mantido apenas como histórico.
-
 # Sessões Anteriores
 
 > Histórico das últimas 5 sessões. Conforme novas sessões forem adicionadas, a mais antiga é removida.
 
 ---
 
-## Sessão 5 — 2026-07-02 (atual)
+## Sessão 7 — 2026-08-12 (atual)
+
+**Rodízio de categorias + Fallback de tema (P2) + Gate corretor + Reserva Tavily + 900 palavras**
+
+### Pipeline (`scripts/`)
+- **Rodízio `N→G→N→L→N→R`** por posição (`rotation_pos` no `state.json`, migração por `indexOf` de `last_category`): notícia ocupa posições pares e vira a maioria dos dias (notícia nunca aborta no sourcing). `gerar-status.cjs` sincronizado (removeu `promocao`, categoria morta).
+- **Fallback de tema (fecha P2):** `main()` monta pool de candidatos (tema principal → keywords alternativas do trending → seeds estáticos da categoria do dia → notícia por último). O sourcing aborta com `throw` em vez de `exit(1)`, e o próximo candidato é tentado.
+- **Gate com correção (Tarefa E):** antes de rollback, `corrigirPeloGate` corrige P0/P1 determinísticos (seções `##` vazias, imagens base64, imagens frágeis de redes sociais, abertura proibida, marcadores `[IMG:]/[PRODUTO:]` restantes, `description` < 120, `tags` < 3), reaplica os passos deterministas (`stripPricesFromBody` → `stripLeftoverMarkers` → `injectHeadingAnchors`) e revalida as 5 etapas determinísticas. Só remove/restaura se a correção não zerar as reprovações.
+- **Reserva da Tavily via Serper** (`buscarComReserva` em `pesquisar-fundo.mjs`): se a Tavily cair/estourar cota, usa o Serper já presente no projeto — cobre as 3 profundidades.
+- **Regra das 900 palavras:** `MIN_WORDS.noticia` 800→900 e faixa-alvo única `900-1100` (a antiga `700-900` era contraditória com o mínimo 900).
+- **Workflow:** 2ª execução diária (21:30 UTC) + fechamento automático da issue do pipeline quando o ciclo volta.
+
+### Publicação (12/08/2026)
+- Artigo **"Gamescom 2026: principais anúncios, jogos, datas e novidades"** (notícia, 39º artigo) gerado, aprovado no gate (**0 P0 / 0 P1 / 5 P2**, média ~9,3/10) e publicado.
+- Observação operacional: na geração o **Gemini** estourou TPM/truncou (503) e o **Groq** recusou prompt grande (413) — a reserva em cadeia caiu no **OpenAI** e o artigo saiu normalmente.
+
+### Verificação
+- `npm test` → **381 asserts OK**; `npm run build` → **162 páginas**; portão `validar-artigo.mjs` → 0 falhas.
+
+---
+
+## Sessão 6 — 2026-08-05
+
+**Cards por Seção + TOC no Topo + Sidebar Padrão + Alinhamento à Esquerda**
+
+### Pipeline de Markdown (Astro)
+- `remark-heading-blocks.mjs` criado: move a imagem do topo do bloco para antes do `h2` e adiciona link-âncora `#id` em seções sem âncora
+- `rehype-article-sections.mjs` criado: agrupa conteúdo entre `##` em `<section class="article-section">` separadas por divisores
+- Ambos registrados no `astro.config.mjs`; validados em todos os artigos (14 seções no artigo de headsets, 12 nas cadeiras, 0 `##` literais no `dist`)
+- `src/lib/headings.ts` com `tagSlug` para extração de H2/H3 do TOC
+
+### Layout do Artigo
+- Texto alinhado à esquerda (removida justificação) no README e artigos
+- TOC "Neste artigo" recolhível no topo do corpo do artigo, **todas as telas** — variante `sidebar` do `TableOfContents.astro` removida
+- Sidebar do artigo agora reutiliza `Sidebar.astro` da home (banner 9:16 → Populares da Semana → Categorias → Comunidade), grid `340px`
+- Capa nunca fica sob o header fixo: `<main>` usa `padding-top: calc(max(var(--content-top, var(--nav-height)), var(--nav-height)) + 8px)` no `Layout.astro`
+- `--measure` definido no `:root` (`min(720px, 100%)`) — usado por TOC/ShareButtons
+- Build OK (100 páginas), 145 asserts OK, preview HTTP 200
+
+---
+
+## Sessão 5 — 2026-07-02
 
 **Design System + Watchdog + Upload Completo**
 
@@ -82,43 +110,4 @@
 
 ---
 
-## Sessão 2 — 2026-06-27
 
-**VM + Systemd + Primeiro Deploy**
-
-### Infraestrutura
-- VM Google Cloud criada (IP `35.237.81.192`, Debian, usuário `sergioskm_cle`)
-- Chave SSH `id_nova_vm` configurada
-- `blog-gamer.service` criado: systemd com `Restart=always`, `RestartSec=30`
-- Python venv + dependências instalados na VM
-- Repositório do frontend clonado na VM
-- Teste de geração de link de afiliado na VM
-- `cookie_keepalive.py`: visita ML 1x/dia pra manter sessão ativa
-
-### Documentação
-- `docs/CREDENCIAIS.md` criado (versão inicial, sem valores das chaves)
-- `docs/ESTRUTURA.md` criado
-- `docs/FLUXO.md` criado
-- `docs/REGRAS.md` criado
-- `docs/TROUBLESHOOTING.md` criado
-
----
-
-## Sessão 1 — 2026-06-25
-
-**Setup Inicial do Projeto**
-
-### Criação
-- Projeto `blog-gamer` iniciado em `C:\Users\Sérgio PC\Documents\Expxagents\blog-gamer`
-- Frontend Astro 5 criado em `C:\Users\Sérgio PC\Documents\blog-gamer-frontend`
-- Repositório GitHub criado: `sergioskmcle-sketch`
-- `astro.config.mjs`: site `https://promogamer.com.br`, base ``, output static
-- GitHub Actions configurado para deploy automático no GitHub Pages
-- `docs/ORIENTACOES_EDITORIAIS.md` com diretrizes editoriais e regras de tom gamer
-
-### APIs
-- Groq API key obtida (modelo `llama-3.3-70b-versatile`)
-- Tavily API key obtida (1000 consultas/mês free)
-- Conta ML do usuário criada (`sergioskm` / `COMPROUBARATO2025`)
-- App OAuth do ML registrado (Client ID + Secret)
-- Cookies de sessão do ML exportados (`ml_cookies.json`)

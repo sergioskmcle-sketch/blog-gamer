@@ -6,9 +6,10 @@ Blog estático sobre o mundo gamer com produtos de várias lojas (Google Shoppin
 
 **Status:** https://promogamer.com.br/status.json
 
-> 💰 **Monetização em andamento (Frente 4).** Hoje os botões apontam para links **sem comissão**.
-> O serviço que fornece produtos **com link de afiliado** (Mercado Livre + Shopee) já está no ar;
-> falta ligar o blog nele. Instruções passo a passo: **[`FRENTE_4_RETOMADA.md`](FRENTE_4_RETOMADA.md)**.
+> 💰 **Monetização ativa (Frente 4).** Os botões apontam para links **com comissão** (`meli.la`,
+> `s.shopee.com.br`) fornecidos pelo serviço `blog-produtos-api` (Mercado Livre + Shopee) que roda na
+> VM do monitor — o blog consome o banco e não toca na sessão do ML. Em queda, o Google Shopping
+> (Serper) assume. Referência: **[`FRENTE_4_RETOMADA.md`](FRENTE_4_RETOMADA.md)**.
 
 ---
 
@@ -19,9 +20,9 @@ O blog se auto-gerencia. Para verificar a saúde do sistema, abra o [`status.jso
 ```json
 {
   "saudavel": true,
-  "ultimo_artigo": "2026-07-30",
-  "ultimo_deploy": "2026-07-31T00:00:00Z",
-  "total_artigos": 13,
+  "ultimo_artigo": "2026-08-12",
+  "ultimo_deploy": "2026-08-12T14:25:32Z",
+  "total_artigos": 39,
   "erros_recentes": [],
   "apis": { "groq": "ok", "tavily": "ok", "rawg": "ok" }
 }

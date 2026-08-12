@@ -13,7 +13,7 @@
 
 | Etapa | Onde | Arquivo |
 |---|---|---|
-| Agendamento | GitHub Actions (cron `30 9 * * *`) | `.github/workflows/gerar-conteudo.yml` |
+| Agendamento | GitHub Actions (cron `30 9` e `30 21` UTC, 2x/dia) | `.github/workflows/gerar-conteudo.yml` |
 | Testes (roda antes de gerar) | GitHub Actions | `scripts/test-injecao.mjs` (`npm test`) |
 | Geração do artigo | GitHub Actions | `scripts/gerar-artigo.mjs` (~2.750 linhas) |
 | Descoberta de produto | Frente 4 (ML/Shopee com afiliado) + fallback Serper/Google Shopping | `scripts/monitor_api.mjs` + `scripts/google_shopping.mjs` |
@@ -221,6 +221,8 @@ O ciclo de categorias trocou `noticia → review → guia → lista` (baseado em
 | Workflow: 2ª execução diária (21:30 UTC) + fechar issue do pipeline no sucesso | ✅ |
 | Testes (**381 asserts OK**) + build (**158 páginas**) | ✅ |
 | Docs: `PIPELINE_ETAPAS.md`, `PROGRESSO.md` | ✅ |
+
+**Validação em produção (12/08/2026):** artigo **"Gamescom 2026: principais anúncios, jogos, datas e novidades"** (notícia, 39º) gerado com o pipeline novo, aprovado no gate (**0 P0 / 0 P1 / 5 P2**, média ~9,3/10) e publicado. Na geração, o **Gemini** estourou TPM/truncou (503) e o **Groq** recusou o prompt grande (413) — a reserva em cadeia caiu no **OpenAI** e o artigo saiu normal (ver `docs/TROUBLESHOOTING.md`).
 
 ### 🟢 Baixa prioridade
 | Tarefa | Motivo |
