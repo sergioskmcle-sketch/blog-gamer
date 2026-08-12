@@ -2356,10 +2356,11 @@ function parseRaw(raw) {
 
 // Alinhado ao orcamento de saida da Groq (8000 TPM): pedir mais que isso faz
 // o artigo ser truncado no meio.
-// V20: alinhado ao alvo da persona (700-900 lista/review, 900-1100 guia/noticia).
-// noticia subiu de 600 para 900 — antes noticia passava bem abaixo do alvo
-// editorial. ABSOLUTE_MIN_WORDS continua sendo o piso de ultima tentativa.
-const MIN_WORDS = { guia: 1000, review: 800, noticia: 900, lista: 800 };
+// V20: alinhado ao alvo da persona no codigo (factual: 900-1100; noticia/lista:
+// 700-900, ver alvoWords). noticia subiu de 600 para 800 — 900 ficaria ACIMA
+// do teto do alvo de noticia e a geracao jamais atingiria (run 12/08: 814).
+// ABSOLUTE_MIN_WORDS continua sendo o piso de ultima tentativa.
+const MIN_WORDS = { guia: 1000, review: 800, noticia: 800, lista: 800 };
 const ABSOLUTE_MIN_WORDS = 500;
 
 const GENERIC_TITLE_PATTERNS = [
@@ -2876,7 +2877,10 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
     researchSources,
     cobertura: coberturaPesquisa || {},
     topicDomain,
-    familiaRepetida: isFamiliaRepetida(topic.hint, buildFamilyDates(opts.overwriteSlug)),
+    // V4: sinal real (janela FAMILY_REFRESH_DAYS via pubDates). FORCE_GENERATE
+    // e a sobreposicao do operador — a descoberta ja ignora a janela nesse modo
+    // (buildFamilyDates() = {}), entao o gate tambem nao pode reprovar por ela.
+    familiaRepetida: process.env.FORCE_GENERATE ? false : isFamiliaRepetida(topic.hint, buildFamilyDates(opts.overwriteSlug)),
     temaProibido: hasForbiddenTerm(topic.hint, topic.category),
     subQueries,
   });

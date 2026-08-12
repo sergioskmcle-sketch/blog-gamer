@@ -62,7 +62,7 @@ Antes de 12/08/2026 existiam **2 portões reais** e 5 scorecards que apenas docu
 - **V11 — Notificação de falha no cron**: `gerar-conteudo.yml` ganhou step `if: failure()` que abre uma issue única (label `pipeline`; não duplica se já aberta) com link do run; requer `permissions: issues: write`. Oportunamente pode virar webhook/Telegram reaproveitando o mesmo step.
 - **V13 — OpenAI como LLM primário**: o pre-flight do `main()` aceita `OPENAI_API_KEY` sozinha (antes exigia Gemini/Groq e só usava OpenAI como fallback).
 - **V16 — Reddit como sinal vivo**: UA de Chrome real + `AbortSignal.timeout(15000)` (a option `timeout` não existe no fetch do Node — era bug certo de 403/timeout).
-- **V20 — `MIN_WORDS` alinhado à persona**: `noticia` 600→900; defaults dos hooks standalone 650→700.
+- **V20 — `MIN_WORDS` alinhado à persona**: `noticia` 600→**800** (900 ficava acima do teto do alvo 700-900 de notícia e a geração nunca atingia — recalibrado após run de 12/08); defaults dos hooks standalone 650→700.
 
 ---
 
@@ -91,7 +91,7 @@ Itens **[CORRIGIDO]** saíram na Fase 0+1 (desarme de falsos positivos + gate co
 | V16 | Disparo | Reddit 403 sempre (`gerar-artigo.mjs:659-675`): UA fraco + `timeout: 15000` inválido no fetch do Node (`:663`) — sinal morto | **[CORRIGIDO (Fase 4)]** UA de Chrome real + `AbortSignal.timeout(15000)` (`gerar-artigo.mjs:678`) — Reddit volta a ser sinal vivo (datacenter ainda pode 403, mas o timeout inválido era bug certo) |
 | V17 | Disparo | RSS real: **11 feeds** (`:159-171`), doc antiga dizia 10 | Documentado |
 | V18 | Testes | Asserts reais: **365** (`npm test`, 12/08 — after Fase 0+1 + Fases 3/4) | Atualizado |
-| V20 | Redação | `MIN_WORDS.noticia = 600` vs alvo da persona 900-1100 → notícia passava bem abaixo do objetivo editorial (`gerar-artigo.mjs:2357`) | **[CORRIGIDO (Fase 4)]** `noticia` subiu para 900; defaults standalone dos hooks (650) alinhados a 700 (`revisar-etapas.mjs:157,288`). `ABSOLUTE_MIN_WORDS=500` segue como piso de última tentativa |
+| V20 | Redação | `MIN_WORDS.noticia = 600` vs alvo do próprio código (700-900) → notícia passava bem abaixo do objetivo (`gerar-artigo.mjs:2357`) | **[CORRIGIDO (Fase 4)]** `noticia` subiu para **800**; defaults standalone dos hooks (650) alinhados a 700 (`revisar-etapas.mjs:157,288`). *Nota (run 12/08): primeiro tentei 900 — acima do teto do alvo de notícia (700-900), a geração nunca atingia (814 máx) e o gate reprovava toda notícia; recalibrado para 800.* `ABSOLUTE_MIN_WORDS=500` segue como piso de última tentativa |
 
 ---
 
@@ -129,7 +129,7 @@ FLUXO ÚNICO (sem produtos): LLM escreve tudo → validate → feedback → até
 - **Corrigido (11/08/2026) — foco misto:** `temFocoMisto` mede o peso real dos dois
   domínios no corpo — menção de jogo como contexto em artigo de hardware não conta como
   misto. Tema híbrido (`isMixedDomain(kw)`) é rejeitado na descoberta.
-- **Corrigido (12/08, V20):** `minWords` agora segue a persona — `MIN_WORDS` por categoria (guia 1000, review 800, lista 800, notícia **900**) e defaults standalone dos hooks em 700; o piso de última tentativa segue `ABSOLUTE_MIN_WORDS=500`. Anti-padrões IA (confira/descubra) continuam P2, não bloqueiam.
+- **Corrigido (12/08, V20):** `minWords` agora segue a persona do código — `MIN_WORDS` por categoria (guia 1000, review 800, lista 800, notícia **800**) e defaults standalone dos hooks em 700; o piso de última tentativa segue `ABSOLUTE_MIN_WORDS=500`. Anti-padrões IA (confira/descubra) continuam P2, não bloqueiam.
 
 ---
 
