@@ -20,6 +20,11 @@ import {
   resolverAfiliados,
   DEFAULT_COVER_BY_PRODUCT_CATEGORY,
   DEFAULT_COVER_GENERIC,
+  corrigirPeloGate,
+  montarMarkdown,
+  removeEmptySections,
+  ajustarDescription,
+  ajustarTags,
 } from "./gerar-artigo.mjs";
 import { parsePriceBRL } from "./google_shopping.mjs";
 import { normalizarProdutoRemoto } from "./monitor_api.mjs";
@@ -967,6 +972,61 @@ igual(shouldAbortProductSourcing({ count: 0, articleCat: "monitor" }), true, "li
     ok(fs.existsSync(path.resolve("public", cover.replace(/^\//, ""))), `capa default da categoria "${cat}" existe (${cover})`);
   }
   ok(fs.existsSync(path.resolve("public", DEFAULT_COVER_GENERIC.replace(/^\//, ""))), "capa default generica existe");
+
+  // ---- Tarefa E: inspecao com correcao (gate que corrige antes de abortar) ----
+  const corpoComSecaoVazia = "## Intro\n\nTexto bom.\n\n## Secao Vazia\n\n\n## Conclusao\n\nFim.";
+  const semVazia = removeEmptySections(corpoComSecaoVazia, "");
+  ok(!semVazia.includes("Secao Vazia"), "secao ## vazia removida");
+  ok(semVazia.includes("## Intro") && semVazia.includes("## Conclusao"), "secoes com conteudo preservadas");
+  igual(removeEmptySections("## A\n\ntexto", "A"), "## A\n\ntexto", "secao-pai (listHeading) nao e removida mesmo sem conteudo");
+
+  const corpoBase64 = "Antes.\n\n![foto](data:image/png;base64,AAAA)\n\nDepois.";
+  ok(removeEmptySections(corpoBase64, "").includes("data:image"), "removeEmptySections nao quebra imagem base64");
+  const semBase64 = corrigirPeloGate({
+    body: corpoBase64,
+    fm: { title: "Teste", description: "x".repeat(130), tags: ["a", "b", "c"], category: "noticia" },
+    gateReprovados: [{ etapa: "design", problemas: [{ severidade: "P0", mensagem: "1 imagem(ns) data:URI no markdown" }] }],
+  });
+  ok(!semBase64.body.includes("data:image"), "corrigirPeloGate remove imagem base64 (P0)");
+  ok(semBase64.mudancas.includes("base64-removido"), "mudanca base64 registrada");
+
+  const corpoMarcadores = "Texto.\n\n[PRODUTO:9]\n\n[IMG:Fantasma]\n\nFim.";
+  const semMarcador = corrigirPeloGate({
+    body: corpoMarcadores,
+    fm: { title: "Teste", description: "x".repeat(130), tags: ["a", "b", "c"], category: "noticia" },
+    gateReprovados: [{ etapa: "publicacao", problemas: [{ severidade: "P0", mensagem: "2 marcador(es) [PRODUTO:] publicados" }] }],
+  });
+  ok(!semMarcador.body.includes("[PRODUTO:") && !semMarcador.body.includes("[IMG:"), "marcadores restantes removidos (P0)");
+  ok(semMarcador.mudancas.includes("marcadores-restantes-removidos"), "mudanca de marcador registrada");
+
+  const fmCurto = { title: "Teste", description: "curto", tags: ["a"], category: "guia", affiliate: true };
+  const corpoFm = "Guia sobre teclados mecanicos para jogadores exigentes que buscam qualidade e durabilidade no setup gamer. Um bom teclado melhora a precisao, o conforto em horas de jogo e a experiencia competitiva.";
+  const corrFm = corrigirPeloGate({
+    body: corpoFm,
+    fm: fmCurto,
+    gateReprovados: [
+      { etapa: "revisao", problemas: [{ severidade: "P0", mensagem: "description: muito curto (min 120)" }] },
+      { etapa: "revisao", problemas: [{ severidade: "P0", mensagem: "tags: minimo 3" }] },
+    ],
+    categoria: "guia",
+    topicHint: "melhores teclados mecanicos",
+  });
+  ok(corrFm.fm.description.length >= 120, "description completada para o minimo de 120 chars");
+  ok(corrFm.fm.tags.length >= 3, "tags completadas para o minimo de 3");
+  ok(corrFm.mudancas.includes("description-ajustada") && corrFm.mudancas.includes("tags-completadas"), "ajustes de frontmatter registrados");
+
+  igual(ajustarDescription({ title: "T", description: "x".repeat(160) }, "corpo").description, "x".repeat(160), "description ja >= 120 nao e alterada");
+  igual(ajustarTags({ title: "T", tags: ["a", "b", "c"] }, "guia", "topico").tags.length, 3, "tags ja >= 3 nao sao alteradas");
+  const md = montarMarkdown({
+    fm: { title: 'Titulo "com aspas"', description: "descricao", tags: ["gamer", "teclado"], category: "guia", affiliate: true },
+    body: "## Corpo",
+    pubDate: "2026-08-12",
+    cover: "/images/capa.jpg",
+    mlProducts: [],
+  });
+  ok(md.includes('title: "Titulo \\"com aspas\\""'), "titulo com aspas escapado no markdown");
+  ok(md.includes("## Corpo"), "corpo presente no markdown");
+  ok(md.includes("affiliate: true"), "affiliate refletido no markdown");
 
   console.log(`${passou} asserts OK`);
 })().catch((e) => {

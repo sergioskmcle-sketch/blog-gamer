@@ -3,6 +3,7 @@ name: Gerar Conteudo Automatico
 on:
   schedule:
     - cron: "30 9 * * *"
+    - cron: "30 21 * * *"
   workflow_dispatch:
     inputs:
       force:
@@ -89,6 +90,15 @@ jobs:
       - name: Disparar deploy
         if: steps.check.outputs.changed == 'true' && success()
         run: gh workflow run deploy.yml
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Fechar issue de pipeline quando o ciclo voltar a funcionar
+        if: success()
+        run: |
+          gh issue list --state open --label "pipeline" --json number --jq '.[] | .number' | while read -r N; do
+            gh issue close "$N" --reason completed || true
+          done
         env:
           GH_TOKEN: ${{ github.token }}
 

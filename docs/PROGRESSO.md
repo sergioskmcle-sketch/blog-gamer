@@ -207,6 +207,21 @@ desarme de falsos positivos (P12) no gate de produto:
 | Testes (**365 asserts OK**) | ✅ |
 | Docs: `PIPELINE_ETAPAS.md`, `PROGRESSO.md`, `METODOLOGIA.md` | ✅ |
 
+### ✅ Concluído em 12/08/2026 (noite) — rodízio N→G→N→L→N→R + fallback de tema + gate corretor + reserva Tavily
+
+O ciclo de categorias trocou `noticia → review → guia → lista` (baseado em `indexOf`, ambíguo com "notícia" repetida) por **`N→G→N→L→N→R`** com um contador `rotation_pos` no `state.json` — notícia ocupa posições pares e vira a maioria dos dias (notícia nunca aborta no sourcing). Quando um dia de guia/lista/review aborta, o `main()` agora tenta um **pool de temas** (keyword alternativa do trending → seeds estáticos → notícia por último) em vez de `exit(1)`. O gate de revisão, além de bloquear, passou a **corrigir automaticamente** P0/P1 determinísticos (seções vazias, base64, imagens frágeis, abertura proibida, marcadores restantes, description/tags), reaplicar os passos deterministas e revalidar antes do rollback. A **Tavily** ganhou reserva via **Serper** e notícia passou a exigir **900 palavras** (alvo 900-1100).
+
+| Tarefa | Estado |
+|---|---|
+| Rodízio `N→G→N→L→N→R` + `rotation_pos` (`gerar-artigo.mjs`, `gerar-status.cjs`) | ✅ |
+| Fallback de tema — pool de candidatos no `main()` (fecha P2) | ✅ |
+| Gate com correção (`montarMarkdown` + `corrigirPeloGate` + revalidação) | ✅ |
+| Reserva da Tavily via Serper (`buscarComReserva`) | ✅ |
+| `MIN_WORDS.noticia` 900 + alvo `900-1100` | ✅ |
+| Workflow: 2ª execução diária (21:30 UTC) + fechar issue do pipeline no sucesso | ✅ |
+| Testes (**381 asserts OK**) + build (**158 páginas**) | ✅ |
+| Docs: `PIPELINE_ETAPAS.md`, `PROGRESSO.md` | ✅ |
+
 ### 🟢 Baixa prioridade
 | Tarefa | Motivo |
 |---|---|

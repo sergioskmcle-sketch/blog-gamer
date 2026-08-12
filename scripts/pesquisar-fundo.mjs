@@ -77,6 +77,42 @@ async function tavilySearch(tavilyKey, query, { maxResults = 5, includeRaw = fal
   return res.json();
 }
 
+// Reserva da Tavily (plano D): se a Tavily cair ou estourar a cota, usa o Serper
+// (Google) que ja existe no projeto. Devolve no mesmo formato { results: [...] }.
+async function serperSearch(query, { maxResults = 5 } = {}) {
+  const key = process.env.SERPER_API_KEY;
+  if (!key) return null;
+  const res = await fetch("https://google.serper.dev/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-API-KEY": key },
+    body: JSON.stringify({ q: normalizarQuery(query), gl: "br", hl: "pt-br", num: maxResults }),
+  });
+  if (!res.ok) throw new Error(`Serper ${res.status}`);
+  const data = await res.json();
+  const organic = Array.isArray(data.organic) ? data.organic : [];
+  return {
+    results: organic.map((o) => ({
+      title: String(o.title || "").trim(),
+      url: String(o.link || "").trim(),
+      content: String(o.snippet || "").trim(),
+    })),
+  };
+}
+
+async function buscarComReserva(tavilyKey, query, opts = {}) {
+  try {
+    return await tavilySearch(tavilyKey, query, opts);
+  } catch (e) {
+    log("WARN", `Tavily falhou (${e.message}) — tentando Serper como reserva...`);
+    const res = await serperSearch(query, opts);
+    if (res && res.results?.length) {
+      log("INFO", `Serper (reserva): ${res.results.length} resultados`);
+      return res;
+    }
+    throw e;
+  }
+}
+
 function fonteDeResultado(r, includeRaw = false) {
   const content = (includeRaw ? r.raw_content || r.content : r.content) || "";
   return {
@@ -170,7 +206,7 @@ function computarCobertura(fontes, verifiedFacts) {
 }
 
 async function pesquisarBasico({ query, tavilyKey }) {
-  const sr = await tavilySearch(tavilyKey, query, { maxResults: 5 });
+  const sr = await buscarComReserva(tavilyKey, query, { maxResults: 5 });
   const fontes = (sr?.results || []).map((r) => fonteDeResultado(r));
   return {
     researchContext: montarContexto(fontes, 450),
@@ -187,7 +223,7 @@ async function pesquisarMedio({ query, tavilyKey, fetchLLM }) {
   const listas = [];
   for (const sq of subQueries.slice(0, 5)) {
     try {
-      const sr = await tavilySearch(tavilyKey, sq, { maxResults: 4 });
+      const sr = await buscarComReserva(tavilyKey, sq, { maxResults: 4 });
       const fontes = (sr?.results || []).map((r) => fonteDeResultado(r, false));
       if (fontes.length > 0) listas.push(fontes);
       log("INFO", `Sub-query "${sq.slice(0, 45)}": ${fontes.length} fontes`);
@@ -213,7 +249,7 @@ async function pesquisarProfundo({ query, tavilyKey, fetchLLM }) {
   for (const sq of subQueries.slice(0, 5)) {
     try {
       const incluirRaw = listaRaw.length < 3;
-      const sr = await tavilySearch(tavilyKey, sq, { maxResults: 4, includeRaw: incluirRaw });
+      const sr = await buscarComReserva(tavilyKey, sq, { maxResults: 4, includeRaw: incluirRaw });
       const fontes = (sr?.results || []).map((r) => fonteDeResultado(r, incluirRaw));
       if (fontes.length > 0) listas.push(fontes);
       if (incluirRaw) listaRaw.push(...fontes.filter((f) => f.content.length > 600));

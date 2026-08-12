@@ -53,7 +53,7 @@ function loadState() {
       return JSON.parse(fs.readFileSync(STATE_FILE, "utf-8"));
     }
   } catch {}
-  return { last_success: null, last_error: null, last_error_date: null, consecutive_failures: 0, total_articles: 0, last_category: null };
+  return { last_success: null, last_error: null, last_error_date: null, consecutive_failures: 0, total_articles: 0, last_category: null, rotation_pos: 0 };
 }
 
 function saveState(state) {
@@ -67,11 +67,27 @@ const CATEGORIES = [
   { slug: "lista", name: "Lista" },
 ];
 
-const CATEGORY_ROTATION = ["noticia", "review", "guia", "lista"];
+// Rodizio de categorias: noticia alterna com guia/lista/review. A noticia
+// aparece em posicoes pares (0, 2, 4) — o objetivo e que a maioria dos dias
+// publica noticia (que nunca aborta no sourcing) e os demais giram entre
+// guia/lista/review. O avancio usa ROTATION_POS (posicao inteira no ciclo),
+// porque "noticia" se repete e indexOf nao distingue qual ocorrencia e a atual.
+const CATEGORY_ROTATION = ["noticia", "guia", "noticia", "lista", "noticia", "review"];
 
-function nextCategory(lastCategory) {
-  const idx = CATEGORY_ROTATION.indexOf(lastCategory);
-  return CATEGORY_ROTATION[(idx + 1) % CATEGORY_ROTATION.length];
+// Migracao: state.json antigo nao tem rotation_pos. Deriva a posicao do nome
+// da ultima categoria (indexOf retorna a 1a ocorrencia — ambiguo para "noticia",
+// aceitavel como bootstrap; o ciclo se auto-corrige em 6 dias).
+function rotationPosFromLastCategory(lastCategory) {
+  const idx = CATEGORY_ROTATION.indexOf(lastCategory || "");
+  return idx >= 0 ? idx : -1;
+}
+
+function nextCategory(state) {
+  const pos = typeof state.rotation_pos === "number"
+    ? state.rotation_pos
+    : rotationPosFromLastCategory(state.last_category || "");
+  const nextPos = pos < 0 ? 0 : (pos + 1) % CATEGORY_ROTATION.length;
+  return CATEGORY_ROTATION[nextPos];
 }
 
 // Funcao (nao const) para o ano vir sempre de ANO_ATUAL, nunca hardcoded.
@@ -2356,11 +2372,12 @@ function parseRaw(raw) {
 
 // Alinhado ao orcamento de saida da Groq (8000 TPM): pedir mais que isso faz
 // o artigo ser truncado no meio.
-// V20: alinhado ao alvo da persona no codigo (factual: 900-1100; noticia/lista:
-// 700-900, ver alvoWords). noticia subiu de 600 para 800 — 900 ficaria ACIMA
-// do teto do alvo de noticia e a geracao jamais atingiria (run 12/08: 814).
+// Regra das 900 palavras (12/08/2026, decisao do operador): noticia tem minimo
+// de 900 palavras. Para a geracao cumprir a regra, a faixa-alvo de noticia/lista
+// subiu de 700-900 para 900-1100 (ter minimo 900 com teto-alvo 900 era uma
+// contradicao — a geracao nunca atingiria, como no run 12/08 que parou em 814).
 // ABSOLUTE_MIN_WORDS continua sendo o piso de ultima tentativa.
-const MIN_WORDS = { guia: 1000, review: 800, noticia: 800, lista: 800 };
+const MIN_WORDS = { guia: 1000, review: 800, noticia: 900, lista: 800 };
 const ABSOLUTE_MIN_WORDS = 500;
 
 const GENERIC_TITLE_PATTERNS = [
@@ -2683,6 +2700,152 @@ function validateSourceCoverage(body, sources = []) {
   return warnings;
 }
 
+// TAREFA E — correcao automatica do gate. O gate nao so deleta/rollback:
+// tenta corrigir deterministicamente os problemas P0/P1 corrigiveis, reaplica
+// os passos deterministas (produtos, precos, marcadores, âncoras) e revalida.
+// So cai no rollback se a correcao nao zerar as etapas reprovadas.
+
+function removeEmptySections(body, listHeading) {
+  const lines = body.split("\n");
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    const h2 = lines[i].match(/^##\s+(.+)$/);
+    if (!h2) {
+      out.push(lines[i]);
+      i++;
+      continue;
+    }
+    const title = h2[1].trim();
+    if (listHeading && title === listHeading) {
+      out.push(lines[i]);
+      i++;
+      continue;
+    }
+    let j = i + 1;
+    let content = "";
+    while (j < lines.length && !/^##\s+/.test(lines[j])) {
+      content += lines[j] + "\n";
+      j++;
+    }
+    if (!content.trim()) {
+      i = j;
+      continue;
+    }
+    out.push(lines[i]);
+    for (let k = i + 1; k < j; k++) out.push(lines[k]);
+    i = j;
+  }
+  return out.join("\n").replace(/\n{3,}/g, "\n\n");
+}
+
+function removeBase64Images(body) {
+  return body.replace(/!\[[^\]]*\]\(data:image\/[a-z0-9.+-]+;base64[^)]*\)/g, "").replace(/\n{3,}/g, "\n\n");
+}
+
+const IMAGEM_FRAGIL_REVISAO = /lookaside\.(fbsbx|instagram)\.com|tiktok\.com\/api\/img/;
+
+function removeFragileImages(body) {
+  return body.replace(/!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g, (m, url) => (IMAGEM_FRAGIL_REVISAO.test(url) ? "" : m)).replace(/\n{3,}/g, "\n\n");
+}
+
+function removeAberturasProibidas(body) {
+  return body
+    .replace(/neste artigo vamos|hoje vamos falar|neste conte[úu]do/gi, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/^,\s*/gm, "")
+    .replace(/^[ \t]+/gm, "")
+    .replace(/\n{3,}/g, "\n\n");
+}
+
+function ajustarDescription(fm, body) {
+  if ((fm.description || "").length >= 120) return fm;
+  const limpo = String(body || "")
+    .replace(/<a\s[^>]*>\s*<\/a>/g, "")
+    .replace(/\[(?:IMG|PRODUTO):[^\]]*\]/g, "")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/[#*_`>|]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const base = (fm.description || "").trim();
+  const nova = (base ? base + " " : "") + limpo;
+  return { ...fm, description: nova.replace(/\s+/g, " ").slice(0, 160) };
+}
+
+function ajustarTags(fm, categoria, topicHint) {
+  const tags = Array.isArray(fm.tags) ? [...fm.tags] : [];
+  if (tags.length >= 3) return fm;
+  const extras = [];
+  if (categoria) extras.push(categoria);
+  const palavras = String(topicHint || "").toLowerCase().split(/\s+/).filter((w) => w.length >= 4 && !["para", "para os", "melhor"].includes(w));
+  for (const w of palavras) {
+    if (tags.length + extras.length >= 3) break;
+    if (!extras.includes(w) && !tags.includes(w)) extras.push(w);
+  }
+  for (const e of extras) {
+    if (tags.length >= 3) break;
+    if (!tags.includes(e)) tags.push(e);
+  }
+  return { ...fm, tags };
+}
+
+function montarMarkdown({ fm, body, pubDate, cover, mlProducts }) {
+  return `---
+title: "${fm.title.replace(/"/g, '\\"')}"
+description: "${fm.description.replace(/"/g, '\\"')}"
+pubDate: ${pubDate}
+tags: [${fm.tags.map((t) => `"${t.trim().replace(/"/g, '\\"')}"`).join(", ")}]
+category: "${fm.category}"
+affiliate: ${fm.affiliate || mlProducts.length > 0}
+image: "${cover}"
+---
+
+${body}
+`;
+}
+
+// Aplica correcoes deterministicas para os problemas P0/P1 do gate. Devolve
+// { body, fm, mudancas }; mudancas vazio = nada corrigivel (vai direto ao rollback).
+function corrigirPeloGate({ body, fm, gateReprovados, categoria, listHeading, topicHint }) {
+  const problemas = gateReprovados.flatMap((r) => r.problemas.map((p) => ({ etapa: r.etapa, ...p })));
+  const tem = (re) => problemas.some((p) => re.test(p.mensagem));
+
+  let novoBody = body;
+  let novoFm = { ...fm, tags: Array.isArray(fm.tags) ? [...fm.tags] : [] };
+  const mudancas = [];
+
+  if (tem(/## vazia/i)) {
+    const antes = novoBody;
+    novoBody = removeEmptySections(novoBody, listHeading);
+    if (novoBody !== antes) mudancas.push("secoes-vazias-removidas");
+  }
+  if (tem(/data:/)) {
+    novoBody = removeBase64Images(novoBody);
+    mudancas.push("base64-removido");
+  }
+  if (tem(/Instagram|Facebook|TikTok/)) {
+    novoBody = removeFragileImages(novoBody);
+    mudancas.push("imagens-frageis-removidas");
+  }
+  if (tem(/abertura proibida|abertura/i)) {
+    novoBody = removeAberturasProibidas(novoBody);
+    mudancas.push("abertura-proibida-removida");
+  }
+  if (tem(/marcador/i)) {
+    novoBody = novoBody.replace(/\[(?:IMG|PRODUTO):[^\]\n]*\]/g, "").replace(/\n{3,}/g, "\n\n");
+    mudancas.push("marcadores-restantes-removidos");
+  }
+  const descAntes = novoFm.description;
+  novoFm = ajustarDescription(novoFm, novoBody);
+  if (novoFm.description !== descAntes) mudancas.push("description-ajustada");
+  const tagsAntes = novoFm.tags.length;
+  novoFm = ajustarTags(novoFm, categoria, topicHint);
+  if (novoFm.tags.length !== tagsAntes) mudancas.push("tags-completadas");
+
+  return { body: novoBody, fm: novoFm, mudancas: [...new Set(mudancas)] };
+}
+
 function validateInternalLinks(body) {
   const existingSlugs = getExistingSlugs();
   const linkRegex = /\[([^\]]+)\]\(\/blog\/([^)]+?)\/?\)/g;
@@ -2799,18 +2962,72 @@ async function main() {
   // Noticia vinda de TRENDING mantem a propria categoria — a esteira so roda
   // para outros temas. Sem isto, uma noticia quente (ex: Marvel's Wolverine)
   // era forcada para "review"/"lista" da rotacao, abrindo busca de produtos de
-  // console e abortando o artigo (10/08/2026). Temas estaticos seguem a esteira.
-  if (process.env.FORCE_TOPIC) {
-    log("INFO", `FORCE_TOPIC: categoria ${topic.category} preservada (sem esteira)`);
-  } else if (topic.category === "noticia" && trendingSource !== "estatico") {
-    log("INFO", `Categoria noticia preservada (tema trending) — sem esteira`);
-  } else {
-    const assignedCategory = nextCategory(state.last_category || "");
-    topic.category = assignedCategory;
-    log("INFO", `Categoria esteira: ${topic.category} (anterior: ${state.last_category || "nenhuma"})`);
+  // console e abortando o artigo (10/08/2026).
+  // FALLBACK DE TEMA (P2): em vez de uma unica tentativa, o main() monta um
+  // pool de candidatos — o tema principal, as alternativas do mesmo trending e
+  // os seeds estaticos (o da categoria do dia primeiro, noticia por ultimo como
+  // rede de seguranca, pois noticia nunca aborta por falta de produtos).
+  const diaCategoria = nextCategory(state);
+  const aplicarCategoriaDoDia = (cand, src) => {
+    if (process.env.FORCE_TOPIC) return;
+    if (cand.category === "noticia" && src !== "estatico") return;
+    cand.category = diaCategoria;
+  };
+  aplicarCategoriaDoDia(topic, trendingSource);
+
+  const candidatos = [];
+  const hintsVistos = new Set();
+  const addCandidato = (cand, src) => {
+    if (!cand || !cand.hint) return;
+    const chave = cand.hint.toLowerCase().slice(0, 60);
+    if (hintsVistos.has(chave)) return;
+    hintsVistos.add(chave);
+    candidatos.push({ topic: cand, src });
+  };
+
+  addCandidato(topic, trendingSource);
+
+  if (!process.env.FORCE_TOPIC) {
+    const kws = Array.isArray(topic.trending_keywords) ? topic.trending_keywords.slice(1) : [];
+    const topKeywords = Array.isArray(topic.trending_keywords) ? topic.trending_keywords.map((k) => [k, 1]) : [];
+    for (const kw of kws) {
+      try {
+        const alt = buildTopicFromKeyword(kw, topKeywords, existingTopics, recentKeywords);
+        if (alt && alt.hint !== topic.hint) {
+          aplicarCategoriaDoDia(alt, "trending");
+          addCandidato(alt, "trending");
+        }
+      } catch (e) {
+        log("WARN", `Alternativa de tema "${kw}" falhou: ${e.message}`);
+      }
+    }
+    const seeds = topicSeeds();
+    const seedDia = seeds.find((s) => s.category === diaCategoria);
+    const seedNoticia = seeds.find((s) => s.category === "noticia");
+    const seedOutros = seeds.filter((s) => s.category !== diaCategoria && s.category !== "noticia");
+    for (const s of [seedDia, seedNoticia, ...seedOutros].filter(Boolean)) {
+      addCandidato(s, "estatico");
+    }
   }
 
-  await generateArticle({ topic, state, trendingSource, opts: {} });
+  log("INFO", `Pool de temas (${candidatos.length} candidato(s)): ${candidatos.map((c) => `[${c.topic.category}] ${c.topic.hint.slice(0, 40)}`).join(" | ")}`);
+
+  let publicado = false;
+  for (const { topic: cand, src } of candidatos) {
+    log("INFO", `=== Tentando tema [${cand.category}] ${cand.hint} (${src}) ===`);
+    try {
+      await generateArticle({ topic: cand, state, trendingSource: src, opts: {} });
+      publicado = true;
+      break;
+    } catch (e) {
+      log("ERROR", `Tema falhou: ${e.message}`);
+    }
+  }
+
+  if (!publicado) {
+    log("ERROR", "Todos os temas candidatos falharam — abortando.");
+    process.exit(1);
+  }
 }
 
 // Gera um artigo para um topico dado. Usado pelo cron (main) e pela
@@ -3101,7 +3318,10 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
     const ultimaRodadaAbort = sourcingMetrics.rodadas[sourcingMetrics.rodadas.length - 1] || {};
     log("ERROR", `Funil de sourcing (rodadas: ${sourcingMetrics.rodadas.length}): ${ultimaRodadaAbort.bruto} brutos -> ${ultimaRodadaAbort.aposCategoria} categoria -> ${ultimaRodadaAbort.aposDedup} dedup -> ${ultimaRodadaAbort.aposPiso} piso -> ${mlProducts.length} final`);
     log("ERROR", `Menos de ${MIN_PRODUCTS} produtos da categoria "${articleCat}" (so ${mlProducts.length}) — abortando para nao publicar artigo errado`);
-    process.exit(1);
+    // Fallback de tema (P2): em vez de exit(1) aqui, lanca para o main() tentar
+    // o proximo candidato do pool (keyword trending alternativa ou seed estatico;
+    // se virar noticia, publica noticia). O relatorio do funil ja foi salvo acima.
+    throw new Error(`sourcing abortou para "${articleCat}" — faltaram produtos (${mlProducts.length}/${MIN_PRODUCTS})`);
   }
 
   const revSourcing = montarRevSourcing({ abortado: false, gateAtingido: true });
@@ -3162,7 +3382,7 @@ REGRAS DE ESTILO:
     ? personaManoGamer
     : personaFactual.replace("{{DOMINIO}}", domainLabel(domain));
   const minWords = MIN_WORDS[categoria] || 650;
-  const alvoWords = estiloFactual ? "900-1100" : "700-900";
+  const alvoWords = "900-1100";
   const primaryKeyword = topic.trending_keywords?.[0] || "";
 
   const systemPrompt = `Voce e redator senior de um blog gamer brasileiro de alto trafego. Seu artigo e publicado como esta, sem revisao humana: generalidade, cliche e dado inventado custam trafego e credibilidade.
@@ -3694,18 +3914,7 @@ Checklist antes de responder:
   }
   revFinal.parecer = revFinalParecer;
 
-  const markdown = `---
-title: "${fm.title.replace(/"/g, '\\"')}"
-description: "${fm.description.replace(/"/g, '\\"')}"
-pubDate: ${pubDate}
-tags: [${fm.tags.map((t) => `"${t.trim().replace(/"/g, '\\"')}"`).join(", ")}]
-category: "${fm.category}"
-affiliate: ${fm.affiliate || mlProducts.length > 0}
-image: "${cover}"
----
-
-${body}
-`;
+  const markdown = montarMarkdown({ fm, body, pubDate, cover, mlProducts });
 
   const fp = path.join(ARTIGOS_DIR, `${slug}.md`);
   // Backup do conteudo anterior (regeneracao): o gate de revisao pode precisar
@@ -3724,6 +3933,8 @@ ${body}
     state.total_articles = countArticlesInDir();
     state.last_topic = topic.hint;
     state.last_category = topic.category;
+    state.rotation_pos = (typeof state.rotation_pos === "number" ? state.rotation_pos : rotationPosFromLastCategory(topic.category)) + 1;
+    state.rotation_pos = state.rotation_pos % CATEGORY_ROTATION.length;
     state.trending_source = trendingSource;
     state.recent_keywords = topic.trending_keywords || [];
     state.recent_topics = [...((state.recent_topics || []).slice(-9)), topic.hint.slice(0, 60)];
@@ -3766,8 +3977,11 @@ ${body}
   }
 
   // GATE DE REVISAO: etapa reprovada (qualquer P0/P1) bloqueia a publicacao.
-  // Os relatorios ja foram persistidos acima; se o gate falhar, o artigo e
-  // removido (novo) ou restaurado (regeneracao) e o pipeline aborta.
+  // Os relatorios ja foram persistidos acima. TAREFA E: antes de desistir, o
+  // gate tenta corrigir deterministicamente (secoes vazias, base64, imagens
+  // frageis, abertura proibida, marcadores restantes, description/tags) e
+  // reaplica os passos deterministas (precos, marcadores, âncoras) revalidando
+  // o artigo. So remove/restaura se a correcao nao zerar as reprovacoes.
   const gateReprovados = relatoriosPiloto.filter((r) => r.status === "reprovado");
   if (gateReprovados.length > 0) {
     log("ERROR", `Gate de revisao: ${gateReprovados.length} etapa(s) reprovada(s) — ${gateReprovados.map((r) => `${r.etapa} (${r.score}/10)`).join(", ")}`);
@@ -3777,6 +3991,76 @@ ${body}
       }
     }
     if (!(opts.forcePublicar || process.env.IGNORE_REVIEW_GATE === "1")) {
+      // Revalidacao deterministica pos-correcao, com os mesmos criterios do
+      // finalValidate. Nao re-emite pareceres LLM: eles sao apenas registro.
+      const revalidar = ({ fm: f, body: b }) => {
+        const v = validate(f, b, {
+          ...validationCtx,
+          segmented: mlProducts.length > 0 && Boolean(parts),
+          listHeading: parts?.listHeading,
+          products: mlProducts,
+          productCount: mlProducts.length,
+          relaxedWordCount: true,
+          softMixedDomain: true,
+          lastAttempt: true,
+        });
+        const sw = validateSourceCoverage(b, researchSources);
+        const wc = b.split(/\s+/).filter(Boolean).length;
+        const internalLinks = [...b.matchAll(/\/blog\/[^)\s"'#]+/g)].length;
+        const fsx = b.match(/^##\s+Fontes\s*$/im);
+        const fontesComUrl = fsx ? [...b.slice(fsx.index).matchAll(/(?:\[[^\]]*\]\()?https?:\/\/[^\s)\]>]+/g)].length : 0;
+        const produtoImagensRe = mlProducts.filter((p) => p.local_thumbnail).map((p) => ({ title: p.title, path: p.local_thumbnail }));
+        const rels = [
+          revisarRedacao({ fm: f, body: b, categoria, minWords, mixedDomain: isMixedDomain(f.title) || temFocoMisto(b), primaryKeyword }),
+          revisarSeo({ fm: f, body: b, primaryKeyword, internalLinks, fontesComUrl, titleProblems: checkTitle(f.title, primaryKeyword) }),
+          revisarDesign({ body: b, fm: f, coverImage: cover, produtoImagens: produtoImagensRe, gameImages }),
+          revisarFinal({ hard: v.hard, soft: v.soft, sourceWarnings: sw, wc, minWords, productCount: mlProducts.length }),
+          revisarPublicacao({ slug, fm: f, body: b, arquivoExiste: true, linksInternos: internalLinks }),
+        ];
+        return { rels, reprovados: rels.filter((r) => r.status === "reprovado") };
+      };
+
+      let corpoOk = null;
+      let fmOk = null;
+      for (let iter = 0; iter < 3; iter++) {
+        const res = corrigirPeloGate({
+          body: corpoOk ?? body,
+          fm: fmOk ?? fm,
+          gateReprovados,
+          categoria,
+          listHeading: parts?.listHeading,
+          topicHint: topic.hint,
+        });
+        if (res.mudancas.length === 0) break;
+        let b = stripPricesFromBody(res.body, validationCtx.productPrices);
+        b = stripLeftoverMarkers(b);
+        b = injectHeadingAnchors(b);
+        const { reprovados } = revalidar({ fm: res.fm, body: b });
+        log("INFO", `Correcao do gate (tentativa ${iter + 1}): ${res.mudancas.join(", ")} -> ${reprovados.length === 0 ? "todas as etapas aprovadas" : `ainda reprovado: ${reprovados.map((r) => r.etapa).join(", ")}`}`);
+        corpoOk = b;
+        fmOk = res.fm;
+        if (reprovados.length === 0) break;
+      }
+
+      if (corpoOk != null && fmOk != null) {
+        const { rels, reprovados } = revalidar({ fm: fmOk, body: corpoOk });
+        if (reprovados.length === 0) {
+          const markdownCorrigido = montarMarkdown({ fm: fmOk, body: corpoOk, pubDate, cover, mlProducts });
+          fs.writeFileSync(fp, markdownCorrigido, "utf-8");
+          log("INFO", `Gate corrigiu o artigo automaticamente e publicou: ${slug}.md`);
+          try {
+            salvarRevisoes(slug, [revPesquisa, revSourcing, ...rels]);
+          } catch (err) {
+            log("WARN", `Falha ao persistir relatorios corrigidos: ${err.message}`);
+          }
+          log("INFO", "=== CONCLUIDO ===");
+          return;
+        }
+        log("WARN", `Correcao automatica nao zerou as reprovacoes (${reprovados.map((r) => r.etapa).join(", ")}) — rollback.`);
+      } else {
+        log("WARN", "Nenhuma correcao automatica aplicavel — rollback.");
+      }
+
       if (backupOriginal != null) {
         fs.writeFileSync(fp, backupOriginal, "utf-8");
         log("ERROR", "Artigo anterior restaurado (regeneracao reprovada pelo gate).");
@@ -4322,6 +4606,11 @@ export {
   findPricesInBody,
   stripPricesFromBody,
   keywordTokensMatch,
+  corrigirPeloGate,
+  montarMarkdown,
+  removeEmptySections,
+  ajustarDescription,
+  ajustarTags,
   parseFrontmatter,
   DEFAULT_COVER_BY_PRODUCT_CATEGORY,
   DEFAULT_COVER_GENERIC,
