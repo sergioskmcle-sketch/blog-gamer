@@ -15,3 +15,8 @@
 - Artigo cadeiras-gamer mostrou que placeholders passam sem validação
 - Artigo god-of-war mostrou que imagens base64 poluem o markdown
 - Artigos duplicados (Xbox sale x2 no mesmo dia) canibalizam keywords
+
+## 2026-08-11 — Pipeline de Revisão Automatizada (6 hooks)
+- **Deu certo:** 6 hooks executaram de ponta a ponta; consolidado + ocorrencias + parecer LLM por etapa; Pesquisa e Publicação 10/10; captura de problemas reais (P0 montagem quebrada, imagens inexistentes, título sem keyword).
+- **Não deu:** 4/6 etapas reprovaram. Bugs pré-existentes: `keepPubDate` falha com CRLF (`^---\n` não casa `\r\n` em `gerar-artigo.mjs`), montagem segmentada sem seção por produto, `category` sobrescrita (review→lista), copy-assets sem validar imagem local, capa sem fallback, preços em prosa. Cadeiras/teclados abortam: API monitor com oferta fraca no modo `remote` e `AFFILIATE_MODE` vazio cai em `legacy` (exige SERPER).
+- **Ação:** artigo/capa revertidos; relatório em `_expxagents/_memory/relatorio-teste-pipeline-revisoes-2026.md`.

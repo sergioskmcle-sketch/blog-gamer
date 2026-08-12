@@ -32,7 +32,9 @@ sessão. Linha do tempo: último post normal 23:09 → sessão cai ~23:12 → Fr
 
 **Prevenção (regra permanente):** o blog **nunca** gera link de afiliado do ML. Produtos do ML
 chegam pelo banco da Frente 4, com o link já gerado pelas frentes. A trava `BLOG_ML_ENABLED` em
-`adapters.py` fica **desligada**.
+`adapters.py` fica **desligada**. Produto sem link de afiliado (agu/2026) é publicado com o
+permalink e a flag `product-btn--pending`, registrado em `src/data/afiliados_pendentes.json` e
+corrigido manualmente na aba **Pendências** do `/admin/`.
 
 ---
 

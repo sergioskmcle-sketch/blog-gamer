@@ -631,6 +631,9 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
     <div class="nav-item" data-tab="articles" onclick="switchTab('articles')">
       <span class="icon">📝</span><span>Artigos</span>
     </div>
+    <div class="nav-item" data-tab="pendencias" onclick="switchTab('pendencias')">
+      <span class="icon">🔗</span><span>Pendências</span>
+    </div>
     <div class="nav-item" data-tab="editor" onclick="switchTab('editor')">
       <span class="icon">✏️</span><span>Editor</span>
     </div>
@@ -687,6 +690,20 @@ textarea.form-control { min-height: 400px; font-family: 'SF Mono', 'Fira Code', 
     <div class="spinner"></div> Carregando artigos...
   </div>
   <div id="articlesGrid" class="article-cards"></div>
+</div>
+
+<!-- Pendencias de afiliados -->
+<div id="section-pendencias" class="section">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <p style="color:var(--text-sec);font-size:0.85rem"><span id="pendenciaCount">0</span> produtos aguardando link de afiliado</p>
+    <button class="btn btn-secondary btn-sm" onclick="loadPendencias()">🔄 Recarregar</button>
+  </div>
+  <div class="card" style="margin-bottom:16px;font-size:0.85rem;color:var(--text-sec);padding:12px">
+    Produtos publicados sem link de afiliado (botão <code>product-btn--pending</code>). Cole o link de afiliado e clique em <b>Salvar link</b> — o botão do artigo é atualizado e o deploy é disparado automaticamente. Link de afiliado sempre manual: nunca gerado pelo pipeline.
+  </div>
+  <div id="pendenciasList">
+    <div style="text-align:center;padding:40px;color:var(--text-muted)"><div class="spinner"></div> Carregando pendências...</div>
+  </div>
 </div>
 
 <!-- Editor -->
@@ -1410,10 +1427,11 @@ function switchTab(tab) {
   document.getElementById('section-' + tab)?.classList.add('active');
   document.querySelectorAll('.nav-item[data-tab]').forEach(n => n.classList.remove('active'));
   document.querySelector(`.nav-item[data-tab="${tab}"]`)?.classList.add('active');
-  const titles = { dashboard: '📊 Dashboard', articles: '📝 Artigos', editor: '✏️ Editor', settings: '⚙️ Configurações', aparencia: '🌓 Aparência', layout: '🎨 Layout' };
+  const titles = { dashboard: '📊 Dashboard', articles: '📝 Artigos', pendencias: '🔗 Pendências', editor: '✏️ Editor', settings: '⚙️ Configurações', aparencia: '🌓 Aparência', layout: '🎨 Layout' };
   document.getElementById('pageTitle').textContent = titles[tab] || 'Admin';
   if (tab === 'dashboard') loadDashboard();
   if (tab === 'articles') loadArticles();
+  if (tab === 'pendencias') loadPendencias();
   if (tab === 'settings') loadSettings();
   if (tab === 'aparencia') loadAparencia();
   if (tab === 'layout') initLayoutEditor();
@@ -2294,6 +2312,157 @@ async function saveAparencia() {
     toast('Erro ao salvar: ' + e.message, 'error');
   } finally {
     setLoading('btnSaveAparencia', false);
+  }
+}
+
+// ===== PENDÊNCIAS DE AFILIADOS =====
+const PENDENCIAS_PATH = 'src/data/afiliados_pendentes.json';
+let pendenciaItems = [];
+
+function escapeRegExp(str) {
+  return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function loadPendencias() {
+  const listEl = document.getElementById('pendenciasList');
+  const countEl = document.getElementById('pendenciaCount');
+  listEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)"><div class="spinner"></div> Carregando pendências...</div>';
+  try {
+    const file = await getFile(PENDENCIAS_PATH);
+    pendenciaItems = [];
+    if (file && file.content) {
+      try {
+        const data = JSON.parse(file.content);
+        if (Array.isArray(data.items)) pendenciaItems = data.items;
+      } catch (e) {
+        toast('afiliados_pendentes.json inválido: ' + e.message, 'error');
+      }
+    }
+    countEl.textContent = pendenciaItems.filter(i => i.status !== 'resolvido').length;
+    renderPendencias();
+  } catch (e) {
+    listEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--danger)">Erro ao carregar pendências: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+function renderPendencias() {
+  const listEl = document.getElementById('pendenciasList');
+  const items = pendenciaItems;
+  if (!items || items.length === 0) {
+    listEl.innerHTML = '<div class="empty"><div class="icon">🎉</div><p>Nenhuma pendência de afiliado registrada.</p></div>';
+    return;
+  }
+  const pendentes = items.filter(i => i.status !== 'resolvido');
+  const resolvidos = items.filter(i => i.status === 'resolvido');
+  let html = '';
+  if (pendentes.length > 0) {
+    html += '<h3 style="font-size:0.9rem;color:var(--text);margin:8px 0">Aguardando link</h3>';
+    html += pendentes.map(i => pendenciaCard(i, items.indexOf(i))).join('');
+  }
+  if (resolvidos.length > 0) {
+    html += '<h3 style="font-size:0.9rem;color:var(--text);margin:16px 0 8px">Resolvidos</h3>';
+    html += resolvidos.map(i => pendenciaCard(i, items.indexOf(i))).join('');
+  }
+  listEl.innerHTML = html;
+}
+
+function pendenciaCard(item, i) {
+  const resolvido = item.status === 'resolvido';
+  const img = item.imagem
+    ? `<img src="${escapeHtml(imgUrl(item.imagem))}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:10px;flex-shrink:0;background:var(--bg-elevated)" loading="lazy" decoding="async" onerror="this.outerHTML='<div style=&quot;width:72px;height:72px;border-radius:10px;background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;flex-shrink:0&quot;>🎮</div>'"/>`
+    : '<div style="width:72px;height:72px;border-radius:10px;background:var(--bg-elevated);display:flex;align-items:center;justify-content:center;flex-shrink:0">🎮</div>';
+  const badge = resolvido
+    ? '<span class="badge badge-green">Resolvido</span>'
+    : '<span class="badge badge-orange">Pendente</span>';
+  const permalink = escapeHtml(item.permalink || '');
+  const linkBox = `
+    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
+      <code style="flex:1;min-width:160px;font-size:0.75rem;word-break:break-all;background:var(--bg-elevated);padding:6px 8px;border-radius:6px;color:var(--text-sec)">${permalink}</code>
+      <button class="btn btn-secondary btn-sm" onclick="copyPendingLink('${i}')" title="Copiar permalink">📋</button>
+    </div>`;
+  const linkInput = resolvido
+    ? `<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
+        <code style="flex:1;min-width:160px;font-size:0.75rem;word-break:break-all;background:var(--bg-elevated);padding:6px 8px;border-radius:6px;color:var(--text-sec)">${escapeHtml(item.link_afiliado || '')}</code>
+      </div>`
+    : `<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;align-items:center">
+        <input id="pendLink_${i}" class="form-control" placeholder="https://seu-link-de-afiliado" style="flex:2;min-width:220px"/>
+        <button class="btn btn-primary btn-sm" id="btnSavePend_${i}" onclick="savePendenciaLink('${i}')">✔️ Salvar link</button>
+       </div>`;
+  return `
+    <div class="card" style="margin-bottom:10px;padding:14px">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        ${img}
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;color:var(--text);font-size:0.9rem">${escapeHtml(item.produto || item.slug || 'Produto')}</div>
+          <div style="font-size:0.8rem;color:var(--text-sec);margin-top:2px">${badge} <span>${escapeHtml(item.botao || '')}</span></div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">
+            <a href="${escapeHtml(item.artigo || '#')}" target="_blank" style="color:var(--accent)">${escapeHtml(item.artigo || '')}</a>
+            <span> · ${escapeHtml(item.slug || '')}</span>
+          </div>
+          ${linkBox}
+          ${linkInput}
+        </div>
+      </div>
+    </div>`;
+}
+
+function copyPendingLink(i) {
+  const item = pendenciaItems[i];
+  if (!item || !item.permalink) return;
+  navigator.clipboard.writeText(item.permalink).then(() => toast('Permalink copiado!', 'success')).catch(() => toast('Não foi possível copiar', 'error'));
+}
+
+function replacePendingButton(md, permalink, newLink) {
+  const escPerma = escapeRegExp(permalink);
+  const re = new RegExp('<a\\s[^>]*href="' + escPerma + '"[^>]*class="[^"]*\\bproduct-btn\\b[^"]*"[^>]*>[\\s\\S]*?<\\/a>', 'i');
+  const m = md.match(re);
+  if (!m) return md;
+  let updated = m[0]
+    .replace(new RegExp('href="' + escPerma + '"'), 'href="' + newLink.replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"')
+    .replace(/\s*product-btn--pending/, '');
+  return md.slice(0, m.index) + updated + md.slice(m.index + m[0].length);
+}
+
+async function savePendenciaLink(i) {
+  const item = pendenciaItems[i];
+  if (!item) return;
+  const input = document.getElementById('pendLink_' + i);
+  const link = input ? input.value.trim() : '';
+  if (!/^https?:\/\//i.test(link)) { toast('Informe um link válido (https://...)', 'error'); return; }
+
+  const btnId = 'btnSavePend_' + i;
+  setLoading(btnId, true);
+  try {
+    const artigo = await getFile(`${ARTICLES_PATH}/${item.slug}.md`);
+    if (!artigo) throw new Error('Artigo não encontrado: ' + item.slug);
+    const novoBody = replacePendingButton(artigo.content, item.permalink, link);
+    if (novoBody === artigo.content) {
+      toast('Botão pendente não localizado no artigo — use Editor → Produtos.', 'error');
+    } else {
+      await putFile(`${ARTICLES_PATH}/${item.slug}.md`, novoBody, `afiliado: link para "${(item.produto || item.slug).slice(0, 50)}"`, artigo.sha);
+    }
+
+    item.status = 'resolvido';
+    item.link_afiliado = link;
+    item.resolvido_em = new Date().toISOString();
+    const file = await getFile(PENDENCIAS_PATH);
+    const registro = file ? JSON.parse(file.content) : { items: [] };
+    registro.updatedAt = new Date().toISOString();
+    const idx = registro.items.findIndex(x => x.id === item.id);
+    if (idx >= 0) registro.items[idx] = item; else registro.items.push(item);
+    await putFile(PENDENCIAS_PATH, JSON.stringify(registro, null, 2) + '\n', 'afiliado: marcar como resolvido', file ? file.sha : null);
+
+    await fetch(`${GH_API}/repos/${REPO}/actions/workflows/deploy.yml/dispatches`, {
+      method: 'POST',
+      headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ref: 'main' }),
+    }).catch(() => {});
+
+    toast('Link salvo e deploy disparado! 🚀', 'success');
+    await loadPendencias();
+  } catch (e) {
+    toast('Erro ao salvar: ' + e.message, 'error');
+    setLoading(btnId, false);
   }
 }
 

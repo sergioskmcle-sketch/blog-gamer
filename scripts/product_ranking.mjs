@@ -196,8 +196,10 @@ export function eligibilityCheck(p, ctx = {}) {
   }
   const semDadosDeAvaliacao = !(rating > 0) && !(ratingCount > 0);
   if (!semDadosDeAvaliacao) {
-    if (!(rating >= 4.0) && !(ratingCount >= 100)) {
-      motivos.push("sem nota >= 4.0 e sem volume de avaliacoes que compense (>= 100)");
+    // Volume alto compensa nota mediana, nunca nota catastrophica: 100+ pessoas
+    // avaliando 1-2 estrelas e prova de que o produto e ruim, nao consenso bom.
+    if (!(rating >= 4.0) && !(ratingCount >= 100 && rating >= 3.5)) {
+      motivos.push("sem nota >= 4.0 e sem volume de avaliacoes (>= 100) com nota >= 3.5 que compense");
     }
     if (!(ratingCount >= ratingCountMinimo)) {
       motivos.push(`menos de ${ratingCountMinimo} avaliacoes`);

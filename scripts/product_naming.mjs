@@ -358,6 +358,13 @@ export function detectArticleCategory(topic) {
 // Deteccao de marca, modelo e specs.
 // ---------------------------------------------------------------------------
 
+// Marcas cuja grafia tambem e palavra comum (cor, termo em ingles): so sao
+// marca quando o contexto do titulo confirma. "Blue" e a marca de microfone
+// (Yeti, Snowball, ...), mas "blue" tambem e cor em "mousepad light blue".
+const BRAND_REQUIRES_CONTEXT = {
+  blue: /\bblue\s+(?:yeti|snowball|ember|spark|nessie|raspberry|compass)\b/i,
+};
+
 function findBrand(text) {
   const src = normForMatch(collapse(text)).replace(
     /\bswitch\s+(?:blue|red|brown|green|purple|orange|yellow)\b/g,
@@ -371,7 +378,7 @@ function findBrand(text) {
   // Multi-palavra primeiro ("logitech g", "rise mode"); simples seguem a ordem.
   aliases.sort((a, b) => (b.multi ? 1 : 0) - (a.multi ? 1 : 0));
   for (const c of aliases) {
-    const re = new RegExp("\\b" + escapeRe(c.alias) + "\\b", "i");
+    const re = BRAND_REQUIRES_CONTEXT[c.alias] || new RegExp("\\b" + escapeRe(c.alias) + "\\b", "i");
     if (re.test(src)) return c;
   }
   return null;
@@ -399,9 +406,11 @@ function isGoodModelCode(m, digitFirst = false) {
   // Unidades de medida que aparecem depois do numero (450W, 8GB, 100Hz) nao
   // sao modelo. No caminho letra-primeiro ("K552", "Q27G4F") so unidades
   // multiletras sao rejeitadas — a letra de linha (K) e parte do modelo.
+  // "P" e "FPS" cobrem resolucao (1080P) e taxa de quadros (60FPS), que
+  // parecem codigo mas sao spec — falso positivo no gate de elegibilidade.
   const unitRe = digitFirst
-    ? /^(GB|TB|MB|KB|HZ|GHZ|MHZ|DPI|K|W|V|A|RPM|MS)$/i
-    : /^(GB|TB|MB|KB|HZ|GHZ|MHZ|DPI|RPM|MS)$/i;
+    ? /^(GB|TB|MB|KB|HZ|GHZ|MHZ|DPI|K|W|V|A|RPM|MS|FPS|P)$/i
+    : /^(GB|TB|MB|KB|HZ|GHZ|MHZ|DPI|RPM|MS|FPS|P)$/i;
   if (unitRe.test(unitOnly)) return false;
   const runs = (m.match(/\d+/g) || []).map((r) => r.length);
   if (runs.length > 0 && Math.max(...runs) >= 3) return true;

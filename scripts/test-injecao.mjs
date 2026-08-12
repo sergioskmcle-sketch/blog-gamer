@@ -24,7 +24,7 @@ import {
 import { parsePriceBRL } from "./google_shopping.mjs";
 import { normalizarProdutoRemoto } from "./monitor_api.mjs";
 import { extractMLProductData } from "./ml_affiliate.mjs";
-import { cleanProductTitle, detectCategory, productMatchesCategory, detectArticleCategory } from "./product_naming.mjs";
+import { cleanProductTitle, detectCategory, detectBrand, detectModel, productMatchesCategory, detectArticleCategory } from "./product_naming.mjs";
 import { medianPrice, valueForMoneyScore, countEditorialMentions, scoreProduct, rankProducts, applyMinCriteria, eligibilityCheck, RANKING_WEIGHTS, MIN_CRITERIA } from "./product_ranking.mjs";
 import { upgradeImageUrl, imageDimensions, isImageUsable, MIN_IMAGE_SIZE } from "./product_images.mjs";
 
@@ -730,6 +730,30 @@ ok(eligibilityCheck(
   { title: "Teclado Redragon Kumara K552", price: 250, rating: 4.5, ratingCount: 60, origem: "remoto" },
   { median: 260 },
 ).elegivel, "produto remoto com nota real valida passa normalmente");
+
+// P12 (desarme): "blue" como cor nao vira marca; Blue so conta em microfone
+// com modelo conhecido (Yeti, Snowball, ...).
+igual(detectBrand("Mousepad Gamer Light Blue"), "", "cor azul em ingles nao vira marca Blue");
+igual(detectBrand("Teclado Mecanico Switch Blue"), "", "switch blue (spec de switch) nao vira marca");
+igual(detectBrand("Microfone Blue Yeti X"), "Blue", "Blue Yeti continua sendo marca de microfone");
+igual(detectBrand("Microfone Condensador Blue Snowball"), "Blue", "Blue Snowball continua sendo marca de microfone");
+
+// P12 (desarme): resolucao e taxa de quadros nao sao modelo (davam falso
+// positivo no gate de identidade via detectModel).
+igual(detectModel("Webcam Full HD 1080P"), "", "1080P e resolucao, nao modelo");
+igual(detectModel("Monitor Gamer 1440P 165Hz"), "", "1440P e resolucao, nao modelo");
+igual(detectModel("Mouse Gamer 120FPS"), "", "FPS e taxa de quadros, nao modelo");
+igual(detectModel("Placa de Video RTX 4060 8GB"), "RTX 4060", "serie real de GPU continua sendo modelo");
+
+// P12 (desarme): volume >= 100 compensa nota mediana, nunca nota catastrophica.
+ok(!eligibilityCheck(
+  { title: "Teclado Logitech G", rating: 3.0, ratingCount: 500, price: 250 },
+  { median: 260 },
+).elegivel, "volume >= 100 nao compensa nota 3.0 no piso");
+ok(eligibilityCheck(
+  { title: "Teclado Logitech G", rating: 3.8, ratingCount: 500, price: 250 },
+  { median: 260 },
+).elegivel, "volume >= 100 compensa nota mediana (3.8) no piso");
 
 // Query de produto: tira a frase editorial do topico e fica so com o
 // vocabulario que existe no catalogo (substantivos de hardware / jogos).

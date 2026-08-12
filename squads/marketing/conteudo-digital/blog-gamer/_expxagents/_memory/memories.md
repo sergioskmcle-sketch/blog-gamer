@@ -28,6 +28,14 @@
 - URLs de imagem oficiais extraídas de `og:image` das páginas dos fabricantes (HyperX CDN, RedragonShop CDN, Razer assets2, JBL demandware `dw/image/v2`) são as mais confiáveis
 - RTINGS bloqueia hotlinking (403) — não usar imagens do domínio rtings.com
 
+### Teste 2: Pipeline de Revisão Automatizada (6 hooks) — headsets com som espacial
+- **Data:** 2026-08-11
+- **Status:** TESTE CONCLUÍDO — 4/6 etapas reprovaram capturando problemas reais; artigo revertido
+- **Aprovadas:** Pesquisa 10/10, Publicação 10/10. **Reprovadas:** Redação 7/10, SEO 5/10, Design 8/10, Revisão 4/10
+- **Bugs pré-existentes encontrados:** keepPubDate falha com CRLF (pubDate resetado); montagem segmentada quebrou ("5 Melhores" sem seção por produto — P0); category sobrescrita review→lista; imagens locais de produto inexistentes (P1); capa sem fallback (P1); preços em prosa (P2)
+- **Cadeiras/teclados abortam:** oferta fraca da API monitor em modo `remote`; `AFFILIATE_MODE` vazio cai em `legacy` (exige SERPER)
+- **Relatório:** `_expxagents/_memory/relatorio-teste-pipeline-revisoes-2026.md`
+
 ## Artigos Publicados
 
 | # | Artigo | Data | Status |

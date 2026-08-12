@@ -55,7 +55,7 @@ scripts/
   fix-article-links.mjs     → LEGADO (meli.la com cookies do ML — inativo)
   regenerate-*-cover.mjs    → Regenera a capa de artigos específicos (cadeiras, fones, monitores, psplus, xbox)
   gerar-status.cjs          → Gera status.json a cada deploy
-  test-injecao.mjs          → Testes de validação (263 asserts): itens, TOC, fontes, portão de produtos, labels de loja e montagem segmentada
+  test-injecao.mjs          → Testes de validação (323 asserts): itens, TOC, fontes, portão de produtos, labels de loja e montagem segmentada
   download-images.mjs       → Baixa imagens dos produtos para o repo
   convert-banners.mjs       → Converter banners PNG → WebP
   migrar-artigos.mjs        → Migra artigos antigos para o novo padrão (categorias, índice hierárquico, FAQ e nomes normalizados — ver TAREFA 7)
@@ -289,8 +289,10 @@ As fontes de produto (Frente 4 e Google Shopping) entregam apenas título, preç
 
 ### Editar Botões de um Artigo Publicado
 
-Edite no painel `/admin/` (aba **Produtos**): o painel lista cada `product-btn` do artigo e permite alterar o **texto** e o **link** do botão (ex.: trocar o link da loja pelo seu link de afiliado). Salve e o deploy é automático.
+Edite no painel `/admin/`: na aba **Produtos** você altera o **texto** e o **link** de cada `product-btn` de um artigo. Na aba **Pendências** você vê, em um só lugar, todos os produtos que o pipeline publicou **sem** link de afiliado (botões `product-btn--pending` com permalink): basta colar o link de afiliado e salvar — o botão do artigo é atualizado e o deploy é automático. Salve e o deploy é automático.
 
+> Produtos sem link de afiliado **não são mais descartados** (desde ago/2026): são publicados com o permalink, marcados como pendentes em `src/data/afiliados_pendentes.json` e resolvidos manualmente na aba **Pendências**. O blog nunca gera link de afiliado por conta própria.
+>
 > Os scripts legados `fix-article-links.mjs` / `automation/fix_article_links.py` (geração de `meli.la` com cookies do ML) estão **inativos** — os cookies de sessão foram aposentados.
 
 ### Formato do Botão
@@ -383,7 +385,7 @@ O sistema usa a **API de Google Shopping da Serper.dev** (geo Brasil) para encon
 2. Retorna por item: título, preço, imagem, link e nome da loja (`source`: Mercado Livre, Kabum, Amazon, Magalu…)
 3. `isGamerProduct()` + `sanitizeProducts()` descartam não-gamer, blog/listagem/artigo, deduplicam, exigem preço e ordenam por relevância ao tópico
 4. Gera o botão com o nome da loja (`VER NA KABUM`, `VER NO MERCADO LIVRE`) apontando para a URL real
-5. Monta o artigo de forma **segmentada**: 1 chamada LLM por item (blurb) + 1 chamada para o corpo; itens, tabela comparativa e botões são montados em código
+5. Monta o artigo de forma **segmentada**: 1 chamada LLM por item (blurb) + 1 chamada para o corpo (a LLM marca o lugar da lista com `[LISTA]` e o heading `## Os N Melhores…` é gerado em código); itens, tabela comparativa e botões são montados em código
 
 Fallback para tópicos de games: lista fixa de produtos (com `source: "Mercado Livre"`).
 
@@ -407,7 +409,7 @@ Fallback para tópicos de games: lista fixa de produtos (com `source: "Mercado L
 - **Ícones** — SVGs inline (sem dependência de fonte externa Material Symbols)
 - **Banners** — WebP otimizados (4.5 MB → 470 KB)
 - **Layout** — Container 1280px, conteúdo 780px, fonte 1.05rem com line-height 1.85
-- **Painel Admin** — `/admin/`: aba **Aparência** (tema claro/escuro, botão de alternância para visitantes e fundo do blog por preset/cor/imagem, salvos em `src/data/blog-config.json` + deploy automático), **Layout** (editor visual com sliders de altura do nav, altura/posição lateral da logo, colunas do conteúdo/sidebar, fontes e cores; upload de logo; salvamento em `global.css`), **Produtos** (texto + link de cada botão de compra) e **Artigos** (CRUD completo)
+- **Painel Admin** — `/admin/`: aba **Aparência** (tema claro/escuro, botão de alternância para visitantes e fundo do blog por preset/cor/imagem, salvos em `src/data/blog-config.json` + deploy automático), **Layout** (editor visual com sliders de altura do nav, altura/posição lateral da logo, colunas do conteúdo/sidebar, fontes e cores; upload de logo; salvamento em `global.css`), **Produtos** (texto + link de cada botão de compra), **Pendências** (produtos publicados sem link de afiliado — cole o link e o botão do artigo é atualizado + deploy automático) e **Artigos** (CRUD completo)
 
 ---
 

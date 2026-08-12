@@ -118,9 +118,14 @@ barato:
 | Critério | Regra |
 |----------|-------|
 | **Preço plausível** | Entre 0,35× e 2,2× a mediana de preço da lista. Fora disso: risco de anúncio errado/acessório (muito abaixo) ou preço fora de mercado (muito acima). |
-| **Prova de compra real** | `rating >= 4.0` **ou** `ratingCount >= 100` (nota alta compensa poucas avaliações; muitas avaliações compensam nota mediana). |
+| **Prova de compra real** | `rating >= 4.0` **ou** `ratingCount >= 100` com `rating >= 3.5` (nota alta compensa poucas avaliações; muitas avaliações compensam nota mediana — **nunca** nota catastrófica). |
 | **Volume mínimo de avaliações** | `ratingCount >= 20` (relaxado para `>= 10` só se isso for necessário para não deixar a lista abaixo do mínimo de produtos do artigo). |
 | **Identidade reconhecível** | Marca conhecida (`KNOWN_BRANDS`) **ou** modelo detectável (`detectModel`, ex. "RTX 4060", "K552") **ou** ao menos 1 menção editorial. |
+
+Para não deixar falso positivo passar só por parecer identificável, a detecção é
+conservadora: marca ambígua só conta com contexto ("Blue" é marca só em
+microfones Yeti/Snowball/etc., nunca em "mousepad light blue") e resolução
+(1080P) ou taxa de quadros (60FPS) nunca são tratadas como modelo.
 
 Produtos que não atendem ao piso são descartados **e o motivo é registrado no
 log** (`log("INFO"/"WARN", "Fora do piso de qualidade: ...")`), para
@@ -163,17 +168,23 @@ como "5,5/5" ou "8/5" para o artigo. O score objetivo (0–1) que decide a
 **ordem** da lista é um número interno (`p.score`) e nunca é mostrado ao
 leitor como "nota".
 
-## Link de afiliado: etapa obrigatória, sem fallback silencioso
+## Link de afiliado: etapa obrigatória, sem geração própria
 
 Depois que a lista final está fechada, `resolverAfiliados()` roda **sempre**,
 fora de qualquer condicional de disponibilidade de API:
 
 1. Produto que já chegou com `affiliate_link` pronto (Frente 4) segue direto.
-2. Produto sem link é **descartado da lista** (nunca publicado com o link cru
-   do produto, sem comissão) e o motivo vai para o log como `ERROR` — o laço
-   de busca tenta repor o produto descartado.
-3. Se a lista final ficar abaixo do mínimo de produtos do artigo, a geração
-   **aborta** em vez de publicar incompleta.
+2. Produto sem link NÃO é mais descartado (ago/2026): é publicado com o
+   **permalink** do produto e a flag `affiliate_pending: true`, e registrado em
+   `src/data/afiliados_pendentes.json`. O autor corrige o link na aba
+   **Pendências** do painel `/admin/` (que atualiza o `<a href>` do botão no
+   markdown e dispara o deploy). O blog **nunca** gera o link de afiliado por
+   conta própria — link de afiliado é sempre manual.
+3. **Notícias nunca abortam por falta de produtos**: artigos de categoria
+   `noticia` seguem com 0..n produtos (fluxo informativo com `## Fontes`).
+   Artigos de lista/review só abortam se a categoria de produto foi detectada
+   e ficou abaixo do mínimo (`MIN_PRODUCTS`) — nunca publicam artigo errado.
+
 
 > **Regra permanente (ver `docs/TROUBLESHOOTING.md`): o blog nunca gera link
 > de afiliado do Mercado Livre por conta própria.** A sessão/cookie do ML é

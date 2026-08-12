@@ -73,6 +73,7 @@ blog-gamer/
 | `scripts/migrar-artigos.mjs` | Migra artigos publicados para o novo formato |
 | `scripts/limpar-imagens-orfas.mjs` | Remove imagens sem referência nos artigos |
 | `src/data/blog-config.json` | Tema (dark/light) e fundo do blog (aba Aparência) |
+| `src/data/afiliados_pendentes.json` | Produtos publicados sem link de afiliado (aba Pendências do admin) |
 | `public/admin/index.html` | Painel admin publicado em `/admin/` |
 | `src/layouts/Layout.astro` | Aplica tema e fundo vindos do `blog-config.json` |
 
