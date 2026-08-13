@@ -1239,8 +1239,14 @@ async function ghFetch(path, opts = {}) {
 async function getFile(path) {
   const data = await ghFetch(`contents/${path}`);
   if (!data) return null;
+  let content = data.content;
+  if (!content && data.download_url) {
+    const raw = await fetch(data.download_url).then((r) => r.text()).catch(() => null);
+    content = raw != null ? btoa(unescape(encodeURIComponent(raw))) : null;
+  }
+  if (!content) throw new Error('Arquivo muito grande ou sem conteúdo: ' + path);
   return {
-    content: decodeB64(data.content),
+    content: decodeB64(content),
     sha: data.sha,
     name: data.name,
   };

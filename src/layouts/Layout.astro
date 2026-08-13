@@ -68,7 +68,7 @@ if (bg.mode === "preset") {
   `;
 }
 
-const themeCss = `:root:root {\n${bgVars.trim()}\n}`;
+const themeCss = `:root:root {\n${bgVars.trim()}\n}\n:root:root[data-theme="light"] {\n  --body-bg-image: none !important;\n}`;
 
 const themeScript = `(function () {
   var DEFAULT = ${defaultThemeJson};
