@@ -3,7 +3,6 @@ import Layout from "../layouts/Layout.astro";
 import HeroSection from "../components/HeroSection.astro";
 import ArticleCard from "../components/ArticleCard.astro";
 import Sidebar from "../components/Sidebar.astro";
-import Icon from "../components/Icon.astro";
 
 const artigos = Object.entries(import.meta.glob("../content/artigos/*.md", { eager: true }))
   .map(([path, mod]) => ({
@@ -19,7 +18,7 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 ---
 
 <Layout title="Promo Gamer" image={`${base}images/banner-grupo.webp`}>
-  <div class="max-w-page mx-auto px-gutter">
+  <div class="w-full">
     <script>
       (function() {
         const params = new URLSearchParams(window.location.search);
@@ -41,8 +40,8 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
         }
       })();
     </script>
-    <div class="grid grid-cols-1 gap-xl my-xl blog-layout">
-      <section class="space-y-xl" style="grid-column: span var(--main-cols, 8) / span var(--main-cols, 8)">
+    <div class="w-full max-w-page mx-auto px-margin-mobile lg:px-gutter mt-lg mb-xl grid grid-cols-1 lg:grid-cols-12 gap-lg">
+      <div class="col-span-1 lg:col-span-8 flex flex-col gap-lg">
         {destaque && (
           <HeroSection
             title={destaque.title}
@@ -56,18 +55,22 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
           />
         )}
 
-        <div class="space-y-lg">
-          <div class="flex items-center justify-between border-b border-outline-variant/30 pb-md">
-            <h2 class="font-h2 text-h2 text-primary flex items-center gap-sm">
-              <Icon name="bolt" class="text-secondary" />
-              Últimas Notícias
+        <section>
+          <div class="flex items-center justify-between mb-md">
+            <h2 class="font-headline-lg text-headline-lg text-on-background flex items-center gap-sm">
+              <span class="material-symbols-outlined text-primary text-[32px]" aria-hidden="true">bolt</span>
+              Últimas Atualizações
             </h2>
-            <a href={`${import.meta.env.BASE_URL || "/"}categoria/noticia/`} class="font-label text-label text-on-surface-variant hover:text-secondary transition-colors uppercase no-underline hover:no-underline">
-              Ver Todas
+            <a
+              href={`${base}categoria/noticia/`}
+              class="text-primary hover:text-primary-fixed-dim transition-colors font-label-md text-label-md uppercase flex items-center gap-1 group no-underline hover:no-underline"
+            >
+              Ver todas
+              <span class="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform" aria-hidden="true">arrow_forward</span>
             </a>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-md">
             {restante.map((artigo) => (
               <ArticleCard
                 title={artigo.title}
@@ -81,10 +84,10 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
               />
             ))}
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
-      <aside style="grid-column: span var(--sidebar-cols, 4) / span var(--sidebar-cols, 4)">
+      <aside class="col-span-1 lg:col-span-4 flex flex-col gap-lg">
         <Sidebar artigos={artigos} currentSlug={destaque?.slug} />
       </aside>
     </div>
@@ -93,12 +96,12 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
       href="https://t.me/+TRWZ67WHuk85Y2Nh"
       target="_blank"
       rel="noopener noreferrer"
-      class="block max-w-page mx-auto px-gutter pb-xl rounded-lg overflow-hidden no-underline hover:no-underline"
+      class="block max-w-page mx-auto px-margin-mobile lg:px-gutter pb-xl no-underline hover:no-underline"
     >
       <img
         src={`${base}images/banner-grupo.webp`}
         alt="Grupo VIP Telegram - Ofertas Gamer Diárias"
-        class="w-full h-auto rounded-lg"
+        class="w-full h-auto rounded-xl"
         loading="lazy"
         decoding="async"
       />
@@ -106,13 +109,13 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
   </div>
 
   {!destaque && (
-    <div class="pt-16 max-w-page mx-auto px-gutter py-xxl">
-      <section class="text-center py-xxl">
+    <div class="pt-16 max-w-page mx-auto px-margin-mobile lg:px-gutter py-xl">
+      <section class="text-center py-xl">
         <p style="font-size: 3rem; margin-bottom: 1rem;">&#x1F3AE;</p>
-        <h1 class="font-h1 text-h1 mb-md">
+        <h1 class="font-headline-lg text-headline-lg mb-md">
           Bem-vindo ao <span class="text-primary">Promo Gamer</span>
         </h1>
-        <p class="text-on-surface-variant text-lg max-w-lg mx-auto mb-lg">
+        <p class="text-on-surface-variant text-body-lg max-w-lg mx-auto mb-lg">
           Notícias, reviews, listas e guias sobre o universo dos games.
         </p>
         <div class="flex gap-sm justify-center flex-wrap">

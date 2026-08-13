@@ -3,8 +3,8 @@
   "allowVisitorThemeToggle": true,
   "background": {
     "mode": "solid",
-    "preset": "gradiente-suave",
-    "solidColor": "#0c122c",
+    "preset": "preto-solido",
+    "solidColor": "#050505",
     "imageUrl": "",
     "imageSize": "cover",
     "imagePosition": "center center",

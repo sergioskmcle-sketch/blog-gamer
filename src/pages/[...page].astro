@@ -4,7 +4,6 @@ import HeroSection from "../components/HeroSection.astro";
 import ArticleCard from "../components/ArticleCard.astro";
 import Sidebar from "../components/Sidebar.astro";
 import Pagination from "../components/Pagination.astro";
-import Icon from "../components/Icon.astro";
 
 export async function getStaticPaths({ paginate }) {
   // Astro extrai getStaticPaths do escopo do módulo, então a constante vive aqui.
@@ -44,9 +43,9 @@ const titulo = isFirst ? "Promo Gamer" : `Promo Gamer — página ${page.current
   prevPage={urlPrev}
   nextPage={urlNext}
 >
-  <div class="max-w-page mx-auto px-gutter">
-    <div class="grid grid-cols-1 gap-xl my-xl blog-layout">
-      <section class="min-w-0 space-y-xl" style="grid-column: span var(--main-cols, 8) / span var(--main-cols, 8)">
+  <div class="w-full max-w-page mx-auto px-margin-mobile lg:px-gutter mt-lg mb-xl">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+      <section class="lg:col-span-8 min-w-0 flex flex-col gap-lg">
         {isFirst && destaque && (
           <HeroSection
             title={destaque.title}
@@ -61,31 +60,31 @@ const titulo = isFirst ? "Promo Gamer" : `Promo Gamer — página ${page.current
         )}
 
         <div class="space-y-lg">
-          <div class="flex items-center justify-between border-b border-outline-variant/30 pb-md">
+          <div class="flex items-center justify-between border-b border-outline-variant/40 pb-md">
             {/*
               Na página 1 o h1 é o título do hero, então aqui vira h2. Nas
               páginas seguintes não há hero — sem isso, elas ficavam sem h1.
             */}
             {isFirst ? (
-              <h2 class="font-h2 text-h2 text-on-surface flex items-center gap-sm">
-                <Icon name="bolt" class="text-secondary" />
+              <h2 class="font-headline-lg text-headline-lg text-on-surface flex items-center gap-sm">
+                <span class="material-symbols-outlined text-secondary text-[28px]" aria-hidden="true">bolt</span>
                 Últimas Notícias
               </h2>
             ) : (
-              <h1 class="font-h2 text-h2 text-on-surface flex items-center gap-sm">
-                <Icon name="bolt" class="text-secondary" />
+              <h1 class="font-headline-lg text-headline-lg text-on-surface flex items-center gap-sm">
+                <span class="material-symbols-outlined text-secondary text-[28px]" aria-hidden="true">bolt</span>
                 Artigos — página {page.currentPage}
               </h1>
             )}
             <a
               href={`${base}categoria/noticia/`}
-              class="inline-flex items-center px-sm min-h-[40px] rounded-md font-label text-label text-on-surface-variant hover:text-primary hover:bg-white/5 transition-colors uppercase no-underline hover:no-underline"
+              class="inline-flex items-center px-sm min-h-[40px] rounded-md font-label text-label text-on-surface-variant hover:text-primary transition-colors uppercase no-underline hover:no-underline"
             >
               Ver Todas
             </a>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-md">
             {page.data.map((artigo) => (
               <ArticleCard
                 title={artigo.title}
@@ -110,7 +109,7 @@ const titulo = isFirst ? "Promo Gamer" : `Promo Gamer — página ${page.current
         </div>
       </section>
 
-      <aside class="min-w-0" style="grid-column: span var(--sidebar-cols, 4) / span var(--sidebar-cols, 4)">
+      <aside class="lg:col-span-4 min-w-0">
         <Sidebar artigos={todos} currentSlug={isFirst ? destaque?.slug : undefined} />
       </aside>
     </div>
@@ -119,14 +118,14 @@ const titulo = isFirst ? "Promo Gamer" : `Promo Gamer — página ${page.current
       href="https://t.me/+TRWZ67WHuk85Y2Nh"
       target="_blank"
       rel="noopener noreferrer"
-      class="block pb-xl rounded-lg overflow-hidden no-underline hover:no-underline"
+      class="block pb-xl rounded-xl overflow-hidden no-underline hover:no-underline"
     >
       <img
         src={`${base}images/banner-grupo.webp`}
         alt="Grupo VIP Telegram - Ofertas Gamer Diárias"
         width="1659"
         height="948"
-        class="w-full h-auto rounded-lg"
+        class="w-full h-auto rounded-xl"
         loading="lazy"
         decoding="async"
       />

@@ -1,48 +1,54 @@
 ---
-import Icon from "./Icon.astro";
-
 const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 ---
 
-<footer class="bg-surface border-t border-outline-variant/30 w-full py-xl shadow-[inset_0_1px_0_var(--emboss-high)]">
-  <div class="flex flex-col items-center gap-lg max-w-page mx-auto px-gutter text-center">
-    <a href={base} class="font-display text-[1.25rem] font-black text-primary tracking-[0.05em] no-underline hover:no-underline hover:text-primary uppercase">
-      BLOG GAMER
-    </a>
+<footer class="w-full bg-surface-container-lowest py-xl border-t border-outline-variant">
+  <div class="max-w-page mx-auto px-margin-mobile lg:px-gutter">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-lg mb-12">
+      <div class="col-span-1 md:col-span-2">
+        <a href={base} class="no-underline hover:no-underline inline-block">
+          <img
+            src={`${base}images/logo-blog.webp`}
+            alt="Promo Gamer"
+            class="h-10 w-auto mb-md opacity-80"
+          />
+        </a>
+        <p class="text-on-surface-variant font-body-md max-w-sm">
+          O seu guia definitivo para hardware, periféricos e as melhores promoções do mundo gamer. Análises técnicas feitas por quem joga.
+        </p>
+      </div>
 
-    <nav class="flex flex-wrap justify-center gap-lg font-label text-label">
-      <a href={`${base}`} class="uppercase text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
-        Início
-      </a>
-      <a href={`${base}categoria/noticia/`} class="uppercase text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
-        Notícias
-      </a>
-      <a href={`${base}categoria/review/`} class="uppercase text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
-        Reviews
-      </a>
-      <a href={`${base}categoria/guia/`} class="uppercase text-on-surface-variant hover:text-primary transition-colors no-underline hover:no-underline">
-        Guias
-      </a>
-    </nav>
+      <div>
+        <h4 class="font-label-md text-label-md text-primary mb-md uppercase">Institucional</h4>
+        <nav class="flex flex-col gap-sm">
+          <a href={base} class="text-on-surface-variant hover:text-secondary transition-colors text-body-md no-underline hover:no-underline">Início</a>
+          <a href={`${base}categoria/noticia/`} class="text-on-surface-variant hover:text-secondary transition-colors text-body-md no-underline hover:no-underline">Notícias</a>
+          <a href={`${base}categoria/review/`} class="text-on-surface-variant hover:text-secondary transition-colors text-body-md no-underline hover:no-underline">Reviews</a>
+          <a href={`${base}categoria/guia/`} class="text-on-surface-variant hover:text-secondary transition-colors text-body-md no-underline hover:no-underline">Guias</a>
+        </nav>
+      </div>
 
-    <div class="flex gap-xl text-outline mt-md">
-      <a href="#" class="no-underline hover:no-underline text-outline hover:text-secondary transition-colors" aria-label="Site">
-        <Icon name="public" />
-      </a>
-      <a href="mailto:?subject=Blog%20Gamer&body={encodeURIComponent(base)}" class="no-underline hover:no-underline text-outline hover:text-secondary transition-colors" aria-label="Email">
-        <Icon name="mail" />
-      </a>
-      <a href={`${base}rss.xml`} class="no-underline hover:no-underline text-outline hover:text-secondary transition-colors" aria-label="RSS">
-        <Icon name="rss_feed" />
-      </a>
+      <div>
+        <h4 class="font-label-md text-label-md text-primary mb-md uppercase">Siga-nos</h4>
+        <div class="flex gap-md">
+          <a href={base} class="p-2 bg-surface-container rounded-lg text-on-surface hover:bg-secondary hover:text-surface transition-all no-underline" aria-label="Site">
+            <span class="material-symbols-outlined" aria-hidden="true">public</span>
+          </a>
+          <a href="mailto:?subject=Blog%20Gamer&body={encodeURIComponent(base)}" class="p-2 bg-surface-container rounded-lg text-on-surface hover:bg-secondary hover:text-surface transition-all no-underline" aria-label="Email">
+            <span class="material-symbols-outlined" aria-hidden="true">mail</span>
+          </a>
+          <a href={`${base}rss.xml`} class="p-2 bg-surface-container rounded-lg text-on-surface hover:bg-secondary hover:text-surface transition-all no-underline" aria-label="RSS">
+            <span class="material-symbols-outlined" aria-hidden="true">rss_feed</span>
+          </a>
+        </div>
+      </div>
     </div>
 
-    <p class="font-label text-[10px] text-outline-variant mt-xl opacity-80 uppercase tracking-widest">
-      &copy; {new Date().getFullYear()} BLOG GAMER. ALL RIGHTS RESERVED.
-    </p>
-
-    <p class="font-label text-[9px] text-on-surface-variant/40">
-      Links podem conter afiliados — ao comprar por eles, você apoia o blog sem pagar nada a mais.
-    </p>
+    <div class="pt-8 border-t border-outline-variant flex flex-col md:flex-row justify-between items-center gap-md text-on-surface-variant text-body-md">
+      <span>&copy; {new Date().getFullYear()} Promo Gamer. Todos os direitos reservados.</span>
+      <span class="flex items-center gap-1">
+        Links podem conter afiliados — ao comprar por eles, você apoia o blog sem pagar nada a mais.
+      </span>
+    </div>
   </div>
 </footer>

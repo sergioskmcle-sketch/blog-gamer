@@ -1,15 +1,11 @@
----
-import Icon from "./Icon.astro";
----
-
 <button
   id="themeToggle"
-  class="text-on-surface-variant hover:text-primary transition-all active:scale-95 p-2"
+  class="p-2 rounded-full hover:bg-surface-container-high text-on-surface-variant transition-all"
   aria-label="Alternar tema claro e escuro"
   aria-pressed="false"
 >
-  <Icon name="sun" id="themeIconSun" />
-  <Icon name="moon" id="themeIconMoon" />
+  <span class="material-symbols-outlined" id="themeIconDark" aria-hidden="true">dark_mode</span>
+  <span class="material-symbols-outlined" id="themeIconLight" aria-hidden="true">light_mode</span>
 </button>
 
 <style>
@@ -18,10 +14,10 @@ import Icon from "./Icon.astro";
     align-items: center;
     justify-content: center;
   }
-  html[data-theme="dark"] #themeIconSun {
+  html[data-theme="dark"] #themeIconLight {
     display: none;
   }
-  html[data-theme="light"] #themeIconMoon {
+  html[data-theme="light"] #themeIconDark {
     display: none;
   }
   @media (prefers-reduced-motion: reduce) {
@@ -40,7 +36,7 @@ import Icon from "./Icon.astro";
     document.documentElement.classList.toggle("dark", theme === "dark");
     document.documentElement.classList.toggle("light", theme === "light");
     if (btn) btn.setAttribute("aria-pressed", theme === "light" ? "true" : "false");
-    if (meta) meta.setAttribute("content", theme === "dark" ? "#050505" : "#F5F5F7");
+    if (meta) meta.setAttribute("content", theme === "dark" ? "#050505" : "#F8F9FA");
   }
 
   if (btn) {

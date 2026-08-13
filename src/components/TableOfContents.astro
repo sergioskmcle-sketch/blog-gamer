@@ -1,6 +1,4 @@
 ---
-import Icon from "./Icon.astro";
-
 export interface Heading {
   depth: number;
   slug: string;
@@ -36,200 +34,50 @@ for (const h of headings) {
 ---
 
 {headings.length >= 3 && (
-  <div class="toc-inline">
-    <div class="toc-header">
-      <Icon name="list" size={18} />
-      <span>Neste artigo</span>
-      <span class="toc-count">{headings.length}</span>
-    </div>
-    <ol class="toc-list list-none p-0">
-      <li class="toc-topic">
-        <a href="#introducao" class="toc-link toc-link-topic">
-          <span class="toc-num">1</span>
-          <span>Introdução</span>
+  <div class="bg-surface-container rounded-xl p-md shadow-lg relative overflow-hidden group hover:shadow-[0_0_30px_var(--success-dim)] transition-shadow duration-500">
+    <div class="absolute top-0 left-0 w-1 h-full bg-secondary"></div>
+    <h3 class="font-headline-md text-headline-md text-secondary mb-md flex items-center gap-2">
+      <span class="material-symbols-outlined text-secondary" aria-hidden="true">format_list_bulleted</span>
+      Nesta Análise
+    </h3>
+    <ul class="space-y-sm list-none p-0 m-0">
+      <li>
+        <a href="#introducao" class="text-primary hover:text-accent-hover transition-colors font-body-md text-body-md flex items-center gap-2 no-underline">
+          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_right</span>
+          Introdução
         </a>
       </li>
       {tree.map((topic, ti) => {
-        const topicNum = String(ti + 2);
-        const topicLabel = (
-          <span class="toc-link toc-link-topic">
-            <span class="toc-num">{topicNum}</span>
-            <span>{topic.text}</span>
-          </span>
-        );
-        const topicLink = topic.subs.length > 0 ? (
-          topicLabel
-        ) : (
-          <a href={`#${topic.slug}`} class="toc-link toc-link-topic">
-            <span class="toc-num">{topicNum}</span>
-            <span>{topic.text}</span>
-          </a>
-        );
+        const topicNum = ti + 2;
         return (
-          <li class="toc-topic">
+          <li>
             {topic.subs.length > 0 ? (
-              <details class="toc-topic-details">
-                <summary>
-                  {topicLink}
-                  <span class="toc-chevron">
-                    <Icon name="chevron_right" size={18} />
-                  </span>
+              <details class="group/details">
+                <summary class="flex items-center gap-2 cursor-pointer list-none text-primary hover:text-accent-hover transition-colors font-body-md text-body-md">
+                  <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_right</span>
+                  <span class="flex-1">{topic.text}</span>
+                  <span class="material-symbols-outlined text-secondary text-[18px] transition-transform group-open/details:rotate-90" aria-hidden="true">chevron_right</span>
                 </summary>
-                <ol class="toc-sublist list-none p-0">
+                <ul class="space-y-sm list-none p-0 m-0 mt-sm border-l border-outline-variant/40 ml-sm pl-sm">
                   {topic.subs.map((sub, si) => (
                     <li>
-                      <a href={`#${sub.slug}`} class="toc-link toc-link-sub">
-                        <span class="toc-num">
-                          {topicNum}.{si + 1}
-                        </span>
-                        <span>{stripNumber(sub.text)}</span>
+                      <a href={`#${sub.slug}`} class="text-primary/80 hover:text-primary transition-colors font-body-md text-body-md flex items-center gap-2 no-underline">
+                        <span class="material-symbols-outlined text-[14px]" aria-hidden="true">arrow_right</span>
+                        {stripNumber(sub.text)}
                       </a>
                     </li>
                   ))}
-                </ol>
+                </ul>
               </details>
             ) : (
-              topicLink
+              <a href={`#${topic.slug}`} class="text-primary hover:text-accent-hover transition-colors font-body-md text-body-md flex items-center gap-2 no-underline">
+                <span class="material-symbols-outlined text-[16px]" aria-hidden="true">arrow_right</span>
+                {topic.text}
+              </a>
             )}
           </li>
         );
       })}
-    </ol>
+    </ul>
   </div>
 )}
-
-<style>
-  .toc-inline {
-    margin: 0 0 2rem;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-  }
-
-  .toc-header {
-    display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    padding: 0.875rem 1rem;
-    color: var(--text-primary);
-    font-family: var(--font-label);
-    font-size: 0.8125rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-
-  .toc-count {
-    margin-left: auto;
-    padding: 0.125rem 0.5rem;
-    border-radius: 999px;
-    background: var(--accent-dim);
-    color: var(--accent);
-    font-size: 0.6875rem;
-  }
-
-  .toc-list {
-    padding: 0.5rem;
-    margin: 0;
-    border-top: 1px solid var(--border);
-  }
-
-  .toc-topic {
-    border-bottom: 1px solid var(--border);
-  }
-
-  .toc-topic:last-child {
-    border-bottom: none;
-  }
-
-  .toc-topic-details > summary {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    list-style: none;
-  }
-
-  .toc-topic-details > summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .toc-chevron {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    margin-left: 0.375rem;
-    color: var(--accent);
-    transition: transform var(--transition);
-  }
-
-  .toc-topic-details[open] .toc-chevron {
-    transform: rotate(90deg);
-  }
-
-  .toc-link {
-    display: flex;
-    gap: 0.625rem;
-    align-items: baseline;
-    min-height: 48px;
-    padding: 0.75rem 0.625rem;
-    border-radius: 8px;
-    border-left: 2px solid transparent;
-    color: var(--accent);
-    font-size: 1.2rem;
-    line-height: 1.45;
-    text-decoration: none;
-    transition: color var(--transition), background var(--transition),
-      border-color var(--transition);
-  }
-
-  .toc-link:hover {
-    color: var(--accent-hover);
-    background: var(--accent-dim);
-    text-decoration: none;
-  }
-
-  .toc-link-topic {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .toc-num {
-    flex-shrink: 0;
-    font-family: var(--font-label);
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: var(--accent);
-    letter-spacing: 0.04em;
-  }
-
-  .toc-sublist {
-    margin: 0 0 0.25rem 1.25rem;
-    border-left: 1px solid var(--border);
-  }
-
-  .toc-link-sub {
-    min-height: 36px;
-    padding: 0.5rem 0.625rem;
-    color: var(--accent);
-    opacity: 0.85;
-    font-size: 1.05rem;
-  }
-
-  .toc-link-sub:hover {
-    color: var(--text-primary);
-    opacity: 1;
-  }
-
-  @media (max-width: 640px) {
-    .toc-link {
-      font-size: 1rem;
-      min-height: 44px;
-      padding: 0.625rem 0.5rem;
-    }
-
-    .toc-link-sub {
-      font-size: 0.925rem;
-    }
-  }
-</style>

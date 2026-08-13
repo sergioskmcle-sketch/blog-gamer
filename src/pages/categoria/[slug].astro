@@ -41,14 +41,14 @@ const descricaoCategoria = `Artigos sobre ${nomeCategoria.toLowerCase()} no mund
   title={`${nomeCategoria} — Promo Gamer`}
   description={descricaoCategoria}
 >
-  <div class="max-w-page mx-auto px-gutter">
-    <div class="grid grid-cols-1 gap-xl my-xl blog-layout">
-      <section class="min-w-0 space-y-xl" style="grid-column: span var(--main-cols, 8) / span var(--main-cols, 8)">
-        <div class="border-b border-outline-variant/30 pb-lg">
+  <div class="w-full max-w-page mx-auto px-margin-mobile lg:px-gutter mt-lg mb-xl">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+      <section class="lg:col-span-8 min-w-0 flex flex-col gap-lg">
+        <div class="border-b border-outline-variant/40 pb-lg">
           <a href={base} class="text-on-surface-variant hover:text-primary text-sm no-underline mb-sm inline-block">
             &larr; Início
           </a>
-          <h1 class="font-h1 text-h1 text-primary">
+          <h1 class="font-headline-lg text-headline-lg text-primary">
             {nomeCategoria}
           </h1>
           <p class="text-on-surface-variant mt-sm">
@@ -57,7 +57,7 @@ const descricaoCategoria = `Artigos sobre ${nomeCategoria.toLowerCase()} no mund
         </div>
 
         {artigosCategoria.length > 0 ? (
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-lg">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-md">
             {artigosCategoria.map((artigo) => (
               <ArticleCard
                 title={artigo.title}
@@ -72,18 +72,18 @@ const descricaoCategoria = `Artigos sobre ${nomeCategoria.toLowerCase()} no mund
             ))}
           </div>
         ) : (
-          <div class="text-center py-xxl">
+          <div class="text-center py-xl">
             <p class="text-6xl mb-md">🎮</p>
-            <h2 class="font-h2 text-h2 text-on-surface mb-sm">Nenhum artigo encontrado</h2>
+            <h2 class="font-headline-lg text-headline-lg text-on-surface mb-sm">Nenhum artigo encontrado</h2>
             <p class="text-on-surface-variant mb-lg">Ainda não há artigos nesta categoria.</p>
-            <a href={base} class="inline-flex items-center gap-sm px-lg py-md rounded-lg border border-primary/30 text-primary hover:bg-primary/10 transition-colors font-label text-label no-underline">
+            <a href={base} class="inline-flex items-center gap-sm px-lg py-md rounded-lg border border-primary/30 text-primary hover:bg-primary/10 transition-colors font-label-md text-label-md no-underline">
               Voltar ao início
             </a>
           </div>
         )}
       </section>
 
-      <aside class="min-w-0" style="grid-column: span var(--sidebar-cols, 4) / span var(--sidebar-cols, 4)">
+      <aside class="lg:col-span-4 min-w-0">
         <Sidebar artigos={todosArtigos} currentSlug={undefined} />
       </aside>
     </div>

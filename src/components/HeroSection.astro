@@ -1,6 +1,4 @@
 ---
-import Icon from "./Icon.astro";
-
 export interface Props {
   title: string;
   description: string;
@@ -16,37 +14,43 @@ const { title, description, pubDate, tags, category, affiliate, slug, image } = 
 const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 const date = new Date(pubDate).toLocaleDateString("pt-BR", { timeZone: "UTC" }).toUpperCase();
 const bgImage = image || `${base}images/banner-grupo.webp`;
+const timeAgo = (() => {
+  const now = new Date();
+  const d = new Date(pubDate);
+  const diffMs = now.getTime() - d.getTime();
+  const diffHrs = Math.floor(diffMs / 3600000);
+  if (diffHrs < 1) return "Agora mesmo";
+  if (diffHrs < 24) return `Há ${diffHrs} ${diffHrs === 1 ? "hora" : "horas"}`;
+  const diffDays = Math.floor(diffHrs / 24);
+  if (diffDays < 7) return `Há ${diffDays} ${diffDays === 1 ? "dia" : "dias"}`;
+  return date;
+})();
 ---
 
-<section class="relative group overflow-hidden rounded-xl bg-surface-container-low h-[300px] sm:h-[400px] lg:h-[500px] flex flex-col justify-end shadow-[inset_0_1px_0_var(--emboss-high),var(--shadow-lg)]">
-  <div class="absolute inset-0 z-0">
-    <div
-      class="w-full h-full bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-      style={`background-image: url('${bgImage}')`}
-      fetchpriority="high"
-    />
-    <div class="absolute inset-0 carbon-overlay"></div>
-  </div>
-  <div class="relative z-10 p-xl space-y-md">
-    {category && (
-      <span class="inline-block px-md py-1 rounded-full bg-surface-container-high/80 border border-outline-variant/30 text-primary font-label text-label uppercase tracking-widest shadow-[inset_0_1px_0_var(--emboss-high),0_1px_3px_var(--emboss-mid)]">
-        {category}
-      </span>
-    )}
-    <h1 class="font-h1 text-h1 text-white max-w-2xl leading-tight text-emboss">
-      {title}
-    </h1>
-    <div class="flex items-center gap-md font-label text-label text-outline-variant uppercase tracking-widest">
-      <span class="text-outline-variant">Promo Gamer</span>
-      <span class="w-1 h-1 bg-outline-variant rounded-full"></span>
-      <span class="text-outline-variant">{date}</span>
+<section class="relative group cursor-pointer w-full h-[400px] sm:h-[500px] overflow-hidden rounded-xl">
+  <a href={`${base}blog/${slug}/`} class="absolute inset-0 block no-underline hover:no-underline" aria-label={title}>
+    <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" style={`background-image: url('${bgImage}')`} fetchpriority="high" />
+    <div class="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent"></div>
+    <div class="absolute bottom-0 left-0 p-lg w-full z-10 flex flex-col gap-sm items-start">
+      {category && (
+        <span class="bg-primary/20 text-primary font-label-md text-label-md px-3 py-1 rounded-full backdrop-blur-md uppercase tracking-widest border border-primary/30">
+          {category}
+        </span>
+      )}
+      <h1 class="font-display-lg text-display-lg text-on-background group-hover:text-primary transition-colors line-clamp-2 drop-shadow-md">
+        {title}
+      </h1>
+      <div class="flex items-center gap-sm text-on-surface-variant font-body-md mt-sm">
+        <span class="flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">schedule</span>
+          {timeAgo}
+        </span>
+        <span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+        <span class="flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px]" aria-hidden="true">person</span>
+          Promo Gamer
+        </span>
+      </div>
     </div>
-    <a
-      href={`${base}blog/${slug}/`}
-      class="inline-flex items-center gap-xs mt-md px-xl py-md bg-[#2ff801] text-black font-label text-label uppercase tracking-widest font-bold no-underline hover:no-underline rounded-lg hover:shadow-[0_0_20px_rgba(47,248,1,0.4)] hover:scale-[1.02] active:scale-95 transition-all"
-    >
-      Ler Matéria
-      <Icon name="arrow_forward" class="ml-1" size={18} />
-    </a>
-  </div>
+  </a>
 </section>

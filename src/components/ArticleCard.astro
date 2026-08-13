@@ -1,6 +1,4 @@
 ---
-import Icon from "./Icon.astro";
-
 export interface Props {
   title: string;
   description: string;
@@ -26,41 +24,48 @@ const timeAgo = (date: Date | string) => {
   if (diffDays < 7) return `${diffDays}d atrás`;
   return d.toLocaleDateString("pt-BR");
 };
+
+const badgeByCategory: Record<string, string> = {
+  review: "bg-primary/80 text-white",
+  noticia: "bg-surface-bright/80 text-on-surface",
+  guia: "bg-secondary/80 text-surface",
+  promocao: "bg-error/80 text-on-error",
+};
+const badgeClass = badgeByCategory[category?.toLowerCase() || ""] || "bg-primary/80 text-white";
 ---
 
-<article class="card-depth overflow-hidden group cursor-pointer flex flex-col">
+<article class="bg-surface-container rounded-xl overflow-hidden hover:bg-surface-container-high transition-colors group cursor-pointer flex flex-col h-full border border-outline-variant hover:border-secondary/50 hover:shadow-[0_0_20px_var(--accent-glow)]">
   <a href={`${base}blog/${slug}/`} class="no-underline hover:no-underline text-inherit flex flex-col flex-1">
-    <div class="h-40 overflow-hidden relative">
+    <div class="relative w-full pt-[56.25%] overflow-hidden">
       {image ? (
-        <img
-          src={image}
-          alt={title}
-          loading="lazy"
-          decoding="async"
-          class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+        <div
+          class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
+          style={`background-image: url('${image}')`}
         />
       ) : (
-        <div class="w-full h-full bg-surface-container-high flex items-center justify-center text-4xl"></div>
+        <div class="absolute inset-0 bg-surface-container-high flex items-center justify-center text-4xl"></div>
       )}
       {category && (
-        <span class="absolute top-3 left-3 px-3 py-1 rounded-full bg-primary text-on-primary font-label text-[10px] font-bold uppercase">
+        <span class={`absolute top-3 left-3 ${badgeClass} font-label-md text-label-md px-2 py-1 rounded backdrop-blur-sm uppercase`}>
           {category}
         </span>
       )}
     </div>
 
-    <div class="p-md space-y-sm flex flex-col flex-1">
-      <h3 class="font-h2 text-[1.1rem] leading-snug group-hover:text-primary transition-colors line-clamp-2">
+    <div class="p-md flex flex-col flex-grow gap-sm">
+      <h3 class="font-headline-md text-headline-md text-on-surface group-hover:text-secondary transition-colors line-clamp-2">
         {title}
       </h3>
 
-      <p class="text-on-surface-variant text-sm line-clamp-3">
+      <p class="font-body-md text-body-md text-on-surface-variant line-clamp-2 mt-auto">
         {description}
       </p>
 
-      <div class="flex items-center justify-between font-label text-[11px] text-outline pt-sm border-t border-outline-variant/20 mt-auto">
-        <span>{timeAgo(pubDate)}</span>
-        <Icon name="bookmark" size={14} class="text-outline-variant/50" />
+      <div class="flex items-center gap-sm text-on-surface-variant font-body-md text-[14px] mt-sm">
+        <span class="flex items-center gap-1">
+          <span class="material-symbols-outlined text-[14px]" aria-hidden="true">calendar_today</span>
+          {timeAgo(pubDate)}
+        </span>
       </div>
     </div>
   </a>

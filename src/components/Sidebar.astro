@@ -1,6 +1,4 @@
 ---
-import Icon from "./Icon.astro";
-
 export interface Artigo {
   title: string;
   slug: string;
@@ -15,91 +13,85 @@ const base = (import.meta.env.BASE_URL || "/").replace(/\/?$/, "/");
 const recentes = artigos.filter((a) => a.slug !== currentSlug).slice(0, 10);
 
 const categories = [
-  { name: "Notícias", slug: "noticia", icon: "sports_esports", count: artigos.filter((a) => a.category === "noticia").length },
-  { name: "Reviews", slug: "review", icon: "grade", count: artigos.filter((a) => a.category === "review").length },
-  { name: "Guias", slug: "guia", icon: "memory", count: artigos.filter((a) => a.category === "guia").length },
-  { name: "Listas", slug: "lista", icon: "menu_book", count: artigos.filter((a) => a.category === "lista").length },
+  { name: "Notícias", slug: "noticia" },
+  { name: "Reviews", slug: "review" },
+  { name: "Guias", slug: "guia" },
+  { name: "Listas", slug: "lista" },
+  { name: "Promoções", slug: "promocao" },
 ];
 ---
 
-<aside class="space-y-xxl" data-editable="sidebar">
-  <div class="card-depth p-md sticky top-24">
-
-    <a
-      href="https://t.me/+TRWZ67WHuk85Y2Nh"
-      target="_blank"
-      rel="noopener noreferrer"
-      class="block rounded-lg overflow-hidden card-depth no-underline hover:no-underline mb-lg"
-    >
-      <img
-        src={`${base}images/banner-grupo-9x16-2.webp`}
-        alt="Grupo VIP Telegram - Ofertas Gamer Diárias"
-        class="w-full h-auto"
-        loading="lazy"
-        decoding="async"
-      />
-    </a>
-
-    <div class="mb-lg">
-      <h3 class="font-h2 text-[1.25rem] text-primary flex items-center gap-sm">
-        <Icon name="trending_up" />
-        Populares da Semana
-      </h3>
-      <p class="font-body text-sm text-on-surface-variant mt-xs">Promo Gamer</p>
-    </div>
-
-    <ul class="space-y-md">
-      {recentes.length === 0 && <li class="text-on-surface-variant text-xs">Nenhum artigo publicado ainda.</li>}
+<aside class="flex flex-col gap-lg" data-editable="sidebar">
+  <div class="bg-surface-container rounded-xl p-md border border-outline-variant relative overflow-hidden">
+    <div class="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none"></div>
+    <h3 class="font-headline-md text-headline-md text-on-surface mb-md flex items-center gap-2">
+      <span class="material-symbols-outlined text-primary" aria-hidden="true">trending_up</span>
+      Populares da Semana
+    </h3>
+    <div class="flex flex-col gap-md">
+      {recentes.length === 0 && <p class="text-on-surface-variant text-xs">Nenhum artigo publicado ainda.</p>}
       {recentes.slice(0, 4).map((artigo, idx) => (
-        <li class="flex gap-md items-start group cursor-pointer">
-          <a href={`${base}blog/${artigo.slug}/`} class="flex gap-md items-start no-underline hover:no-underline w-full">
-            <span class="font-h1 text-h2 text-outline-variant group-hover:text-primary transition-colors shrink-0">
-              {String(idx + 1).padStart(2, "0")}
-            </span>
-            <div>
-              <h4 class="font-h2 text-sm leading-tight text-on-surface group-hover:text-primary transition-colors">
-                {artigo.title}
-              </h4>
-              <span class="font-label text-[10px] text-outline uppercase tracking-wider">
-                {artigo.category || "Artigo"}
-              </span>
-            </div>
-          </a>
-        </li>
+        <a class="flex gap-sm group items-start no-underline hover:no-underline" href={`${base}blog/${artigo.slug}/`}>
+          <span class="font-headline-md text-headline-md text-outline group-hover:text-secondary/50 transition-colors w-8 text-center flex-shrink-0">
+            {idx + 1}
+          </span>
+          <div class="flex flex-col gap-1">
+            <h4 class="font-body-md text-body-md text-on-surface-variant group-hover:text-secondary transition-colors line-clamp-2 leading-tight">
+              {artigo.title}
+            </h4>
+            <span class="font-label-md text-label-md text-on-surface-variant uppercase">{artigo.category || "Artigo"}</span>
+          </div>
+        </a>
       ))}
-    </ul>
-
-    <hr class="my-lg border-outline-variant/20" />
-
-    <div class="space-y-md">
-      <h3 class="font-label text-label uppercase tracking-[0.2em] text-outline-variant">Categorias</h3>
-      <div class="grid grid-cols-1 gap-sm">
-        {categories.map((cat) => (
-          <a
-            href={`${base}categoria/${cat.slug}/`}
-            class="flex items-center justify-between p-sm rounded-lg btn-depth hover:border-primary/30 hover:text-primary transition-all group no-underline hover:no-underline"
-          >
-            <span class="flex items-center gap-xs font-body text-on-surface">
-              <Icon name={cat.icon} class="text-secondary" />
-              {cat.name}
-            </span>
-            <Icon name="chevron_right" size={16} class="opacity-0 group-hover:opacity-100 transition-opacity" />
-          </a>
-        ))}
-      </div>
     </div>
+  </div>
 
-    <div class="mt-xl p-md rounded-lg card-depth text-center">
-      <p class="font-label text-[10px] uppercase text-primary mb-sm tracking-widest">Comunidade</p>
-      <p class="text-xs text-on-surface-variant mb-md">Junte-se ao grupo VIP e receba ofertas diárias de games.</p>
-      <a
-        href="https://t.me/+TRWZ67WHuk85Y2Nh"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="inline-flex items-center gap-xs px-lg py-sm bg-[#2ff801] text-black font-label text-[10px] uppercase font-bold rounded-md hover:shadow-[0_0_12px_rgba(47,248,1,0.4)] transition-all no-underline"
-      >
-        Entrar no Telegram
-      </a>
+  <a
+    href="https://t.me/+TRWZ67WHuk85Y2Nh"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="block rounded-xl overflow-hidden border border-outline-variant no-underline hover:no-underline"
+  >
+    <img
+      src={`${base}images/banner-grupo-9x16-2.webp`}
+      alt="Grupo VIP Telegram - Ofertas Gamer Diárias"
+      class="w-full h-auto"
+      loading="lazy"
+      decoding="async"
+    />
+  </a>
+
+  <div class="bg-surface-container rounded-xl p-md border border-outline-variant">
+    <h3 class="font-headline-md text-headline-md text-on-surface mb-md">Categorias</h3>
+    <div class="flex flex-wrap gap-2">
+      {categories.map((cat) => (
+        <a
+          href={`${base}categoria/${cat.slug}/`}
+          class="px-3 py-1.5 rounded bg-surface-container-high hover:bg-secondary/20 text-on-surface-variant hover:text-secondary transition-colors font-label-md text-label-md uppercase border border-transparent hover:border-secondary/50 no-underline hover:no-underline"
+        >
+          {cat.name}
+        </a>
+      ))}
     </div>
+  </div>
+
+  <div class="bg-surface-container-high rounded-xl p-md flex flex-col items-center justify-center text-center gap-sm border border-outline-variant">
+    <span class="material-symbols-outlined text-primary text-[48px] mb-2" aria-hidden="true">mail</span>
+    <h4 class="font-headline-md text-headline-md text-on-surface">Não perca nada</h4>
+    <p class="font-body-md text-body-md text-on-surface-variant mb-2">Inscreva-se na nossa newsletter para receber as melhores reviews e ofertas semanais.</p>
+    <div class="w-full flex">
+      <input
+        class="w-full bg-surface text-on-surface font-body-md p-3 rounded-l-lg border-y border-l border-outline-variant focus:outline-none focus:border-secondary/50 focus:ring-1 focus:ring-secondary/50 transition-all placeholder:text-on-surface-variant"
+        placeholder="Seu e-mail..."
+        type="email"
+        aria-label="Seu e-mail"
+      />
+      <button class="bg-primary text-white font-label-md text-label-md uppercase px-4 rounded-r-lg hover:bg-primary-fixed-dim transition-colors font-bold whitespace-nowrap">
+        Assinar
+      </button>
+    </div>
+    <p class="font-label text-[10px] text-on-surface-variant/70">
+      Links de afiliado ajudam a manter o blog.
+    </p>
   </div>
 </aside>
