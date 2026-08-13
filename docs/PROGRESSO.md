@@ -253,6 +253,29 @@ do operador: título plural ("Melhores") com **um único item** e produto absurd
 Com a categoria `tv` registrada, um tema futuro de smart TV vira categoria `tv`: o "Console Sony Fable Standard"
 seria descartado pelo filtro de categoria no sourcing e reprovado pelo gate (`productMatchesCategory(console, "tv") === false`).
 
+### ✅ Concluído em 13/08/2026 — estrutura de lista (TOC/imagens) + grounding por Google + regeneração do "Melhores Jogos para PC"
+
+Análise do artigo **"Melhores Jogos para PC em 2026: 5 Títulos Indispensáveis"** (40º, gerado em 13/08) revelou 3 problemas
+que o pipeline novo passou a resolver:
+
+| Problema observado | Causa raiz | Correção |
+|---|---|---|
+| No índice, os jogos apareciam como tópicos soltos (deveriam ser subtópicos recolhíveis) | fluxo sem produtos deixava a estrutura a critério da LLM — cada jogo virava `##` top-level | **`ensureListStructure`** (`gerar-artigo.mjs`): para lista/review de games com 0 produtos, insere o heading-pai `## Os N Melhores ... em {ano}` e rebaixa os itens para `###` (TOC aninhado, mesmo padrão do FAQ) |
+| Imagens no container errado (a do Cyberpunk caía dentro do bloco do Baldur's Gate) | prompt mandava `[IMG:]` **antes** do `##`, e `repositionImageMarkers` movia o marcador para antes do título — o `rehype-article-sections` agrupava a imagem na seção anterior | prompt e `repositionImageMarkers` agora colocam o `[IMG:]` na linha **após** o título (imagem dentro da própria seção, abaixo do título, acima do texto) |
+| Lista de "2026" era de jogos antigos (BG3 2023, Cyberpunk 2020...), e "Cyberpunk 2077" virou "Cyberpunk 2026" | a LLM escolhia do próprio conhecimento; a pesquisa só alimentava um bloco "CONTEXTO"; `normalizarAnos` reescrevia todo `20XX` | **Grounding por Google** (`scripts/games_candidates.mjs`): Serper (reserva Tavily) busca "melhores jogos de pc {ano}" → LLM extrai títulos candidatos → prompt ganha "CANDIDATOS OBRIGATÓRIOS" e o `validate()` marca item fora da lista como **P2** (regenera, aceita com ressalva). **`normalizarAnosPreposicional`** protege nomes/modelos (só reescreve ano após "de/em/para/até") |
+
+Reforços extras da sessão:
+
+| Tarefa | Estado |
+|---|---|
+| `montarQueryPesquisa` — limpa a query ("melhores melhores jogos para pc, jogos gratis..." → "jogos para pc Brasil 2026") | ✅ |
+| `buildInternalLinksBlock(excludeSlug)` — não linka o próprio artigo em regeneração | ✅ |
+| Gate corretor no último retry do fluxo de chamada única (antes de `exit(1)` por hard, tenta `corrigirPeloGate` e revalida) | ✅ |
+| `validateSourceCoverage` fiscaliza só o "intervalo de claim" ([ano-3, ano+1] exceto o ano do artigo) — ano de lançamento de jogo (2021) não vira P1 falso | ✅ |
+| **Regeneração** do artigo "Melhores Jogos para PC em 2026" com o pipeline novo: heading-pai + 5 itens `###` grounded (Baldur's Gate 3, Elden Ring Nightreign, Resident Evil Requiem, Mina the Hollower, ARC Raiders), imagens dentro das seções, capa nova, sem self-link | ✅ |
+| `npm test` **443 asserts OK** (+24) · `npm run build` **166 páginas** · `validar-artigo.mjs` **0 falhas** | ✅ |
+| Docs: `PROGRESSO.md`, `PIPELINE_ETAPAS.md`, `METODOLOGIA.md`, `ORIENTACOES_EDITORIAIS.md`, `README.md` | ✅ |
+
 ### 🟢 Baixa prioridade
 | Tarefa | Motivo |
 |---|---|

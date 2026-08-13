@@ -226,12 +226,35 @@ intervalo válido (ano corrente ou o seguinte) que apareça no título, na
 description ou no heading da lista antes de publicar. `validar-artigo.mjs`
 reprova artigo com ano desatualizado no título/description.
 
+**No corpo do artigo** a correção é contextual (`normalizarAnosPreposicional`,
+13/08/2026): só reescreve o ano precedido de "de/em/para/até" (ex.: "jogos de
+2024"→2026). Nome de jogo com ano no título ("Cyberpunk **2077**") e número de
+modelo ("RTX 2060") ficam intactos — antes um `20XX` solto virava o ano
+corrente e corrompia o conteúdo.
+
+## Listas de games: grounding por Google e hierarquia (13/08/2026)
+
+- **Grounding** — listas de games ("melhores jogos de PC {ano}") consultam o
+  Google antes de escrever: `scripts/games_candidates.mjs` busca
+  (Serper + reserva Tavily), a LLM extrai títulos candidatos e o prompt
+  obriga a escolher entre eles ("CANDIDATOS OBRIGATÓRIOS"). O `validate()`
+  marca item fora da lista como **P2** (regenera; última tentativa publica com
+  ressalva). A LLM deixa de listar clássicos antigos como "melhores de {ano}".
+- **Hierarquia** — o TOC trata `##` como tópico e `###` como subtópico
+  recolhível. Para listas de games sem produtos, `ensureListStructure` garante
+  a seção de Itens como `## Os N Melhores ... em {ano}` com cada jogo como
+  `### Nome — Subtítulo` (imagem logo após o título, dentro da própria seção).
+
 ## Implementação
 
 - `scripts/tempo.mjs` — ano corrente único (`ANO_ATUAL`) e correção
-  determinística de anos no texto (`normalizarAnos`).
+  determinística de anos no texto (`normalizarAnos` para título/description/
+  heading da lista; `normalizarAnosPreposicional` para o corpo).
 - `scripts/editorial_shortlist.mjs` — shortlist de modelos citados em fontes
   editoriais, usada como query prioritária de busca de produto.
+- `scripts/games_candidates.mjs` — candidatos de títulos para listas de games
+  (Serper + reserva Tavily → LLM extrai `{titulo, mencoes, fontes}`); o gerador
+  usa como "CANDIDATOS OBRIGATÓRIOS" e o `validate()` aplica o gate P2.
 - `scripts/product_dedupe.mjs` — identidade semântica de produto
   (`compareProducts`, `dedupeProducts`) e sua reexportação em
   `scripts/gerar-artigo.mjs` (`similarity`, `nameSimilarity`) para os demais

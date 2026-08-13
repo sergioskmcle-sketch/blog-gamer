@@ -322,7 +322,9 @@ O artigo deve cumprir exatamente o que promete. Exemplo: se o título menciona H
 
 ## Estrutura de Lista
 
-A seção de Itens é a PRIMEIRA seção `##` do artigo, logo após a introdução (que resume os critérios da lista, sem virar H2). Cada item deve possuir:
+A seção de Itens é a PRIMEIRA seção do artigo, logo após a introdução (que resume os critérios da lista, sem virar H2). O heading é um `##` que promete a lista — "## Os N Melhores {Itens} em {ano}" — e **cada item é um subtópico `###`** sob ele, assim o índice recolhível do artigo mostra o tópico com os itens como sub-itens (mesmo padrão do FAQ).
+
+Cada item deve possuir:
 - nome completo
 - descrição exclusiva
 - principais características
@@ -333,9 +335,14 @@ A seção de Itens é a PRIMEIRA seção `##` do artigo, logo após a introduç�
 - faixa de preço
 - motivo para estar na lista
 
-Ordem do item: `## Nome — Subtítulo`, foto real do produto, texto, botão `product-btn`. Links internos SOMENTE na seção final "Continue Explorando".
+Ordem do item: `### Nome — Subtítulo`, **imagem real logo após o título** (abaixo do título, acima do texto — a imagem nunca fica antes do heading, senão cai na seção anterior), texto, botão `product-btn` (quando houver produto). Links internos SOMENTE na seção final "Continue Explorando".
 
 Nunca repetir produtos. No final faça uma comparação geral.
+
+> **Listas de games:** o pipeline consulta o Google antes de escrever
+> (`games_candidates.mjs`) e a lista de itens DEVE ser escolhida entre os
+> títulos candidatos daquele ano — nunca um clássico antigo apresentado como
+> "melhores de {ano}". O sistema reprova (P2) item fora dos candidatos.
 
 ## Notícias
 

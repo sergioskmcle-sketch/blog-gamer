@@ -49,6 +49,8 @@ scripts/
   gerar-lista-monitores.mjs → Pipeline dedicada para artigos sobre monitores gamer
   google_shopping.mjs        → Busca de produtos via API Google Shopping da Serper.dev (geo BR)
   product_naming.mjs        → Categorias únicas + nomenclatura dos produtos (fonte da regra de categoria no SKILL)
+  games_candidates.mjs      → Candidatos de títulos para listas de games (Serper/Tavily + LLM) — grounding por Google
+  product_ranking.mjs       → Ranking objetivo + piso de elegibilidade dos produtos
   monitor_api.mjs           → Cliente da Frente 4 (produtos com link de afiliado ML/Shopee)
   ml_affiliate.mjs          → LEGADO (API ML com cookies — aposentado/removido, não usar)
   openai-cover.mjs          → Capa IA (gpt-image-2) usando imagens dos produtos como referência
@@ -56,7 +58,7 @@ scripts/
   fix-article-links.mjs     → LEGADO (meli.la com cookies do ML — inativo)
   regenerate-*-cover.mjs    → Regenera a capa de artigos específicos (cadeiras, fones, monitores, psplus, xbox)
   gerar-status.cjs          → Gera status.json a cada deploy
-  test-injecao.mjs          → Testes de validação (419 asserts): itens, TOC, fontes, portão de produtos, labels de loja e montagem segmentada
+  test-injecao.mjs          → Testes de validação (443 asserts): itens, TOC, fontes, portão de produtos, labels de loja e montagem segmentada
   download-images.mjs       → Baixa imagens dos produtos para o repo
   convert-banners.mjs       → Converter banners PNG → WebP
   migrar-artigos.mjs        → Migra artigos antigos para o novo padrão (categorias, índice hierárquico, FAQ e nomes normalizados — ver TAREFA 7)
