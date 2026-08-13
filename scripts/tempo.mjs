@@ -35,3 +35,15 @@ export function normalizarAnos(texto) {
   if (typeof texto !== "string" || !texto) return texto;
   return texto.replace(ANO_RE, (m) => (anoValido(m) ? m : String(ANO_ATUAL)));
 }
+
+// Versao segura para o CORPO do artigo: so reescreve o ano quando ele vem
+// precedido de preposicao ("jogos de 2024", "lancado em 2020"). Nome de jogo
+// ("Cyberpunk 2077"), numero de modelo ("RTX 2060", "Ryzen 5 2600") e codigo
+// de produto ficam intactos — um 20XX solto nao e necessariamente um ano de
+// promocao.
+const ANO_POS_PREPOSICAO_RE = /(?<=\b(?:de|em|para|ate|até|por|no|na|desde)\s)(20\d{2})\b/g;
+
+export function normalizarAnosPreposicional(texto) {
+  if (typeof texto !== "string" || !texto) return texto;
+  return texto.replace(ANO_POS_PREPOSICAO_RE, (m) => (anoValido(m) ? m : String(ANO_ATUAL)));
+}

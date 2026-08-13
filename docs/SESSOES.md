@@ -4,7 +4,28 @@
 
 ---
 
-## Sessão 8 — 2026-08-13 (atual)
+## Sessão 9 — 2026-08-13
+
+**Regeneração do "Melhores Jogos para PC em 2026" + estrutura de lista (TOC/imagens) + grounding por Google**
+
+### Pipeline (`scripts/`)
+- **P1 — Estrutura de lista sem produtos:** novo `ensureListStructure` (`gerar-artigo.mjs`) para artigos lista/review de games com 0 produtos — insere o heading-pai `## Os N Melhores ... em {ano}` (`buildGamesListHeading`) e rebaixa os itens para `###`. Antes os jogos viravam tópicos soltos no TOC; agora ficam como subtópicos recolhíveis (mesmo padrão do FAQ).
+- **P2 — Imagem dentro do container:** prompt e `repositionImageMarkers` agora colocam o `[IMG:]` na linha **após** o título da seção (abaixo do título, acima do texto). Antes ia antes do `##` e a imagem caía no container da seção anterior.
+- **P3 — Grounding por Google:** novo `scripts/games_candidates.mjs` — Serper (reserva Tavily) busca "melhores jogos de pc {ano}" e a LLM extrai títulos candidatos; o prompt ganha bloco "CANDIDATOS OBRIGATÓRIOS" e o `validate()` marca item fora da lista como **P2** (regenera, aceita com ressalva). Também `montarQueryPesquisa` (remove "melhores melhores"/corta na vírgula) e `buildInternalLinksBlock(excludeSlug)` (não linka o próprio artigo).
+- **P4 — `normalizarAnosPreposicional`:** só reescreve ano precedido de "de/em/para/até" no corpo — "Cyberpunk **2077**" e "RTX 2060" não são mais corrompidos para 2026.
+- **Gate corretor no último retry:** no fluxo de chamada única, antes de `exit(1)` por hard, tenta `corrigirPeloGate` (description/tags/marcadores) e revalida.
+- **`validateSourceCoverage`:** fiscaliza só o "intervalo de claim" ([ano-3, ano+1] exceto o ano do artigo) — ano de lançamento de jogo (2021) não gera P1 falso.
+
+### Publicação (13/08/2026)
+- Artigo **"Melhores Jogos para PC em 2026: 5 Títulos Indispensáveis"** (40º) **regenerado** com o pipeline novo: heading-pai + 5 itens `###` (Baldur's Gate 3, Elden Ring Nightreign, Resident Evil Requiem, Mina the Hollower, ARC Raiders) **grounded nos candidatos do Google**, imagens dentro das seções, capa nova, sem link para o próprio artigo. Aprovado no gate de revisão e no `validar-artigo.mjs` (0 falhas).
+
+### Verificação
+- `npm test` → **443 asserts OK** (24 novos: estrutura de lista, imagem após título, candidatos, normalizador preposicional, query de pesquisa, janela de anos).
+- `npm run build` → **166 páginas**; TOC aninhado e seções/imagens conferidos no HTML gerado.
+
+---
+
+## Sessão 8 — 2026-08-13
 
 **Exclusão de artigo de smart TV reprovado + categoria `tv` + gate de lista plural**
 

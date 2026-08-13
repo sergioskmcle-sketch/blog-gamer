@@ -13,7 +13,8 @@ import { upgradeImageUrl, imageDimensions, isImageUsable, searchSerperImage } fr
 import { SESSION_HEADERS, extractMLProductData } from "./ml_affiliate.mjs";
 import { dedupeProducts } from "./product_dedupe.mjs";
 import { buildEditorialShortlist } from "./editorial_shortlist.mjs";
-import { ANO_ATUAL, normalizarAnos } from "./tempo.mjs";
+import { buildGamesCandidateList } from "./games_candidates.mjs";
+import { ANO_ATUAL, normalizarAnos, normalizarAnosPreposicional } from "./tempo.mjs";
 import { pesquisarFundo } from "./pesquisar-fundo.mjs";
 import {
   revisarPesquisa, revisarSourcing, revisarRedacao, revisarSeo, revisarDesign, revisarFinal, revisarPublicacao,
@@ -345,7 +346,7 @@ function normalizarAnosBody(body) {
     urls.push(m);
     return `\u0000${urls.length - 1}\u0000`;
   });
-  const normalizado = normalizarAnos(tmp);
+  const normalizado = normalizarAnosPreposicional(tmp);
   return normalizado.replace(/\u0000(\d+)\u0000/g, (_, i) => urls[Number(i)] || "");
 }
 
@@ -1092,35 +1093,40 @@ function extractImageMarkers(body) {
   return names;
 }
 
-// A IA as vezes marca a imagem numa posicao errada.
-// Aqui o marcador e movido para logo ANTES do titulo ## que ele descreve;
-// se nenhum titulo ou paragrafo cita, o marcado e mantido (Tavily vai tentar achar imagem).
+// A IA as vezes marca a imagem numa posicao errada. A imagem de uma secao
+// DEVE ficar DENTRO da propria secao: na linha imediatamente apos o titulo
+// ##/### (abaixo do titulo, acima do texto). Aqui todo marcador e reposicionado
+// deterministicamente para logo apos o titulo que menciona o topico; se nenhum
+// titulo ou paragrafo cita, o marcador e mantido (Tavily vai tentar achar imagem).
 function repositionImageMarkers(body) {
   const blocks = body.split(/\n{2,}/);
   const isMarker = (b) => /^\[IMG:\s*[^\]\n]+\]$/.test(b.trim());
   const markerName = (b) => b.trim().replace(/^\[IMG:\s*|\s*\]$/g, "");
   const isHeading = (b) => /^#{1,6}\s/.test(b.trim());
-  const mentions = (block, name) => normalizeForMatch(block).includes(normalizeForMatch(name));
+  // Casamento tolerante: substring de um lado ou ao menos 1 token significativo
+  // em comum. "Cyberpunk 2026 Phantom Liberty" casa com "## Cyberpunk 2026 — ...".
+  const sigToks = (s) => normalizeForMatch(s).split(" ").filter((w) => w.length >= 3 && !/^\d+$/.test(w));
+  const mentions = (block, name) => {
+    const a = normalizeForMatch(block);
+    const b = normalizeForMatch(name);
+    if (a.includes(b) || b.includes(a)) return true;
+    const A = new Set(sigToks(block));
+    return sigToks(name).some((t) => A.has(t));
+  };
 
   const kept = [];
   const pending = [];
 
   for (const block of blocks) {
     if (!isMarker(block)) { kept.push(block); continue; }
-    const name = markerName(block);
-    const prev = [...kept].reverse().find((b) => b.trim() && !isMarker(b));
-    if (prev && (isHeading(prev) || mentions(prev, name))) {
-      kept.push(block);
-    } else {
-      pending.push({ name, block });
-    }
+    pending.push({ name: markerName(block), block });
   }
 
   for (const { name, block } of pending) {
     const headingTarget = kept.findIndex((b) => isHeading(b) && mentions(b, name));
     if (headingTarget !== -1) {
-      kept.splice(headingTarget, 0, block);
-      log("INFO", `Marcador [IMG:${name}] movido para antes do titulo que menciona o topico`);
+      kept.splice(headingTarget + 1, 0, block);
+      log("INFO", `Marcador [IMG:${name}] movido para depois do titulo que menciona o topico`);
       continue;
     }
     const paraTarget = kept.findIndex((b) => !isHeading(b) && !isMarker(b) && b.trim() && mentions(b, name));
@@ -1136,6 +1142,117 @@ function repositionImageMarkers(body) {
   }
 
   return kept.join("\n\n");
+}
+
+// Headings que encerram a lista de itens (nao sao itens em si).
+const LISTA_STOP_HEADING = /^(?:comparativ|tabela|veredito|qual\s|faq|perguntas|quer\s+mais|fontes|continue\s+explorando|conclus|considera[çc][õo]es\s+fin)/i;
+// Heading-pai de lista ja presente no corpo ("## Os 5 Melhores ... em 2026").
+const LISTA_PARENT_HEADING = /^(?:os\s+\d+\s+melhores|os\s+melhores|melhores)\b/i;
+
+// Frase da lista a partir do topico/titulo: "jogos para PC" em
+// "melhores jogos para PC, jogos gratis..." -> "Os 5 Melhores Jogos para PC em 2026".
+function buildGamesListHeading(count, topic, title) {
+  const src = String(title && String(title).includes(":") ? title : topic?.hint || title || "");
+  let phrase = src
+    .split(",")[0]
+    .replace(/[–—-].*$/g, " ")
+    .replace(/:.*$/g, " ")
+    .replace(/\b(?:os\s+)?\d+\s+melhores?\b/gi, " ")
+    .replace(/\bmelhores?\b/gi, " ")
+    .replace(/\b(?:20\d{2})\b/g, " ")
+    .replace(/\b(?:em|de|para|ate|até)\s*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  phrase = phrase
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => (/^(de|da|do|das|dos|em|para|com|e|a|o|as|os)$/i.test(w) ? w.toLowerCase() : (w.toUpperCase() === "PC" ? "PC" : w.charAt(0).toUpperCase() + w.slice(1))))
+    .join(" ");
+  if (!phrase) phrase = "Jogos para PC";
+  return normalizarAnos(`Os ${count} Melhores ${phrase} em ${ANO_ATUAL}`);
+}
+
+// Garante a hierarquia de lista no fluxo sem produtos (games): um heading-pai
+// "## Os N Melhores ... em {ano}" com os itens rebaixados para "###". Sem isso
+// os jogos viram topicos soltos no indice (TOC trata ## como topico e ### como
+// subtopico) — e a secao de Itens deve ser a PRIMEIRA ## do artigo.
+function ensureListStructure(body, { categoria, domain, productCount, ano, topic, title }) {
+  if (productCount > 0) return body;
+  if (!["lista", "review"].includes(categoria)) return body;
+  if (domain !== "games") return body;
+  if (!/^##\s+/m.test(body)) return body;
+
+  const lines = body.split("\n");
+  const headIdx = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^##\s+(.+)$/);
+    if (m) headIdx.push({ i, text: m[1].trim().replace(/^<a[^>]*>\s*<\/a>\s*/i, "") });
+  }
+  if (headIdx.length === 0) return body;
+
+  // Sequencia inicial de ## = os itens (ate o primeiro heading "de fim").
+  let end = 0;
+  while (end < headIdx.length && !LISTA_STOP_HEADING.test(headIdx[end].text)) end++;
+  if (end < 2) return body;
+
+  const run = headIdx.slice(0, end);
+  let parentText = null;
+  let itemIdxs;
+  if (LISTA_PARENT_HEADING.test(run[0].text)) {
+    parentText = run[0].text;
+    itemIdxs = run.slice(1).map((h) => h.i);
+  } else {
+    itemIdxs = run.map((h) => h.i);
+  }
+  if (itemIdxs.length < 2) return body;
+
+  // Itens viram subtopicos (###) sob o heading-pai.
+  for (const i of itemIdxs) lines[i] = lines[i].replace(/^##\s+/, "### ");
+
+  if (!parentText) {
+    const heading = buildGamesListHeading(itemIdxs.length, topic, title);
+    lines.splice(itemIdxs[0], 0, `## ${heading}`, "");
+    log("INFO", `Estrutura de lista: heading-pai "## ${heading}" + ${itemIdxs.length} itens como ###`);
+  } else {
+    log("INFO", `Estrutura de lista: heading-pai existente + ${itemIdxs.length} itens como ###`);
+  }
+
+  return lines.join("\n");
+}
+
+// Titulos dos itens de uma lista de games no corpo bruto da LLM (heading ## da
+// sequencia inicial, ignorando o heading-pai "Os N Melhores" e os de fim).
+function extractListItemTitles(body) {
+  const heads = [];
+  for (const line of String(body || "").split("\n")) {
+    const m = line.match(/^##\s+(.+)$/);
+    if (m) heads.push(m[1].trim().replace(/^<a[^>]*>\s*<\/a>\s*/i, "").replace(/\s*[—–-].*$/g, "").trim());
+  }
+  let start = 0;
+  if (heads.length > 0 && LISTA_PARENT_HEADING.test(heads[0])) start = 1;
+  const itens = [];
+  for (let i = start; i < heads.length; i++) {
+    if (LISTA_STOP_HEADING.test(heads[i])) break;
+    itens.push(heads[i]);
+  }
+  return itens.filter(Boolean);
+}
+
+// Similaridade de titulo de jogo: igualdade, substring ou >= 60% dos tokens
+// significativos em comum ("Resident Evil 4 Remake" ~ "Resident Evil 4 Remake").
+function tituloSemelhante(a, b) {
+  const na = normalizeForMatch(a);
+  const nb = normalizeForMatch(b);
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  if (na.includes(nb) || nb.includes(na)) return true;
+  const tok = (s) => s.split(" ").filter((w) => w.length >= 3 && !/^\d+$/.test(w));
+  const A = tok(na);
+  const B = tok(nb);
+  if (A.length === 0 || B.length === 0) return false;
+  let hit = 0;
+  for (const t of B) if (A.includes(t)) hit++;
+  return hit / Math.min(A.length, B.length) >= 0.6;
 }
 
 function buildImageTag(name, imgUrl) {
@@ -2679,6 +2796,17 @@ function validate(fm, body, ctx = {}) {
     soft.push(`Titulo usa "Melhores" mas o artigo ficou sem produtos — confira se o titulo combina com o conteudo`);
   }
 
+  // Grounding da lista de games (P3): com candidatos do Google disponiveis, os
+  // itens DEVEM estar entre eles. Gate P2 — regenera nas primeiras tentativas e
+  // so publica com ressalva se a LLM insistir em titulo fora da lista.
+  if (ctx.gamesCandidates && ctx.gamesCandidates.length > 0 && ctx.productCount === 0) {
+    const itens = extractListItemTitles(body);
+    const fora = itens.filter((t) => !ctx.gamesCandidates.some((c) => tituloSemelhante(t, c.titulo)));
+    if (fora.length > 0) {
+      soft.push(`Itens fora dos titulos apontados pelo Google (escolha entre os CANDIDATOS OBRIGATORIOS): ${fora.join(" | ")}`);
+    }
+  }
+
   // Fluxo segmentado: cada produto DEVE virar um item "### Nome" e aparecer na
   // tabela comparativa. Se a montagem quebrou, o artigo nao pode publicar.
   if (ctx.segmented && ctx.productCount > 0) {
@@ -2767,10 +2895,16 @@ function getRecentArticlesForPrompt(limit = 12) {
   return articles.sort((a, b) => b.pubDate.localeCompare(a.pubDate)).slice(0, limit);
 }
 
-function buildInternalLinksBlock() {
+// Lista de artigos para o bloco de links internos. `excludeSlug` remove o
+// proprio artigo em regeneracao (nunca link para si mesmo).
+function buildInternalLinksBlock(excludeSlug = "") {
   const articles = getRecentArticlesForPrompt(12);
   if (articles.length === 0) return "";
-  const lines = articles.map((a) => `- ${a.title} -> /blog/${a.slug}/`);
+  const alvo = String(excludeSlug || "").replace(/\.md$/, "");
+  const lines = articles
+    .filter((a) => a.slug !== alvo)
+    .map((a) => `- ${a.title} -> /blog/${a.slug}/`);
+  if (lines.length === 0) return "";
   return `\nARTIGOS EXISTENTES (links internos SO desta lista — proibido inventar slug):\n${lines.join("\n")}\n`;
 }
 
@@ -2804,9 +2938,17 @@ function validateSourceCoverage(body, sources = []) {
     .replace(/^##\s+Continue Explorando[\s\S]*$/im, "")
     .replace(/<a id="[^"]*"><\/a>/g, "");
 
-  // Extrai anos (ex: 2026, 2027) e verifica se estão nas fontes
+  // Extrai anos (ex: 2026, 2027) e verifica se estão nas fontes. So fiscaliza o
+  // "intervalo de claim": [ANO_ATUAL-3, ANO_ATUAL+1], exceto o proprio ano do
+  // artigo. Anos mais velhos (ex.: 2021, data de lancamento de um jogo) sao
+  // fatos historicos e nao desmentem o artigo.
   const years = [...new Set([...(regioesNaoClaim.match(/\b20[2-9]\d\b/g) || [])])];
-  const missingYears = years.filter((y) => !sourceTextLower.includes(y));
+  const missingYears = years.filter((y) => {
+    const n = Number(y);
+    if (n === ANO_ATUAL) return false;
+    if (n < ANO_ATUAL - 3 || n > ANO_ATUAL + 1) return false;
+    return !sourceTextLower.includes(y);
+  });
   if (missingYears.length > 0) {
     warnings.push(`Anos mencionados sem suporte nas fontes: ${missingYears.join(", ")}`);
   }
@@ -3162,6 +3304,21 @@ async function main() {
   }
 }
 
+// Query de pesquisa limpa: remove o prefixo editorial ("melhores", "os N
+// melhores") e corta na virgula — senao "melhores jogos para PC, jogos gratis..."
+// vira "melhores melhores jogos para pc, jogos gratis... Brasil 2026".
+function montarQueryPesquisa(topic, ano) {
+  if (topic.category === "noticia") return `${topic.hint} Brasil ${ano}`;
+  const limpo = String(topic.hint || "")
+    .split(",")[0]
+    .replace(/\b(?:os\s+)?\d+\s+melhores?\b/gi, " ")
+    .replace(/\bmelhores?\b/gi, " ")
+    .replace(/\b(?:20\d{2})\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return `${limpo || topic.hint} Brasil ${ano}`;
+}
+
 // Gera um artigo para um topico dado. Usado pelo cron (main) e pela
 // regeneracao de artigos existentes (scripts/regenerar-artigos.mjs).
 // opts:
@@ -3201,9 +3358,7 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
   let coberturaPesquisa = null;
   let subQueries = [];
   try {
-    const query = topic.category === "noticia"
-      ? `${topic.hint} Brasil ${ANO_ATUAL}`
-      : `melhores ${topic.hint} Brasil ${ANO_ATUAL}`;
+    const query = montarQueryPesquisa(topic, ANO_ATUAL);
     const pesquisa = await pesquisarFundo({
       topic,
       query,
@@ -3474,7 +3629,7 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
       }).join("\n")}\nO sistema monta a foto e o botao de compra do item no lugar do marcador. Voce NAO escreve preco, link nem imagem desses produtos — so decide ONDE cada item entra. O nome do item vira o heading "## Nome do Produto — Subtitulo". NUNCA escreva "R$ X" no texto para produtos listados — o preco fica so na tabela comparativa.\nREGRA DE PRECO AUSENTE: se o produto estiver marcado como "Preco: NAO DISPONIVEL", voce NAO escreve preco, NUNCA diz gratis, gratuito, preco zero ou de graca, e orienta o leitor a conferir o preco atual na tabela.\nREGRA DE DETALHES: quando o produto tiver "Marca:", "Descricao:" ou "Especificacoes:", use-os como FONTE DE VERDADE nos itens — o leitor pode comparar com o que esta listado. NUNCA invente especificacao numerica (GHz, GB, W, fps, cores, DPI, sensor) fora do que aparecer nesses campos.`
     : "";
 
-  const internalLinksBlock = buildInternalLinksBlock();
+  const internalLinksBlock = buildInternalLinksBlock(opts.overwriteSlug);
 
   const trendingNote = topic.trending_keywords
     ? `\nCONTEXTO: Este topico esta em alta agora em sites de games e redes sociais. Palavras-chave trending: ${topic.trending_keywords.join(", ")}. Escreva um artigo relevante e atual conectando esses temas.`
@@ -3532,7 +3687,7 @@ ${personaPrompt}${trendingNote}
 
 ## MARCADORES DE POSICIONAMENTO (OBRIGATORIO)
 Voce nao renderiza imagens nem cards de produto — voce decide ONDE eles entram, com marcadores que o sistema substitui depois.
-- [IMG:Nome] — OBRIGATORIO em cada secao ## EXCETO nos itens da secao de lista de produtos (nesses itens a foto do produto e injetada automaticamente). Coloque em uma linha sozinha, logo ANTES do titulo ##. Para secoes sobre um jogo, use o nome do jogo (ex: [IMG:God of War Laufey]). Para secoes gerais (setup, comparativos, FAQ, lancamentos), use uma descricao curta do topico (ex: [IMG:Setup Gamer], [IMG:Comparativo de Consoles], [IMG:Perguntas Frequentes]). O sistema busca imagens automaticamente via web. SEMPRE use um marcador — nao existe secao sem imagem.
+- [IMG:Nome] — OBRIGATORIO em cada secao ## EXCETO nos itens da secao de lista de produtos (nesses itens a foto do produto e injetada automaticamente). Coloque em uma linha sozinha, logo APOS o titulo ## da propria secao (a imagem fica DENTRO da secao, abaixo do titulo e acima do texto). Para secoes sobre um jogo, use o nome do jogo (ex: [IMG:God of War Laufey]). Para secoes gerais (setup, comparativos, FAQ, lancamentos), use uma descricao curta do topico (ex: [IMG:Setup Gamer], [IMG:Comparativo de Consoles], [IMG:Perguntas Frequentes]). O sistema busca imagens automaticamente via web. SEMPRE use um marcador — nao existe secao sem imagem.
 - ${mlProducts.length > 0 ? `[PRODUTO:N] — um marcador por item, na secao de Itens (a primeira secao ## do artigo, logo apos a introducao), cada um na linha sozinha e logo APOS o texto que descreve aquele item. NAO empilhe todos no comeco. Use o numero exato indicado na lista de produtos.` : "Nao ha produtos nesta rodada — nao use [PRODUTO:N]."}
 - Nunca coloque dois marcadores seguidos sem texto entre eles. Se um jogo ou produto nao tem relevancia real em nenhum trecho, omita o marcador — melhor faltar do que forcar.
 - Se o sistema nao achar imagem para um [IMG:...], ele remove o marcador. Entao o paragrafo tem que fazer sentido sozinho, sem depender da imagem.
@@ -3556,7 +3711,7 @@ ${estiloOpinativo ? "8. Giria e humor sao tempero, nao estrutura: no maximo 1 gi
 
 ## ESTRUTURA (ordem obrigatoria — adapte so o conteudo de cada bloco)
 - INTRODUCAO SEM H2: 1-2 paragrafos diretos com gancho concreto. Nos primeiros 2-3 paragrafos, resuma os criterios/requisitos que definem os itens da lista (o que diferencia um bom item, em 2 frases no maximo) — NAO crie secao ## separada para esse contexto.
-- PRIMEIRA SECAO ## (a principal): a lista de Itens. ${mlProducts.length > 0 ? `Titulo tipo: "## Os ${mlProducts.length} Melhores {Itens} em ${ANO_ATUAL}". Um bloco por item, nesta ordem: "## Nome do Produto — Subtitulo" (SEM [IMG:] — a foto e injetada automaticamente), 2-3 paragrafos com os principais detalhes do item, e [PRODUTO:N] numa linha sozinha logo apos o texto.` : `Titulo tipo: "## Os Melhores {Jogos/Itens} em ${ANO_ATUAL}". Um bloco por item: "## Nome — Subtitulo" com [IMG:Nome] na linha imediatamente anterior, 2-3 paragrafos de detalhes, sem botao de compra.`}
+- PRIMEIRA SECAO ## (a principal): a lista de Itens. ${mlProducts.length > 0 ? `Titulo tipo: "## Os ${mlProducts.length} Melhores {Itens} em ${ANO_ATUAL}". Um bloco por item, nesta ordem: "## Nome do Produto — Subtitulo" (SEM [IMG:] — a foto e injetada automaticamente), 2-3 paragrafos com os principais detalhes do item, e [PRODUTO:N] numa linha sozinha logo apos o texto.` : `Titulo tipo: "## Os Melhores {Jogos/Itens} em ${ANO_ATUAL}". Um bloco por item: "## Nome — Subtitulo" com [IMG:Nome] na linha logo apos o titulo (imagem abaixo do titulo, acima do texto), 2-3 paragrafos de detalhes, sem botao de compra.`}
 - Depois da lista, secoes curtas nesta ordem (omita o que nao se aplica):
   - ${mlProducts.length > 0 ? "Tabela comparativa dos produtos (Produto | Preco | Destaque | Nota de 0 a 5 estrelas, NUNCA 0-10) com notas que realmente diferenciam." : "Tabela quando houver o que comparar (jogos, specs, edicoes)."}
   - "## Veredito" (ou "## Qual X Escolher?") com bullets por perfil de usuario — nunca "depende do orcamento".
@@ -3589,7 +3744,11 @@ affiliate: ${mlProducts.length > 0}
 
 category DEVE ser: noticia, review, guia ou lista`;
 
-  const buildUserPrompt = (research) => `Escreva um artigo de categoria "${categoria}" sobre: ${topic.hint}
+  const buildUserPrompt = (research, gamesCandidates = []) => {
+  const candidatosBlock = gamesCandidates.length > 0
+    ? `\nCANDIDATOS OBRIGATORIOS (a lista de itens DEVE ser escolhida entre estes titulos exatos, nao invente nem use jogos antigos):\n${gamesCandidates.map((c, i) => `${i + 1}. ${c.titulo}`).join("\n")}\n`
+    : "";
+  return `Escreva um artigo de categoria "${categoria}" sobre: ${topic.hint}
 
 DOMINIO OBRIGATORIO: este artigo é APENAS sobre ${domainLabel(domain)}. Nao misture games e hardware no mesmo texto.
 ${domain === "hardware"
@@ -3598,6 +3757,7 @@ PROIBIDO NO TEXTO: GTA, Resident Evil, Fortnite, Zelda, Game Awards, E3, Gamesco
   : `Foque em jogos, consoles, software ou eventos de games. Exemplos validos: "GTA 6: data de lancamento", "Melhores Jogos de Corrida ${ANO_ATUAL}", "Resident Evil Requiem no PS5", "Game Awards ${ANO_ATUAL}".
 PROIBIDO NO TEXTO: mouse, teclado, headset, monitor, placa de video, RTX, processador, SSD, fonte, gabinete, water cooler, setup gamer.`}
 
+${candidatosBlock}
 ${research ? `PESQUISA (use estes fatos — nao invente dados fora daqui):\n${research}\n` : "SEM PESQUISA DISPONIVEL: escreva so o que e conhecimento consolidado, sem inventar numeros, datas ou precos.\n"}
 ${productBlock}${internalLinksBlock}
 ${isNoticia && mlProducts.length === 0 ? `
@@ -3609,19 +3769,36 @@ Checklist antes de responder:
 2. Description 120-160 chars, sem ** e sem exagero promocional.
 3. Minimo ${minWords} palavras de conteudo real (alvo ${alvoWords}).
 4. ${mlProducts.length > 0 ? `Marcadores [PRODUTO:1]..[PRODUTO:${mlProducts.length}] TODOS dentro da secao de Itens (a primeira secao ## apos a introducao), um por item, cada um em linha sozinha logo apos o texto do item.` : "Sem produtos nesta rodada — os itens sao jogos e usam [IMG:]."}
-5. 2 a 4 marcadores [IMG:Nome], um antes de cada secao ## que NAO seja item de produto (itens com produto NAO usam [IMG:] — a foto e injetada automaticamente).
+5. 2 a 4 marcadores [IMG:Nome], um logo apos o titulo de cada secao ## que NAO seja item de produto (itens com produto NAO usam [IMG:] — a foto e injetada automaticamente).
 6. Cada dado concreto rastreavel ate a pesquisa acima.
 7. 5 tags relevantes.
 8. ${estiloOpinativo ? "Voz Mano Gamer: opiniao com lado tomado, giria dosada, sem enrolacao." : "Voz tecnica hibrida: precisao, comparacao de specs, humor seco dosado (max 1 a cada 3 paragrafos)."}
 9. 2 a 3 links internos usando SOMENTE slugs da lista ARTIGOS EXISTENTES acima, colocados SOMENTE na secao final "## Continue Explorando".`;
+  };
+
+  // Grounding da lista de games (P3): busca no Google quais sao os melhores
+  // jogos de PC do ano e obriga a LLM a escolher os itens entre esses titulos.
+  let gamesCandidates = [];
+  if (effectiveDomain === "games" && ["lista", "review"].includes(categoria) && mlProducts.length === 0) {
+    try {
+      gamesCandidates = await buildGamesCandidateList({
+        ano: ANO_ATUAL,
+        serperKey: SERPER_API_KEY,
+        tavilyKey: TAVILY_API_KEY,
+        fetchLLM,
+      });
+    } catch (e) {
+      log("WARN", `Candidatos de jogos falharam: ${e.message}`);
+    }
+  }
 
   // Encolhe a pesquisa ate sobrar espaco de saida suficiente dentro do TPM.
   // So para o fluxo de chamada unica (sem produtos): no segmentado a pesquisa
   // vai inteira para a chamada do corpo principal.
-  let userPrompt = buildUserPrompt(researchContext);
+  let userPrompt = buildUserPrompt(researchContext, gamesCandidates);
   while (mlProducts.length === 0 && computeMaxTokens(systemPrompt, userPrompt) < MIN_OUTPUT && researchContext.length > 800) {
     researchContext = researchContext.slice(0, Math.floor(researchContext.length * 0.75));
-    userPrompt = buildUserPrompt(researchContext);
+    userPrompt = buildUserPrompt(researchContext, gamesCandidates);
     log("WARN", `Pesquisa reduzida para caber no limite de ${TOKEN_BUDGET} TPM`);
   }
   log("INFO", `Orcamento Groq: prompt ~${estimateTokens(systemPrompt) + estimateTokens(userPrompt)} tokens, saida ~${computeMaxTokens(systemPrompt, userPrompt)} tokens`);
@@ -3632,6 +3809,7 @@ Checklist antes de responder:
     productCount: mlProducts.length,
     productPrices: mlProducts.filter((p) => p.price).map((p) => p.price),
     primaryKeyword,
+    gamesCandidates,
   };
 
   let fm = null;
@@ -3709,6 +3887,26 @@ Checklist antes de responder:
 
     if (lastAttempt) {
       if (hard.length > 0) {
+        // TAREFA P23 (gate corretor): antes de abortar, tenta corrigir o que e
+        // deterministico (description curta, tags, marcadores, secoes vazias).
+        const corrigido = corrigirPeloGate({
+          body: parsed.body,
+          fm: parsed.frontmatter,
+          gateReprovados: [{ etapa: "revisao", problemas: hard.map((m) => ({ severidade: "P0", mensagem: m })) }],
+          categoria,
+          listHeading: null,
+          topicHint: topic.hint,
+        });
+        if (corrigido.mudancas.length > 0) {
+          const reval = validate(corrigido.fm, corrigido.body, { ...validationCtx, lastAttempt: true });
+          if (reval.hard.length === 0) {
+            log("INFO", `Correcao deterministica aplicada pelo gate (${corrigido.mudancas.join(", ")})`);
+            fm = corrigido.fm;
+            body = corrigido.body;
+            break;
+          }
+          log("WARN", `Correcao deterministica insuficiente: ${reval.hard.join("; ")}`);
+        }
         log("ERROR", `Validacao falhou apos ${MAX_GEN_ATTEMPTS} tentativas:\n${hard.join("\n")}`);
         log("DEBUG", JSON.stringify(parsed.frontmatter, null, 2));
         process.exit(1);
@@ -3780,6 +3978,17 @@ Checklist antes de responder:
   // passavam por normalizarAnos. URLs de links internos sao protegidas.
   body = normalizarAnosBody(body);
   fm.tags = (fm.tags || []).map((t) => normalizarAnos(String(t)));
+
+  // Lista de games sem produtos: heading-pai "## Os N Melhores..." + itens "###"
+  // (TOC aninhado) — roda antes do reposicionamento de imagens e das ancoras.
+  body = ensureListStructure(body, {
+    categoria,
+    domain: effectiveDomain,
+    productCount: mlProducts.length,
+    ano: ANO_ATUAL,
+    topic,
+    title: fm.title,
+  });
 
   log("INFO", "Validando links internos...");
   body = validateInternalLinks(body);
@@ -4755,4 +4964,9 @@ export {
   fetchRAWGImage,
   fetchTavilyImage,
   isFragileImageUrl,
+  ensureListStructure,
+  buildGamesListHeading,
+  extractListItemTitles,
+  tituloSemelhante,
+  montarQueryPesquisa,
 };

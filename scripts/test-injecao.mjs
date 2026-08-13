@@ -27,7 +27,13 @@ import {
   ajustarTags,
   progressiveGameQueries,
   isFragileImageUrl,
+  ensureListStructure,
+  buildGamesListHeading,
+  extractListItemTitles,
+  tituloSemelhante,
+  montarQueryPesquisa,
 } from "./gerar-artigo.mjs";
+import { normalizarAnosPreposicional } from "./tempo.mjs";
 import { parsePriceBRL } from "./google_shopping.mjs";
 import { normalizarProdutoRemoto } from "./monitor_api.mjs";
 import { extractMLProductData } from "./ml_affiliate.mjs";
@@ -214,7 +220,11 @@ const certo = `Paragrafo sobre **Elden Ring** e sua dificuldade.
 [IMG:Elden Ring]
 
 Outro paragrafo qualquer.`;
-igual(repositionImageMarkers(certo), certo, "marcador ja correto nao e movido");
+igual(
+  repositionImageMarkers(certo),
+  `[IMG:Elden Ring]\n\nParagrafo sobre **Elden Ring** e sua dificuldade.\n\nOutro paragrafo qualquer.`,
+  "marcador sem titulo vai para antes do paragrafo que cita o jogo (imagem acima do texto)"
+);
 
 const orfao = `Paragrafo sobre outra coisa totalmente diferente.
 
@@ -491,6 +501,16 @@ O teclado chegou ao Brasil em 2026.
 - [Mouse gamer de 2024](/blog/mouse-2024/)`;
 warnings = validateSourceCoverage(corpoComLinksInternos, fontes);
 ok(!warnings.some((w) => /Anos mencionados/.test(w)), "anos em links internos do rodape nao geram warning");
+
+const corpoAnoLancamento = `## Introducao
+
+O jogo foi lancado em 2021 e segue vivo no PC.
+
+## Fontes
+
+- [Review Tech](http://tech.com)`;
+warnings = validateSourceCoverage(corpoAnoLancamento, fontes);
+ok(!warnings.some((w) => /Anos mencionados/.test(w)), "ano de lancamento antigo (2021) nao gera warning de claim");
 
 // --- Fase 1: portao sanitizeProducts ---
 const topicProd = { hint: "placas de video amd 2026", ml_query: "placa de video gamer", trending_keywords: ["rx 580"] };
@@ -1105,6 +1125,127 @@ igual(shouldAbortProductSourcing({ count: 0, articleCat: "monitor" }), true, "li
   ok(md.includes('title: "Titulo \\"com aspas\\""'), "titulo com aspas escapado no markdown");
   ok(md.includes("## Corpo"), "corpo presente no markdown");
   ok(md.includes("affiliate: true"), "affiliate refletido no markdown");
+
+  // --- P4: normalizarAnosPreposicional protege nome de jogo/modelo ---
+  igual(
+    normalizarAnosPreposicional("os melhores jogos de 2024 para pc"),
+    "os melhores jogos de 2026 para pc",
+    "ano apos 'de' e reescrito (P4)"
+  );
+  ok(normalizarAnosPreposicional("Cyberpunk 2077 e o melhor RPG").includes("Cyberpunk 2077"), "ano no nome do jogo preservado (P4)");
+  ok(normalizarAnosPreposicional("com uma RTX 2060 no setup").includes("RTX 2060"), "numero de modelo preservado (P4)");
+  ok(normalizarAnosPreposicional("lancado em 2020, voltou em alta") !== "lancado em 2020, voltou em alta", "ano apos 'em' reescrito (P4)");
+
+  // --- P2: repositionImageMarkers coloca a imagem DENTRO da secao (apos o titulo) ---
+  const corpoImg = [
+    "## Baldur's Gate 3 — O RPG",
+    "",
+    "A Larian Studios lancou o jogo.",
+    "",
+    "[IMG:Cyberpunk 2026 Phantom Liberty]",
+    "",
+    "## Cyberpunk 2026 — A Redencao",
+    "",
+    "A jornada do jogo.",
+  ].join("\n");
+  const repos = repositionImageMarkers(corpoImg);
+  const idxHeading = repos.indexOf("## Cyberpunk 2026 — A Redencao");
+  const idxImg = repos.indexOf("[IMG:Cyberpunk 2026 Phantom Liberty]");
+  const idxTexto = repos.indexOf("A jornada do jogo.");
+  ok(idxHeading < idxImg && idxImg < idxTexto, "marcador movido para apos o titulo e antes do texto (P2)");
+
+  // --- P1: ensureListStructure cria heading-pai e rebaixa itens para ### ---
+  const corpoGames = [
+    "Fala gamer. Muita coisa para escolher.",
+    "",
+    "Nossa lista tem criterios claros.",
+    "",
+    "## Baldur's Gate 3 — O RPG",
+    "",
+    "Texto do jogo 1.",
+    "",
+    "## Cyberpunk 2077 — Redencao",
+    "",
+    "Texto do jogo 2.",
+    "",
+    "## Comparativo de Jogos",
+    "",
+    "| A | B |",
+    "",
+    "## FAQ",
+    "",
+    "### Pergunta?",
+  ].join("\n");
+  const est = ensureListStructure(corpoGames, {
+    categoria: "lista", domain: "games", productCount: 0, ano: 2026,
+    topic: { hint: "melhores jogos para pc, jogos gratis" }, title: "Melhores Jogos para PC em 2026",
+  });
+  ok(est.includes("## Os 2 Melhores Jogos para PC em 2026"), "heading-pai inserido (P1)");
+  ok(est.includes("### Baldur's Gate 3"), "item 1 rebaixado para ### (P1)");
+  ok(est.includes("### Cyberpunk 2077"), "item 2 rebaixado para ### (P1)");
+  ok(/^## Comparativo/m.test(est), "comparativo continua ## (P1)");
+  ok(est.indexOf("## Os 2 Melhores") < est.indexOf("### Baldur"), "pai antes do primeiro item (P1)");
+  igual(
+    ensureListStructure(corpoGames, { categoria: "lista", domain: "games", productCount: 3, ano: 2026, topic: {}, title: "x" }),
+    corpoGames,
+    "com produtos a estrutura nao muda (P1)"
+  );
+  igual(
+    ensureListStructure(corpoGames, { categoria: "lista", domain: "hardware", productCount: 0, ano: 2026, topic: {}, title: "x" }),
+    corpoGames,
+    "hardware nao reestrutura (P1)"
+  );
+  igual(
+    buildGamesListHeading(5, { hint: "melhores jogos para pc" }, "Melhores Jogos para PC em 2026"),
+    "Os 5 Melhores Jogos para PC em 2026",
+    "heading de games montado (P1)"
+  );
+  igual(
+    buildGamesListHeading(5, { hint: "x" }, "Jogos PC em 2026: 5 Títulos Indispensáveis para Jogar"),
+    "Os 5 Melhores Jogos PC em 2026",
+    "heading sem preposicao duplicada (P1)"
+  );
+
+  // --- P3: gate de candidatos (grounding por Google) ---
+  igual(
+    extractListItemTitles(corpoGames),
+    ["Baldur's Gate 3", "Cyberpunk 2077"],
+    "itens extraidos sem subtitulo (P3)"
+  );
+  igual(
+    extractListItemTitles("## Os 2 Melhores em 2026\n\n## Jogo A\n\n## Comparativo\n\n## Jogo B"),
+    ["Jogo A"],
+    "para no comparativo e ignora heading-pai (P3)"
+  );
+  ok(tituloSemelhante("Baldur's Gate 3", "Baldur's Gate 3"), "titulos iguais casam (P3)");
+  ok(tituloSemelhante("Resident Evil 4 Remake", "Resident Evil 4 Remake"), "titulos iguais casam 2 (P3)");
+  ok(!tituloSemelhante("Baldur's Gate 3", "Lost Ark"), "titulos diferentes nao casam (P3)");
+  igual(
+    montarQueryPesquisa({ category: "lista", hint: "melhores jogos para PC, jogos gratis, jogos multiplayer" }, 2026),
+    "jogos para PC Brasil 2026",
+    "query de pesquisa limpa (P3)"
+  );
+  igual(
+    montarQueryPesquisa({ category: "noticia", hint: "gamescom 2026 anuncios" }, 2026),
+    "gamescom 2026 anuncios Brasil 2026",
+    "noticia mantem o hint (P3)"
+  );
+
+  const fmLista = {
+    title: "Melhores Jogos para PC em 2026: 5 Titulos",
+    description: "x".repeat(130),
+    pubDate: "2026-08-13",
+    tags: ["jogos pc", "rpg", "steam", "multiplayer", "gratis"],
+    category: "lista",
+    affiliate: false,
+  };
+  const candidatos = [{ titulo: "A Investigacao Postuma" }, { titulo: "007 First Light" }, { titulo: "Forza Horizon 6" }];
+  const corpoAntigo = "Intro sobre a lista.\n\n## Baldur's Gate 3 — O RPG\n\nTexto.\n\n## Lost Ark — MMORPG\n\nTexto.\n\n## Comparativo\n\n| a |\n\n## FAQ\n\n### P?";
+  const vFora = validate(fmLista, corpoAntigo, { category: "lista", productCount: 0, gamesCandidates: candidatos });
+  ok(vFora.soft.some((s) => s.includes("fora dos titulos apontados pelo Google")), "itens fora dos candidatos viram P2 (P3)");
+  const corpoDentro = "Intro.\n\n## Forza Horizon 6 — Corrida\n\nTexto.\n\n## 007 First Light — Espiao\n\nTexto.\n\n## Comparativo\n\n| a |";
+  const vDentro = validate(fmLista, corpoDentro, { category: "lista", productCount: 0, gamesCandidates: candidatos });
+  ok(!vDentro.soft.some((s) => s.includes("fora dos titulos apontados pelo Google")), "itens dentro dos candidatos passam (P3)");
 
   console.log(`${passou} asserts OK`);
 })().catch((e) => {
