@@ -276,6 +276,52 @@ Reforços extras da sessão:
 | `npm test` **443 asserts OK** (+24) · `npm run build` **166 páginas** · `validar-artigo.mjs` **0 falhas** | ✅ |
 | Docs: `PROGRESSO.md`, `PIPELINE_ETAPAS.md`, `METODOLOGIA.md`, `ORIENTACOES_EDITORIAIS.md`, `README.md` | ✅ |
 
+### ✅ Concluído em 13/08/2026 — redesign Stitch v3 + blindagem do admin
+
+**Redesign visual (Stitch v3).** Novo visual com fonte **Geist**, ícones **Material Symbols**
+(fim dos SVGs inline e das fontes Inter/Public Sans/Orbitron) e paleta **roxo `#A855F7` +
+ciano `#06B6D4`** (dark) / **`#8127CF` + `#00687A`** (light), no lugar do roxo + verde neon
+`#2ff801`. Layout: hero `h-[400px]/sm:h-[500px]` com gradiente, cards com imagem 16:9 e badge
+colorido por categoria, header glass `bg-surface/80`, sidebar com "Populares da Semana" numerado,
+chips de categorias e newsletter, footer em grid 4 colunas. Artigo: hero full-bleed, TOC
+"Nesta Análise" com borda ciano, barra de progresso de leitura preservada. Cores hardcoded
+eliminadas em favor de CSS variables (`--accent`, `--success`, `--bg-*`) — dark e light funcionam.
+
+| Tarefa | Estado |
+|---|---|
+| Paleta roxo/ciano em `global.css` (dark + light) e `tailwind.config.mjs` | ✅ |
+| Fonte Geist + Material Symbols no `Layout.astro` | ✅ |
+| `Header` / `Footer` / `HeroSection` / `ArticleCard` / `Sidebar` / `TableOfContents` redesenhados | ✅ |
+| Home e artigo no novo layout (`index.astro`, `blog/[...slug].astro`) | ✅ |
+| Verde `#2ff801` removido (ofertas, 404 usam ciano `var(--success)`) | ✅ |
+| Testes (**443 asserts OK**) + build (**166 páginas**) | ✅ |
+
+**Blindagem do admin (painel `/admin/`).** Dois incidentes reais motivaram correções:
+
+1. **`global.css` zerado pelo upload de fundo.** O admin embutia a imagem de fundo como
+   **data-URI base64 de 4,8 MB** no `global.css`; o GitHub API não retorna `content` para
+   arquivos >1 MB e o `injectThemeVars` gravava o arquivo **vazio**. Corrigido:
+   - Upload de fundo agora envia a imagem para **`public/images/backgrounds/`** (máx. 4 MB,
+     comprimida) e grava só a URL no CSS (`--body-bg-image: url('/images/backgrounds/...')`).
+   - `injectThemeVars` **aborta** se o `global.css` vier vazio ou sem `@tailwind` (nunca grava vazio).
+   - `getFile` robusto: arquivos grandes são baixados via `download_url`.
+
+2. **Logo não salvava ("URI malformed").** `saveLogoToRepo` chamava `getFile()` (que decodifica o
+   conteúdo) só para pegar o SHA — o webp binário quebrava o `decodeB64`. Corrigido com
+   **`getFileMeta()`**, que retorna apenas `sha`/`name` sem decodificar binário; logo e fundo o usam.
+   `putFileRaw` ganhou retry em conflito 409.
+
+| Tarefa | Estado |
+|---|---|
+| `getFile` com `download_url` para arquivos grandes | ✅ |
+| `injectThemeVars` aborta se `global.css` vazio/sem `@tailwind` | ✅ |
+| Upload de fundo → `public/images/backgrounds/` (limite 4 MB) | ✅ |
+| `layoutSaveTheme` com `try/catch` separados (CSS e logo independentes) | ✅ |
+| `generateThemeCSS` por tema (light não herda fundo escuro) | ✅ |
+| `getFileMeta()` + `putFileRaw` com retry 409 (logo/fundo) | ✅ |
+| `Layout.astro` themeCss por tema (dark `#050505` / light limpo) | ✅ |
+| Testes + build + commits `87735fe`, `8922fbf`, `ad3ef6b`, `321a1b7` | ✅ |
+
 ### 🟢 Baixa prioridade
 | Tarefa | Motivo |
 |---|---|

@@ -1,6 +1,6 @@
 # Design System — Promo Gamer
 
-> Portal de conteúdo gamer premium — Black Piano, roxo elétrico, verde limão neon. Experiência editorial de última geração.
+> Portal de conteúdo gamer premium — preto profundo, roxo elétrico, ciano neon. Fonte **Geist** e ícones **Material Symbols**. Experiência editorial de última geração.
 
 ---
 
@@ -18,51 +18,54 @@ Efeitos visuais enriquecem a experiência sem prejudicar leitura, performance ou
 
 ## 2. Cores
 
-Cores vibrantes e intensas — nada de tons pastel, lavados ou acinzentados. O preto é Black Piano verdadeiro (preto profundo brilhante), o roxo é elétrico e vivo, o verde é verde-limão neon que chama atenção imediatamente.
+Cores vibrantes e intensas — nada de tons pastel, lavados ou acinzentados. O preto é Black Piano verdadeiro (preto profundo brilhante), o roxo é elétrico e vivo, e o ciano é o tom de ação/destaque (substituiu o verde limão neon do design anterior).
 
-| Token | HEX | Uso |
-|-------|-----|-----|
-| `--bg-primary` | `#050505` | Black Piano verdadeiro — fundo principal |
-| `--bg-secondary` | `#020203` | Fundo do footer, seções secundárias |
-| `--bg-card` | `#0A0A0F` | Cards, containers, seções |
-| `--bg-elevated` | `#12121C` | Dropdowns, modais, elementos sobrepostos |
-| `--bg-glass` | `rgba(5, 5, 5, 0.88)` | Header sticky com glassmorphism |
-| `--purple` | `#A855F7` | Roxo elétrico — links, badges, hover, tech identity |
-| `--purple-hover` | `#9333EA` | Hover de elementos roxos |
-| `--purple-dim` | `rgba(168, 85, 247, 0.12)` | Fundo sutil de tags e hover |
-| `--purple-glow` | `rgba(168, 85, 247, 0.35)` | Sombra glow roxa |
-| `--neon` | `#39FF14` | Verde limão neon — CTAs, preços (contextual em artigos), destaques |
-| `--neon-hover` | `#2ED90E` | Hover de elementos neon |
-| `--neon-dim` | `rgba(57, 255, 20, 0.1)` | Fundo sutil de ações neon |
-| `--neon-glow` | `rgba(57, 255, 20, 0.3)` | Sombra glow verde neon |
-| `--warning` | `#F97316` | Laranja — boxes de afiliado, avisos |
-| `--yellow` | `#FACC15` | Amarelo — estrelas, destaques |
-| `--danger` | `#EF4444` | Vermelho — descontos, erros |
-| `--text-primary` | `#FFFFFF` | Títulos, textos principais |
-| `--text-secondary` | `#D1D5E0` | Parágrafos, descrições |
-| `--text-muted` | `#8088A0` | Metadados, timestamps, notas |
-| `--border` | `#1C1C2E` | Bordas padrão |
-| `--border-hover` | `#3D3D60` | Bordas em hover |
+| Token | Dark | Light | Uso |
+|-------|------|-------|-----|
+| `--bg-primary` | `#050505` | `#F8F9FA` | Fundo principal |
+| `--bg-secondary` | `#0a0a0a` | `#FFFFFF` | Fundo alternativo / surface-pure |
+| `--bg-card` | `#111111` | `#EDEEEF` | Cards, containers, seções (surface-container) |
+| `--bg-elevated` | `#1a1a1a` | `#E7E8E9` | Dropdowns, modais, elementos sobrepostos (surface-container-high) |
+| `--bg-glass` | `rgba(10, 10, 10, 0.8)` | `rgba(255, 255, 255, 0.8)` | Header sticky com glassmorphism |
+| `--accent` | `#A855F7` | `#8127CF` | Roxo — links, badges, hover, tech identity |
+| `--accent-hover` | `#9333EA` | `#9C48EA` | Hover de elementos roxos |
+| `--accent-dim` | `rgba(168, 85, 247, 0.14)` | `rgba(129, 39, 207, 0.10)` | Fundo sutil de tags e hover |
+| `--accent-glow` | `rgba(168, 85, 247, 0.25)` | `rgba(129, 39, 207, 0.18)` | Sombra glow roxa |
+| `--success` (ciano) | `#06B6D4` | `#00687A` | Ações, CTAs, badges de guia, destaque (substitui o neon) |
+| `--success-dim` | `rgba(6, 182, 212, 0.12)` | `rgba(0, 104, 122, 0.10)` | Fundo sutil de ações ciano |
+| `--warning` | `#FABC4E` | `#825100` | Laranja/âmbar — boxes de afiliado, avisos |
+| `--danger` | `#FFB4AB` | `#BA1A1A` | Vermelho — descontos, erros |
+| `--text-primary` | `#FFFFFF` | `#09090B` | Títulos, textos principais |
+| `--text-secondary` | `#CFC2D6` | `#4D4354` | Parágrafos, descrições |
+| `--text-muted` | `#A1A1AA` | `#A1A1AA` | Metadados, timestamps, notas |
+| `--border` | `#1F1F1F` | `#CFC2D6` | Bordas padrão (outline-variant) |
+| `--border-hover` | `#333333` | `#7E7385` | Bordas em hover (outline) |
 
 ### Identidade RGB
 
 | Cor | Significado |
 |-----|-------------|
-| Roxo elétrico (`#A855F7`) | Tecnologia, inovação, identidade da marca |
-| Verde limão neon (`#39FF14`) | Ações importantes, CTAs, preços (contextual), destinos |
-| Branco (`#FFFFFF`) | Equilíbrio, texto, hierarquia |
+| Roxo elétrico (`#A855F7` / `#8127CF`) | Tecnologia, inovação, identidade da marca |
+| Ciano (`#06B6D4` / `#00687A`) | Ações, CTAs, destaques, badges de guia |
+| Branco / preto | Equilíbrio, texto, hierarquia |
 
 Iluminação RGB elegante — nunca parecer árvore de Natal.
 
 ## 3. Planos de Fundo
 
-### Background em Fibra de Carbono Premium (CSS puro, sem imagens)
+> **Nota (redesign Stitch v3, 13/08/2026):** o fundo do body é **configurável pelo admin** (aba
+> Aparência → `src/data/blog-config.json`), com modos `preset` / `cor sólida` / `imagem`. O padrão
+> atual é **cor sólida `#050505`** (dark) / `#F8F9FA` (light). O preset "carbono roxo" (fibra de
+> carbono) continua disponível em `src/data/background-presets.json`. O admin **nunca** embute
+> data-URI no CSS — uploads vão para `public/images/backgrounds/`.
 
-PRIORIDADE MÁXIMA. O fundo deve ter aparência de **material Black Piano com fibra de carbono realista**, gerado inteiramente por CSS sem imagens externas. Inspirado nos acabamentos de fibra de carbono utilizados em supercarros, gabinetes gamers premium, notebooks topo de linha e periféricos de elite.
+### Background em Fibra de Carbono Premium (CSS puro, sem imagens) — preset
+
+PRIORIDADE MÁXIMA (quando o preset "carbono-roxo" estiver ativo). O fundo deve ter aparência de **material Black Piano com fibra de carbono realista**, gerado inteiramente por CSS sem imagens externas. Inspirado nos acabamentos de fibra de carbono utilizados em supercarros, gabinetes gamers premium, notebooks topo de linha e periféricos de elite.
 
 A textura deve ser **maior, mais definida, mais nítida e com maior resolução** que uma textura simples. Deve transmitir luxo e materialidade real — nunca parecer apenas um padrão repetitivo.
 
-### Camadas do Background
+### Camadas do Background (preset carbono)
 
 ```
 Camada 1: #050505 — Base Black Piano verdadeiro (preto profundo brilhante)
@@ -72,7 +75,7 @@ Camada 4: Efeito glossy com variações de brilho (radial-gradient com posiçõe
 Camada 5: Leve noise/granulação de alta resolução (CSS gradient + pseudo-elemento, opacidade ~2%)
 Camada 6: Reflexos diagonais suaves (linear-gradient 135º e 315º, opacidade ~3%)
 Camada 7: Gradiente radial roxo elétrico no centro (opacidade ~5%, 600px blur)
-Camada 8: Iluminação verde neon em regiões estratégicas (CTAs, hero)
+Camada 8: Iluminação ciano em regiões estratégicas (CTAs, hero)
 Camada 9: Partículas desfocadas de baixa opacidade (~1.5%)
 ```
 
@@ -142,10 +145,8 @@ O efeito glossy é obtido com pequenas variações de brilho usando `radial-grad
 
 - Brilho suave atrás do logotipo (halo roxo ~30% opacidade)
 - Halo roxo elétrico atrás do banner principal / hero (~25% opacidade, 200px blur)
-- Glow verde neon atrás dos principais botões CTA (~30% opacidade)
+- Glow ciano atrás dos principais botões CTA
 - Glow roxo suave nos cards ao passar o mouse
-- Pequenos reflexos verdes próximos aos CTAs
-- Variações de brilho no fundo conforme posição do cursor (integrado ao efeito magnético)
 
 Nunca exagerar. A textura deve transmitir luxo e materialidade real.
 
@@ -153,17 +154,21 @@ Nunca exagerar. A textura deve transmitir luxo e materialidade real.
 
 | Propriedade | Valor |
 |-------------|-------|
-| Fonte principal | Inter (400, 500, 600, 700, 800) |
-| Fonte mono | JetBrains Mono (400, 500) |
+| Fonte principal | **Geist** (100–900) |
+| Ícones | **Material Symbols Outlined** |
 | Body size | 1rem / line-height 1.7 |
-| Título H1 | 2.5rem, 800 weight, -0.02em letter-spacing, gradiente roxo→neon (opcional) |
-| Título H2 | 1.75rem, 700 weight, cor `--purple` |
+| Título H1 | 2.5rem, 700 weight, -0.02em letter-spacing |
+| Título H2 | 1.75rem, 600 weight |
 | Título H3 | 1.35rem, 600 weight |
 | Título H4 | 1.15rem, 600 weight |
-| Preço | `--neon`, bold, com data ao lado em `--text-muted` |
-| Links | `--purple` com hover `--purple-hover`, underline animado no hover |
+| Display (hero) | `display-lg` 3rem, 700 weight, -0.04em (headline tokens: `headline-lg` 2rem, `headline-md` 1.5rem, `body-lg` 1.125rem, `body-md` 1rem, `label-md` 0.875rem) |
+| Preço | `--success` (ciano), bold, com data ao lado em `--text-muted` |
+| Links | `--accent` com hover `--accent-hover`, underline animado no hover |
 
 ## 5. Efeito Magnético do Cursor (Stitch-like)
+
+> ⚠️ **Removido no redesign Stitch v3 (13/08/2026).** O componente `CursorEffect.astro` não
+> existe mais no código atual. Esta seção é mantida como histórico do conceito original.
 
 Implementar efeito inspirado no Stitch by Google. Quando o cursor se mover pela página:
 
@@ -216,11 +221,13 @@ Header sticky, modais, cards especiais.
 
 | Classe | Valor |
 |--------|-------|
-| `mt-1` / `mb-1` | 0.5rem (8px) |
-| `mt-2` / `mb-2` | 1rem (16px) |
-| `mt-3` / `mb-3` | 1.5rem (24px) |
-| `mt-4` / `mb-4` | 2rem (32px) |
-| `mt-5` / `mb-5` | 3rem (48px) |
+| `xs` | 4px |
+| `base` | 8px |
+| `sm` | 12px |
+| `md` | 24px |
+| `lg` | 48px |
+| `xl` | 80px |
+| `gutter` | 24px |
 
 ## 8. Microanimações
 
@@ -228,12 +235,12 @@ Todos os componentes interativos respondem ao usuário:
 
 ### Cards
 - Leve elevação no hover (translateY -3px)
-- Sombra mais intensa (`--shadow-lg` + `--purple-glow`)
+- Sombra mais intensa (`--shadow-lg` + `--accent-glow`)
 - Borda iluminada (vira `--border-hover`)
 
 ### Botões
 - Pequeno aumento de escala (transform scale 1.03)
-- Brilho suave (`--purple-glow` ou `--neon-glow`)
+- Brilho suave (`--accent-glow` ou `--success-dim`)
 - Transição fluida (0.25s ease)
 
 ### Imagens
@@ -254,8 +261,8 @@ Diferentes níveis de profundidade. Elementos mais importantes parecem levemente
 |-------|----------|--------|
 | 0 | Background | — |
 | 1 | Cards, containers | `--shadow` |
-| 2 | Elevated (dropdowns, modais) | `--shadow-lg` + `--purple-glow` |
-| 3 | Hero, CTAs principais | `--shadow-lg` + `--neon-glow` |
+| 2 | Elevated (dropdowns, modais) | `--shadow-lg` + `--accent-glow` |
+| 3 | Hero, CTAs principais | `--shadow-lg` + `--success-dim` |
 
 ## 10. Home Page (Editorial)
 
@@ -282,15 +289,15 @@ A Home Page é **exclusivamente editorial**. Nenhum produto, preço ou vitrine c
 ### Card
 
 - Background: `--bg-card`
-- Border: 1px `--border`, hover vira `--border-hover` + `--purple-glow`
-- Border-radius: `--radius-lg` (14px)
+- Border: 1px `--border`, hover vira `--border-hover` + `--accent-glow`
+- Border-radius: `--radius-lg` (12px)
 - Padding: 1.5rem
 - Hover: translateY(-3px), `--shadow-lg`, borda iluminada roxa
 
 ### Botão primário (`.btn`)
 
-- Background: `--purple` (#A855F7) para tech / `--neon` (#39FF14) para ações
-- Hover: `--purple-hover` ou `--neon-hover` + glow correspondente
+- Background: `--accent` (roxo) para tech / `--success` (ciano) para ações
+- Hover: `--accent-hover` / ciano mais escuro + glow correspondente
 - Scale hover: 1.03
 - Padding: 0.7rem 1.6rem
 - Border-radius: 8px
@@ -300,27 +307,28 @@ A Home Page é **exclusivamente editorial**. Nenhum produto, preço ou vitrine c
 
 - Background: transparente
 - Border: 1px `--border`
-- Hover: border vira `--purple` + `--purple-dim` background
+- Hover: border vira `--accent` + `--accent-dim` background
 
 ### Tag / Badge
 
 - Pill (border-radius: 20px)
-- `tag-purple`: bg `--purple-dim`, border 1px `--purple`, texto roxo
-- `tag-neon`: bg `--neon-dim`, border 1px `--neon`, texto neon
+- `tag-purple`: bg `--accent-dim`, border 1px `--accent`, texto roxo
+- `tag-cyan`: bg `--success-dim`, border 1px `--success`, texto ciano
+- Badge de card colorido por categoria: review → roxo, notícia → neutro, guia → ciano, promoções → vermelho
 - Uppercase para categorias
 
 ### Affiliate Box (contextual em artigos)
 
 - Usado **apenas dentro de artigos** quando há recomendação de produto
-- Background: gradient de `--bg-card` + `rgba(249, 115, 22, 0.05)`
-- Border-left: 3px `--warning` (#F97316)
+- Background: gradient de `--bg-card` + `rgba(250, 188, 78, 0.05)`
+- Border-left: 3px `--warning` (#FABC4E)
 - Padding: 1.2rem
 - Título em `--warning`
-- Preço em `--neon` com data ao lado em `--text-muted`
+- Preço em `--success` (ciano) com data ao lado em `--text-muted`
 
 ### Preço (contextual em artigos)
 
-Sempre exibir o preço em `--neon`, bold, com a data ao lado em `--text-muted` (ex: "R\$ 2.499 — Atualizado em 02/07/2026").
+Sempre exibir o preço em `--success` (ciano), bold, com a data ao lado em `--text-muted` (ex: "R\$ 2.499 — Atualizado em 02/07/2026").
 **Nunca** exibir preços na Home Page ou em vitrines isoladas — apenas dentro de artigos onde o produto é contextualmente relevante.
 
 ### Sidebar (Editorial)
@@ -337,14 +345,14 @@ Sempre exibir o preço em `--neon`, bold, com a data ao lado em `--text-muted` (
 
 - Header: bg `--bg-elevated`, uppercase, label-mono
 - Células: border-bottom 1px `--border`
-- Hover na linha: bg `--purple-dim`
+- Hover na linha: bg `--accent-dim`
 
 ### Header
 
 - Sticky no topo
 - Glassmorphism: `--bg-glass` + backdrop-filter blur(16px)
 - Border-bottom: 1px `--border`
-- Logo com brilho suave roxo atrás
+- Logo com altura/posição configuráveis (`--logo-height`, `--logo-offset`)
 - Dropdown: `--bg-elevated`, `--transition-slow` (0.35s)
 - Links com underline animado no hover
 - **NÃO** incluir botão de Login, Entrar, Perfil ou avatar de usuário
@@ -352,31 +360,29 @@ Sempre exibir o preço em `--neon`, bold, com a data ao lado em `--text-muted` (
 
 ### Footer
 
-- Background: `--bg-secondary` (#020203)
-- Grid de 4 colunas (1.5fr 1fr 1fr 1fr)
-- Links em `--text-muted`, hover `--purple`
+- Background: `--bg-secondary`
+- Grid de 4 colunas (descrição + institucional + redes)
+- Links em `--text-muted`, hover `--success` (ciano)
+- Ícones sociais via Material Symbols
 
 ### Hero (Artigo em Destaque)
 
-- Halo roxo elétrico atrás como iluminação ambiente (`--purple-halo`)
-- Gradiente sutil com toque neon nas bordas
+- Imagem de fundo com gradiente de baixo (`from-background`)
 - **Artigo principal em destaque** — não produtos
-- Título do artigo em H1 com gradiente roxo→neon (opcional)
-- Categoria, autor e data do artigo
-- Call-to-action: "Ler matéria completa" em verde neon
-- Glow verde neon no CTA principal (`--neon-halo`)
+- Título do artigo em H1 `display-lg`
+- Categoria em badge roxo, metadata (tempo relativo + autor)
+- Call-to-action: "Ler matéria" (tema antigo) → hoje o hero inteiro é o link
+- Cor de hover do título: roxo
 
 ## 12. Glow & Sombras
 
 | Token | Valor |
 |-------|-------|
-| `--shadow-sm` | 0 1px 3px rgba(0,0,0,0.5) |
-| `--shadow` | 0 4px 12px rgba(0,0,0,0.6) |
-| `--shadow-lg` | 0 8px 32px rgba(0,0,0,0.75) |
-| `--purple-glow` | 0 0 30px rgba(168,85,247,0.35) |
-| `--neon-glow` | 0 0 25px rgba(57,255,20,0.3) |
-| `--purple-halo` | 0 0 80px rgba(168,85,247,0.25) |
-| `--neon-halo` | 0 0 60px rgba(57,255,20,0.2) |
+| `--shadow-sm` | 0 1px 3px rgba(0,0,0,0.4) |
+| `--shadow` | 0 4px 12px rgba(0,0,0,0.5) |
+| `--shadow-lg` | 0 8px 32px rgba(0,0,0,0.6) |
+| `--accent-glow` | 0 0 20px rgba(168,85,247,0.22) |
+| `--success-dim` | 0 0 20px rgba(6,182,212,0.4) (hover de CTAs ciano) |
 
 ## 13. Responsivo
 
@@ -386,7 +392,7 @@ Sempre exibir o preço em `--neon`, bold, com a data ao lado em `--text-muted` (
 | <=768px | Grid-3/2/4 viram 1 coluna, H1 1.75rem, H2 1.35rem |
 | <=480px | H1 1.5rem, content-width 100% |
 
-Caso o dispositivo seja mais lento ou o usuário prefira `prefers-reduced-motion`, simplificar ou desativar efeitos (cursor magnetico, particulas, parallax) automaticamente. A experiência continua excelente em celulares.
+Caso o dispositivo seja mais lento ou o usuário prefira `prefers-reduced-motion`, simplificar ou desativar animações automaticamente. A experiência continua excelente em celulares.
 
 ## 14. Performance
 
@@ -406,13 +412,13 @@ Caso o dispositivo seja mais lento ou o usuário prefira `prefers-reduced-motion
 
 | Arquivo | O que contém |
 |---------|--------------|
-| `src/styles/global.css` | Variáveis CSS, texturas, estilos globais, cursor effect |
-| `src/styles/effects.css` | Cursor magnético, partículas, background layers, carbon fiber CSS |
-| `src/layouts/Layout.astro` | Meta tags, theme-color (#050505 dark / #F5F5F7 light), injeção do fundo (blog-config.json), Google Fonts |
-| `src/components/Header.astro` | Header glassmorphism + underline animado + ThemeToggle |
-| `src/components/Footer.astro` | Footer escuro com grid |
-| `src/components/ArticleCard.astro` | Card com hover elevado + borda roxa |
-| `src/components/HeroSection.astro` | Hero com halo roxo + gradiente neon |
-| `src/components/Sidebar.astro` | Sidebar editorial (categorias, artigos populares) |
-| `src/components/CursorEffect.astro` | Efeito magnético do cursor |
-| `src/pages/blog/[...slug].astro` | Template de artigo |
+| `src/styles/global.css` | Variáveis CSS (paleta dark/light), estilos globais, tipografia Geist |
+| `src/styles/effects.css` | Glass nav, scrollbar, affiliate-box |
+| `src/layouts/Layout.astro` | Meta tags, theme-color (#050505 dark / #F8F9FA light), injeção do fundo (blog-config.json), Google Fonts (Geist + Material Symbols), themeCss por tema |
+| `src/components/Header.astro` | Header glass `bg-surface/80` + logo "PROMO GAMER" + ThemeToggle (Material Symbols) |
+| `src/components/Footer.astro` | Footer em grid 4 colunas com redes (Material Symbols) |
+| `src/components/ArticleCard.astro` | Card com imagem 16:9, badge por categoria, hover ciano |
+| `src/components/HeroSection.astro` | Hero `h-[400px]/sm:h-[500px]` com gradiente e metadata |
+| `src/components/Sidebar.astro` | Sidebar editorial (Populares, Categorias chips, Newsletter + banner Telegram) |
+| `src/components/TableOfContents.astro` | TOC "Nesta Análise" com borda ciano e subtópicos recolhíveis |
+| `src/pages/blog/[...slug].astro` | Template de artigo (hero full-bleed, TOC, lightbox, barra de progresso) |

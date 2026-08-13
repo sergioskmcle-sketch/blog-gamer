@@ -4,6 +4,44 @@
 
 ---
 
+## Sessão 10 — 2026-08-13
+
+**Redesign Stitch v3 (Geist + roxo/ciano + Material Symbols) e blindagem do painel admin**
+
+### Visual (`src/`)
+- **Paleta nova** em `global.css` (dark + light) e `tailwind.config.mjs`: roxo `#A855F7` + ciano `#06B6D4`
+  (dark) / `#8127CF` + `#00687A` (light), substituindo o roxo + verde neon `#2ff801`.
+- **Fonte Geist** + ícones **Material Symbols** no `Layout.astro` (fim das fontes Inter/Public
+  Sans/Orbitron e dos SVGs inline).
+- **Header** glass `bg-surface/80` com logo + "PROMO GAMER"; **Hero** `h-[400px]/sm:h-[500px]` com
+  gradiente e metadata; **cards** com imagem 16:9 e badge colorido por categoria; **sidebar** com
+  "Populares da Semana", chips de categorias e newsletter; **footer** em grid 4 colunas.
+- **Artigo**: hero full-bleed, TOC "Nesta Análise" com borda ciano, barra de progresso de leitura
+  e corpo (product cards, tabela, FAQ, lightbox) preservados.
+- Verde `#2ff801` removido das páginas de ofertas e 404 (usam `var(--success)` / ciano).
+- Tudo via CSS variables — dark e light funcionam de verdade.
+
+### Admin (`public/admin/`)
+- **Incidente global.css zerado:** upload de fundo embutia data-URI base64 de **4,8 MB** no
+  `global.css`; GitHub API não retorna `content` para >1 MB e o `injectThemeVars` gravava o arquivo
+  **vazio**. Correções: fundo agora é enviado para **`public/images/backgrounds/`** (máx. 4 MB),
+  `injectThemeVars` aborta se `global.css` vazio/sem `@tailwind`, `getFile` baixa arquivos grandes
+  via `download_url`.
+- **Incidente logo não salvava:** `getFile()` (decodifica binário) quebrava com webp ("URI
+  malformed") ao buscar o SHA da logo. Criado **`getFileMeta()`** (só `sha`/`name`); logo e fundo
+  o usam. `putFileRaw` ganhou retry em conflito 409.
+- **`layoutSaveTheme`** com `try/catch` separados (CSS e logo salvam de forma independente);
+  **`generateThemeCSS`** por tema (light não herda o fundo escuro); **`Layout.astro`** themeCss por
+  tema (dark `#050505` / light limpo).
+
+### Verificação
+- `npm test` → **443 asserts OK**; `npm run build` → **166 páginas**; sintaxe do JS do admin
+  validada; site e admin publicados verificados (CSS compartilhado `_page_*` com o tema novo).
+- Commits: `87735fe` (redesign), `8922fbf` (restaura global.css), `ad3ef6b` (blindagem admin),
+  `321a1b7` (getFileMeta/logo).
+
+---
+
 ## Sessão 9 — 2026-08-13
 
 **Regeneração do "Melhores Jogos para PC em 2026" + estrutura de lista (TOC/imagens) + grounding por Google**

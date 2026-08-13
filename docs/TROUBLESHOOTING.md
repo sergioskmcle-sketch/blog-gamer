@@ -1,5 +1,48 @@
 # Troubleshooting
 
+## 13/08/2026 — `global.css` zerado pelo upload de fundo no admin
+
+**Sintoma:** após salvar um fundo (imagem de fundo) na aba Layout do `/admin/`, o site perde o
+estilo e/ou o `src/styles/global.css` fica **vazio (0 bytes)** no repositório.
+
+**Causa raiz:** o admin embutia a imagem de fundo como **data-URI base64 de ~4,8 MB** diretamente
+no `global.css` (`--body-bg-image: url('data:image/png;base64,...')`). O GitHub API **não retorna
+`content` para arquivos >1 MB** (devolve só `download_url`). No save seguinte, o `getFile` recebia
+conteúdo vazio, o `injectThemeVars` retornava o vazio e o `putFile` **zerava o arquivo inteiro** —
+derrubando o Tailwind e o tema do site no próximo deploy.
+
+**Correções aplicadas (13/08/2026):**
+- Upload de fundo agora envia a imagem para **`public/images/backgrounds/`** (máx. 4 MB, comprimida
+  para 1920px) e grava apenas a URL: `--body-bg-image: url('/images/backgrounds/<nome>')`.
+- `injectThemeVars` **aborta** (retorna `null` + toast de erro) se o `global.css` vier vazio ou sem
+  `@tailwind` — nunca grava arquivo vazio.
+- `getFile` robusto: se `content` estiver nulo mas houver `download_url`, baixa o arquivo; se não
+  houver conteúdo nenhum, lança erro claro em vez de retornar vazio.
+
+**Prevenção:** ao salvar o tema, verificar o toast de erro. O admin nunca deve produzir um
+`global.css` sem `@tailwind base; @tailwind components; @tailwind utilities;`.
+
+---
+
+## 13/08/2026 — Logo não salva no admin ("URI malformed")
+
+**Sintoma:** ao fazer upload de uma nova logo na aba Layout do `/admin/` e clicar em "Salvar Tema",
+a logo nova não aparece no site publicado (nenhum commit `cms: update logo` é criado).
+
+**Causa raiz:** `saveLogoToRepo` chamava `getFile('public/images/logo-blog.webp')` apenas para obter
+o **SHA** do arquivo existente, mas o `getFile` também **decodifica o conteúdo**. O webp é binário e
+o `decodeB64` (`decodeURIComponent(escape(atob(...)))`) lança **`URIError: URI malformed`** em bytes
+não-UTF8 — o save da logo falhava silenciosamente.
+
+**Correção aplicada (13/08/2026):** criada a função **`getFileMeta(path)`** que retorna só
+`{ sha, name }` **sem decodificar o conteúdo**. `saveLogoToRepo` (logo) e `handleBgUpload` (fundo)
+passaram a usá-la. `putFileRaw` ganhou retry automático em conflito 409.
+
+**Prevenção:** para imagens (logo, fundo, capas), sempre usar `getFileMeta` para obter o SHA — nunca
+`getFile` (que decodifica binário e quebra).
+
+---
+
 ## ⛔ Sessão do ML cai com 401 / Frente 1 para de postar
 
 **Sintoma:** `generate_affiliate_link` devolve a própria URL do produto em vez de `meli.la`;

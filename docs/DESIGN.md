@@ -2,146 +2,151 @@
 name: Promo Gamer
 colors:
   bg-primary: "#050505"
-  bg-secondary: "#020203"
-  bg-card: "#0A0A0F"
-  bg-elevated: "#12121C"
-  bg-glass: "rgba(5, 5, 5, 0.88)"
+  bg-secondary: "#0a0a0a"
+  bg-card: "#111111"
+  bg-elevated: "#1a1a1a"
+  bg-glass: "rgba(10, 10, 10, 0.8)"
   purple: "#A855F7"
   purple-hover: "#9333EA"
-  purple-dim: "rgba(168, 85, 247, 0.12)"
-  purple-glow: "rgba(168, 85, 247, 0.35)"
-  neon: "#39FF14"
-  neon-hover: "#2ED90E"
-  neon-dim: "rgba(57, 255, 20, 0.1)"
-  neon-glow: "rgba(57, 255, 20, 0.3)"
-  warning: "#F97316"
+  purple-dim: "rgba(168, 85, 247, 0.14)"
+  purple-glow: "rgba(168, 85, 247, 0.25)"
+  cyan: "#06B6D4"
+  cyan-hover: "#0E7490"
+  cyan-dim: "rgba(6, 182, 212, 0.12)"
+  warning: "#FABC4E"
   yellow: "#FACC15"
-  danger: "#EF4444"
+  danger: "#FFB4AB"
   text-primary: "#FFFFFF"
-  text-secondary: "#D1D5E0"
-  text-muted: "#8088A0"
-  border: "#1C1C2E"
-  border-hover: "#3D3D60"
-  surface: "#0A0A0F"
+  text-secondary: "#CFC2D6"
+  text-muted: "#A1A1AA"
+  border: "#1F1F1F"
+  border-hover: "#333333"
+  surface: "#0a0a0a"
   on-surface: "#FFFFFF"
-  on-surface-variant: "#D1D5E0"
-  outline: "#1C1C2E"
+  on-surface-variant: "#CFC2D6"
+  outline: "#333333"
   surface-dim: "#050505"
-  surface-bright: "#1E1E2A"
-  surface-container-lowest: "#020203"
-  surface-container-low: "#0A0A0F"
-  surface-container: "#0E0E16"
-  surface-container-high: "#161622"
-  surface-container-highest: "#1E1E2A"
-  inverse-surface: "#E8E8F0"
-  inverse-on-surface: "#1A1A24"
-  outline-variant: "#2A2A3E"
+  surface-bright: "#1a1a1a"
+  surface-container-lowest: "#0a0a0a"
+  surface-container-low: "#111111"
+  surface-container: "#111111"
+  surface-container-high: "#1a1a1a"
+  surface-container-highest: "#222222"
+  inverse-surface: "#E5E2E1"
+  inverse-on-surface: "#313030"
+  outline-variant: "#1F1F1F"
   surface-tint: "#A855F7"
-  primary: "#C084FC"
-  on-primary: "#1A0040"
+  primary: "#A855F7"
+  on-primary: "#ffffff"
   primary-container: "#A855F7"
-  on-primary-container: "#F5F0FF"
+  on-primary-container: "#ffffff"
   inverse-primary: "#9333EA"
-  secondary: "#39FF14"
-  on-secondary: "#003300"
-  secondary-container: "#39FF14"
-  on-secondary-container: "#002800"
-  tertiary: "#F97316"
-  on-tertiary: "#3A1500"
-  error: "#EF4444"
-  on-error: "#3A0000"
-  error-container: "#8B0000"
-  on-error-container: "#FFDADA"
+  secondary: "#06B6D4"
+  on-secondary: "#003640"
+  secondary-container: "#06B6D4"
+  on-secondary-container: "#00424E"
+  tertiary: "#FABC4E"
+  on-tertiary: "#432C00"
+  error: "#FFB4AB"
+  on-error: "#690005"
+  error-container: "#93000A"
+  on-error-container: "#FFDAD6"
   background: "#050505"
-  on-background: "#E8E8F0"
-  surface-variant: "#161622"
+  on-background: "#E5E2E1"
+  surface-variant: "#353534"
 typography:
   h1:
-    fontFamily: Inter
+    fontFamily: Geist
     fontSize: 2.5rem
-    fontWeight: "800"
+    fontWeight: "700"
     letterSpacing: "-0.02em"
     lineHeight: 1.2
   h2:
-    fontFamily: Inter
+    fontFamily: Geist
     fontSize: 1.75rem
-    fontWeight: "700"
+    fontWeight: "600"
     letterSpacing: "-0.01em"
     lineHeight: 1.3
   h3:
-    fontFamily: Inter
+    fontFamily: Geist
     fontSize: 1.35rem
     fontWeight: "600"
     lineHeight: 1.4
   h4:
-    fontFamily: Inter
+    fontFamily: Geist
     fontSize: 1.15rem
     fontWeight: "600"
     lineHeight: 1.4
   body:
-    fontFamily: Inter
+    fontFamily: Geist
     fontSize: 1rem
     fontWeight: "400"
     lineHeight: 1.7
-  body-sm:
-    fontFamily: Inter
-    fontSize: 0.875rem
+  body-md:
+    fontFamily: Geist
+    fontSize: 1rem
     fontWeight: "400"
     lineHeight: 1.6
-  code:
-    fontFamily: JetBrains Mono
-    fontSize: 0.875rem
+  display-lg:
+    fontFamily: Geist
+    fontSize: 3rem
+    fontWeight: "700"
+    letterSpacing: "-0.04em"
+    lineHeight: 1.1
+  headline-lg:
+    fontFamily: Geist
+    fontSize: 2rem
+    fontWeight: "600"
+    letterSpacing: "-0.02em"
+    lineHeight: 1.2
+  headline-md:
+    fontFamily: Geist
+    fontSize: 1.5rem
+    fontWeight: "600"
+    lineHeight: 1.3
+  body-lg:
+    fontFamily: Geist
+    fontSize: 1.125rem
     fontWeight: "400"
     lineHeight: 1.6
-  label:
-    fontFamily: JetBrains Mono
-    fontSize: 0.75rem
+  label-md:
+    fontFamily: Geist
+    fontSize: 0.875rem
     fontWeight: "500"
-    lineHeight: 1.5
-    letterSpacing: "0.05em"
+    letterSpacing: "0.02em"
+    lineHeight: 1.2
   price:
-    fontFamily: Inter
+    fontFamily: Geist
     fontSize: 1.25rem
     fontWeight: "700"
     lineHeight: 1.4
-  h1-mobile:
-    fontFamily: Inter
-    fontSize: 1.75rem
-    fontWeight: "800"
-    letterSpacing: "-0.02em"
-    lineHeight: 1.2
-  h2-mobile:
-    fontFamily: Inter
-    fontSize: 1.35rem
-    fontWeight: "700"
-    letterSpacing: "-0.01em"
-    lineHeight: 1.3
 rounded:
   sm: 6px
   md: 10px
-  lg: 14px
-  xl: 20px
+  lg: 12px
+  xl: 16px
   pill: 9999px
   DEFAULT: 0.5rem
   full: 9999px
 spacing:
-  xs: 8px
+  xs: 4px
+  base: 8px
   sm: 12px
-  md: 16px
-  lg: 24px
-  xl: 32px
+  md: 24px
+  lg: 48px
+  xl: 80px
   xxl: 48px
   gutter: 24px
   margin-mobile: 16px
-  margin-desktop: 32px
-  max-content-width: 720px
+  margin-desktop: 40px
+  max-content-width: 960px
 ---
 
 ## Brand & Style
 
 **Promo Gamer** is a **premium gaming content portal** — a professional editorial platform focused on news, articles, reviews, guides, tutorials, hardware, games, eSports, and tech analysis. The brand communicates technology, innovation, and high performance — evoking supercars, premium PC builds, and elite gaming setups.
 
-The visual style is **Dark Premium RGB** — true Black Piano (`#050505`) as the canvas, with a vibrant dual-accent system: **Electric Purple (`#A855F7`)** for technology and brand identity, **Lime Neon Green (`#39FF14`)** for actions and important destinations. Colors are intense and energetic — no pastel, washed, or grayish tones.
+The visual style is **Dark Premium RGB** — true Black Piano (`#050505`) as the canvas, with a vibrant dual-accent system: **Electric Purple (`#A855F7`)** for technology and brand identity, **Cyan (`#06B6D4`)** for actions and important destinations (replaced the old lime neon green `#39FF14` in the Stitch v3 redesign). Typography is **Geist**, icons are **Material Symbols Outlined**. Colors are intense and energetic — no pastel, washed, or grayish tones.
 
 **IMPORTANT:** This is a BLOG / CONTENT PORTAL, NOT a store, marketplace, or product showcase. Products appear ONLY contextually within articles (e.g., "Best Gaming Headsets", "Gaming Setup Guide"). Editorial content is the protagonist. The experience should feel like IGN, PC Gamer, Adrenaline, or Eurogamer — not an e-commerce site.
 
@@ -166,23 +171,23 @@ O blog tem **dois temas**: **dark** (padrão, "Black Piano RGB") e **light** (pa
 
 ```
 Cores:
-  --bg-primary        fundo da página (dark #050505 / light #FFFFFF)
-  --bg-secondary      fundo alternativo (#020203 / #F5F5F7)
-  --bg-card           fundo de cards (#0A0A0F / #FFFFFF)
-  --bg-elevated       fundo elevado (dropdowns, modais) (#12121D / #F0F0F4)
-  --bg-glass          header/modal glass (rgba 0.88 / rgba 255,255,255,0.86)
-  --accent            principal (roxo) #A855F7 / #7C3AED
-  --accent-hover      #9333EA / #6D28D9
-  --accent-dim        fundo suave do principal rgba(...0.08 / 0.10)
+  --bg-primary        fundo da página (dark #050505 / light #F8F9FA)
+  --bg-secondary      fundo alternativo (#0a0a0a / #FFFFFF)
+  --bg-card           fundo de cards (#111111 / #EDEEEF)
+  --bg-elevated       fundo elevado (dropdowns, modais) (#1a1a1a / #E7E8E9)
+  --bg-glass          header/modal glass (rgba 0.8 / rgba 255,255,255,0.8)
+  --accent            principal (roxo) #A855F7 / #8127CF
+  --accent-hover      #9333EA / #9C48EA
+  --accent-dim        fundo suave do principal rgba(...0.14 / 0.10)
   --accent-glow       brilho do principal rgba(...0.25 / 0.18)
-  --success           destaque (verde) #2ff801 / #15803D
-  --warning           #F97316 / #C2410C
-  --danger            #EF4444 / #DC2626
-  --text-primary      #efecfb / #16161D
-  --text-secondary    #aca9b7 / #4A4A57
-  --text-muted        #757481 / #77777F
-  --border            #1C1C2E / #E2E2EA
-  --border-hover      #3D3D60 / #C4C4D0
+  --success           destaque (ciano) #06B6D4 / #00687A
+  --warning           #FABC4E / #825100
+  --danger            #FFB4AB / #BA1A1A
+  --text-primary      #FFFFFF / #09090B
+  --text-secondary    #CFC2D6 / #4D4354
+  --text-muted        #A1A1AA / #A1A1AA
+  --border            #1F1F1F / #CFC2D6
+  --border-hover      #333333 / #7E7385
   --on-accent         texto sobre o principal (#fff nos dois)
   --selection-bg      / --selection-color
   --hex-overlay-color / --hex-overlay-opacity  (overlay de hexágonos)
@@ -200,7 +205,7 @@ Layout / tipografia:
   --nav-height  --logo-height  --logo-offset  --content-top
   --main-cols  --sidebar-cols  --max-width  --content-width
   --radius-sm / --radius / --radius-lg / --radius-xl
-  --font-sans  --font-mono  --font-label
+  --font-sans  --font-mono  --font-label  (Geist / JetBrains Mono / Geist)
   --transition / --transition-slow
 ```
 
@@ -213,9 +218,9 @@ Layout / tipografia:
 
 ## Background & Texture
 
-The background uses a **CSS-only** layered depth system — no external images — creating a **premium Black Piano carbon fiber** finish (supercar-grade, not a simple repeating pattern).
+The background uses a **CSS-only** layered depth system — no external images — creating a **premium Black Piano carbon fiber** finish (supercar-grade, not a simple repeating pattern). O fundo é configurável pelo admin (preset/cor/imagem); o padrão atual é **cor sólida** `#050505` (dark) / `#F8F9FA` (light).
 
-### Background Layers
+### Background Layers (preset carbono-roxo)
 
 ```
 Layer 1: #050505 — True Black Piano base (deep glossy black)
@@ -225,7 +230,7 @@ Layer 4: Glossy effect with brightness variations (radial-gradient randomized po
 Layer 5: High-resolution noise/granulation (CSS gradient + pseudo-element, ~2% opacity)
 Layer 6: Soft diagonal reflections (linear-gradient 135/315 degrees, ~3% opacity)
 Layer 7: Electric purple radial glow from center (~5% opacity, 600px blur)
-Layer 8: Lime neon green glow in strategic regions (hero, CTA areas)
+Layer 8: Cyan glow in strategic regions (hero, CTA areas)
 Layer 9: Minute blurred floating particles at very low opacity (~1.5%), drifting slowly
 ```
 
@@ -261,52 +266,52 @@ The texture must feel like **real material** — never like a repetitive pattern
 
 ## Colors
 
-Vibrant, intense colors — no pastel, washed, or grayish tones. The dual-accent palette is built around an electric RGB identity:
+Vibrant, intense colors — no pastel, washed, or grayish tones. The dual-accent palette is built around an electric RGB identity (Stitch v3):
 
-- **Electric Purple (`#A855F7`):** The primary brand color. Used for links, category badges, hover states, secondary buttons, and tech-identity elements. Communicates innovation and premium technology. More intense and alive than before.
-- **Lime Neon Green (`#39FF14`):** The action color. Used for CTAs, prices, "buy" buttons, affiliate highlights, and important metrics. A true neon green that immediately commands attention.
-- **Warning Orange (`#F97316`):** Reserved for affiliate disclosure boxes and special callouts.
-- **Surface Strategy:** True Black Piano `#050505` background, with cards stepping up through `#0A0A0F` and `#12121C`. Borders use `#1C1C2E`.
+- **Electric Purple (`#A855F7` dark / `#8127CF` light):** The primary brand color. Used for links, category badges, hover states, secondary buttons, and tech-identity elements. Communicates innovation and premium technology.
+- **Cyan (`#06B6D4` dark / `#00687A` light):** The action color (replaced the old lime neon green `#39FF14`). Used for CTAs, prices, "buy" buttons, affiliate highlights, and important metrics.
+- **Warning Amber (`#FABC4E`):** Reserved for affiliate disclosure boxes and special callouts.
+- **Surface Strategy:** True Black Piano `#050505` background (dark) / `#F8F9FA` (light), with cards stepping up through `#111111` and `#1a1a1a`. Borders use `#1F1F1F`.
 
 ### RGB Identity
 - **Purple** = Technology & brand
-- **Neon Green** = Actions & prices
-- **White** = Balance & readability
+- **Cyan** = Actions & prices
+- **White/Black** = Balance & readability
 
 ## Typography
 
-**Inter** remains the primary typeface for its exceptional legibility and neutral modern character. **JetBrains Mono** is reserved for code, technical specs, and metadata labels.
+**Geist** is the primary typeface (100–900). Icons use **Material Symbols Outlined**.
 
-- **Headings (H1-H4):** High-contrast white (`#FFFFFF`). H1 may use a subtle purple-to-neon gradient effect. H2 uses purple to anchor section breaks.
-- **Body Text:** `#D1D5E0` for comfortable reading. Muted `#8088A0` for metadata.
-- **Prices:** Always in **Lime Neon Green** (`#39FF14`), bold weight (`price` typography), with the date displayed beside them in `#8088A0`. Example: "R$ 2.499 — Atualizado em 02/07/2026"
+- **Headings (H1-H4):** High-contrast `#FFFFFF` (dark) / `#09090B` (light). H1 may use `display-lg` (3rem) in the hero.
+- **Body Text:** `#CFC2D6` for comfortable reading. Muted `#A1A1AA` for metadata.
+- **Prices:** Always in **Cyan** (`--success`), bold weight (`price` typography), with the date displayed beside them in `--text-muted`. Example: "R$ 2.499 — Atualizado em 02/07/2026"
 - **Links:** Electric Purple (`#A855F7`) with animated underline expansion on hover.
 
 ## Layout & Spacing
 
-Content-First model with constrained readability. Max content width 720px for articles. 12-column responsive grid.
+Content-First model with constrained readability. Container 1200px, grid 12 colunas (conteúdo 8 / sidebar 4). Spacing tokens: `xs 4px, base 8px, sm 12px, md 24px, lg 48px, xl 80px`.
 
 ## Elevation & Depth
 
 Three levels of depth, with elevated elements appearing to float:
 
-- **Level 1 (Cards):** `#0A0A0F` background, `--shadow` (0 4px 12px rgba(0,0,0,0.6))
-- **Level 2 (Elevated):** `#12121C` background, `--shadow-lg` + purple glow (0 0 30px rgba(168,85,247,0.35))
-- **Level 3 (Hero/CTAs):** Strongest elevation with neon green glow accents (0 0 25px rgba(57,255,20,0.3))
+- **Level 1 (Cards):** `#111111` background, `--shadow` (0 4px 12px rgba(0,0,0,0.5))
+- **Level 2 (Elevated):** `#1a1a1a` background, `--shadow-lg` + purple glow (0 0 20px rgba(168,85,247,0.22))
+- **Level 3 (Hero/CTAs):** Strongest elevation with cyan glow accents (0 0 20px rgba(6,182,212,0.4) on hover)
 
 ## Glassmorphism
 
-Applied to sticky header, modals, and premium cards. Uses `rgba(5, 5, 5, 0.88)` with backdrop-filter blur(12-16px), thin light borders (`1px solid #1C1C2E`), and elegant shadowing.
+Applied to sticky header, modals, and premium cards. Uses `rgba(10, 10, 10, 0.8)` with backdrop-filter blur(16px), thin light borders (`1px solid #1F1F1F`), and elegant shadowing.
 
 ## Components
 
 ### Article Card
-- Background: `#0A0A0F`
-- Border: 1px solid `#1C1C2E`, hover shifts to `#3D3D60` with purple glow
-- Border-radius: 14px
-- Hover: translateY(-3px) with shadow-lg + purple glow (0 0 30px rgba(168,85,247,0.35))
+- Background: `#111111` (surface-container), hover `#1a1a1a` (surface-container-high)
+- Border: 1px solid `#1F1F1F`, hover `border-secondary/50` + cyan glow
+- Border-radius: 12px (`rounded-xl`)
+- Imagem: ratio 16:9 (`pt-[56.25%]`), badge colorido por categoria no topo
 - Transition: 0.25s ease
-- Cursor proximity: subtle purple glow when cursor approaches
+- Título e descrição `line-clamp`, data com ícone calendar
 
 ### Primary Button (Tech)
 - Background: `#A855F7` (electric purple)
@@ -315,72 +320,72 @@ Applied to sticky header, modals, and premium cards. Uses `rgba(5, 5, 5, 0.88)` 
 - Padding: 0.7rem 1.6rem
 - Border-radius: 8px
 - Font: 600 weight
-- Cursor proximity: gentle green glow when cursor approaches
 
 ### Primary Button (Action - CTA)
-- Background: `#39FF14` (lime neon green)
-- Hover: `#2ED90E` with neon glow
-- Scale on hover: 1.03
-- Used for: "Ver Preço", "Comprar", "Melhor Oferta"
-- Cursor proximity: intensified green glow when cursor approaches
+- Background: `#06B6D4` (cyan)
+- Hover: glow ciano (0 0 20px rgba(6,182,212,0.4))
+- Scale on hover: 1.02 / 1.03
+- Used for: "Ver Preço", "Comprar", "Melhor Oferta", "Entrar no Grupo"
+- Font: `label-md`, uppercase, bold
 
 ### Tag / Category Badge
-- Pill shape (border-radius: 20px)
-- Purple variant: bg `rgba(168,85,247,0.12)`, border `1px solid rgba(168,85,247,0.3)`, purple text
-- Neon variant: bg `rgba(57,255,20,0.1)`, border `1px solid rgba(57,255,20,0.3)`, neon text
+- Pill shape (border-radius: 9999px)
+- Purple variant: bg `--accent-dim`, border `1px solid --accent`, purple text
+- Cyan variant: bg `--success-dim`, border `1px solid --success`, cyan text
+- Badge de card por categoria: review → roxo, notícia → neutro, guia → ciano, promoções → vermelho
 - Uppercase category labels
 
 ### Affiliate Box (contextual within articles only)
 - Used **only within articles** when a product recommendation is relevant
-- Background: gradient from `#0A0A0F` to `rgba(249,115,22,0.05)`
-- Border-left: 3px solid `#F97316` (orange)
-- Price in lime neon green with date next to it in muted gray
+- Background: gradient from `#111111` to `rgba(250,188,78,0.05)`
+- Border-left: 3px solid `--warning` (#FABC4E)
+- Price in cyan with date next to it in muted gray
 
 ### Price Display (contextual within articles only)
-- Always rendered in **Lime Neon Green** (`#39FF14`)
+- Always rendered in **Cyan** (`--success`)
 - Bold weight, larger size than surrounding text
 - Date appended beside price: "R$ 2.499 — Atualizado em DD/MM/AAAA"
-- Date in `#8088A0` (text-muted), normal weight, smaller size
+- Date in `--text-muted`, normal weight, smaller size
 - **NEVER** display prices on Home Page or in isolated showcases
 
 ### Table
-- Header: `#12121C` background, uppercase, label-mono typography
-- Rows: alternating from `#0A0A0F`, `#1C1C2E` dividers
-- Hover: `rgba(168,85,247,0.12)` background
+- Header: `#1a1a1a` background, uppercase, mono typography
+- Rows: alternating from `#111111`, `#1F1F1F` dividers
+- Hover: `--accent-dim` background
 
 ### Header (Sticky)
-- Glassmorphism: `rgba(5,5,5,0.88)` with backdrop-filter blur(16px)
-- Border-bottom: 1px solid `#1C1C2E`
-- Logo glow: subtle electric purple halo behind logo
-- Nav links: animated underline (expands left to right on hover)
-- Dropdown: `#12121C` background, 0.4s ease transition
+- Glassmorphism: `rgba(10,10,10,0.8)` with backdrop-filter blur(16px)
+- Border-bottom: 1px solid `#1F1F1F`
+- Logo + "PROMO GAMER" (altura/posição configuráveis via `--logo-height`/`--logo-offset`)
+- Nav links: uppercase, hover roxo
+- Botões redondos (busca, tema, menu) com Material Symbols
 - **NO** login button, profile button, avatar, or authentication references
 
 ### Footer
-- Background: `#020203`
-- Grid: 4 columns (1.5fr 1fr 1fr 1fr)
-- Links: `#8088A0`, hover to `#A855F7`
+- Background: `#0a0a0a` (surface-container-lowest)
+- Grid: 4 colunas (descrição + institucional + redes)
+- Links: `--text-muted`, hover cyan
+- Ícones sociais via Material Symbols
 
 ### Hero (Featured Article)
-- Ambient electric purple halo glow behind the heading (0 0 80px rgba(168,85,247,0.25))
-- Subtle neon green accent at CTA edges (0 0 60px rgba(57,255,20,0.2))
+- Imagem de fundo com gradiente de baixo (`from-background via-background/60`)
+- Altura `h-[400px] sm:h-[500px]`, zoom suave no hover
 - **Featured editorial article** — NOT products
-- Article title in H1 with optional purple→neon gradient on large screens
-- Article category, author, and date metadata
-- CTA: "Read full article" in neon green
-- Focus on editorial content, not commerce
+- Título em `display-lg`, hover roxo
+- Badge de categoria roxo + metadata (tempo relativo + autor)
+- Hero inteiro é o link (sem botão separado)
 
 ### Sidebar (Editorial — Home Page)
-- **Popular / Most Read articles**: vertical list with title and date
-- **Categories**: links to blog categories (Hardware, Games, eSports, Reviews)
-- **Recent releases**: gaming industry news
-- **Newsletter signup** (optional)
+- **Popular / Most Read articles**: lista numerada (1–4) com título e categoria
+- **Categorias**: chips clicáveis
+- **Newsletter**: card com input + botão "Assinar"
+- Banner do Telegram (9:16) preservado
 - **NO** products, prices, or commercial showcases on Home Page sidebar
 - Products appear **only within article pages** when contextually relevant
 
 ### Home Page Sections (Editorial Only)
-1. **Hero (Featured Article)**: Large image, title, category, "Read full article" CTA
-2. **Latest News / Recent Articles**: Card grid (3 columns desktop)
+1. **Hero (Featured Article)**: Large image, title, category, metadata
+2. **Últimas Atualizações**: card grid (2 colunas desktop)
 3. **Reviews & Analysis**: Featured section for hardware and game reviews
 4. **Categories**: Visual category navigation (Hardware, Games, eSports, etc.)
 5. **Most Read Articles**: Sidebar list
@@ -397,38 +402,11 @@ Applied to sticky header, modals, and premium cards. Uses `rgba(5, 5, 5, 0.88)` 
 All interactive components respond to the user:
 
 - **Cards:** Elevate 3px + shadow + purple glow + illuminated border. Cursor proximity triggers subtle purple glow on card edges.
-- **Buttons:** Scale 1.03 + glow + smooth 0.25s transition. Cursor proximity triggers green glow.
-- **Images:** Subtle zoom (1.02) on hover + subtle reflection following cursor.
+- **Buttons:** Scale 1.03 + glow + smooth 0.25s transition.
+- **Images:** Subtle zoom (1.02-1.1) on hover.
 - **Links:** Gradual color transition + animated underline.
 
 Transitions use `0.25s ease` by default, `0.4s ease` for reveals. GPU-accelerated properties only (transform, opacity).
-
-## Cursor Magnetic Effect (Stitch-inspired)
-
-A sophisticated magnetic cursor effect. When the cursor moves across the page:
-
-### Magnetic Wave
-- A **smooth magnetic wave** follows cursor movement
-- The wave **subtly deforms background illumination**
-- Creates a sensation of **energy propagating** like a magnetic field
-- Carbon fiber texture gains **localized gentle brightness** near cursor
-- **Dispersed particles** drift subtly toward cursor direction
-- A **very soft luminous halo** (~80px radius, 8-12% opacity) surrounds cursor
-
-### Component Interaction
-- **Cards** near cursor: edge receives **subtle purple illumination**, shadow tilts toward cursor
-- **Buttons** near cursor: green glow **intensifies discreetly**, small green particles drift toward button
-- **Images** near cursor: **small reflection** follows cursor position, brightness varies subtly
-
-### Behavior
-- Intensity responds to mouse **speed** (faster = stronger)
-- **Fades out gradually** when cursor stops
-- Extremely **smooth and sophisticated** — never exaggerated
-- Never hinders readability
-- Always rendered **below content layer**
-- GPU accelerated (transform, opacity, will-change)
-- Implemented via JS mouse position detection + CSS visual effects
-- Respects `prefers-reduced-motion`
 
 ## Responsive & Performance
 
@@ -440,6 +418,6 @@ All effects use GPU acceleration. 60 FPS target. Respects `prefers-reduced-motio
 
 ## Key Differentiator
 
-This is a **premium gaming content portal**, not a store. Products appear **only within articles** when contextually relevant (e.g., "Best Gaming Headsets", "SSD Comparison", "Gaming Notebook Review"). When prices are displayed within articles, they must show the **date** beside them in muted text. Example: "[Product Name] — R$ 2.499 — Atualizado em 02/07/2026". The price is always in **Neon Green** bold, the date in **text-muted** normal weight.
+This is a **premium gaming content portal**, not a store. Products appear **only within articles** when contextually relevant (e.g., "Best Gaming Headsets", "SSD Comparison", "Gaming Notebook Review"). When prices are displayed within articles, they must show the **date** beside them in muted text. Example: "[Product Name] — R$ 2.499 — Atualizado em 02/07/2026". The price is always in **Cyan** (`--success`) bold, the date in **text-muted** normal weight.
 
 The Home Page is **purely editorial**: featured article, latest news, reviews, categories, popular articles. No product showcases, no prices, no commercial vitrines.

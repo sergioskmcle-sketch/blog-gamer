@@ -48,6 +48,7 @@ blog-gamer/
 │   │   ├── editor.js
 │   │   └── marked.min.js
 │   ├── images/produtos/               # Imagens baixadas localmente
+│   ├── images/backgrounds/            # Fundos enviados pelo admin (upload na aba Aparência/Layout)
 │   └── CNAME                          # promogamer.com.br
 │
 ├── skills/                            # Skills do opencode/agentes
@@ -95,6 +96,27 @@ está **fora de uso** (token do GitHub expirado). Não é mais o sistema ativo.
 - `Layout.astro` injeta o fundo (`:root:root`) e o script anti-FOUC antes do primeiro paint
 - Tema claro: `:root[data-theme="light"]` em `src/styles/global.css`
 - Painel admin (aba Aparência) salva essas configs e dispara o deploy
+- **Upload de fundo** pelo admin grava a imagem em `public/images/backgrounds/` (máx. 4 MB) e usa
+  URL relativa — nunca embute data-URI no CSS (ver `docs/TROUBLESHOOTING.md`)
+
+## Painel Admin (`/admin/`)
+
+Vive em `public/admin/` (fonte de verdade, publicado pelo build). Principais funções:
+
+| Aba | Função | Onde salva |
+|-----|--------|-----------|
+| **Dashboard** | Estatísticas e ações rápidas | — |
+| **Artigos** | CRUD completo de `src/content/artigos/*.md` | GitHub API |
+| **Pendências** | Produtos sem link de afiliado (colar link, marcar resolvido) | `src/data/afiliados_pendentes.json` |
+| **Editor** | Edição de metadados, markdown, botões de produto e prévia WYSIWYG | GitHub API |
+| **Configurações** | Edição bruta de `tailwind.config.mjs` e `src/styles/global.css` | GitHub API |
+| **Aparência** | Tema (dark/light), toggle para visitantes, fundo (preset/cor/imagem) | `src/data/blog-config.json` |
+| **Layout** | Editor visual: cores, sliders (nav/logo/colunas/fontes), upload de logo e fundo | `src/styles/global.css` (bloco `EDITOR THEME OVERRIDES`) |
+
+**Proteções implementadas (13/08/2026):** `injectThemeVars` aborta se o `global.css` vier vazio/sem
+`@tailwind`; `getFile` baixa arquivos grandes via `download_url`; uploads de logo/fundo usam
+`getFileMeta` (SHA sem decodificar binário) e `putFileRaw` com retry 409; CSS e logo salvam em
+`try/catch` separados; `generateThemeCSS` não copia o fundo escuro para o tema claro.
 
 ## GitHub Pages
 

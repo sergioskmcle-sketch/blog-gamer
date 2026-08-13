@@ -402,17 +402,17 @@ Fallback para tópicos de games: lista fixa de produtos (com `source: "Mercado L
 - **Categorias** — Páginas dedicadas em `/categoria/noticia/`, `/categoria/review/`, etc.
 - **404** — Página customizada com estética gamer
 - **Ofertas** — `/ofertas/` agrega artigos com links de afiliado
-- **Progress Bar** — Barra de leitura neon green no topo dos artigos
+- **Progress Bar** — Barra de leitura (ciano) no topo dos artigos
 - **Lightbox** — Clique em qualquer imagem para expandir em tela cheia (ESC para fechar)
 - **Texto alinhado à esquerda** — Parágrafos e listas com alinhamento à esquerda (sem justificação) para melhor legibilidade
-- **"Neste artigo" (TOC)** — Sumário recolhível no topo do corpo do artigo (todas as telas); itens ancoram nas seções do texto
-- **Seções em cards** — Cada `##` do artigo vira um card visual (`article-section`) com imagem no topo, separado por divisores; imagem da capa nunca fica sob o header fixo
-- **Logo** — Imagem WebP (`logo-blog.webp`) com altura e posição lateral configuráveis (itens do nav permanecem centralizados)
-- **Background** — Hex grid roxo sutil (opacidade 1.5%)
-- **Ícones** — SVGs inline (sem dependência de fonte externa Material Symbols)
-- **Banners** — WebP otimizados (4.5 MB → 470 KB)
-- **Layout** — Container 1280px, conteúdo 780px, fonte 1.05rem com line-height 1.85
-- **Painel Admin** — `/admin/`: aba **Aparência** (tema claro/escuro, botão de alternância para visitantes e fundo do blog por preset/cor/imagem, salvos em `src/data/blog-config.json` + deploy automático), **Layout** (editor visual com sliders de altura do nav, altura/posição lateral da logo, colunas do conteúdo/sidebar, fontes e cores; upload de logo; salvamento em `global.css`), **Produtos** (texto + link de cada botão de compra), **Pendências** (produtos publicados sem link de afiliado — cole o link e o botão do artigo é atualizado + deploy automático) e **Artigos** (CRUD completo)
+- **"Nesta Análise" (TOC)** — Sumário recolhível no topo do corpo do artigo; itens ancoram nas seções do texto
+- **Seções em cards** — Cada `##` do artigo vira um card visual (`article-section`) com imagem no topo
+- **Logo** — Imagem WebP (`logo-blog.webp`) com altura e posição lateral configuráveis no admin (aba Layout)
+- **Background** — Configurável no admin (preset/cor/imagem); upload de imagem grava em `public/images/backgrounds/`
+- **Ícones** — Material Symbols Outlined; fonte Geist
+- **Banners** — WebP otimizados (banner-grupo 16:9 no fim da home/artigos, banner-grupo-9x16 na sidebar)
+- **Layout** — Container 1200px, grid 12 colunas (conteúdo 8 / sidebar 4)
+- **Painel Admin** — `/admin/`: aba **Aparência** (tema claro/escuro, botão de alternância para visitantes e fundo do blog por preset/cor/imagem, salvos em `src/data/blog-config.json` + deploy automático), **Layout** (editor visual com sliders de altura do nav, altura/posição lateral da logo, colunas do conteúdo/sidebar, fontes e cores; upload de logo e fundo), **Produtos** (texto + link de cada botão de compra), **Pendências** (produtos publicados sem link de afiliado — cole o link e o botão do artigo é atualizado + deploy automático) e **Artigos** (CRUD completo)
 
 ---
 
@@ -456,7 +456,7 @@ Arquivos em `public/images/`.
 | RAWG | Imagens de jogos | Free tier |
 | Reddit | Trending topics (r/gaming, r/gamesEcultura) | Grátis, sem API key |
 | RSS Feeds | Trending topics (MeuPlayStation, GameVicio, etc.) | Grátis, sem API key |
-| Google Fonts | Inter, Public Sans, Orbitron (subset latin) | Grátis |
+| Google Fonts | Geist + Material Symbols Outlined | Grátis |
 
 ---
 
