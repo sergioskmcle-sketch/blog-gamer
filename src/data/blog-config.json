@@ -2,8 +2,8 @@
   "theme": "dark",
   "allowVisitorThemeToggle": true,
   "background": {
-    "mode": "solid",
-    "preset": "carbono-roxo",
+    "mode": "preset",
+    "preset": "papel-claro",
     "solidColor": "#0c122c",
     "imageUrl": "",
     "imageSize": "cover",
