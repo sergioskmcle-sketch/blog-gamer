@@ -2,7 +2,7 @@
   "theme": "dark",
   "allowVisitorThemeToggle": true,
   "background": {
-    "mode": "preset",
+    "mode": "solid",
     "preset": "gradiente-suave",
     "solidColor": "#0c122c",
     "imageUrl": "",
