@@ -3,7 +3,7 @@
   "allowVisitorThemeToggle": true,
   "background": {
     "mode": "preset",
-    "preset": "grid-neon",
+    "preset": "scanlines",
     "solidColor": "#0c122c",
     "imageUrl": "",
     "imageSize": "cover",
