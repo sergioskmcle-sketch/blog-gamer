@@ -12,8 +12,6 @@ Fala, gamer! Se você está ligado no que rolou na **Gamescom 2026**, veio ao lu
 
 ## <a id="os-melhores-anuncios-da-gamescom-2026"></a>Os Melhores Anúncios da Gamescom 2026
 
-<img src="https://img.global.news.samsung.com/global/wp-content/uploads/2026/08/10210520/Samsung-TVs-and-Displays-Gamescom-2026_Thumb932-728x410.jpg" alt="Gamescom 2026" class="article-game-img" loading="lazy" decoding="async">
-
 <img src="https://i.ytimg.com/vi/OzZ6ITvwb_U/maxresdefault.jpg" alt="Grounded 2" class="article-game-img" loading="lazy" decoding="async">
 ### <a id="grounded-2-sobrevivencia-em-miniatura"></a>**Grounded 2 — Sobrevivência em Miniatura**
 
@@ -23,7 +21,7 @@ A fórmula de sobrevivência continua, mas agora dá pra esperar uma profundidad
 
 ### <a id="the-legend-of-zelda-ocarina-of-time-remake-nostalgia-em-alta"></a>**The Legend of Zelda: Ocarina of Time Remake — Nostalgia em Alta Definição**
 
-<img src="https://static0.srcdn.com/wordpress/wp-content/uploads/2026/08/ocarina-of-time-link-in-front-of-a-still-from-the-trailer-for-the-new-game.jpg?w=1600&h=900&fit=crop" alt="The Legend of Zelda: Ocarina of Time" class="article-game-img" loading="lazy" decoding="async">
+<img src="https://www.nintendo.com/eu/media/images/10_share_images/games_15/nintendo_7/SI_N64_LegendOfZeldaOcarinaOfTime_image1600w.jpg" alt="The Legend of Zelda: Ocarina of Time" class="article-game-img" loading="lazy" decoding="async">
 
 A Nintendo não ficou de fora e anunciou o tão esperado remake de **Ocarina of Time** para o Nintendo Switch 2. Isso mesmo, mermao! O clássico da era 64-bit está voltando com gráficos de tirar o fôlego e uma jogabilidade modernizada, prometendo trazer de volta as memórias de muitos fãs.
 
