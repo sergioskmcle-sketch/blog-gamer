@@ -299,7 +299,7 @@ async function handleBgUpload(event) {
     const ext = compressed._ext || 'jpg';
     const name = `bg-${Date.now()}.${ext}`;
     const path = `public/images/backgrounds/${name}`;
-    const existing = await getFile(path).catch(() => null);
+    const existing = await getFileMeta(path).catch(() => null);
     await putFileRaw(path, b64, 'cms: upload background image', existing ? existing.sha : null);
 
     const url = `/images/backgrounds/${name}`;
@@ -355,7 +355,7 @@ async function saveLogoToRepo(file) {
     const compressed = await compressImage(file, 400, 0.85, 'webp');
     const b64 = await fileToBase64(compressed);
     const path = 'public/images/logo-blog.webp';
-    const existing = await getFile(path);
+    const existing = await getFileMeta(path);
     await putFileRaw(path, b64, 'cms: update logo', existing ? existing.sha : null);
     toast('Logo salva no repositório como logo-blog.webp!');
     return true;

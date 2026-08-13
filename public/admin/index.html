@@ -1252,6 +1252,12 @@ async function getFile(path) {
   };
 }
 
+async function getFileMeta(path) {
+  const data = await ghFetch(`contents/${path}`);
+  if (!data) return null;
+  return { sha: data.sha, name: data.name };
+}
+
 function encodeB64(str) {
   return btoa(unescape(encodeURIComponent(str)));
 }
@@ -1995,7 +2001,18 @@ function fileToBase64(file) {
 async function putFileRaw(path, base64Content, message, sha = null) {
   const body = { message, content: base64Content, branch: BRANCH };
   if (sha) body.sha = sha;
-  return await ghFetch(`contents/${path}`, { method: 'PUT', body: JSON.stringify(body) });
+  try {
+    return await ghFetch(`contents/${path}`, { method: 'PUT', body: JSON.stringify(body) });
+  } catch (e) {
+    if (e.message.includes('409') || e.message.includes('already exists') || e.message.includes('conflict')) {
+      const meta = await getFileMeta(path);
+      if (meta) {
+        body.sha = meta.sha;
+        return await ghFetch(`contents/${path}`, { method: 'PUT', body: JSON.stringify(body) });
+      }
+    }
+    throw e;
+  }
 }
 
 function removeCoverImage() {
