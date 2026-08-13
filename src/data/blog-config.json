@@ -1,10 +1,10 @@
 {
-  "theme": "dark",
+  "theme": "light",
   "allowVisitorThemeToggle": true,
   "background": {
     "mode": "solid",
     "preset": "carbono-roxo",
-    "solidColor": "#00011f",
+    "solidColor": "#ffffff",
     "imageUrl": "",
     "imageSize": "cover",
     "imagePosition": "center center",
