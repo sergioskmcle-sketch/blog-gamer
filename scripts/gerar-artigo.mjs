@@ -2099,46 +2099,86 @@ async function fetchRankingContext(articleCat, topicHint) {
 
 const TAVILY_IMAGE_CACHE = {};
 
+// URLs que quebram facilmente ou dependem de auth — nunca usadas no corpo.
+const FRAGILE_IMAGE_URL = /(upload\.wikimedia\.org|instagram\.com|facebook\.com|fbsbx\.com|tiktok\.com|redd\.it|redditmedia\.com|data:image)/i;
+
+function isFragileImageUrl(url) {
+  return FRAGILE_IMAGE_URL.test(String(url || ""));
+}
+
+// Hosts mais estaveis para o corpo do artigo — priorizados no resultado do
+// Tavily. Evita cair em CDN instavel (ex.: resizers de portal) quando ha uma
+// opcao confiavel (RAWG, YouTube, fabricante oficial, Steam) na mesma resposta.
+const STABLE_IMAGE_HOSTS = [
+  "media.rawg.io",
+  "i.ytimg.com",
+  "nintendo.com",
+  "shared.akamai.steamstatic.com",
+  "store.steampowered.com",
+];
+
+function imageHostRank(url) {
+  try {
+    const host = new URL(url).hostname;
+    const idx = STABLE_IMAGE_HOSTS.findIndex((h) => host === h || host.endsWith("." + h));
+    return idx === -1 ? STABLE_IMAGE_HOSTS.length : idx;
+  } catch {
+    return STABLE_IMAGE_HOSTS.length;
+  }
+}
+
+async function imageHeadOk(url) {
+  try {
+    const r = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(8000) });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
 async function fetchTavilyImage(query) {
   if (!TAVILY_API_KEY) return null;
   const cacheKey = query.toLowerCase().trim();
   if (TAVILY_IMAGE_CACHE[cacheKey] !== undefined) return TAVILY_IMAGE_CACHE[cacheKey];
 
-  try {
-    const res = await fetch("https://api.tavily.com/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        api_key: TAVILY_API_KEY,
-        query: query + " gaming",
-        search_depth: "basic",
-        max_results: 3,
-        include_images: true,
-      }),
-      timeout: 10000,
-    });
-    if (!res.ok) {
-      log("WARN", `Tavily image search falhou: ${res.status}`);
-      TAVILY_IMAGE_CACHE[cacheKey] = null;
-      return null;
-    }
-    const data = await res.json();
-    if (data.images && data.images.length > 0) {
-      const imgUrl = typeof data.images[0] === "string" ? data.images[0] : data.images[0].url;
-      if (imgUrl && imgUrl.startsWith("http")) {
-        TAVILY_IMAGE_CACHE[cacheKey] = imgUrl;
-        log("INFO", `Tavily imagem "${query.slice(0, 30)}" -> ${imgUrl.slice(0, 60)}`);
-        return imgUrl;
+  // Mesma queda progressiva do RAWG: nome completo -> variantes curtas. Cada
+  // variante tenta achar uma imagem estavel (sem wikimedia/redes sociais),
+  // validando o HTTP antes de aceitar.
+  for (const q of progressiveGameQueries(query).slice(0, 4)) {
+    try {
+      const res = await fetch("https://api.tavily.com/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          api_key: TAVILY_API_KEY,
+          query: q + " gaming",
+          search_depth: "basic",
+          max_results: 5,
+          include_images: true,
+        }),
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const urls = (data.images || [])
+        .map((it) => (typeof it === "string" ? it : it?.url))
+        .filter((u) => typeof u === "string" && /^https?:/i.test(u) && !isFragileImageUrl(u))
+        .sort((a, b) => imageHostRank(a) - imageHostRank(b));
+      for (const url of urls) {
+        if (await imageHeadOk(url)) {
+          TAVILY_IMAGE_CACHE[cacheKey] = url;
+          log("INFO", `Tavily imagem "${query.slice(0, 30)}" (variante "${q.slice(0, 30)}") -> ${url.slice(0, 60)}`);
+          return url;
+        }
       }
+    } catch (e) {
+      log("WARN", `Tavily image erro "${q.slice(0, 30)}": ${e.message}`);
     }
-    log("WARN", `Tavily: nenhuma imagem encontrada para "${query.slice(0, 30)}"`);
-    TAVILY_IMAGE_CACHE[cacheKey] = null;
-    return null;
-  } catch (e) {
-    log("WARN", `Tavily image erro: ${e.message}`);
-    TAVILY_IMAGE_CACHE[cacheKey] = null;
-    return null;
   }
+
+  log("WARN", `Tavily: nenhuma imagem estavel para "${query.slice(0, 30)}"`);
+  TAVILY_IMAGE_CACHE[cacheKey] = null;
+  return null;
 }
 
 // Budget generoso para caber Gemini (ate 8192 tokens de saida) e Groq (ate 32768
@@ -4694,4 +4734,6 @@ export {
   resolverAfiliados,
   progressiveGameQueries,
   fetchRAWGImage,
+  fetchTavilyImage,
+  isFragileImageUrl,
 };

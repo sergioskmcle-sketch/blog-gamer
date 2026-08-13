@@ -11,6 +11,30 @@ Busca e gerencia imagens para artigos do blog. Jogos via RAWG, produtos via Goog
 - **Formato:** `<img src="URL_RAWG" alt="Nome do Jogo" class="article-game-img" loading="lazy" decoding="async">`
 - **Parâmetros de crop:** `?auto=format&fit=crop&w=800&h=450`
 
+#### Queda progressiva de busca (RAWG e Tavily)
+O título de uma seção costuma ter subtítulo de marketing que o RAWG não conhece
+(ex.: `The Legend of Zelda: Ocarina of Time Remake — Nostalgia em Alta Definição`).
+Em vez de desistir na primeira busca, o pipeline cai progressivamente o nome
+(`progressiveGameQueries` em `scripts/gerar-artigo.mjs`) até achar a imagem:
+
+1. Nome completo (com subtítulo)
+2. Sem subtítulo após a travessão (` — `)
+3. Sem sufixo de versão genérico (`remake`, `remaster`, `edition`, `deluxe`...)
+4. Partes separadas por `:` (prefixo e sufixo — ex.: `The Legend of Zelda` e `Ocarina of Time`)
+5. Palavras removidas do final (até 3)
+6. Sem artigo inicial (`The `)
+
+Ordem de fontes: **RAWG → Tavily** (o Tavily recebe as mesmas variantes, uma a uma).
+
+#### Filtros de qualidade no fallback web
+- **URLs frágeis nunca usadas** (`isFragileImageUrl`): wikimedia, Instagram,
+  Facebook, TikTok, Reddit (`redd.it`/`redditmedia.com`), `data:` URIs.
+- **Preferência de hosts estáveis** antes de validar: `media.rawg.io`,
+  `i.ytimg.com`, `nintendo.com`, `shared.akamai.steamstatic.com`,
+  `store.steampowered.com`.
+- **Validação HTTP** (`HEAD` retornando 2xx) antes de aceitar a imagem.
+- Se nada passar em todas as variantes, o marcador é removido e a seção fica sem imagem.
+
 ### 2. Imagens de Produtos (Google Shopping)
 - **API:** Serper (Google Shopping thumbnails)
 - **Uso:** Imagens dos produtos listados no artigo

@@ -4,7 +4,28 @@
 
 ---
 
-## Sessão 7 — 2026-08-12 (atual)
+## Sessão 8 — 2026-08-13 (atual)
+
+**Imagens nas seções + Queda progressiva de busca de imagem (RAWG → Tavily)**
+
+### Imagens do artigo da Gamescom
+- As seções de jogo do artigo **"Gamescom 2026"** ficaram sem imagem na geração: o marcador `[IMG:Nome]` usava o título completo da seção com subtítulo de marketing (ex.: `The Legend of Zelda: Ocarina of Time Remake — Nostalgia em Alta Definição`), o matcher do RAWG rejeitava (score < 0.55) e o fallback Tavily buscava uma vez só o nome longo e desistia — marcador sem imagem é removido silenciosamente.
+- Inseridas as artes de **Grounded 2**, **Zelda Ocarina** (arte oficial da Nintendo), **The Witcher 3: Songs of the Past**, **Final Fantasy 7: Revelation** e **Gears of War: E-Day** (seção Xbox), na ordem renderizada **título → imagem → texto**.
+- Removida a imagem de destaque (Samsung) que aparecia antes da primeira subseção.
+
+### Pipeline (`scripts/gerar-artigo.mjs`)
+- **Queda progressiva do nome** (`progressiveGameQueries`): nome completo → sem subtítulo após ` — ` → sem sufixo genérico (`remake`/`edition`/`deluxe`...) → partes após `:` → palavras removidas do final → sem artigo inicial. Aplicada no **RAWG** (`fetchRAWGImage`) e no **fallback Tavily** (`fetchTavilyImage`).
+- **Filtro de URLs frágeis** (`isFragileImageUrl`): wikimedia, Instagram, Facebook, TikTok, Reddit, `data:` — nunca usadas no corpo.
+- **Preferência de hosts estáveis** antes da validação: `media.rawg.io`, `i.ytimg.com`, `nintendo.com`, `steamstatic`, `store.steampowered.com`.
+- **Validação HTTP** (`HEAD` 2xx) antes de aceitar a imagem; `timeout` trocado por `AbortSignal.timeout` (a opção `timeout` era ignorada pelo `fetch` do Node e travava o pipeline).
+- Observação: durante esta sessão o **RAWG esteve fora do ar (HTTP 522/timeout)** — as imagens do artigo vieram do fallback Tavily com a queda progressiva.
+
+### Verificação
+- `npm test` → **403 asserts OK**; `npm run build` → **165 páginas**; portão `validar-artigo.mjs` → 0 falhas; deploy via GitHub Actions concluído.
+
+---
+
+## Sessão 7 — 2026-08-12
 
 **Rodízio de categorias + Fallback de tema (P2) + Gate corretor + Reserva Tavily + 900 palavras**
 

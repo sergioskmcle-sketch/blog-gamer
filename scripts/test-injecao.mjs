@@ -26,6 +26,7 @@ import {
   ajustarDescription,
   ajustarTags,
   progressiveGameQueries,
+  isFragileImageUrl,
 } from "./gerar-artigo.mjs";
 import { parsePriceBRL } from "./google_shopping.mjs";
 import { normalizarProdutoRemoto } from "./monitor_api.mjs";
@@ -289,6 +290,17 @@ ok(nameSimilarity("Ring", "Elden Ring") < T, "palavra curta demais nao basta par
 ok(progressiveGameQueries("").length === 0, "nome vazio nao gera variante");
 ok(progressiveGameQueries("The Legend of Zelda: Ocarina of Time Remake — Nostalgia em Alta Definição").length ===
    [...new Set(progressiveGameQueries("The Legend of Zelda: Ocarina of Time Remake — Nostalgia em Alta Definição"))].length, "variantes sem duplicata");
+
+// --- filtro de URLs frágeis para o fallback Tavily ---
+ok(isFragileImageUrl("https://upload.wikimedia.org/wikipedia/en/5/57/capa.jpg"), "wikimedia barrado");
+ok(isFragileImageUrl("https://instagram.com/p/abc"), "instagram barrado");
+ok(isFragileImageUrl("https://www.facebook.com/photo.php?x=1"), "facebook barrado");
+ok(isFragileImageUrl("https://external-preview.redd.it/x.jpg"), "reddit externo barrado");
+ok(isFragileImageUrl("data:image/png;base64,AAAA"), "data URI barrado");
+ok(!isFragileImageUrl("https://i.ytimg.com/vi/abc/maxresdefault.jpg"), "youtube thumb liberado");
+ok(!isFragileImageUrl("https://media.rawg.io/media/games/abc.jpg"), "rawg liberado");
+ok(!isFragileImageUrl("https://www.nintendo.com/eu/media/images/capa.jpg"), "site oficial liberado");
+ok(!isFragileImageUrl("https://shared.akamai.steamstatic.com/store_item_assets/x.jpg"), "steam cdn liberado");
 
 
 // --- gate de titulo ---
