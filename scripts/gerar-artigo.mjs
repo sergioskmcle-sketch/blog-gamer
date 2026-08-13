@@ -44,6 +44,7 @@ const DEFAULT_COVER_BY_PRODUCT_CATEGORY = {
   teclado: "/images/capas/5-melhores-teclados-gamer-mecanicos-de-2025-para-desempenho.png",
   placa_video: "/images/capas/aumento-em-placas-de-video-da-amd-guia-de-precos-em-2026.png",
   console: "/images/capas/playstation-julho-2026-guia-de-jogos-ps-plus-e-acessorios.png",
+  tv: "/images/capas/monitor-gamer-2026-top-5-para-alta-performance-em-jogos.png",
 };
 const DEFAULT_COVER_GENERIC = "/images/capas/gta-6-e-jogos-de-2026-performance-e-o-que-esperar-no-ps5.png";
 
@@ -226,6 +227,7 @@ const HARDWARE_KEYWORDS = [
   "periféricos", "perifericos", "mousepad", "mouse pad", "webcam",
   "microfone", "cooler", "ventoinha", "notebook", "gpu", "cpu",
   "placa mãe", "placa mae", "placa-mae", "acessório", "acessorio",
+  "smart tv", "smartv", "televisão", "televisao", "tv",
 ];
 
 const EVENT_KEYWORDS = ["e3", "game awards", "gamescom", "brasil game show", "bgs", "lançamento", "lancamento", "colaboração", "colaboracao", "collab", "crossover", "parceria", "atualização", "atualizacao", "queda de preço", "queda de preco", "recorde de vendas", "trailer", "gameplay", "beta", "demo", "dlc", "expansão", "expansao", "anúncio", "anuncio", "skin", "temporada", "season"];
@@ -1540,6 +1542,7 @@ const CATEGORY_FALLBACK_KEYWORDS = {
   fonte: ["fonte 650w 80 plus", "fonte gamer 80 plus bronze"],
   ssd: ["ssd nvme gamer", "ssd 1tb gamer"],
   memoria: ["memoria ram 16gb ddr4", "memoria ram ddr5 gamer"],
+  tv: ["smart tv 4k", "tv 4k gamer", "smart tv 50 polegadas", "tv oled gamer", "smart tv qled"],
 };
 
 function buildCategoryFallbackKeywords(articleCat) {
@@ -2658,6 +2661,22 @@ function validate(fm, body, ctx = {}) {
         soft.push(`${fora.length} marcador(es) [PRODUTO:N] fora da secao de Itens (introducao ou secoes finais) — todos devem ficar na lista logo apos a intro`);
       }
     }
+  }
+
+  // Lista plural ("Melhores"/"Os N Melhores" com N>=2) so faz sentido com pelo
+  // menos 2 produtos. Um artigo de lista com 1 item (ex.: "Os 1 Melhores") e
+  // inconsistente e nunca deve publicar. Conta os dois lugares onde a promessa
+  // aparece: o titulo e o heading da lista no corpo.
+  const prometeListaPlural = (() => {
+    const t = String(fm?.title || "").toLowerCase();
+    if (/\bmelhores\b/.test(t) || /\bos\s+\d+\s+melhores\b/.test(t)) return true;
+    return /^##\s+<a[^>]*>\s*<\/a>\s*(?:os\s+\d+\s+melhores|melhores)\b/im.test(body)
+      || /^##\s+(?:os\s+\d+\s+melhores|melhores)\b/im.test(body);
+  })();
+  if (prometeListaPlural && ctx.productCount > 0 && ctx.productCount < 2) {
+    hard.push(`Titulo/heading promete lista plural de produtos, mas o artigo tem so ${ctx.productCount} item(ns) — lista "Melhores" exige no minimo 2 produtos`);
+  } else if (prometeListaPlural && ctx.productCount === 0 && /melhores/i.test(String(fm?.title || ""))) {
+    soft.push(`Titulo usa "Melhores" mas o artigo ficou sem produtos — confira se o titulo combina com o conteudo`);
   }
 
   // Fluxo segmentado: cada produto DEVE virar um item "### Nome" e aparecer na

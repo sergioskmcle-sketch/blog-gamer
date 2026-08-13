@@ -4,7 +4,23 @@
 
 ---
 
-## Sessão 7 — 2026-08-12 (atual)
+## Sessão 8 — 2026-08-13 (atual)
+
+**Exclusão de artigo de smart TV reprovado + categoria `tv` + gate de lista plural**
+
+### Pipeline (`scripts/`)
+- **Artigo reprovado excluído:** "Melhores smart tv gamer 4K em 2026: A melhor escolha" (40º, gerado em 12/08) — título plural com 1 item e produto absurdo ("Console Sony Fable Standard"). Removidos `.md`, capa, imagem do produto e entrada de `afiliados_pendentes.json`; `state.json` revertido para o estado anterior (Gamescom, 39 artigos).
+- **Categoria `tv` criada** (`product_naming.mjs`): `PRODUCT_CATEGORIES.tv` (smart tv/smartv/televisão/tv 4k/uhd/oled/qled/neo qled/mini led/nano cell, com excludes para suporte/cabo/controle/tv box/stick/antena/monitor/película/remoto) + `CATEGORY_BRANDS.tv` (Samsung/LG/Sony) + `TAIL_STOP`.
+- **`HARDWARE_KEYWORDS`** ganhou `smart tv`, `smartv`, `televisão`, `televisao`, `tv` (`gerar-artigo.mjs`) — tema de smart TV agora é domínio `hardware` (antes caía em `games` e buscava console). Também `CATEGORY_FALLBACK_KEYWORDS.tv` e capa default por categoria.
+- **Gate de lista plural (novo):** no `validate()` (`gerar-artigo.mjs`), título/heading que prometem lista plural ("Melhores"/"Os N Melhores" com N≥2) com **menos de 2 produtos** vira erro **hard** — impede "Os 1 Melhores". `validar-artigo.mjs` reprova lista com <2 produtos na validação pós-geração.
+
+### Verificação
+- `npm test` → **419 asserts OK** (15 novos: detecção de categoria tv, coerência console≠tv, gate de lista plural).
+- `validar-artigo.mjs --all` → **0 falhas novas** (as 84 existentes são de artigos antigos, confirmadas idênticas antes das mudanças via stash).
+
+---
+
+## Sessão 7 — 2026-08-12
 
 **Rodízio de categorias + Fallback de tema (P2) + Gate corretor + Reserva Tavily + 900 palavras**
 

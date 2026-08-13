@@ -347,6 +347,21 @@ ok(r.soft.some((e) => /abaixo do alvo/.test(e)), "mas registra o alerta");
 r = validate(fm, corpo, { category: "guia", productCount: 0, lastAttempt: true });
 ok(r.hard.some((e) => /muito curto/.test(e)), "piso absoluto bloqueia sempre");
 
+// --- Gate: lista plural ("Melhores"/"Os N Melhores") exige 2+ produtos ---
+const fmMelhores = { title: "Os Melhores Headsets Gamer em 2026", description: "x".repeat(140), pubDate: "2026-08-12", tags: ["a", "b", "c"], category: "lista", affiliate: true };
+const corpoComHeadingLista = corpoLongo.replace(/^## Introducao/m, "## Os 5 Melhores Headsets Gamer em 2026\n\ntexto\n");
+r = validate(fmMelhores, corpoComHeadingLista, { category: "lista", productCount: 1, lastAttempt: true });
+ok(r.hard.some((e) => /promete lista plural/.test(e)), "lista plural com 1 produto bloqueia (heading)");
+r = validate(fmMelhores, corpoLongo, { category: "lista", productCount: 1, lastAttempt: true });
+ok(r.hard.some((e) => /promete lista plural/.test(e)), "lista plural com 1 produto bloqueia (titulo)");
+r = validate(fmMelhores, corpoComHeadingLista, { category: "lista", productCount: 3, lastAttempt: true });
+igual(r.hard, [], "lista plural com 3 produtos nao bloqueia");
+const fmMelhores1 = { title: "Melhores Smart TVs Gamer em 2026", description: "x".repeat(140), pubDate: "2026-08-12", tags: ["a", "b", "c"], category: "noticia", affiliate: true };
+r = validate(fmMelhores1, corpoLongo, { category: "noticia", productCount: 1, lastAttempt: true });
+ok(r.hard.some((e) => /promete lista plural/.test(e)), "noticia 'Melhores' com 1 produto bloqueia (caso smart tv)");
+r = validate(fmMelhores1, corpoLongo, { category: "noticia", productCount: 0, lastAttempt: true });
+ok(r.soft.some((e) => /Melhores.*sem produtos/.test(e)), "noticia 'Melhores' sem produtos vira alerta soft");
+
 // --- orcamento de tokens ---
 // Garante que prompt + saida cabem no budget e que o teto de saida e respeitado.
 const tokens = (t) => Math.ceil(t.length / 3.3);
@@ -654,6 +669,19 @@ igual(detectArticleCategory({ hint: "novidades", ml_query: "placa de video", tre
 igual(detectArticleCategory({ hint: "noticias do dia" }), null, "sem palavra de categoria retorna null");
 igual(detectArticleCategory(null), null, "topic null nao quebra");
 igual(detectArticleCategory({}), null, "topic vazio nao quebra");
+
+// Categoria tv (smart TV) reconhecida: impediria o artigo de smart TV de buscar
+// console como produto (caso real do artigo reprovado em 12/08/2026).
+igual(detectCategory("Smart TV 4K 55 Polegadas"), "tv", "smart tv detectada como tv");
+igual(detectCategory("SmartTV 50 Samsung"), "tv", "smartv (sem espaco) detectada");
+igual(detectCategory("Televisao OLED 65 LG"), "tv", "televisao detectada");
+igual(detectCategory("TV 4K QLED Gamer"), "tv", "tv com spec de imagem detectada");
+igual(detectCategory("Suporte de TV para Parede"), null, "suporte de tv nao e produto tv (exclude)");
+igual(detectCategory("TV Box Android"), null, "tv box nao e smart tv (exclude)");
+ok(productMatchesCategory("Smart TV 4K 55 Polegadas", "tv"), "smart tv casa com categoria tv");
+ok(!productMatchesCategory("Console Sony Fable Standard", "tv"), "console NAO casa com categoria tv (caso do artigo reprovado)");
+ok(!productMatchesCategory("Suporte de TV para Parede", "tv"), "suporte de tv descartado");
+igual(detectArticleCategory({ hint: "melhores smart tvs 4k para gamers" }), "tv", "categoria do artigo smart tv detectada");
 
 // Filtro dentro de sanitizeProducts: artigo de teclado descarta mouse/headset.
 const topicTeclado = { hint: "melhores teclados gamer 2026", ml_query: "teclado gamer", trending_keywords: ["teclado"] };

@@ -56,7 +56,7 @@ scripts/
   fix-article-links.mjs     → LEGADO (meli.la com cookies do ML — inativo)
   regenerate-*-cover.mjs    → Regenera a capa de artigos específicos (cadeiras, fones, monitores, psplus, xbox)
   gerar-status.cjs          → Gera status.json a cada deploy
-  test-injecao.mjs          → Testes de validação (323 asserts): itens, TOC, fontes, portão de produtos, labels de loja e montagem segmentada
+  test-injecao.mjs          → Testes de validação (419 asserts): itens, TOC, fontes, portão de produtos, labels de loja e montagem segmentada
   download-images.mjs       → Baixa imagens dos produtos para o repo
   convert-banners.mjs       → Converter banners PNG → WebP
   migrar-artigos.mjs        → Migra artigos antigos para o novo padrão (categorias, índice hierárquico, FAQ e nomes normalizados — ver TAREFA 7)
@@ -159,7 +159,7 @@ Escreve reviews e guias com precisão e profundidade.
 |-----------|------|---------|-----------------|
 | **Notícia** | `noticia` | Mano Gamer | Lançamentos, eventos (E3, Game Awards), anúncios, trailers |
 | **Review** | `review` | Técnico | Análise de jogos: gameplay, gráficos, desempenho, nota |
-| **Guia de Compra** | `guia` | Técnico | Hardware: headsets, teclados, mouses, monitores, cadeiras, GPUs |
+| **Guia de Compra** | `guia` | Técnico | Hardware: headsets, teclados, mouses, monitores, smart TVs, cadeiras, GPUs |
 | **Lista** | `lista` | Mano Gamer | Rankings, melhores jogos do ano, melhores gratuitos, por estilo |
 | **Promoção** | `promocao` | Mano Gamer | Ofertas: Steam Sale, descontos em periféricos, bundles |
 

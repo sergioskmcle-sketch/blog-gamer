@@ -166,6 +166,10 @@ function validateArticle(file) {
   if (hasListTopic && productTitles.length === 0) {
     fail(file, "artigo tem imagem de produto mas nenhum heading ### de produto");
   }
+  // Lista plural ("Os N Melhores" com N>=2) so faz sentido com 2+ produtos.
+  if (hasListTopic && productTitles.length > 0 && productTitles.length < 2) {
+    fail(file, `lista plural de produtos com so ${productTitles.length} item(ns) — "Melhores" exige no minimo 2 produtos`);
+  }
 
   for (const title of productTitles) {
     if (YEAR_AT_START_RE.test(title)) {

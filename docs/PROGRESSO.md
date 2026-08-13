@@ -1,6 +1,6 @@
 # Promo Gamer — Status do Projeto
 
-> Última atualização: 2026-08-12
+> Última atualização: 2026-08-13
 
 > ⚠️ **Este arquivo foi reescrito em 06/08/2026.** A versão anterior descrevia o pipeline Python
 > na VM (`scheduler.py`, `generate_article.py`, `ml_affiliate.py`) como se fosse o sistema ativo.
@@ -223,6 +223,35 @@ O ciclo de categorias trocou `noticia → review → guia → lista` (baseado em
 | Docs: `PIPELINE_ETAPAS.md`, `PROGRESSO.md` | ✅ |
 
 **Validação em produção (12/08/2026):** artigo **"Gamescom 2026: principais anúncios, jogos, datas e novidades"** (notícia, 39º) gerado com o pipeline novo, aprovado no gate (**0 P0 / 0 P1 / 5 P2**, média ~9,3/10) e publicado. Na geração, o **Gemini** estourou TPM/truncou (503) e o **Groq** recusou o prompt grande (413) — a reserva em cadeia caiu no **OpenAI** e o artigo saiu normal (ver `docs/TROUBLESHOOTING.md`).
+
+### ✅ Concluído em 13/08/2026 — artigo de smart TV reprovado excluído + categoria `tv` + gate de lista plural
+
+O artigo **"Melhores smart tv gamer 4K em 2026: A melhor escolha"** (40º, gerado em 12/08) foi reprovado na auditoria
+do operador: título plural ("Melhores") com **um único item** e produto absurdo — **"Console Sony Fable Standard"**
+(console Sony + Fable, nome que não existe). O artigo foi **excluído** e o `state.json` revertido para o estado anterior
+(Gamescom, 39 artigos). A causa raiz era a combinação de 4 lacunas, todas corrigidas:
+
+| Lacuna | Correção |
+|---|---|
+| "smart tv" não era categoria de produto → `detectArticleCategory` retornava `null`, sem filtro de categoria nem `MIN_PRODUCTS` | Categoria **`tv`** adicionada em `PRODUCT_CATEGORIES` (`product_naming.mjs`): smart tv/smartv/televisão/tv 4k/uhd/oled/qled/neo qled/mini led/nano cell, com excludes (suporte, cabo, controle, tv box, stick, antena, monitor, película, remoto) |
+| `classifyDomain("smart tv gamer")` caía em `unknown` → tratado como domínio **games** → busca de produto usava query de jogo (`ps5 jogo ps5`) e achava console | `HARDWARE_KEYWORDS` ganhou `smart tv`, `smartv`, `televisão`, `televisao`, `tv` (`gerar-artigo.mjs`) → domínio vira `hardware` e a busca mira TVs |
+| Notícia isenta do funil de produtos + sem gate de coerência | `CATEGORY_BRANDS.tv` (Samsung/LG/Sony), `CATEGORY_FALLBACK_KEYWORDS.tv` e capa default por categoria |
+| **Nenhum gate impedia lista plural com 1 produto** (o "Os 1 Melhores" saiu) | **Gate novo** em `validate()` (`gerar-artigo.mjs`): título/heading que prometem lista plural ("Melhores"/"Os N Melhores" com N≥2) com **menos de 2 produtos** vira erro **hard** (bloqueia publicação); com 0 produtos vira alerta soft. Mesmo critério em `validar-artigo.mjs` (lista com <2 produtos reprova) |
+
+| Tarefa | Estado |
+|---|---|
+| Exclusão do artigo `.md` + capa + imagem do produto + entrada de `afiliados_pendentes.json` | ✅ |
+| `state.json` revertido (39 artigos, último Gamescom) | ✅ |
+| Categoria `tv` em `PRODUCT_CATEGORIES` + `CATEGORY_BRANDS` + `TAIL_STOP` (`product_naming.mjs`) | ✅ |
+| `HARDWARE_KEYWORDS` com smart tv/televisão/tv + `CATEGORY_FALLBACK_KEYWORDS.tv` + capa default (`gerar-artigo.mjs`) | ✅ |
+| Gate de lista plural no `validate()` (hard com <2 produtos) | ✅ |
+| `validar-artigo.mjs` reprova lista com <2 produtos | ✅ |
+| Testes (**419 asserts OK** — 15 novos: categoria tv, coerência console≠tv, gate de lista plural) | ✅ |
+| `validar-artigo.mjs --all` sem novas falhas (84 pré-existentes de artigos antigos, confirmadas por stash) | ✅ |
+| Docs: `PROGRESSO.md`, `PIPELINE_ETAPAS.md` | ✅ |
+
+Com a categoria `tv` registrada, um tema futuro de smart TV vira categoria `tv`: o "Console Sony Fable Standard"
+seria descartado pelo filtro de categoria no sourcing e reprovado pelo gate (`productMatchesCategory(console, "tv") === false`).
 
 ### 🟢 Baixa prioridade
 | Tarefa | Motivo |

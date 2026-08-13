@@ -109,6 +109,7 @@ Exemplos de temas para alternar:
 - Mouses
 - Cadeiras
 - Monitores
+- Smart TVs Gamer
 - Controles
 - Consoles
 - Placas de Vídeo

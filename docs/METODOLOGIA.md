@@ -62,7 +62,10 @@ Antes de qualquer ranking, o pipeline, nesta ordem:
 2. Descarta itens sem preço.
 3. Filtra pela **categoria única do artigo** (ex.: um artigo de teclado
    **nunca** lista mouse) — usando `detectArticleCategory`/`productMatchesCategory`
-   de `scripts/product_naming.mjs`.
+   de `scripts/product_naming.mjs`. Categorias hoje suportadas: teclado, mouse,
+   mousepad, headset, monitor, **tv (smart TV)**, cadeira, placa de vídeo,
+   processador, console, controle, notebook, webcam, microfone, gabinete, cooler,
+   fonte, SSD, memória RAM.
 4. Limpa o nome de cada produto (`cleanProductTitle`), preservando o nome bruto
    em `raw_title`.
 5. **Dedup semântico** (`scripts/product_dedupe.mjs`, `dedupeProducts()`) —
@@ -255,3 +258,10 @@ reprova artigo com ano desatualizado no título/description.
 > lista. Listas curtas e corretas são sempre preferidas a listas longas e
 > erradas — se o filtro deixar a lista abaixo do mínimo, o gerador **falha e
 > não publica** em vez de publicar errado.
+>
+> **Gate de lista plural (13/08/2026):** título/heading que prometem lista
+> plural ("Melhores"/"Os N Melhores" com N≥2) com **menos de 2 produtos** viram
+> erro **hard** no `validate()` e reprova no `validar-artigo.mjs` — um ranking
+> nunca pode ter um único item (impede "Os 1 Melhores"). Esse gate nasceu do
+> artigo reprovado *"Melhores smart tv gamer 4K"* (12/08/2026), que publicou
+> com 1 produto absurdo ("Console Sony Fable Standard").

@@ -31,6 +31,7 @@ export const PRODUCT_CATEGORIES = {
   webcam:   { label: "Webcam",   include: [/\bwebcam\b/, /\bc[aâ]mera web\b/], exclude: [] },
   microfone:{ label: "Microfone",include: [/\bmicrofone\b/, /\bmic\b/], exclude: [/\bsuporte\b/, /\bbra[çc]o\b/, /\bpop filter\b/] },
   gabinete: { label: "Gabinete", include: [/\bgabinete\b/], exclude: [/\bfonte\b/, /\bcooler\b/] },
+  tv:       { label: "Smart TV", include: [/\bsmart\s?tv\b/, /\bsmartv\b/, /\btelevis[ãa]o\b/, /\btv\s+(?:4k|uhd|oled|qled|neo\s?qled|mini\s?led|nano\s?cell|smart)\b/i, /\b(?:4k|uhd|oled|qled|neo\s?qled|mini\s?led|nano\s?cell)\s+(?:smart\s+)?tv\b/i], exclude: [/\bsuporte\b/, /\bcabo\b/, /\bcontrole\b/, /\btv\s?box\b/, /\bstick\b/, /\bantena\b/, /\bmonitor\b/, /\bp[ée]l[ií]cula\b/, /\bremoto\b/] },
   cooler:   { label: "Cooler",   include: [/\bcooler\b/, /\bwater ?cooler\b/, /\bair ?cooler\b/], exclude: [] },
   fonte:    { label: "Fonte",    include: [/\bfonte\b/, /\b\d{3,4}w\b.*\b80 ?plus\b/], exclude: [/\bcarregador\b/] },
   ssd:      { label: "SSD",      include: [/\bssd\b/, /\bnvme\b/, /\bm\.2\b/], exclude: [/\bgaveta\b/, /\bcase\b/] },
@@ -163,6 +164,7 @@ export const CATEGORY_BRANDS = {
   mousepad: ["Redragon", "Logitech", "Razer"],
   headset: ["HyperX", "Logitech", "Razer"],
   monitor: ["AOC", "LG", "Samsung"],
+  tv: ["Samsung", "LG", "Sony"],
   cadeira: ["DT3", "Husky", "Fortrek"],
   placa_video: ["NVIDIA", "AMD", "Asus"],
   processador: ["Intel", "AMD", "Asus"],
@@ -260,6 +262,7 @@ const TAIL_STOP = new Set([
   "headphone", "monitor", "cadeira", "placa", "video", "processador", "console",
   "controle", "gamepad", "joystick", "notebook", "laptop", "webcam", "camera",
   "microfone", "gabinete", "cooler", "fonte", "ssd", "nvme", "memoria", "ram",
+  "tv", "televisao", "smart", "smarttv",
   ...Object.keys(KNOWN_BRANDS),
 ]);
 

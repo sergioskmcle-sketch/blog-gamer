@@ -33,7 +33,8 @@ Antes de 12/08/2026 existiam **2 portões reais** e 5 scorecards que apenas docu
 
 1. **Gate de sourcing** (`shouldAbortProductSourcing`) — aborta lista/review com categoria de produto detectada e menos de `MIN_PRODUCTS` válidos; **notícia nunca aborta**.
 2. **Portão hard do `validate()`** — reprova segmentação (produto sem `###`/linha na tabela), preço fora da prosa, etc.; regenera o corpo até 2x e, se persistir, `exit(1)`.
-3. **Gate de revisão (NOVO, 12/08/2026)** — `gerar-artigo.mjs` (~linha 3714), roda **depois** de persistir os dossiês:
+3. **Gate de lista plural (NOVO, 13/08/2026)** — dentro do `validate()`: título/heading que prometem lista plural ("Melhores"/"Os N Melhores" com N≥2) com **menos de 2 produtos** viram erro **hard** — impede "Os 1 Melhores" (caso do artigo de smart TV reprovado em 12/08). `validar-artigo.mjs` aplica o mesmo critério na validação pós-geração.
+4. **Gate de revisão (12/08/2026)** — `gerar-artigo.mjs` (~linha 3714), roda **depois** de persistir os dossiês:
    - Se qualquer etapa sair `reprovado` (qualquer P0/P1), o artigo é **removido** (novo) ou **restaurado** do backup (regeneração);
    - `state.last_success`/`last_slug` são revertidos (o artigo não conta como publicado) e `consecutive_failures` é incrementado;
    - `exit(1)` — o cron/CI enxerga a falha;
@@ -166,6 +167,7 @@ FLUXO ÚNICO (sem produtos): LLM escreve tudo → validate → feedback → até
 | 20 | Setup | `.env.example` incompleto (V9) — **CORRIGIDO (Fase 4)** | — | Fechado em V9 |
 | 21 | Pós | Regeneração sem `validar-artigo.mjs` (V10) — **CORRIGIDO (Fase 3)** | — | Fechado em V10 |
 | 22 | Global | Sem notificação de falha no cron (V11) — **CORRIGIDO (Fase 3)** | — | Fechado em V11 |
+| 23 | Descoberta/Sourcing | "smart tv" fora de `PRODUCT_CATEGORIES` e `HARDWARE_KEYWORDS` → domínio `games`, busca por console, sem gate de categoria — **CORRIGIDO (13/08, P26)**: categoria `tv` + keywords + gate de lista plural | — | Fechado em P26 |
 
 ---
 
@@ -217,6 +219,7 @@ Re-medição (12/08): **Pesquisa 10/10 · Redação 10/10 · SEO 10/10 · Design
 - [x] **P23 — Gate com correção automática (12/08/2026, noite)** — além de deletar/rollback, o gate tenta `corrigirPeloGate` (seções `##` vazias, imagens base64, imagens frágeis de redes sociais, abertura proibida, marcadores `[IMG:]/[PRODUTO:]` restantes, description < 120, tags < 3), reaplica os passos deterministas (`stripPricesFromBody` → `stripLeftoverMarkers` → `injectHeadingAnchors`) e revalida as 5 etapas determinísticas (Redação/SEO/Design/Revisão/Publicação). Só faz rollback se a correção não zerar as reprovações (pesquisa/sourcing/misto/word count continuam bloqueando).
 - [x] **P24 — Reserva da Tavily via Serper (12/08/2026, noite)** — `buscarComReserva` em `pesquisar-fundo.mjs` tenta a Tavily e, em falha/cota, usa o Serper (Google) já presente no projeto; sem reserva, cai no erro original. Cobre as 3 profundidades (básico/médio/profundo).
 - [x] **P25 — Regra das 900 palavras (12/08/2026, noite)** — `MIN_WORDS.noticia` 800→900 e faixa-alvo única `900-1100` para o prompt (antes `700-900` era contraditória com o mínimo 900: a geração nunca atingiria).
+- [x] **P26 — Categoria `tv` (smart TV) + gate de lista plural (13/08/2026)** — o artigo "Melhores smart tv gamer 4K" (12/08) publicou com 1 produto absurdo ("Console Sony Fable Standard") e título plural. Causa raiz: "smart tv" não era categoria (`detectArticleCategory` → `null`), o domínio caía em `games` (busca usava `ps5 jogo ps5`), notícia não passa pelo funil e **nenhum gate impedia lista plural com 1 produto**. Correções: categoria `tv` em `PRODUCT_CATEGORIES`/`CATEGORY_BRANDS`/`TAIL_STOP` (`product_naming.mjs`), `HARDWARE_KEYWORDS` com smart tv/televisão/tv + `CATEGORY_FALLBACK_KEYWORDS.tv` + capa default (`gerar-artigo.mjs`), e **gate novo** em `validate()` — título/heading de lista plural ("Melhores"/"Os N Melhores" com N≥2) com <2 produtos é erro **hard**; `validar-artigo.mjs` reprova lista com <2 produtos. Artigo excluído + `state.json` revertido. `npm test` **419 asserts**.
 - [x] **P8 — Commit dos hooks (concluído em 12/08/2026)** — `pesquisar-fundo.mjs`, `revisar-etapas.mjs`, `auto-melhoria.mjs`, `prompts/` + mudanças de `gerar-artigo.mjs`/`test-injecao.mjs` commitados; o CI passa a rodar com o gate ativo.
 - [x] **P13 — Etapa 5: piso de avaliação tolera rating sem `ratingCount`** (`product_ranking.mjs:197-205`) — concluído em 12/08 (V7).
 - [x] **P14 — Etapa 5: `triedQueries` no ramo remoto** — concluído em 12/08 (V6).
