@@ -25,6 +25,7 @@ import {
   removeEmptySections,
   ajustarDescription,
   ajustarTags,
+  progressiveGameQueries,
 } from "./gerar-artigo.mjs";
 import { parsePriceBRL } from "./google_shopping.mjs";
 import { normalizarProdutoRemoto } from "./monitor_api.mjs";
@@ -252,6 +253,43 @@ ok(nameSimilarity("Persona 5", "Persona 5 Royal") >= T, "consulta generica casa 
 ok(nameSimilarity("Silksong", "Hollow Knight: Silksong") >= T, "subtitulo distintivo casa com nome completo");
 ok(nameSimilarity("Requiem", "Resident Evil Requiem") >= T, "subtitulo isolado casa");
 ok(nameSimilarity("Ring", "Elden Ring") < T, "palavra curta demais nao basta para casar");
+
+// --- queda progressiva do nome para o RAWG ---
+{
+  const z = progressiveGameQueries("The Legend of Zelda: Ocarina of Time Remake — Nostalgia em Alta Definição");
+  ok(z[0] === "The Legend of Zelda: Ocarina of Time Remake — Nostalgia em Alta Definição", "primeira variante e o nome completo");
+  ok(z.includes("The Legend of Zelda: Ocarina of Time"), "corta o subtitulo marketing apos a travesao");
+  ok(z.includes("The Legend of Zelda"), "corta o sufixo Remake");
+  ok(z.some((v) => v.includes("Ocarina of Time")), "usa o subtitulo isolado");
+}
+
+{
+  const g = progressiveGameQueries("Grounded 2 — Sobrevivência em Miniatura");
+  ok(g.includes("Grounded 2"), "mantem o nome curto do jogo");
+  ok(g.includes("Grounded"), "cai para o nome base");
+}
+
+{
+  const w = progressiveGameQueries("The Witcher 3: Songs of the Past — A Última Aventura de Geralt");
+  ok(w.includes("The Witcher 3"), "chega ao nucleo da franquia");
+  ok(w.includes("The Witcher 3: Songs of the Past"), "mantem o subtitulo oficial");
+}
+
+{
+  const x = progressiveGameQueries("Gears of War: E-Day");
+  ok(x.includes("Gears of War"), "chega a franquia quando a edicao nao existe");
+  ok(!x.includes("Gears of War: E"), "traco interno sem espaco nao corta o nome");
+}
+
+{
+  const f = progressiveGameQueries("Final Fantasy 7: Revelation — Um Novo Capítulo na Saga");
+  ok(f.includes("Final Fantasy 7"), "chega ao nucleo da franquia");
+}
+
+ok(progressiveGameQueries("").length === 0, "nome vazio nao gera variante");
+ok(progressiveGameQueries("The Legend of Zelda: Ocarina of Time Remake — Nostalgia em Alta Definição").length ===
+   [...new Set(progressiveGameQueries("The Legend of Zelda: Ocarina of Time Remake — Nostalgia em Alta Definição"))].length, "variantes sem duplicata");
+
 
 // --- gate de titulo ---
 igual(checkTitle("Resident Evil Requiem: 5 Novidades do Update 1.31 no PS5", "resident evil"), [], "titulo bom passa");

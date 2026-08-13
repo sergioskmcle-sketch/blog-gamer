@@ -911,21 +911,70 @@ function nameSimilarity(a, b) {
 
 const RAWG_MATCH_THRESHOLD = 0.55;
 
-async function fetchRAWGImage(gameName) {
-  if (!RAWG_API_KEY) return null;
-  if (GAME_IMAGE_CACHE[gameName] !== undefined) return GAME_IMAGE_CACHE[gameName];
+// Palavras de versao generica que o RAWG nao usa no nome oficial e que poluem
+// a busca ("Remake", "Edition", "Deluxe"...). Removidas uma a uma na queda.
+const GENERIC_GAME_SUFFIX = new Set([
+  "remake", "remaster", "remastered", "remasters", "reloaded", "edition",
+  "ultimate", "deluxe", "definitive", "anniversary", "complete", "enhanced",
+  "premium", "collector", "standard", "digital", "hd", "collection",
+  "game of the year", "goty",
+]);
 
-  const clean = gameName
-    .replace(/[^a-zA-Z0-9 àáâãéêíóôõúç:]/g, "")
-    .replace(/\b(ps4|ps5|xbox|nintendo|switch|pc|midia fisica|edicao|edition|standard)\b/gi, "")
-    .replace(/\s+/g, " ").trim();
+// Variantes de busca para um nome de jogo, da mais especifica para a mais
+// generica. O titulo da secao costuma ter subtitulo de marketing
+// ("— Nostalgia em Alta Definicao") que o RAWG nao conhece; em vez de
+// desistir na primeira busca, cai progressivamente:
+//   nome completo -> sem subtitulo -> sem sufixo de versao -> partes apos ":"
+//   -> ultimas palavras removidas -> sem artigo inicial.
+function progressiveGameQueries(gameName) {
+  const out = [];
+  const add = (s) => {
+    let t = String(s || "").replace(/\s+/g, " ").trim();
+    t = t.replace(/^[\s:;.,\-]+|[\s:;.,\-]+$/g, "");
+    if (t.length >= 3 && !out.includes(t)) out.push(t);
+  };
 
-  if (!clean || clean.length < 3) return null;
+  const base = String(gameName || "").replace(/\s+/g, " ").trim();
+  if (!base) return out;
+  add(base);
 
+  // Subtitulo marketing separado por travesao/traco/barra com espacos
+  // (" — ", " - "). Traco interno sem espaco ("E-Day") NAO separa.
+  const core = base.split(/\s+[|—–-]\s+/)[0].trim();
+  if (core && core !== base) add(core);
+
+  let semSufixo = core
+    .split(" ")
+    .filter((w) => !GENERIC_GAME_SUFFIX.has(w.toLowerCase()))
+    .join(" ");
+  if (semSufixo && semSufixo !== core) add(semSufixo);
+
+  const colon = base.split(":");
+  if (colon.length > 1) {
+    add(colon[0]);
+    add(colon.slice(1).join(":").trim());
+  }
+
+  let cur = semSufixo || core;
+  for (let i = 0; i < 3; i++) {
+    const parts = cur.split(" ");
+    if (parts.length <= 1) break;
+    parts.pop();
+    cur = parts.join(" ");
+    if (cur.length >= 3) add(cur);
+  }
+
+  const semArtigo = base.replace(/^the\s+/i, "");
+  if (semArtigo && semArtigo !== base) add(semArtigo);
+
+  return out;
+}
+
+async function rawgSearchOnce(clean, originalName) {
   try {
     const r = await fetch(
       `https://api.rawg.io/api/games?key=${RAWG_API_KEY}&search=${encodeURIComponent(clean)}&page_size=5&page=1`,
-      { timeout: 10000 }
+      { signal: AbortSignal.timeout(10000) }
     );
     if (!r.ok) return null;
     const data = await r.json();
@@ -940,18 +989,42 @@ async function fetchRAWGImage(gameName) {
     }
 
     if (!best || bestScore < RAWG_MATCH_THRESHOLD) {
-      log("WARN", `RAWG descartado "${gameName.slice(0, 40)}": melhor match "${best?.name || "-"}" (score ${bestScore.toFixed(2)} < ${RAWG_MATCH_THRESHOLD})`);
-      GAME_IMAGE_CACHE[gameName] = null;
+      log("WARN", `RAWG descartado "${clean.slice(0, 40)}": melhor match "${best?.name || "-"}" (score ${bestScore.toFixed(2)} < ${RAWG_MATCH_THRESHOLD})`);
       return null;
     }
 
-    const hqUrl = best.background_image.replace("/media/", "/media/crop/600/400/") + "?auto=format&fit=crop&w=800&h=450";
-    GAME_IMAGE_CACHE[gameName] = hqUrl;
-    log("INFO", `RAWG imagem "${gameName.slice(0, 40)}" -> "${best.name}" (score ${bestScore.toFixed(2)})`);
-    return hqUrl;
+    return {
+      name: best.name,
+      hqUrl: best.background_image.replace("/media/", "/media/crop/600/400/") + "?auto=format&fit=crop&w=800&h=450",
+      score: bestScore,
+    };
   } catch (e) {
-    log("WARN", `RAWG erro "${gameName.slice(0, 40)}": ${e.message}`);
+    log("WARN", `RAWG erro "${originalName.slice(0, 40)}": ${e.message}`);
+    return null;
   }
+}
+
+async function fetchRAWGImage(gameName) {
+  if (!RAWG_API_KEY) return null;
+  if (GAME_IMAGE_CACHE[gameName] !== undefined) return GAME_IMAGE_CACHE[gameName];
+
+  const queries = progressiveGameQueries(gameName);
+  for (const q of queries) {
+    const clean = q
+      .replace(/[^a-zA-Z0-9 àáâãéêíóôõúç:]/g, " ")
+      .replace(/\b(ps4|ps5|xbox|nintendo|switch|pc|midia fisica|edicao|edition|standard)\b/gi, "")
+      .replace(/\s+/g, " ").trim();
+    if (!clean || clean.length < 3) continue;
+
+    const found = await rawgSearchOnce(clean, gameName);
+    if (found) {
+      GAME_IMAGE_CACHE[gameName] = found.hqUrl;
+      log("INFO", `RAWG imagem "${gameName.slice(0, 40)}" -> "${found.name}" (query "${clean.slice(0, 40)}", score ${found.score.toFixed(2)})`);
+      return found.hqUrl;
+    }
+  }
+
+  GAME_IMAGE_CACHE[gameName] = null;
   return null;
 }
 
@@ -4619,4 +4692,6 @@ export {
   GENERIC_TITLE_PATTERNS,
   shouldAbortProductSourcing,
   resolverAfiliados,
+  progressiveGameQueries,
+  fetchRAWGImage,
 };

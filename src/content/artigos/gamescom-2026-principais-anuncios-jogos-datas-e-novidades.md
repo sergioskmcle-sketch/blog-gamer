@@ -14,6 +14,7 @@ Fala, gamer! Se você está ligado no que rolou na **Gamescom 2026**, veio ao lu
 
 <img src="https://img.global.news.samsung.com/global/wp-content/uploads/2026/08/10210520/Samsung-TVs-and-Displays-Gamescom-2026_Thumb932-728x410.jpg" alt="Gamescom 2026" class="article-game-img" loading="lazy" decoding="async">
 
+<img src="https://i.ytimg.com/vi/OzZ6ITvwb_U/maxresdefault.jpg" alt="Grounded 2" class="article-game-img" loading="lazy" decoding="async">
 ### <a id="grounded-2-sobrevivencia-em-miniatura"></a>**Grounded 2 — Sobrevivência em Miniatura**
 
 **Grounded 2** chegou com tudo, e a galera da Obsidian Entertainment não decepcionou. O jogo de sobrevivência que coloca você na pele de uma criança miniaturizada em um jardim cheio de perigos já está disponível desde 11 de agosto de 2026 para PS5. A nova versão promete expandir a jogabilidade com novos inimigos e mecânicas, e a expectativa é de que esse seja um dos grandes sucessos do ano.
@@ -22,11 +23,15 @@ A fórmula de sobrevivência continua, mas agora dá pra esperar uma profundidad
 
 ### <a id="the-legend-of-zelda-ocarina-of-time-remake-nostalgia-em-alta"></a>**The Legend of Zelda: Ocarina of Time Remake — Nostalgia em Alta Definição**
 
+<img src="https://static0.srcdn.com/wordpress/wp-content/uploads/2026/08/ocarina-of-time-link-in-front-of-a-still-from-the-trailer-for-the-new-game.jpg?w=1600&h=900&fit=crop" alt="The Legend of Zelda: Ocarina of Time" class="article-game-img" loading="lazy" decoding="async">
+
 A Nintendo não ficou de fora e anunciou o tão esperado remake de **Ocarina of Time** para o Nintendo Switch 2. Isso mesmo, mermao! O clássico da era 64-bit está voltando com gráficos de tirar o fôlego e uma jogabilidade modernizada, prometendo trazer de volta as memórias de muitos fãs.
 
 A empolgação é real, e o jogo já está em alta na lista de desejos da galera. Se você nunca jogou, é a hora de embarcar nessa jornada épica com Link e enfrentar os desafios de Hyrule. E se você já jogou, bora revisitar esse clássico com novos olhos!
 
 ### <a id="the-witcher-3-songs-of-the-past-a-ultima-aventura-de-geralt"></a>**The Witcher 3: Songs of the Past — A Última Aventura de Geralt**
+
+<img src="https://press.cdprojektred.com/_next/image?url=https%3A%2F%2Fpress.cdn.cdpr.app%2Fnews%2Fb0e6b22fb66257e779fae03329a56cde_q90_1024x576.jpeg&w=1920&q=75" alt="The Witcher 3: Songs of the Past" class="article-game-img" loading="lazy" decoding="async">
 
 A CD Projekt RED confirmou novas informações sobre **The Witcher 3: Wild Hunt — Songs of the Past** durante o Opening Night Live. Essa expansão promete ser a última aventura de Geralt de Rívia, e sua chegada está programada para 2027 em PS5, Xbox Series X|S e PC.
 
@@ -34,11 +39,15 @@ Os desenvolvedores estão trazendo novas mecânicas e uma narrativa que promete 
 
 ### <a id="final-fantasy-7-revelation-um-novo-capitulo-na-saga"></a>**Final Fantasy 7: Revelation — Um Novo Capítulo na Saga**
 
+<img src="https://i.ytimg.com/vi/PH3ox5krci8/maxresdefault.jpg" alt="Final Fantasy 7: Revelation" class="article-game-img" loading="lazy" decoding="async">
+
 A Square Enix também não ficou atrás e trouxe novidades sobre **Final Fantasy 7: Revelation**. O jogo vai ganhar um novo trailer durante o evento, e a expectativa é de que ele traga mais informações sobre a história e personagens que todos amamos.
 
 Esse novo título promete ser um marco na série, e a galera tá na expectativa de ver como vão conectar as histórias e mecânicas. Se você é fã de RPG, já tá na hora de preparar o seu melhor setup pra encarar essa nova aventura!
 
 ### <a id="xbox-na-gamescom-2026-lancamentos-em-peso"></a>**Xbox na Gamescom 2026 — Lançamentos em Peso**
+
+<img src="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3010850/1abb0c5ef76c14f463dd6e3964adb64f984237d2/header.jpg?t=1786383462" alt="Gears of War: E-Day" class="article-game-img" loading="lazy" decoding="async">
 
 A Microsoft aproveitou a Gamescom para mostrar sua força com uma lista impressionante de jogos. Entre os destaques estão **Call of Duty: Modern Warfare 4**, **Fable**, **Minecraft Dungeons II** e **Gears of War: E-Day**. Com 25 títulos jogáveis e 140 estações de jogo, o estande da Xbox foi um dos pontos altos do evento.
 
