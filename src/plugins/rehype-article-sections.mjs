@@ -193,15 +193,24 @@ export default function rehypeArticleSections() {
       } else {
         // TAREFA 3.2: o que vem antes do primeiro H2 e a introducao — ganha um
         // container proprio com a ancora usada pelo item "Introducao" do TOC.
+        // O titulo "<h2>Introdução</h2>" e injetado para a introducao ter o
+        // mesmo aspecto das demais secoes; a ancora fica no proprio h2 (o
+        // id da section e removido para nao duplicar).
         if (!intro) {
           intro = {
             type: "element",
             tagName: "section",
             properties: {
               className: ["article-section", "article-intro"],
-              id: "introducao",
             },
-            children: [],
+            children: [
+              {
+                type: "element",
+                tagName: "h2",
+                properties: { id: "introducao" },
+                children: [{ type: "text", value: "Introdução" }],
+              },
+            ],
           };
         }
         intro.children.push(node);

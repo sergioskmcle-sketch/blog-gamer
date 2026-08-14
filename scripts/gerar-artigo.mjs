@@ -229,6 +229,8 @@ const HARDWARE_KEYWORDS = [
   "microfone", "cooler", "ventoinha", "notebook", "gpu", "cpu",
   "placa mãe", "placa mae", "placa-mae", "acessório", "acessorio",
   "smart tv", "smartv", "televisão", "televisao", "tv",
+  "volante", "volantes", "volante gamer", "volante de corrida",
+  "racing wheel", "direct drive", "simulador de corrida", "pedaleira",
 ];
 
 const EVENT_KEYWORDS = ["e3", "game awards", "gamescom", "brasil game show", "bgs", "lançamento", "lancamento", "colaboração", "colaboracao", "collab", "crossover", "parceria", "atualização", "atualizacao", "queda de preço", "queda de preco", "recorde de vendas", "trailer", "gameplay", "beta", "demo", "dlc", "expansão", "expansao", "anúncio", "anuncio", "skin", "temporada", "season"];
@@ -244,18 +246,23 @@ initKeywordMap();
 
 // Classifica um texto como "games" (jogos/consoles/software) ou "hardware" (periféricos/PC)
 // Retorna tambem "promo" (termos genericos de promocao), "mixed" (ambos) ou "unknown".
+// Console/plataforma (PS5, Xbox, PC) NAO e assunto de games quando o texto tem
+// hardware: "volante gamer para PS5" e um artigo de hardware cujo console e so
+// plataforma. So um titulo/evento de jogo real misturado com hardware e "mixed".
 function classifyDomain(text) {
   // Ignora a secao de Fontes, que e obrigatoria em todo artigo e pode conter termos ambiguos
   const cleaned = String(text || "").replace(/##?\s*Fontes[\s\S]*$/im, "");
   const lower = cleaned.toLowerCase();
-  const hasGame = GAME_KEYWORDS.some((k) => lower.includes(k)) ||
-                  CONSOLE_KEYWORDS.some((k) => lower.includes(k)) ||
-                  EVENT_KEYWORDS.some((k) => lower.includes(k) && k !== "lancamento" && k !== "lançamento");
+  const hasGameSubject = GAME_KEYWORDS.some((k) => lower.includes(k)) ||
+                        EVENT_KEYWORDS.some((k) => lower.includes(k) && k !== "lancamento" && k !== "lançamento");
+  const hasConsole = CONSOLE_KEYWORDS.some((k) => lower.includes(k));
   const hasHardware = HARDWARE_KEYWORDS.some((k) => lower.includes(k));
 
-  if (hasGame && hasHardware) return "mixed";
-  if (hasHardware) return "hardware";
-  if (hasGame) return "games";
+  if (hasHardware) {
+    if (hasGameSubject) return "mixed";
+    return "hardware";
+  }
+  if (hasGameSubject || hasConsole) return "games";
   return "unknown";
 }
 
@@ -274,14 +281,18 @@ function explainMixedDomain(text) {
 // Contagem de mencoes por dominio — detecta FOCO misto real. Artigo de hardware
 // cita jogos como contexto ("ideal para Valorant") sem ser misto; o foco so e
 // dividido quando os DOIS lados tem peso equivalente no corpo.
+// Console/plataforma (PS5, Xbox, PC) conta como "games" apenas quando o texto
+// NAO tem hardware: num artigo de volante, "PS5" e plataforma, nao assunto.
 function dominiosNoTexto(text) {
   const lower = String(text || "").replace(/##?\s*Fontes[\s\S]*$/im, "").toLowerCase();
   let games = 0;
   let hardware = 0;
+  let consoles = 0;
   for (const k of GAME_KEYWORDS) if (k) games += lower.split(k).length - 1;
-  for (const k of CONSOLE_KEYWORDS) if (k) games += lower.split(k).length - 1;
+  for (const k of CONSOLE_KEYWORDS) if (k) consoles += lower.split(k).length - 1;
   for (const k of EVENT_KEYWORDS) if (k && k !== "lancamento" && k !== "lançamento") games += lower.split(k).length - 1;
   for (const k of HARDWARE_KEYWORDS) if (k) hardware += lower.split(k).length - 1;
+  if (hardware === 0) games += consoles;
   return { games, hardware };
 }
 
@@ -1236,6 +1247,33 @@ function extractListItemTitles(body) {
     itens.push(heads[i]);
   }
   return itens.filter(Boolean);
+}
+
+// Nomes dos itens listados como subsecoes ### de um artigo de hardware SEM
+// produtos (ex.: "### Moza R12 Direct Drive V1 — A Forca Bruta para PC"). Usados
+// como referencia para a capa IA focar nos ITENS (e nao num cenario generico).
+// So coleta as ### dentro da secao principal da lista: para ao cruzar uma secao
+// de fim (Comparativo/Veredito/FAQ), que nao sao itens.
+function extractSubsectionItemNames(body) {
+  const out = [];
+  let inListSection = false;
+  for (const line of String(body || "").split("\n")) {
+    const h2 = line.match(/^##\s+(.+)$/);
+    if (h2) {
+      const text = h2[1].trim().replace(/^<a[^>]*>\s*<\/a>\s*/i, "").trim();
+      if (LISTA_STOP_HEADING.test(text)) break;
+      if (inListSection) break;
+      inListSection = true;
+      continue;
+    }
+    if (!inListSection) continue;
+    const m = line.match(/^###\s+(.+)$/);
+    if (!m) continue;
+    const text = m[1].trim().replace(/^<a[^>]*>\s*<\/a>\s*/i, "").replace(/\s*[—–-].*$/g, "").trim();
+    if (!text || LISTA_STOP_HEADING.test(text)) continue;
+    out.push(text);
+  }
+  return [...new Set(out)].slice(0, 6);
 }
 
 // Similaridade de titulo de jogo: igualdade, substring ou >= 60% dos tokens
@@ -3687,7 +3725,7 @@ ${personaPrompt}${trendingNote}
 
 ## MARCADORES DE POSICIONAMENTO (OBRIGATORIO)
 Voce nao renderiza imagens nem cards de produto — voce decide ONDE eles entram, com marcadores que o sistema substitui depois.
-- [IMG:Nome] — OBRIGATORIO em cada secao ## EXCETO nos itens da secao de lista de produtos (nesses itens a foto do produto e injetada automaticamente). Coloque em uma linha sozinha, logo APOS o titulo ## da propria secao (a imagem fica DENTRO da secao, abaixo do titulo e acima do texto). Para secoes sobre um jogo, use o nome do jogo (ex: [IMG:God of War Laufey]). Para secoes gerais (setup, comparativos, FAQ, lancamentos), use uma descricao curta do topico (ex: [IMG:Setup Gamer], [IMG:Comparativo de Consoles], [IMG:Perguntas Frequentes]). O sistema busca imagens automaticamente via web. SEMPRE use um marcador — nao existe secao sem imagem.
+- [IMG:Nome] — OBRIGATORIO em cada secao ## EXCETO nos itens da secao de lista de produtos (nesses itens a foto do produto e injetada automaticamente). Tambem e OBRIGATORIO em subsecoes ### que descrevem um item/modelo quando NAO ha foto automatica de produto (ex.: "### Moza R12 Direct Drive V1" sem [PRODUTO:N]) — coloque [IMG:Nome do item] em linha sozinha, logo APOS o titulo ###. Coloque o marcador em uma linha sozinha, logo APOS o titulo da propria secao (a imagem fica DENTRO da secao, abaixo do titulo e acima do texto). Para secoes sobre um jogo, use o nome do jogo (ex: [IMG:God of War Laufey]). Para secoes gerais (setup, comparativos, FAQ, lancamentos), use uma descricao curta do topico (ex: [IMG:Setup Gamer], [IMG:Comparativo de Consoles], [IMG:Perguntas Frequentes]). O sistema busca imagens automaticamente via web. SEMPRE use um marcador — nao existe secao sem imagem.
 - ${mlProducts.length > 0 ? `[PRODUTO:N] — um marcador por item, na secao de Itens (a primeira secao ## do artigo, logo apos a introducao), cada um na linha sozinha e logo APOS o texto que descreve aquele item. NAO empilhe todos no comeco. Use o numero exato indicado na lista de produtos.` : "Nao ha produtos nesta rodada — nao use [PRODUTO:N]."}
 - Nunca coloque dois marcadores seguidos sem texto entre eles. Se um jogo ou produto nao tem relevancia real em nenhum trecho, omita o marcador — melhor faltar do que forcar.
 - Se o sistema nao achar imagem para um [IMG:...], ele remove o marcador. Entao o paragrafo tem que fazer sentido sozinho, sem depender da imagem.
@@ -4032,18 +4070,25 @@ Checklist antes de responder:
   const coverContext = topic.hint || fm.title || "";
   const gameRefs = Object.values(gameImages);
   const hasProducts = mlProducts.length > 0;
+  // Artigo de hardware sem produtos (ex.: noticia sobre volantes): a capa deve
+  // focar nos ITENS do artigo, nao num cenario generico. Os nomes das subsecoes
+  // ### viram referencia para a IA compor os produtos sobre a mesa.
+  const hardwareItemNames = effectiveDomain === "hardware" && !hasProducts
+    ? extractSubsectionItemNames(body)
+    : [];
+  const coverProducts = hasProducts ? mlProducts : hardwareItemNames.map((name) => ({ name }));
 
   if (process.env.SKIP_COVER) {
     log("INFO", "SKIP_COVER: capa IA pulada — usando fallbacks gratuitos");
   } else {
-    log("INFO", `Gerando capa IA contextual (categoria: ${categoria}, ${hasProducts ? mlProducts.length + " produtos" : "sem produtos"}, ${gameRefs.length} imagens de jogo)...`);
-    if (hasProducts) {
-      coverImage = await gerarCapaOpenAI({ mlProducts, category: categoria, slug: capaSlug, context: coverContext }) || "";
+    log("INFO", `Gerando capa IA contextual (categoria: ${categoria}, ${coverProducts.length > 0 ? coverProducts.length + " itens de referencia" : "sem referencia de itens"}, ${gameRefs.length} imagens de jogo)...`);
+    if (coverProducts.length > 0) {
+      coverImage = await gerarCapaOpenAI({ mlProducts: coverProducts, category: categoria, slug: capaSlug, context: coverContext }) || "";
     } else {
       coverImage = await gerarCapaOpenAI({ mlProducts: [], category: categoria, slug: capaSlug, contentType: "game", context: coverContext, gameRefs }) || "";
     }
     if (!coverImage) {
-      coverImage = await gerarCapaStability({ mlProducts, category: categoria, slug: capaSlug, context: coverContext, gameRefs }) || "";
+      coverImage = await gerarCapaStability({ mlProducts: coverProducts, category: categoria, slug: capaSlug, context: coverContext, gameRefs }) || "";
     }
   }
 
@@ -4928,6 +4973,7 @@ export {
   LISTA_MARKER,
   temFocoMisto,
   dominiosNoTexto,
+  classifyDomain,
   parseBlurb,
   buildMetodologiaSection,
   buildComparativoTable,
@@ -4967,6 +5013,7 @@ export {
   ensureListStructure,
   buildGamesListHeading,
   extractListItemTitles,
+  extractSubsectionItemNames,
   tituloSemelhante,
   montarQueryPesquisa,
 };

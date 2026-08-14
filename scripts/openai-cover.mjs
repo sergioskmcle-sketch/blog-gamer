@@ -38,6 +38,7 @@ function buildPromptFromProducts(products, category, backgroundTone, contentType
   const typeCounts = {};
   products.forEach(p => {
     const t = (p.title || p.name || "").toLowerCase();
+    if (t.includes("volante") || t.includes("volante de corrida") || t.includes("racing wheel") || t.includes("direct drive")) typeCounts.volante = (typeCounts.volante || 0) + 1;
     if (t.includes("cadeira")) typeCounts.cadeira = (typeCounts.cadeira || 0) + 1;
     if (t.includes("headset") || t.includes("fone")) typeCounts.headset = (typeCounts.headset || 0) + 1;
     if (t.includes("monitor")) typeCounts.monitor = (typeCounts.monitor || 0) + 1;
@@ -50,6 +51,9 @@ function buildPromptFromProducts(products, category, backgroundTone, contentType
 
   let sceneDescription;
   switch (dominantType) {
+    case "volante":
+      sceneDescription = "gaming steering wheels (racing wheels) prominently displayed on a clean gaming desk, in front of a monitor with a racing sim on screen. The wheels are LARGE, sharp and dominate the frame, mounted with pedals below. Warm ambient RGB lighting in the softly blurred background with bokeh. No people, no characters.";
+      break;
     case "cadeira":
       sceneDescription = "a premium gaming chair with high-back racing design and thick padding, prominently displayed in a gaming room with a desk and monitor visible in the softly blurred background with bokeh effect. The chair dominates the frame.";
       break;
@@ -98,6 +102,7 @@ function buildEditPrompt(products, category, backgroundTone, contentType, contex
   const typeCounts = {};
   products.forEach(p => {
     const t = (p.title || p.name || "").toLowerCase();
+    if (t.includes("volante") || t.includes("volante de corrida") || t.includes("racing wheel") || t.includes("direct drive")) typeCounts.volante = (typeCounts.volante || 0) + 1;
     if (t.includes("cadeira")) typeCounts.cadeira = (typeCounts.cadeira || 0) + 1;
     if (t.includes("headset") || t.includes("fone")) typeCounts.headset = (typeCounts.headset || 0) + 1;
     if (t.includes("monitor")) typeCounts.monitor = (typeCounts.monitor || 0) + 1;
@@ -110,6 +115,9 @@ function buildEditPrompt(products, category, backgroundTone, contentType, contex
 
   let sceneDescription;
   switch (dominantType) {
+    case "volante":
+      sceneDescription = "a clean gaming desk setup with a monitor showing a racing sim. The steering wheels should be displayed prominently, LARGE and in focus, showing their rim, buttons, shifters and pedals. Ambient RGB lighting, softly blurred background with bokeh. No people, no characters.";
+      break;
     case "cadeira":
       sceneDescription = "a gaming room setup with ambient RGB lighting. The chairs should be arranged to highlight their design, padding, and ergonomic features.";
       break;

@@ -30,8 +30,10 @@ import {
   ensureListStructure,
   buildGamesListHeading,
   extractListItemTitles,
+  extractSubsectionItemNames,
   tituloSemelhante,
   montarQueryPesquisa,
+  classifyDomain,
 } from "./gerar-artigo.mjs";
 import { normalizarAnosPreposicional } from "./tempo.mjs";
 import { parsePriceBRL } from "./google_shopping.mjs";
@@ -560,9 +562,23 @@ ok(buildListHeading([{ title: "A" }, { title: "B" }], "melhores teclados gamer e
 ok(!temFocoMisto("Teclado Redragon com switches brown. Mouse gamer leve. Monitor 165Hz."), "foco: artigo de hardware nao e misto");
 ok(!temFocoMisto("Teclado gamer ideal para Valorant e Counter-Strike 2."), "foco: mencao de jogo como contexto NAO e misto");
 ok(!temFocoMisto("Headset com som espacial para partidas de CS2."), "foco: citacao unica de jogo nao e misto");
-ok(temFocoMisto("Consoles vs Placas de Video: o PS5 e a RTX 4060 disputam. Xbox e GeForce."), "foco: tema dividido entre games e hardware e misto");
+// Consoles sao plataforma/produto de hardware ("Consoles vs Placas de Video" e
+// um comparativo de HARDWARE, nao um artigo de games). Misto exige um titulo de
+// jogo real com peso equivalente ao hardware no corpo.
+ok(!temFocoMisto("Consoles vs Placas de Video: o PS5 e a RTX 4060 disputam. Xbox e GeForce."), "foco: comparativo de hardware (consoles vs placa) NAO e misto");
+ok(temFocoMisto("O GTA 6 e o GTA 5 no PS5 com a RTX 4060. Valorant e Cyberpunk no GeForce. Mouse gamer e teclado Redragon."), "foco: titulos de jogo reais + hardware com pesos equivalentes e misto");
 ok(temFocoMisto("O GTA 6 no PS5. Headset gamer. Mouse gamer. Valorant. Teclado gamer. Monitor gamer."), "foco: pesos equivalentes dos dois dominios");
 ok(dominiosNoTexto("").games === 0 && dominiosNoTexto("").hardware === 0, "foco: texto vazio zerado");
+
+// --- Fase 2: dominio volante/plataforma (console como plataforma, nao assunto) ---
+igual(classifyDomain("volante gamer ps5"), "hardware", "dominio: volante para PS5 e hardware (console e plataforma)");
+igual(classifyDomain("melhores volantes de corrida para xbox"), "hardware", "dominio: volante para Xbox e hardware");
+igual(classifyDomain("gta 6 no ps5 e headset gamer"), "mixed", "dominio: titulo de jogo + hardware e misto");
+igual(classifyDomain("volante gamer"), "hardware", "dominio: volante sozinho e hardware");
+igual(classifyDomain("fortnite e valorant no pc"), "games", "dominio: jogos seguem games");
+igual(classifyDomain("novidades do ps5 e game pass"), "games", "dominio: console sem hardware e games");
+ok(!temFocoMisto("Volante gamer para PS5 e PC. Moza R12 para simuladores de corrida."), "foco: volante citando plataformas NAO e misto");
+igual(extractSubsectionItemNames("## Itens\n\n### Moza R12 Direct Drive V1 — A Forca\n\n### Thrustmaster T128\n\n## Comparativo\n\n### Pergunta do FAQ").join(","), "Moza R12 Direct Drive V1,Thrustmaster T128", "subsecoes: extrai itens ### e para no Comparativo");
 
 // --- Fase 2: parseBlurb ---
 const blurbOk = parseBlurb("TAGLINE: melhor custo-beneficio\n\nCORPO:\nParagrafo um.\n\nParagrafo dois.\n\nNOTA: 4.5\nDESTAQUE: 60fps estaveis");

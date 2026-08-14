@@ -18,24 +18,28 @@ Para separar um equipamento decente de um brinquedo de plástico que vai quebrar
 O mercado de simuladores conta com equipamentos que atendem desde quem está dando as primeiras voltas até quem busca a precisão cirúrgica das competições virtuais. Cada projeto aposta em uma tecnologia de transmissão diferente, influenciando diretamente a resposta física que você sente ao passar por uma zebra em **Gran Turismo 7** ou fritar pneu em **Assetto Corsa**.
 
 ### <a id="moza-r12-direct-drive-v1-a-forca-bruta-para-pc"></a>Moza R12 Direct Drive V1 — A Força Bruta para PC
+<img src="https://mozaracing.com/cdn/shop/files/R12_V2-1.webp?v=1755053461&width=1000" alt="Moza R12 Direct Drive V1" class="article-game-img" loading="lazy" decoding="async">
 
 A Moza R12 Direct Drive V1 entrega impressionantes 12 Nm de torque máximo, eliminando correias ou engrenagens intermediárias para conectar o aro diretamente ao motor. Essa tecnologia Direct Drive garante um nível absurdo de detalhamento tátil, transmitindo cada ondulação da pista e perda de aderência sem qualquer folga mecânica.
 
 Com construção refinada em alumínio de grau de aviação, o modelo se posiciona no ponto de equilíbrio perfeito entre as bases mais básicas e os equipamentos de ponta dos campeonatos mundiais. Se você foca em simulação pesada no PC e quer um ecossistema maduro para trocar aros e pedais no futuro, essa base entrega exatamente o que promete sem enrolação.
 
 ### <a id="thrustmaster-t128-a-entrada-inteligente-para-iniciantes"></a>Thrustmaster T128 — A Entrada Inteligente para Iniciantes
+<img src="https://eshop.thrustmaster.com/media/catalog/product/t/1/t128p_1000x1000_1.webp" alt="Thrustmaster T128" class="article-game-img" loading="lazy" decoding="async">
 
 Projetado para quem quer abandonar o controle tradicional sem estourar o orçamento, o Thrustmaster T128 aposta no sistema Hybrid Drive, que combina correia e engrenagens para suavizar a entrega de força. Ele acompanha pedais magnéticos que melhoram a precisão de frenagem, rendendo uma nota média de 7.6 em análises especializadas do automobilismo virtual.
 
 Embora tenha uma carcaça focada em plástico leve, o Force Feedback responsivo do T128 já permite entender o comportamento do carro em jogos como **EA Sports WRC**. É o modelo ideal para quem está montando a primeira estação de corrida e quer sentir a resistência das rodas sem complicação.
 
 ### <a id="linha-logitech-g-confiabilidade-no-console-e-pc"></a>Linha Logitech G — Confiabilidade no Console e PC
+<img src="https://resource.logitechg.com/c_fill,q_auto,f_auto,dpr_1.0/d_transparent.gif/content/dam/gaming/en/products/drivingforce/2025/gallery/g920-xbox-3qtr-angle-gallery-1.png" alt="Linha Logitech G" class="article-game-img" loading="lazy" decoding="async">
 
 A consagrada linha Logitech G, com modelos como o Logitech G RS50 e seus antecessores diretos, continua como a porta de entrada mais popular para quem joga no PlayStation 5 e PC. A fabricante domina a compatibilidade nativa nos consoles, permitindo plugar o periférico e sair acelerando sem precisar configurar dezenas de perfis em menus complexos.
 
 A engenharia da marca foca na durabilidade dos componentes internos e no suporte amplo pelas desenvolvedoras em lançamentos do calibre de **F1 24**. Você pluga no videogame, calibra em segundos e já sente o peso da direção trabalhando a seu favor.
 
 ### <a id="xbox-360-wireless-speed-wheel-a-curiosidade-historica"></a>Xbox 360 Wireless Speed Wheel — A Curiosidade Histórica
+<img src="https://m.media-amazon.com/images/I/71ScjfApIIL.jpg" alt="Xbox 360 Wireless Speed Wheel" class="article-game-img" loading="lazy" decoding="async">
 
 Vale lembrar como a indústria já tentou inventar moda no passado para atrair o público casual. O clássico Xbox 360 Wireless Speed Wheel apostou em um exótico formato de "U" com anéis luminosos verdes nas pontas, dispensando bases fixas ou mesas para tentar surfar no sucesso dos controles de movimento.
 
