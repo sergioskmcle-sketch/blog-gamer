@@ -175,16 +175,101 @@ function articleInfo(slug) {
   const content = fs.readFileSync(p, "utf8");
   const fm = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)?.[1] || "";
   const title = (fm.match(/^title:\s*"?(.+?)"?\s*$/m)?.[1] || "").replace(/\\"/g, '"').trim();
-  return { title };
+  // corpo do artigo (sem frontmatter) para alimentar o gerador de legenda
+  const body = content.replace(/^---[\s\S]*?---\r?\n/, "").trim();
+  return { title, body };
 }
 
-function buildCaption(title, slug) {
-  return `${title}
+// Gera a legenda do feed com resumo estruturado (paragrafo + topicos) por LLM.
+// Tolerante: qualquer falha cai numa legenda base com o titulo.
+async function gerarDescricaoEstruturada(info) {
+  const sys =
+    "Voce e um social media do blog gamer Promo Gamer. Escreva UMA legenda de post do feed Instagram, em portugues do Brasil, sobre a materia abaixo. Estruture em: (1) 1 paragrafo de engajamento (2-3 frases), (2) 3 a 5 topicos curto com bullets no inicio, cobrindo os pontos-chave da materia. Seja direto, com tom gamer, SEM hashtags. No final, adicione exatamente a linha \"Toque no link da bio para ler a materia completa\". Responda APENAS com a legenda.";
+  const user = `Titulo: ${info.title}\n\nMateria:\n${String(info.body || "").slice(0, 6000)}`;
 
-promogamer.com.br/blog/${slug}
+  const envKeys = {
+    gemini: process.env.GEMINI_API_KEY,
+    groq: process.env.GROQ_API_KEY,
+    openai: process.env.OPENAI_API_KEY,
+  };
+
+  const tryGemini = async () => {
+    if (!envKeys.gemini) throw new Error("sem GEMINI_API_KEY");
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${envKeys.gemini}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: sys }] },
+        contents: [{ role: "user", parts: [{ text: user }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 900 },
+      }),
+      signal: AbortSignal.timeout(45000),
+    });
+    if (!res.ok) throw new Error(`Gemini ${res.status}`);
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  };
+
+  const tryGroq = async () => {
+    if (!envKeys.groq) throw new Error("sem GROQ_API_KEY");
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${envKeys.groq}` },
+      body: JSON.stringify({
+        model: "openai/gpt-oss-120b",
+        messages: [{ role: "system", content: sys }, { role: "user", content: user }],
+        temperature: 0.7,
+        max_tokens: 900,
+      }),
+      signal: AbortSignal.timeout(45000),
+    });
+    if (!res.ok) throw new Error(`Groq ${res.status}`);
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || "";
+  };
+
+  const tryOpenAI = async () => {
+    if (!envKeys.openai) throw new Error("sem OPENAI_API_KEY");
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${envKeys.openai}` },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "system", content: sys }, { role: "user", content: user }],
+        temperature: 0.7,
+        max_tokens: 900,
+      }),
+      signal: AbortSignal.timeout(45000),
+    });
+    if (!res.ok) throw new Error(`OpenAI ${res.status}`);
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || "";
+  };
+
+  for (const fn of [tryGemini, tryGroq, tryOpenAI]) {
+    try {
+      const texto = (await fn()).trim();
+      if (texto.length > 40) {
+        log("INFO", `Legenda estruturada gerada via ${fn.name} (${texto.length} chars)`);
+        return texto;
+      }
+    } catch (e) {
+      log("WARN", `Legenda via ${fn.name} falhou: ${e.message}`);
+    }
+  }
+  return null;
+}
+
+function buildCaption(info, slug) {
+  const rodo = `promogamer.com.br/blog/${slug}
 🔗 link na bio
 
 #promogamer #promocoes #games #gamer #ofertas #videogame #game`;
+  const corpo = info.legenda?.trim() || info.title;
+  return `${corpo}
+
+${rodo}`;
 }
 
 async function main() {
@@ -235,7 +320,11 @@ async function main() {
   const base = `https://raw.githubusercontent.com/${cfg.repo}/main/public/images/instagram/`;
   const feedUrl = `${base}${slug}.png`;
   const storyUrl = `${base}${slug}-story.png`;
-  const caption = buildCaption(info.title, slug);
+
+  // Legenda estruturada (paragrafo + topicos) gerada por LLM, se possivel.
+  const legenda = await gerarDescricaoEstruturada(info);
+  if (legenda) info.legenda = legenda;
+  const caption = buildCaption(info, slug);
 
   const feed = await publishMedia(cfg.igId, token, feedUrl, caption, "IMAGE", "feed");
   await sleep(12000);
