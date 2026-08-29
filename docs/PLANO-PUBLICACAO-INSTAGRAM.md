@@ -1,22 +1,42 @@
 # Plano — Publicação Automática dos Artigos no Instagram
 
-> Status: **pronto para produção** (arte a partir de mockups + publicação + workflow + secrets; pendente apenas o 1º teste de publicação real e o link na bio).
+> Status: **em produção** (1º artigo publicado no feed + story e no blog; legenda do feed com resumo estruturado por IA; pendente apenas o link na bio).
 > Repositório: `blog-gamer` · Conta Instagram: `@comproubarato2025` · Última revisão: 29/08/2026
+
+## 12. Legenda do feed com resumo estruturado (29/08/2026)
+
+Hoje a legenda do feed era só o título + URL + hashtags. Agora é **gerada por IA** (Gemini → Groq → OpenAI, com fallback tolerante a erro), no formato:
+1. **Parágrafo de engajamento** (2-3 frases).
+2. **3 a 5 bullets** com os pontos-chave da matéria.
+3. **CTA final**: "Toque no link da bio para ler a matéria completa" + URL + hashtags.
+
+Mudanças:
+- `scripts/publicar-instagram.mjs`: `articleInfo` agora retorna o corpo do artigo; nova função `gerarDescricaoEstruturada(info)` produz a legenda; `buildCaption(info, slug)` monta o texto final. Se a LLM falhar, cai na legenda base (título) sem quebrar o post.
+- `.github/workflows/gerar-conteudo.yml`: o passo "Publicar no Instagram" agora passa `GEMINI_API_KEY`, `GROQ_API_KEY` e `OPENAI_API_KEY`.
+- Commit: `43de4be`.
 
 ## 11. Estado atual (29/08/2026)
 
-O pipeline está **commitado, pushado e com secrets configurados**. No próximo artigo novo, o workflow roda a arte + publicação automaticamente.
+O pipeline está **em produção**. O 1º artigo novo foi gerado e publicado automaticamente no blog e no Instagram.
 
 Concluído:
+- [x] **1º artigo publicado de ponta a ponta**: *"Call of Duty Modern Warfare 4 beta: passo a passo para entrar"* (blog + feed `media_id=17967698685138867` + story `media_id=17997918584805607`). Dedup registrado em `scripts/.ig-posted.json`.
 - [x] Commit + push (`fa33f38`) de: mockups (`feed-4x5.png`, `story-9x16.png`), `scripts/gerar-arte-instagram.mjs`, `scripts/publicar-instagram.mjs`, `scripts/fonts/` (Bungee + Geist), `scripts/.ig-config.json.example`, `public/images/instagram/`, workflow `gerar-conteudo.yml`, `.gitignore` e este documento.
 - [x] Gravação dos 6 secrets no GitHub: `IG_TOKEN`, `IG_LONG_TOKEN`, `IG_IG_ID`, `IG_PAGE_ID`, `FB_APP_ID`, `FB_APP_SECRET` (lidos do afiliados-monitor sem expor valores).
-- [x] Arte de teste verificada visualmente (feed + story) para `volante-gamer-no-ps5-e-pc-4-opcoes-para-simuladores-em-2026`.
+- [x] Arte de teste verificada visualmente (feed + story).
+- [x] Pipeline de pesquisa destravado: **Serper** virou fonte primária de busca (Tavily ficou como reserva) — ver §13.
 
 Ainda pendente:
-- [ ] **1º teste real de publicação** do workflow (verificar se o artigo novo é postado no feed + story).
 - [ ] Adicionar `https://promogamer.com.br` na **bio** do Instagram (link clicável — §6).
 
-Observação (fora do escopo do Instagram): os runs recentes do `gerar-conteudo.yml` vêm falhando no passo **"Gerar artigo"**. Isso precisa ser investigado antes de confiar no ciclo automático — ver seção "Pendências conhecidas" ao final.
+Observação (fora do escopo do Instagram): os runs do `gerar-conteudo.yml` falharam por cota do Tavily e orçamento de tokens — corrigidos em §13 e no commit do pipeline (ver "Pendências conhecidas" ao final).
+
+## 13. Correção do pipeline de pesquisa e tokens (29/08/2026)
+
+Problemas encontrados e resolvidos (commit `562a9fb`):
+- **Cota do Tavily esgotada (HTTP 432)** → invertido: **Serper é o primário** (cota gratuita ~2.500 buscas/mês, já era a reserva no projeto) e **Tavily virou a reserva** (free tier renova mensalmente). `scripts/pesquisar-fundo.mjs`.
+- **Orçamento de tokens (64000 TPM)** → limitado o `raw_content` da Tavily a 3000 chars na origem, síntese de fatos a 6×2000 e contexto principal a 6 fontes (era 8). `scripts/pesquisar-fundo.mjs`.
+- **Falso positivo "prompt grande demais"** → guard de `max_tokens < 1000` só dispara quando a saída **não** foi pedida explicitamente; deixou de bloquear chamadas pequenas (frontmatter, blurb, planner). `scripts/gerar-artigo.mjs`.
 
 ## 10. Arte baseada em mockups (29/08/2026)
 
@@ -141,4 +161,5 @@ A imagem é servida ao Instagram via `https://raw.githubusercontent.com/<repo>/m
 - [ ] Os dois projetos (afiliados-monitor e blog) publicando sem se conflitar.
 
 ## Pendências conhecidas (fora do escopo do Instagram)
-- Os runs recentes do workflow `gerar-conteudo.yml` estão **falhando no passo "Gerar artigo"** (ex.: RSS TecMundo 502, Adrenaline 403). Isso é um problema do gerador/pipeline de conteúdo, independente da publicação no Instagram, e precisa ser investigado para o ciclo diário voltar a produzir artigos. Enquanto isso, a publicação do Instagram só dispara quando um artigo novo é criado com sucesso.
+- **Resolvido**: a falha no passo "Gerar artigo" era a **cota do Tavily (432)** combinada com o **estouro do orçamento de tokens (64000 TPM)** e um **falso positivo no guard de `max_tokens`**. Corrigido em `562a9fb` — ver §13 (Serper como primário + corte de conteúdo + guard corrigido). O 1º artigo novo foi gerado com sucesso após o fix.
+- **Ainda pendente (menor)**: RSS TecMundo (502), Adrenaline (403) e Reddit (403) continuam retornando erro, mas **não impedem** o pipeline — apenas reduzem as fontes de trending (o Serper cobre a busca). Se quiser, dá para investigar/remover essas fontes em uma melhoria futura.
