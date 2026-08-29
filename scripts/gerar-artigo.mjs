@@ -3273,18 +3273,22 @@ async function main() {
     }
   }
 
-  // Noticia vinda de TRENDING mantem a propria categoria — a esteira so roda
-  // para outros temas. Sem isto, uma noticia quente (ex: Marvel's Wolverine)
-  // era forcada para "review"/"lista" da rotacao, abrindo busca de produtos de
-  // console e abortando o artigo (10/08/2026).
-  // FALLBACK DE TEMA (P2): em vez de uma unica tentativa, o main() monta um
+  // Temas de trending escolhidos pela IA mantêm sua categoria — a IA já
+  // analisou o formato ideal do assunto. A esteira só força temas estáticos.
+  // Sem isto, uma notícia quente (ex: Marvel's Wolverine) era forçada para
+  // "review"/"lista" da rotação, abrindo busca de produtos de console e
+  // abortando o artigo (10/08/2026). E um review escolhido pela IA era forçado
+  // para "noticia", gerando ~800 palavras em um artigo que o gate exige 900
+  // (29/08/2026).
+  // FALLBACK DE TEMA (P2): em vez de uma única tentativa, o main() monta um
   // pool de candidatos — o tema principal, as alternativas do mesmo trending e
-  // os seeds estaticos (o da categoria do dia primeiro, noticia por ultimo como
-  // rede de seguranca, pois noticia nunca aborta por falta de produtos).
+  // os seeds estáticos (o da categoria do dia primeiro, notícia por último como
+  // rede de segurança, pois notícia nunca aborta por falta de produtos).
   const diaCategoria = nextCategory(state);
   const aplicarCategoriaDoDia = (cand, src) => {
     if (process.env.FORCE_TOPIC) return;
-    if (cand.category === "noticia" && src !== "estatico") return;
+    if (src !== "estatico") return;
+    if (cand.category === "noticia") return;
     cand.category = diaCategoria;
   };
   aplicarCategoriaDoDia(topic, trendingSource);

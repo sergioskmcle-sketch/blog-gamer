@@ -28,7 +28,7 @@
 - Afiliados: links diretos do Google Shopping (Serper), NUNCA cookies ou meli.la novos
 - Produtos devem ser EXATAMENTE do tema do artigo (validar correspondência)
 - FAQ: usar H3 (###) para cada pergunta, nunca negrito
-- Minimum word count: 800 (guia/review), 650 (noticia/lista)
+- Minimum word count: 1000 (guia), 900 (noticia), 800 (review/lista)
 
 ## Products/Services
 - Blog de conteúdo gamer (17 artigos publicados)

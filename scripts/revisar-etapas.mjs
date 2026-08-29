@@ -41,7 +41,7 @@ const GENERICAS = ["jogos", "consoles", "novidades", "games", "dicas"];
 
 const IMAGEM_FRAGIL = /lookaside\.(fbsbx|instagram)\.com|tiktok\.com\/api\/img/;
 
-const MIN_WORDS_SEO = { noticia: 600, review: 800, guia: 1000, lista: 800, promocao: 600 };
+const MIN_WORDS_SEO = { noticia: 900, review: 800, guia: 1000, lista: 800, promocao: 600 };
 
 function dominioDe(url) {
   try {
