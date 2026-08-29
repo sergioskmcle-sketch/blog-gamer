@@ -45,6 +45,9 @@ automation/state.json
 automation/admin_data.sqlite
 public/status.json
 
+# Instagram (publicacao de artigos)
+scripts/.ig-config.json
+
 # OS
 .DS_Store
 Thumbs.db

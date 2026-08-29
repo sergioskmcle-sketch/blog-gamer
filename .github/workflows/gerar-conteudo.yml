@@ -54,6 +54,17 @@ jobs:
           MONITOR_API_URL: ${{ vars.MONITOR_API_URL }}
           MONITOR_API_KEY: ${{ secrets.MONITOR_API_KEY }}
 
+      - name: Detectar artigo gerado
+        id: artigo
+        run: |
+          FILES=$(git status --porcelain | awk '{print $2}' | grep '^src/content/artigos/.*\.md$' || true)
+          if [ -n "$FILES" ]; then
+            SLUG=$(basename "$(echo "$FILES" | head -n1)" .md)
+            echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+          else
+            echo "slug=" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Verificar alteracoes
         id: check
         run: |
@@ -77,6 +88,20 @@ jobs:
             done
           fi
 
+      - name: Instalar fontes Geist (arte do Instagram)
+        if: steps.artigo.outputs.slug != ''
+        run: |
+          mkdir -p ~/.fonts
+          cp scripts/fonts/*.ttf ~/.fonts/
+          fc-cache -f >/dev/null 2>&1 || true
+
+      - name: Gerar arte do Instagram (feed + story)
+        if: steps.artigo.outputs.slug != ''
+        run: |
+          node scripts/gerar-arte-instagram.mjs "${{ steps.artigo.outputs.slug }}" || echo "WARN: arte do Instagram falhou (publicacao pulada neste ciclo)"
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
       - name: Commit e push
         if: steps.check.outputs.changed == 'true' && success()
         run: |
@@ -86,6 +111,30 @@ jobs:
           git commit -m "feat: artigo gerado automaticamente"
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "${GITHUB_REF_NAME}"
+
+      - name: Publicar no Instagram (feed + story)
+        if: steps.artigo.outputs.slug != '' && success()
+        run: node scripts/publicar-instagram.mjs "${{ steps.artigo.outputs.slug }}"
+        env:
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          IG_LONG_TOKEN: ${{ secrets.IG_LONG_TOKEN }}
+          IG_IG_ID: ${{ secrets.IG_IG_ID }}
+          IG_PAGE_ID: ${{ secrets.IG_PAGE_ID }}
+          FB_APP_ID: ${{ secrets.FB_APP_ID }}
+          FB_APP_SECRET: ${{ secrets.FB_APP_SECRET }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      - name: Registrar estado de publicacao (dedup)
+        if: steps.artigo.outputs.slug != '' && success()
+        run: |
+          if git status --porcelain -- scripts/.ig-posted.json | grep -q .; then
+            git config user.name "blog-bot"
+            git config user.email "bot@blog-gamer.com"
+            git add scripts/.ig-posted.json
+            git commit -m "feat: registra artigo publicado no Instagram" || true
+            git pull --rebase origin "${GITHUB_REF_NAME}" || true
+            git push origin "${GITHUB_REF_NAME}" || true
+          fi
 
       - name: Disparar deploy
         if: steps.check.outputs.changed == 'true' && success()
