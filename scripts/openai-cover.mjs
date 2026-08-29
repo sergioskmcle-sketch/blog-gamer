@@ -209,7 +209,7 @@ async function toPng(buffer) {
   }
 }
 
-async function generateWithEdits(apiKey, images, prompt) {
+async function generateWithEdits(apiKey, images, prompt, size = "1536x1024") {
   const modelsToTry = ["gpt-image-2", "gpt-image-1"];
 
   for (const model of modelsToTry) {
@@ -218,7 +218,7 @@ async function generateWithEdits(apiKey, images, prompt) {
       formData.append("model", model);
       formData.append("prompt", prompt);
       formData.append("n", "1");
-      formData.append("size", "1536x1024");
+      formData.append("size", size);
       formData.append("quality", "auto");
 
       for (const img of images) {
@@ -259,7 +259,7 @@ async function generateWithEdits(apiKey, images, prompt) {
   return null;
 }
 
-async function generateWithGenerations(apiKey, prompt) {
+async function generateWithGenerations(apiKey, prompt, size = "1536x1024") {
   const t0 = Date.now();
 
   try {
@@ -273,7 +273,7 @@ async function generateWithGenerations(apiKey, prompt) {
         model: "gpt-image-1-mini",
         prompt,
         n: 1,
-        size: "1536x1024",
+        size,
         quality: "auto",
       }),
     });
@@ -418,6 +418,39 @@ export async function gerarCapaOpenAI({ mlProducts, category, slug, contentType,
 
   log("WARN", "Todas as tentativas de geracao de capa falharam");
   return null;
+}
+
+export async function gerarImagemOpenAI({ refs = [], prompt, size }) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    log("INFO", "OPENAI_API_KEY nao configurada — pulando imagem AI");
+    return null;
+  }
+  const images = [];
+  for (const ref of refs) {
+    try {
+      let buf = null;
+      if (typeof ref === "string") {
+        buf = await downloadImage(ref);
+      } else if (Buffer.isBuffer(ref)) {
+        buf = ref;
+      }
+      if (buf) {
+        images.push({ buffer: buf, name: "reference" });
+        log("INFO", `Referencia OK (${(buf.length / 1024).toFixed(1)} KB)`);
+      }
+    } catch (e) {
+      log("WARN", `Erro ao preparar referencia: ${e.message}`);
+    }
+  }
+  if (images.length > 0) {
+    log("INFO", `Tentando edits (${images.length} referencia(s), size ${size})...`);
+    const b64 = await generateWithEdits(apiKey, images, prompt, size);
+    if (b64) return Buffer.from(b64, "base64");
+    log("WARN", "Edits falhou, tentando fallback para generations...");
+  }
+  const b64 = await generateWithGenerations(apiKey, prompt, size);
+  return b64 ? Buffer.from(b64, "base64") : null;
 }
 
 function log(level, msg) {

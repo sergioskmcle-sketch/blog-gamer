@@ -2370,7 +2370,8 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
     max_tokens: opts.maxTokens ?? computeMaxTokens(systemPrompt, userPrompt),
   };
 
-  if (body.max_tokens < 1000) {
+  const explicitMax = opts.maxTokens != null;
+  if (!explicitMax && body.max_tokens < 1000) {
     throw new Error(`Groq: prompt grande demais — sobram so ${body.max_tokens} tokens de saida no limite de ${TOKEN_BUDGET} TPM`);
   }
   const startTime = Date.now();
@@ -2508,7 +2509,8 @@ async function fetchGemini(systemPrompt, userPrompt, maxAttempts = 5, opts = {})
     },
   };
 
-  if (body.generationConfig.maxOutputTokens < 1000) {
+  const explicitMax = opts.maxTokens != null;
+  if (!explicitMax && body.generationConfig.maxOutputTokens < 1000) {
     throw new Error(`Gemini: prompt grande demais — sobram so ${body.generationConfig.maxOutputTokens} tokens de saida no limite de ${TOKEN_BUDGET} TPM`);
   }
 

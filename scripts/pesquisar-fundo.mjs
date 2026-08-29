@@ -100,13 +100,22 @@ async function serperSearch(query, { maxResults = 5 } = {}) {
 }
 
 async function buscarComReserva(tavilyKey, query, opts = {}) {
+  // Serper é o primário (cota gratuita de ~2.500 buscas/mês e já está no projeto).
+  // Tavily fica como reserva — durante o free tier (1.000 créditos) ele recarrega
+  // a cada mês e cobre momentos de pico.
   try {
-    return await tavilySearch(tavilyKey, query, opts);
-  } catch (e) {
-    log("WARN", `Tavily falhou (${e.message}) — tentando Serper como reserva...`);
     const res = await serperSearch(query, opts);
     if (res && res.results?.length) {
-      log("INFO", `Serper (reserva): ${res.results.length} resultados`);
+      log("INFO", `Serper: ${res.results.length} resultados`);
+      return res;
+    }
+    log("WARN", "Serper veio vazio — tentando Tavily como reserva...");
+    return await tavilySearch(tavilyKey, query, opts);
+  } catch (e) {
+    log("WARN", `Serper falhou (${e.message}) — tentando Tavily como reserva...`);
+    const res = await tavilySearch(tavilyKey, query, opts);
+    if (res && res.results?.length) {
+      log("INFO", `Tavily (reserva): ${res.results.length} resultados`);
       return res;
     }
     throw e;
@@ -114,7 +123,10 @@ async function buscarComReserva(tavilyKey, query, opts = {}) {
 }
 
 function fonteDeResultado(r, includeRaw = false) {
-  const content = (includeRaw ? r.raw_content || r.content : r.content) || "";
+  let content = (includeRaw ? r.raw_content || r.content : r.content) || "";
+  // Raw content da Tavily pode ser enorme; lima na origem para nao estourar o
+  // orcamento de tokens das chamadas LLM (64000 TPM).
+  if (content.length > 3000) content = content.slice(0, 3000);
   return {
     title: String(r.title || "").trim(),
     url: String(r.url || "").trim(),
@@ -157,7 +169,7 @@ async function sintetizarFatos({ query, fontes, fetchLLM }) {
   if (!fetchLLM) return [];
   const corpo = fontes
     .slice(0, 6)
-    .map((f, i) => `[Fonte ${i + 1}] ${f.title}\nURL: ${f.url}\n${f.content.slice(0, 3000)}`)
+    .map((f, i) => `[Fonte ${i + 1}] ${f.title}\nURL: ${f.url}\n${f.content.slice(0, 2000)}`)
     .join("\n\n");
   const sys = "Voce e o pesquisador senior do blog gamer Promo Gamer. Abaixo estao fontes sobre o tema. Extraia de 3 a 10 fatos concretos e verificaveis (dados, datas, precos, specs, citacoes) que devam aparecer no artigo, cada um com a fonte que o sustenta. Responda APENAS com JSON: [{\"fato\":\"...\",\"fonte\":\"nome do site\",\"url\":\"...\",\"confianca\":\"alta|media|baixa\"}]. Nao invente fatos nem URLs que nao estejam nas fontes.";
   const user = `Tema: ${query}\n\n${corpo}`;
@@ -231,7 +243,7 @@ async function pesquisarMedio({ query, tavilyKey, fetchLLM }) {
       log("WARN", `Sub-query "${sq.slice(0, 45)}" falhou: ${e.message}`);
     }
   }
-  const fontes = mergearFontes(listas, 8);
+  const fontes = mergearFontes(listas, 6);
   return {
     researchContext: montarContexto(fontes, 1200),
     researchSources: fontes,
@@ -258,7 +270,7 @@ async function pesquisarProfundo({ query, tavilyKey, fetchLLM }) {
       log("WARN", `Sub-query "${sq.slice(0, 45)}" falhou: ${e.message}`);
     }
   }
-  const fontes = mergearFontes(listas, 8);
+  const fontes = mergearFontes(listas, 6);
   const fontesFull = mergearFontes([listaRaw], 3).length > 0 ? mergearFontes([listaRaw], 3) : fontes;
   const verifiedFacts = await sintetizarFatos({ query, fontes: fontesFull, fetchLLM });
   return {
