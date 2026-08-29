@@ -4748,10 +4748,23 @@ Somente o markdown das secoes acima, na ordem. Sem frontmatter, sem comentario.`
         .join("\n")}`
     : "";
 
-  const user = `${topic.hint ? `Escreva a parte do artigo sobre: ${topic.hint}\n\n` : ""}${
+  let user = `${topic.hint ? `Escreva a parte do artigo sobre: ${topic.hint}\n\n` : ""}${
     researchContext ? `PESQUISA (use estes fatos — nao invente dados fora daqui):\n${researchContext}\n\n` : "SEM PESQUISA DISPONIVEL: escreva so conhecimento consolidado, sem inventar numeros, datas ou precos.\n\n"
   }${rankingBlock}${internalLinksBlock}${feedback}`;
-  return fetchLLM(sys, user, 3, { maxTokens: 6000, temperature: 0.7 });
+
+  // Evita o 413 do Groq (prompt + max_tokens estourando a TPM) que forcaria o
+  // fallback para o OpenAI e costuma entregar conteudo curto. Se o orcamento de
+  // saida ficar apertado, encolhe a pesquisa (como ja feito no fluxo de chamada
+  // unica) em vez de derrubar o request inteiro.
+  let mctxMax = computeMaxTokens(sys, user);
+  while (mctxMax < MIN_OUTPUT && researchContext && researchContext.length > 800) {
+    researchContext = researchContext.slice(0, Math.floor(researchContext.length * 0.75));
+    user = `${topic.hint ? `Escreva a parte do artigo sobre: ${topic.hint}\n\n` : ""}PESQUISA (use estes fatos — nao invente dados fora daqui):\n${researchContext}\n\n${rankingBlock}${internalLinksBlock}${feedback}`;
+    mctxMax = computeMaxTokens(sys, user);
+    log("WARN", `Pesquisa do corpo segmentado reduzida para caber no limite de ${TOKEN_BUDGET} TPM (saida ~${mctxMax} tokens)`);
+  }
+  const maxTokens = Math.max(3000, mctxMax);
+  return fetchLLM(sys, user, 3, { maxTokens: Math.min(maxTokens, MAX_OUTPUT), temperature: 0.7 });
 }
 
 // Marcador do heading da lista no fluxo segmentado: a LLM escreve "[LISTA]"
@@ -4892,6 +4905,10 @@ async function generateSegmentedArticle({ mlProducts, topic, domain, categoria, 
   }
 
   const mainMinWords = Math.max(450, Math.round(minWords * 0.8));
+  // Piso do que a LLM precisa escrever (intro + secoes finais). Os itens e a
+  // tabela sao gerados em codigo depois; se o texto da LLM vier curto demais,
+  // mesmo somado aos itens o artigo nao atera o minimo do gate — entao regera.
+  const MIN_CORPO_LLM = Math.max(350, Math.round(mainMinWords * 0.8));
   let parts = null;
   let feedback = "";
   for (let attempt = 1; attempt <= 2 && !parts; attempt++) {
@@ -4899,7 +4916,7 @@ async function generateSegmentedArticle({ mlProducts, topic, domain, categoria, 
       const raw = await generateMainBody({ mlProducts, topic, domain, categoria, researchContext, internalLinksBlock, primaryKeyword, mainMinWords, articleCat, feedback });
       if (temFocoMisto(raw)) {
         if (attempt === 1) {
-          feedback = `\n\nREGRA DE DOMINIO VIOLADA: voce misturou games e hardware no mesmo texto. Este artigo e APENAS sobre ${domainLabel(domain)}. Escolha APENAS UM dos lados, remova TODO o conteudo do outro dominio (no maximo uma mencao de passagem como exemplo de uso) e reescreva o texto inteiro.`;
+          feedback = `\n\nREGRA DE DOMINIO VIOLADA: voce misturou games e hardware no mesmo texto. Este artigo e APENAS sobre ${domainLabel(domain)}. Escolha APENAS UM dos lados, remova TODO o conteudo do outro dominio (no maximo uma mencao de passagem como exemplo de uso) e reescreva o texto inteiro, mantendo o minimo de ${mainMinWords} palavras.`;
           log("WARN", `Corpo principal mistura dominios (games+hardware) — regenerando (tentativa ${attempt}/2)`);
           continue;
         }
@@ -4908,11 +4925,22 @@ async function generateSegmentedArticle({ mlProducts, topic, domain, categoria, 
       parts = splitMainBody(raw);
       if (!parts) {
         if (attempt === 1) {
-          feedback = "\n\nESTRUTURA INVALIDA: seu texto nao tinha a linha [LISTA] sozinha (exigida na ESTRUTURA EXATA, logo apos a introducao). Reescreva com [LISTA] em uma linha sozinha.";
+          feedback = "\n\nESTRUTURA INVALIDA: seu texto nao tinha a linha [LISTA] sozinha (exigida na ESTRUTURA EXATA, logo apos a introducao). Reescreva com [LISTA] em uma linha sozinha, com o minimo de " + mainMinWords + " palavras.";
           log("WARN", `Corpo principal sem marcador [LISTA] (tentativa ${attempt}/2) — regenerando`);
           continue;
         }
         log("WARN", `Corpo principal sem marcador [LISTA] na 2a tentativa — usando estrutura minima`);
+      } else {
+        // Conteudo curto: a LLM nao cumpriu o minimo. Regenera com feedback
+        // claro na 1a tentativa em vez de aceitar um corpo minúsculo que o
+        // gate de revisao rejeitaria (causa de dias sem publicar).
+        const llmWords = `${parts.intro} ${parts.rest}`.split(/\s+/).filter(Boolean).length;
+        if (attempt === 1 && llmWords < MIN_CORPO_LLM) {
+          feedback = `\n\nSEU TEXTO FICOU CURTO: voce escreveu ${llmWords} palavras, mas o minimo e ${mainMinWords} (alvo ${Math.round(mainMinWords * 0.9)}). Expanda a introducao, o Veredito e o FAQ com conteudo real e util para o leitor (nao encha linguiça, escreva paragrafos substantivos com dados da pesquisa). Reescreva o texto inteiro mantendo a estrutura [LISTA].`;
+          log("WARN", `Corpo principal curto (${llmWords}/${MIN_CORPO_LLM} palavras) — regenerando (tentativa ${attempt}/2)`);
+          parts = null;
+          continue;
+        }
       }
     } catch (e) {
       log("WARN", `Corpo principal falhou (tentativa ${attempt}/2): ${e.message}`);
