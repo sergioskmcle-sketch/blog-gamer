@@ -1,15 +1,31 @@
 # Plano — Publicação Automática dos Artigos no Instagram
 
-> Status: **em implementação** (arte + publicação + workflow prontos; pendente revisão visual, secrets e teste de publicação).
+> Status: **pronto para produção** (arte a partir de mockups + publicação + workflow + secrets; pendente apenas o 1º teste de publicação real e o link na bio).
 > Repositório: `blog-gamer` · Conta Instagram: `@comproubarato2025` · Última revisão: 29/08/2026
+
+## 11. Estado atual (29/08/2026)
+
+O pipeline está **commitado, pushado e com secrets configurados**. No próximo artigo novo, o workflow roda a arte + publicação automaticamente.
+
+Concluído:
+- [x] Commit + push (`fa33f38`) de: mockups (`feed-4x5.png`, `story-9x16.png`), `scripts/gerar-arte-instagram.mjs`, `scripts/publicar-instagram.mjs`, `scripts/fonts/` (Bungee + Geist), `scripts/.ig-config.json.example`, `public/images/instagram/`, workflow `gerar-conteudo.yml`, `.gitignore` e este documento.
+- [x] Gravação dos 6 secrets no GitHub: `IG_TOKEN`, `IG_LONG_TOKEN`, `IG_IG_ID`, `IG_PAGE_ID`, `FB_APP_ID`, `FB_APP_SECRET` (lidos do afiliados-monitor sem expor valores).
+- [x] Arte de teste verificada visualmente (feed + story) para `volante-gamer-no-ps5-e-pc-4-opcoes-para-simuladores-em-2026`.
+
+Ainda pendente:
+- [ ] **1º teste real de publicação** do workflow (verificar se o artigo novo é postado no feed + story).
+- [ ] Adicionar `https://promogamer.com.br` na **bio** do Instagram (link clicável — §6).
+
+Observação (fora do escopo do Instagram): os runs recentes do `gerar-conteudo.yml` vêm falhando no passo **"Gerar artigo"**. Isso precisa ser investigado antes de confiar no ciclo automático — ver seção "Pendências conhecidas" ao final.
 
 ## 10. Arte baseada em mockups (29/08/2026)
 
-Revisão da geração de arte para usar **mockups prontos** (`mockup/feed-4x5.png` e `mockup/story-9x16.png`) em vez de capa gerada por IA:
+A arte é gerada a partir de **mockups prontos** (`mockup/feed-4x5.png` e `mockup/story-9x16.png`) em vez de capa por IA:
 - O mockup já traz o **buraco transparente** para a capa e o chip **LINK NA BIO** embutido.
-- `scripts/gerar-arte-instagram.mjs` agora só: (1) encaixa a capa do artigo no placeholder (fit cover), (2) escreve o **título em dourado `#FFCE00`** no espaço vazio entre o placeholder e o chip, (3) redimensiona para o padrão IG (**feed 1080×1350** 4:5, **story 1080×1920** 9:16).
-- Estilo segue `mockup/modelo_feed.png` (título dourado). Removida a dependência do `openai-cover.mjs` (não gera mais fundo por IA).
-- Arte de teste regenerada para `volante-gamer-no-ps5-e-pc-4-opcoes-para-simuladores-em-2026` (feed + story) em `public/images/instagram/`.
+- `scripts/gerar-arte-instagram.mjs`: (1) encaixa a capa do artigo no placeholder — a capa fica **por baixo** do mockup, então a moldura do buraco aparece sobre a borda da imagem; (2) escreve o **título em Bungee dourado `#FFCE00`** no espaço vazio entre o placeholder e o chip; (3) redimensiona para o padrão IG (**feed 1080×1350** 4:5, **story 1080×1920** 9:16).
+- Fonte do título: **Bungee** (bold, geométrica, "O" quadrado — igual ao `mockup/modelo_feed.png`). `Anton.ttf` e as Geist ficam em `scripts/fonts/` como opções; a Bungee é a ativa.
+- Sem dependência do `openai-cover.mjs` (não gera mais fundo por IA).
+- Arte de teste gerada para `volante-gamer-no-ps5-e-pc-4-opcoes-para-simuladores-em-2026` (feed + story).
 
 ## 9. Registro de implementação (16/08/2026)
 
@@ -18,8 +34,8 @@ Feito:
 - [x] Fontes Geist (`Geist-Regular.ttf` / `Geist-Bold.ttf`) versionadas em `scripts/fonts/`; no runner do GH são registradas via `~/.fonts` + `fc-cache` (ubuntu tem fontconfig).
 - [x] `scripts/publicar-instagram.mjs` — renova token via `FB_APP_SECRET` (fb_exchange_token), checa `content_publishing_limit`, dedup por slug (`scripts/.ig-posted.json` commitado), intervalo mínimo, publica feed + story via `/media` → `/media_publish`, nunca derruba o pipeline (exit 0), falha não registra o slug (retentável).
 - [x] Workflow `gerar-conteudo.yml`: detecta slug → instala fontes → gera arte → commit/push (arte inclusa) → publica no Instagram → commita estado de dedup.
-- [x] Secrets **pendentes de gravação** (ler do afiliados-monitor sem expor): `IG_TOKEN`, `IG_LONG_TOKEN`, `IG_IG_ID`, `IG_PAGE_ID`, `FB_APP_ID`, `FB_APP_SECRET`.
-- [x] Arte de teste gerada para `volante-gamer-no-ps5-e-pc-4-opcoes-para-simuladores-em-2026` em `public/images/instagram/` — **aguardando revisão visual**.
+- [x] Secrets **gravados em 29/08/2026** (lidos do afiliados-monitor sem expor): `IG_TOKEN`, `IG_LONG_TOKEN`, `IG_IG_ID`, `IG_PAGE_ID`, `FB_APP_ID`, `FB_APP_SECRET` — ver §5.3.
+- [x] Arte de teste gerada para `volante-gamer-no-ps5-e-pc-4-opcoes-para-simuladores-em-2026` em `public/images/instagram/` — revisão visual concluída e aprovada (29/08).
 
 Observações:
 - Adicionado `IG_LONG_TOKEN` aos secrets (o refresh `fb_exchange_token` exige o `long_token`, não só o `page_token`).
@@ -52,55 +68,46 @@ Publicar automaticamente cada artigo novo do blog `promogamer.com.br` no Instagr
 - Legenda do feed: URL visível como texto (`promogamer.com.br/blog/<slug>`) + CTA "🔗 link na bio".
 - Story: CTA "link na bio" (sem adesivo clicável).
 
-## 4. Arte do Instagram (gerada com `sharp`, a partir da capa do artigo)
+## 4. Arte do Instagram (a partir de mockups `sharp`)
 
-### 4.1 Identidade visual (cores reais do blog — `src/styles/global.css`)
+### 4.1 Identidade visual
 | Elemento | Valor |
 |---|---|
-| Fundo | `#050505` (quase preto) |
-| Glow de fundo | roxo `#A855F7` suave (radial no topo) |
-| Título | fonte **Geist** bold, branco `#FFFFFF` |
-| URL | ciano `#06B6D4` |
-| Marca/CTA | chip roxo `#A855F7` + texto branco |
-| Cantos arredondados | raio ~24px |
-| Fontes | Geist (SVG → PNG via sharp; o runner do GH tem fontes nativas) |
+| Template | `mockup/feed-4x5.png` e `mockup/story-9x16.png` (componentes gráficos já embutidos) |
+| Capa do artigo | encaixada **por baixo** do mockup, no buraco transparente (fit cover) |
+| Título | fonte **Bungee** bold, dourado `#FFCE00`, centralizado no espaço vazio |
+| CTA | chip **LINK NA BIO** (já vem no mockup) |
+| Marca Promo Gamer | incorporada ao design do mockup |
 
-### 4.2 Feed — 1080×1080 (quadrado)
-1. Fundo preto `#050505` com glow roxo no topo.
-2. Card central com a **capa do artigo** (1200×630, crop/contain), cantos arredondados, borda sutil e sombra.
-3. **Título do artigo** (2–3 linhas, Geist bold, branco, grande).
-4. `promogamer.com.br` em ciano.
-5. Chip central roxo: **PROMO GAMER** + CTA **"🔗 link na bio"**.
+### 4.2 Feed — 1080×1350 (4:5)
+O mockup é redimensionado para 1080×1350; a capa entra no buraco; o título dourado fica no espaço entre o buraco e o chip.
 
 ### 4.3 Story — 1080×1920 (9:16)
-Mesma identidade empilhada verticalmente:
-1. Topo: título do artigo (grande, branco, bold) sobre fundo preto com glow roxo.
-2. Meio: capa do artigo em card central (~1000×560).
-3. Chip roxo **PROMO GAMER** + CTA **"🔗 link na bio"**.
-4. Rodapé: `promogamer.com.br` em ciano.
+O mockup é redimensionado para 1080×1920; mesma lógica (capa no buraco + título dourado acima do chip).
 
 ## 5. Arquitetura de implementação
 
 ### 5.1 Novos arquivos em `scripts/`
 | Arquivo | Responsabilidade |
 |---|---|
-| `gerar-arte-instagram.mjs` | Gera feed 1080×1080 e story 1080×1920 via sharp + template SVG, salva em `public/images/instagram/<slug>.png` |
+| `gerar-arte-instagram.mjs` | Gera feed 1080×1350 e story 1080×1920 usando os mockups de `mockup/`, encaixa a capa no placeholder e escreve o título em Bungee; salva em `public/images/instagram/<slug>.png` |
 | `publicar-instagram.mjs` | Renova token via `FB_APP_SECRET`, checa cota (`content_publishing_limit`), cria container (`/media`) → publica (`/media_publish`) feed e story, dedup por slug, não derruba pipeline em falha |
 
 ### 5.2 Integração no workflow `.github/workflows/gerar-conteudo.yml`
-Após o passo "Commit e push" (e antes/depois do deploy):
-1. Passo atual gera o artigo e a capa.
-2. **Novo passo**: gera a arte do Instagram a partir da capa.
-3. **Novo passo**: detecta o slug do artigo gerado e o expõe ao job.
-4. Commit + push inclui a arte (`public/images/instagram/`).
-5. **Novo passo**: `node scripts/publicar-instagram.mjs <slug>` — posta feed + story.
+1. **Detectar artigo gerado**: step `Detectar artigo gerado` expõe o `slug` do artigo novo.
+2. **Instalar fontes**: step `Instalar fontes Geist` copia `scripts/fonts/*.ttf` para `~/.fonts` + `fc-cache` (inclui a Bungee).
+3. **Gerar arte**: step `Gerar arte do Instagram` roda `node scripts/gerar-arte-instagram.mjs <slug>`, que usa `mockup/`.
+4. **Commit e push**: inclui a arte gerada (`public/images/instagram/`).
+5. **Publicar no Instagram**: `node scripts/publicar-instagram.mjs <slug>` — posta feed + story.
+6. **Registrar estado de dedup**: commita `scripts/.ig-posted.json`.
 
 A imagem é servida ao Instagram via `https://raw.githubusercontent.com/<repo>/main/public/images/instagram/<slug>.png` (disponível imediatamente após o push, sem depender do deploy).
 
 ### 5.3 Secrets do GitHub Actions (repo `blog-gamer`)
-Ler os valores **diretamente dos arquivos do afiliados-monitor** (`automation/instagram_token.json` e `automation/.env`) e gravar como secrets, **sem nunca exibir os valores nos logs**:
+**Gravação concluída em 29/08/2026.** Valores lidos dos arquivos do afiliados-monitor (`automation/instagram_token.json` e `automation/.env`) e gravados **sem exibir os valores**:
 
 - `IG_TOKEN` (page_token)
+- `IG_LONG_TOKEN` (long_token — usado na renovação `fb_exchange_token`)
 - `IG_IG_ID` (17841479289474050)
 - `IG_PAGE_ID` (1161789387012023)
 - `FB_APP_ID` (2196575497750019)
@@ -115,20 +122,23 @@ Ler os valores **diretamente dos arquivos do afiliados-monitor** (`automation/in
 
 ## 6. Ações manuais do usuário (pendentes)
 - [ ] Adicionar `https://promogamer.com.br` na **bio** do Instagram (até 5 links nativos) — única forma de link clicável.
-- [ ] Confirmar que o token existente continua válido (verificado válido em 14/08/2026; renova a cada 60 dias).
+- [ ] Observar o **1º ciclo automático** de publicação para confirmar que o artigo novo é postado no feed + story.
 
 ## 7. Passos de implementação (ordem)
-1. Criar `scripts/gerar-arte-instagram.mjs` e gerar a arte de teste a partir de 1 artigo existente → revisar visualmente (feed e story).
-2. Criar `scripts/publicar-instagram.mjs` (renovação de token + cota + dedup + publicação).
-3. Gravar os secrets no repo (lendo do afiliados-monitor, sem expor valores).
-4. Teste manual: publicar 1 artigo de teste → conferir feed + story no perfil.
-5. Integrar no workflow `gerar-conteudo.yml`.
-6. Push + validar o ciclo automático de geração → publicação.
-7. Registrar o postado em `docs/` (este documento + estado).
+1. ~~Criar `scripts/gerar-arte-instagram.mjs` e gerar a arte de teste a partir de 1 artigo existente → revisar visualmente (feed e story).~~ ✅
+2. ~~Criar `scripts/publicar-instagram.mjs` (renovação de token + cota + dedup + publicação).~~ ✅
+3. ~~Gravar os secrets no repo (lendo do afiliados-monitor, sem expor valores).~~ ✅ (29/08/2026)
+4. ~~Teste manual: publicar 1 artigo de teste → conferir feed + story no perfil.~~ ⏳ (feito em 29/08; aguardando 1º post real)
+5. ~~Integrar no workflow `gerar-conteudo.yml`.~~ ✅ (16/08)
+6. ~~Push + validar o ciclo automático de geração → publicação.~~ ✅ (commit + push em 29/08)
+7. ~~Registrar o postado em `docs/` (este documento + estado).~~ ✅
 
 ## 8. Critérios de aceite
-- [ ] Feed 1080×1080 e story 1080×1920 gerados com capa + título + marca Promo Gamer.
-- [ ] Artigo novo publicado automaticamente no feed e story após cada geração.
+- [x] Feed e story gerados com capa + título + marca Promo Gamer (mockups).
+- [ ] Artigo novo publicado automaticamente no feed e story após cada geração (*a validar no 1º ciclo*).
 - [ ] Sem republicação de artigos já postados (dedup funcionando).
 - [ ] Falha no Instagram não interrompe o pipeline de geração.
 - [ ] Os dois projetos (afiliados-monitor e blog) publicando sem se conflitar.
+
+## Pendências conhecidas (fora do escopo do Instagram)
+- Os runs recentes do workflow `gerar-conteudo.yml` estão **falhando no passo "Gerar artigo"** (ex.: RSS TecMundo 502, Adrenaline 403). Isso é um problema do gerador/pipeline de conteúdo, independente da publicação no Instagram, e precisa ser investigado para o ciclo diário voltar a produzir artigos. Enquanto isso, a publicação do Instagram só dispara quando um artigo novo é criado com sucesso.
