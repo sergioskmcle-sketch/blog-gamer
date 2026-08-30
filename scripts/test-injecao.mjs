@@ -572,6 +572,9 @@ ok(rec1.rest.startsWith("## Veredito"), "recover: resto comeca na 1a secao final
 igual(splitMainBodyRecover("## Veredito\n\nx"), null, "recover: sem intro substancial retorna null");
 igual(splitMainBodyRecover("so texto"), null, "recover: sem secao final retorna null");
 igual(splitMainBodyRecover(null), null, "recover: null retorna null");
+const recHeading = splitMainBodyRecover([corpoSemMarcador.split("## Veredito")[0], "", "## Os 3 Melhores Metal Gear Solid Master Collection em 2026", "", "## Veredito", "", "Vale a pena."].join("\n"));
+ok(!!recHeading, "recover: heading solto no fim da intro nao quebra a recuperacao");
+ok(!recHeading.intro.includes("## Os 3 Melhores"), "recover: heading solto sem conteudo e descartado da intro");
 
 // --- Fase 2: buildListHeading (heading deterministico em codigo) ---
 igual(buildListHeading([{ title: "A" }, { title: "B" }], "headset gamer som espacial"), "Os 2 Melhores Headset Gamer Som Espacial em 2026", "heading: keyword vira titulo da secao");
