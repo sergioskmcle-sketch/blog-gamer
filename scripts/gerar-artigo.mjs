@@ -5061,9 +5061,14 @@ async function generateSegmentedArticle({ mlProducts, topic, domain, categoria, 
     log("INFO", `Blurb ok (${i + 1}/${mlProducts.length}): "${mlProducts[i].title?.slice(0, 45)}"`);
   }
 
-  const mainMinWords = Math.max(450, Math.round(minWords * 0.8));
-  // A LLM precisa escrever pelo menos mainMinWords (intro + secoes finais) para
-  // o artigo somar itens+tabela e ainda atender o minimo do gate de revisao.
+  // O fator 0.8 era um chute: o gate mede o corpo FINAL (texto LLM + itens +
+  // tabela + metodologia injetados deterministicamente). Aqui contamos o que a
+  // injecao realmente acrecenta e exigimos texto LLM = minWords - injetado,
+  // assim o total do gate bate o minimo sem depender de chute.
+  const injetadoCount = `${mlProducts.map((p) => buildItemSection(p)).join("\n\n")}\n\n${buildComparativoTable(mlProducts)}\n\n${buildMetodologiaSection()}`
+    .split(/\s+/).filter(Boolean).length;
+  // Margem de seguranca para fontes, heading da lista e ancoras.
+  const mainMinWords = Math.max(450, minWords - injetadoCount + 40);
   // Tentativas 2 e 3 forcadas no OpenAI (Groq/Gemini inconstantes nesta versao).
   const MIN_CORPO_LLM = mainMinWords;
   let parts = null;
