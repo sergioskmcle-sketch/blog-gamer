@@ -1104,6 +1104,25 @@ igual(shouldAbortProductSourcing({ count: 0, articleCat: "monitor" }), true, "li
   ok(!semBase64.body.includes("data:image"), "corrigirPeloGate remove imagem base64 (P0)");
   ok(semBase64.mudancas.includes("base64-removido"), "mudanca base64 registrada");
 
+  const corpoAberturaVirgula = "Neste artigo, vamos analisar o jogo novo.\n\nO resto do texto segue normal.";
+  const semAbertura = corrigirPeloGate({
+    body: corpoAberturaVirgula,
+    fm: { title: "Teste", description: "x".repeat(130), tags: ["a", "b", "c"], category: "review" },
+    gateReprovados: [{ etapa: "redacao", problemas: [{ severidade: "P0", mensagem: "Abertura proibida detectada" }] }],
+  });
+  ok(!/neste artigo/i.test(semAbertura.body), "abertura proibida com virgula e removida");
+  ok(semAbertura.mudancas.includes("abertura-proibida-removida"), "mudanca de abertura registrada");
+
+  const corpoPrecoProsa = "O headset custa R$ 499,90 e vale a pena.\n\n| Produto | Preco |\n| X | R$ 499,90 |";
+  const semPreco = corrigirPeloGate({
+    body: corpoPrecoProsa,
+    fm: { title: "Teste", description: "x".repeat(130), tags: ["a", "b", "c"], category: "guia" },
+    gateReprovados: [{ etapa: "revisao", problemas: [{ severidade: "P1", mensagem: "Precos em prosa detectados (1x)" }] }],
+  });
+  ok(!semPreco.body.split("\n").filter((l) => !l.trim().startsWith("|")).join("\n").includes("R$"), "preco em prosa removido fora da tabela");
+  ok(semPreco.body.includes("| X | R$ 499,90 |"), "preco da tabela comparativa preservado");
+  ok(semPreco.mudancas.includes("precos-em-prosa-removidos"), "mudanca de preco em prosa registrada");
+
   const corpoMarcadores = "Texto.\n\n[PRODUTO:9]\n\n[IMG:Fantasma]\n\nFim.";
   const semMarcador = corrigirPeloGate({
     body: corpoMarcadores,

@@ -2404,6 +2404,15 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
         }
         // 413 e deterministico (tamanho da requisicao): retentar so perde tempo.
         if (res.status === 413) {
+          if (!opts._shrunk && String(userPrompt || "").length > 4000) {
+            const cut = Math.min(8000, Math.floor(String(userPrompt).length * 0.5));
+            log("WARN", `Groq 413 — encolhendo prompt (${userPrompt.length} -> ${cut} chars) e max_tokens=4096`);
+            return fetchGroq(systemPrompt, String(userPrompt).slice(0, cut), 2, {
+              ...opts,
+              maxTokens: Math.min(opts.maxTokens ?? 4096, 4096),
+              _shrunk: true,
+            });
+          }
           log("ERROR", `Groq: requisicao maior que o limite de ${TOKEN_BUDGET} TPM (prompt + max_tokens=${body.max_tokens}). Reduza o prompt.`);
           const fatal = new Error(msg);
           fatal.fatal = true;
@@ -2524,7 +2533,13 @@ async function fetchGemini(systemPrompt, userPrompt, maxAttempts = 5, opts = {})
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (res.status === 429 || res.status === 503 || res.status === 502) {
+      if (res.status === 429) {
+        log("WARN", "Gemini: 429 (quota) — falhando rapido para o fallback");
+        const fatal = new Error("Gemini 429: quota esgotada");
+        fatal.fatal = true;
+        throw fatal;
+      }
+      if (res.status === 503 || res.status === 502) {
         const elapsed = Date.now() - startTime;
         if (elapsed > MAX_TOTAL_WAIT) {
           log("ERROR", `Gemini: timeout total de ${MAX_TOTAL_WAIT / 1000}s atingido, desistindo`);
@@ -3065,7 +3080,9 @@ function removeFragileImages(body) {
 
 function removeAberturasProibidas(body) {
   return body
-    .replace(/neste artigo vamos|hoje vamos falar|neste conte[úu]do/gi, "")
+    .replace(/neste\s+artigo\s*[,:;]?\s*vamos/gi, "")
+    .replace(/hoje\s+vamos\s+falar/gi, "")
+    .replace(/neste\s+conte[úu]do/gi, "")
     .replace(/[ \t]{2,}/g, " ")
     .replace(/^,\s*/gm, "")
     .replace(/^[ \t]+/gm, "")
@@ -3145,6 +3162,16 @@ function corrigirPeloGate({ body, fm, gateReprovados, categoria, listHeading, to
   if (tem(/abertura proibida|abertura/i)) {
     novoBody = removeAberturasProibidas(novoBody);
     mudancas.push("abertura-proibida-removida");
+  }
+  if (tem(/preco|preços em prosa|precos em prosa/i)) {
+    const antes = novoBody;
+    novoBody = novoBody
+      .split("\n")
+      .map((l) => (l.trim().startsWith("|") ? l : l.replace(/R\$\s*[\d.,]+/g, "")))
+      .join("\n")
+      .replace(/[ \t]{2,}/g, " ")
+      .replace(/\n{3,}/g, "\n\n");
+    if (novoBody !== antes) mudancas.push("precos-em-prosa-removidos");
   }
   if (tem(/marcador/i)) {
     novoBody = novoBody.replace(/\[(?:IMG|PRODUTO):[^\]\n]*\]/g, "").replace(/\n{3,}/g, "\n\n");
