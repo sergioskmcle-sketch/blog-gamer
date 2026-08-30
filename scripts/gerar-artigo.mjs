@@ -5069,17 +5069,21 @@ async function generateSegmentedArticle({ mlProducts, topic, domain, categoria, 
     .split(/\s+/).filter(Boolean).length;
   // Margem de seguranca para fontes, heading da lista e ancoras.
   const mainMinWords = Math.max(450, minWords - injetadoCount + 40);
-  // Tentativas 2 e 3 forcadas no OpenAI (Groq/Gemini inconstantes nesta versao).
+  // Tentativas 2 em diante forcadas no OpenAI (Groq/Gemini inconstantes).
+  // A LLM sobe o volume com o feedback, entao o loop vai ate 5 com a cobranca
+  // de minimo valendo nas 4 primeiras; so a ultima aceita corpo curto (o gate
+  // de revisao segue sendo o juiz final).
   const MIN_CORPO_LLM = mainMinWords;
+  const MAX_ATTEMPTS = 5;
   let parts = null;
   let feedback = "";
-  for (let attempt = 1; attempt <= 3 && !parts; attempt++) {
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS && !parts; attempt++) {
     try {
       const raw = await generateMainBody({ mlProducts, topic, domain, categoria, researchContext, internalLinksBlock, primaryKeyword, mainMinWords, articleCat, feedback, provider: attempt >= 2 ? "openai" : undefined });
       if (temFocoMisto(raw)) {
         if (attempt === 1) {
           feedback = `\n\nREGRA DE DOMINIO VIOLADA: voce misturou games e hardware no mesmo texto. Este artigo e APENAS sobre ${domainLabel(domain)}. Escolha APENAS UM dos lados, remova TODO o conteudo do outro dominio (no maximo uma mencao de passagem como exemplo de uso) e reescreva o texto inteiro, mantendo o minimo de ${mainMinWords} palavras.`;
-          log("WARN", `Corpo principal mistura dominios (games+hardware) — regenerando (tentativa ${attempt}/3)`);
+          log("WARN", `Corpo principal mistura dominios (games+hardware) — regenerando (tentativa ${attempt}/${MAX_ATTEMPTS})`);
           continue;
         }
         log("WARN", "Corpo principal ainda com dominio misto — prosseguindo (portao soft)");
@@ -5090,20 +5094,20 @@ async function generateSegmentedArticle({ mlProducts, topic, domain, categoria, 
         parts = splitMainBodyRecover(raw);
       }
       if (!parts) {
-        if (attempt < 3) {
+        if (attempt < MAX_ATTEMPTS) {
           feedback = "\n\nESTRUTURA INVALIDA: seu texto nao tinha a linha [LISTA] sozinha (exigida na ESTRUTURA EXATA, logo apos a introducao). Reescreva com [LISTA] em uma linha sozinha, com o minimo de " + mainMinWords + " palavras.";
-          log("WARN", `Corpo principal sem marcador [LISTA] (tentativa ${attempt}/3) — regenerando`);
+          log("WARN", `Corpo principal sem marcador [LISTA] (tentativa ${attempt}/${MAX_ATTEMPTS}) — regenerando`);
           continue;
         }
         log("WARN", `Corpo principal sem marcador [LISTA] na ${attempt}a. tentativa — usando estrutura minima`);
       } else {
         // Conteudo curto: a LLM nao cumpriu o minimo. Regenera com feedback
-        // claro nas tentativas 1 e 2 em vez de aceitar um corpo minúsculo que o
-        // gate de revisao rejeitaria (causa de dias sem publicar).
+        // claro nas primeiras tentativas em vez de aceitar um corpo minúsculo
+        // que o gate de revisao rejeitaria (causa de dias sem publicar).
         const llmWords = `${parts.intro} ${parts.rest}`.split(/\s+/).filter(Boolean).length;
-        if (attempt < 3 && llmWords < MIN_CORPO_LLM) {
+        if (attempt < MAX_ATTEMPTS && llmWords < MIN_CORPO_LLM) {
           feedback = `\n\nSEU TEXTO FICOU CURTO: voce escreveu ${llmWords} palavras, mas o minimo e ${mainMinWords} (alvo ${Math.round(mainMinWords * 0.9)}). Expanda a introducao, o Veredito e o FAQ com conteudo real e util para o leitor (nao encha linguiça, escreva paragrafos substantivos com dados da pesquisa). Reescreva o texto inteiro mantendo a estrutura [LISTA].`;
-          log("WARN", `Corpo principal curto (${llmWords}/${MIN_CORPO_LLM} palavras) — regenerando (tentativa ${attempt}/3)`);
+          log("WARN", `Corpo principal curto (${llmWords}/${MIN_CORPO_LLM} palavras) — regenerando (tentativa ${attempt}/${MAX_ATTEMPTS})`);
           parts = null;
           continue;
         }
