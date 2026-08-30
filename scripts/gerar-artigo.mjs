@@ -4036,25 +4036,6 @@ Checklist antes de responder:
     fm.category = categoria;
   }
 
-  const revRedacao = revisarRedacao({
-    fm,
-    body,
-    categoria,
-    minWords,
-    mixedDomain: isMixedDomain(fm.title) || temFocoMisto(body),
-    primaryKeyword,
-  });
-  let revRedacaoParecer = null;
-  if (statusGeraLLM(revRedacao)) {
-    revRedacaoParecer = await emitirParecer({
-      etapa: "redacao",
-      rel: revRedacao,
-      contexto: { titulo: fm.title, descricao: fm.description, palavras: body.split(/\s+/).filter(Boolean).length },
-      fetchLLM,
-    });
-  }
-  revRedacao.parecer = revRedacaoParecer;
-
   // Ultimo recurso pro titulo: uma chamada curta so pra reescrever o titulo.
   const titleProblems = checkTitle(fm.title, primaryKeyword);
   if (titleProblems.length > 0) {
@@ -4262,6 +4243,29 @@ Checklist antes de responder:
       log("WARN", "Sem fontes com URL da pesquisa para injetar ## Fontes");
     }
   }
+
+  // Redacao avaliada no corpo FINAL (apos injecao de itens+tabela+fontes):
+  // rodar antes da injecao era um falso negativo no gate — a secao ## do
+  // heading da lista ainda estava vazia e o word count ignorava os itens.
+  const revRedacao = revisarRedacao({
+    fm,
+    body,
+    categoria,
+    minWords,
+    mixedDomain: isMixedDomain(fm.title) || temFocoMisto(body),
+    primaryKeyword,
+  });
+  let revRedacaoParecer = null;
+  if (statusGeraLLM(revRedacao)) {
+    revRedacaoParecer = await emitirParecer({
+      etapa: "redacao",
+      rel: revRedacao,
+      contexto: { titulo: fm.title, descricao: fm.description, palavras: body.split(/\s+/).filter(Boolean).length },
+      fetchLLM,
+    });
+  }
+  revRedacao.parecer = revRedacaoParecer;
+  log("INFO", `Redacao avaliada no corpo final: ${revRedacao.score}/10 (${revRedacao.problemas.length} problema(s))`);
 
   if (!coverImage) {
     const fallbackKw = trendingKeywordForCover || (topic.ml_query ? topic.ml_query.split(" ").slice(0, 2).join(" ") : "") || "";
