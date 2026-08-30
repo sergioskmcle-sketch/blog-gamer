@@ -4227,6 +4227,31 @@ Checklist antes de responder:
   // Gera sumário/índice com links âncora para melhor navegação e SEO
   body = injectHeadingAnchors(body);
 
+  // V11: se a LLM truncou antes de "## Fontes", injeta a seccao determinísticamente
+  // a partir das fontes reais da pesquisa — o gate exige Fontes com 2+ URLs, e um
+  // corpo bom ja foi gerado; perder tudo por causa de secao faltante seria descarte.
+  if (!/^##\s+Fontes\s*$/im.test(body)) {
+    const fontesParaInjecao = (researchSources || [])
+      .filter((s) => s && typeof s.url === "string" && /^https?:\/\//.test(s.url))
+      .slice(0, 5);
+    if (fontesParaInjecao.length > 0) {
+      const blocofontes =
+        "\n\n## Fontes\n\n" +
+        fontesParaInjecao
+          .map((s) => {
+            const url = s.url.trim().replace(/[)\s>]+$/, "");
+            const titulo = s.title ? String(s.title).trim().slice(0, 90) : "";
+            return titulo ? `- [${titulo}](${url})` : `- ${url}`;
+          })
+          .join("\n") +
+        "\n";
+      body += blocofontes;
+      log("INFO", `Secao ## Fontes injetada deterministicamente (${fontesParaInjecao.length} fontes da pesquisa)`);
+    } else {
+      log("WARN", "Sem fontes com URL da pesquisa para injetar ## Fontes");
+    }
+  }
+
   if (!coverImage) {
     const fallbackKw = trendingKeywordForCover || (topic.ml_query ? topic.ml_query.split(" ").slice(0, 2).join(" ") : "") || "";
     if (fallbackKw) coverImage = await fetchRAWGImage(fallbackKw) || "";
