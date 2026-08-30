@@ -576,6 +576,46 @@ const recHeading = splitMainBodyRecover([corpoSemMarcador.split("## Veredito")[0
 ok(!!recHeading, "recover: heading solto no fim da intro nao quebra a recuperacao");
 ok(!recHeading.intro.includes("## Os 3 Melhores"), "recover: heading solto sem conteudo e descartado da intro");
 
+// --- Fase 2: recover Caso 1 — the LLM wrote its own list heading + content ---
+const introParagrafoLarge = corpoSemMarcador.split("\n\n## Veredito")[0];
+const corpoComListaPropria = [introParagrafoLarge,
+  "",
+  "## Os 3 Melhores Headset Gamer em 2026",
+  "",
+  "O primeiro item da nossa lista puxa o melhor custo-beneficio da categoria, com boa construcao e entrega consistente no dia a dia, sendo o mais indicado para quem joga muitas horas seguidas e quer conforto sem pagar caro.",
+  "",
+  "O segundo item entra para quem prioriza o som espacial em FPS competitivo, com drivers maiores e maior fidelidade, recomendado para quem joga Valorant e Counter-Strike e sente falta da precisao de direcao.",
+  "",
+  "## Veredito",
+  "",
+  "Vale a pena."].join("\n");
+const recComLista = splitMainBodyRecover(corpoComListaPropria);
+ok(!!recComLista, "recover casol: corpo com heading proprio da LLM e aproveitado");
+igual(recComLista.listHeading, "Os 3 Melhores Headset Gamer em 2026", "recover casol: heading proprio vira listHeading");
+ok(recComLista.rest.includes("melhor custo-beneficio"), "recover casol: conteudo da lista da LLM PRESERVADO (nao descartado)");
+ok(recComLista.rest.startsWith("O primeiro item da nossa lista"), "recover casol: resto comeca com o conteudo proprio da LLM (heading fica no listHeading)");
+ok(recComLista.rest.includes("## Veredito"), "recover casol: secoes finais continuam no resto");
+ok(recComLista.intro.split(/\s+/).filter(Boolean).length >= 80, "recover casol: intro com minimo de palavras");
+
+// --- Fase 2: recover ignora heading proprio com secao final logo em seguida ---
+const recFinalLogo = splitMainBodyRecover([corpoSemMarcador.split("## Veredito")[0], "", "## Como Escolhemos", "", "## Veredito", "", "Vale a pena."].join("\n"));
+ok(!!recFinalLogo && recFinalLogo.listHeading == null, "recover: secao final logo apos nao vira listHeading");
+
+// --- validateSourceCoverage: nota do consumidor do produto (0-5) e aceita ---
+const corpoNotaProduto = ["O produto tem nota 4,9 nas avaliacoes e aguenta horas de uso sem desapontar, com boa construcao e custo que compete com a categoria inteira no dia a dia de quem joga.",
+  "",
+  "## Veredito",
+  "",
+  "Vale a pena.",
+  "",
+  "## Fontes",
+  "",
+  "- [Exemplo](https://exemplo.com) de fonte de mercado."].join("\n");
+const fontesNota = [{ title: "Fonte de exemplo", content: "Texto de mercado sobre a categoria.", url: "https://exemplo.com" }];
+ok(validateSourceCoverage(corpoNotaProduto, fontesNota).some((w) => w.includes("Notas/reviews")), "coverage: nota 4,9 sem fonte gera aviso");
+igual(validateSourceCoverage(corpoNotaProduto, fontesNota, [4.9]).filter((w) => w.includes("Notas/reviews")).length, 0, "coverage: nota igual ao rating do produto (escala 0-5) e aceita");
+igual(validateSourceCoverage(corpoNotaProduto, fontesNota, [4.6]).filter((w) => w.includes("Notas/reviews")).length, 1, "coverage: nota que NAO e o rating do produto continua gerando aviso");
+
 // --- Fase 2: buildListHeading (heading deterministico em codigo) ---
 igual(buildListHeading([{ title: "A" }, { title: "B" }], "headset gamer som espacial"), "Os 2 Melhores Headset Gamer Som Espacial em 2026", "heading: keyword vira titulo da secao");
 igual(buildListHeading([{ title: "A" }], "", {}), "Os 1 Melhores Itens em 2026", "heading: sem keyword usa 'Itens'");

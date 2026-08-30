@@ -2984,7 +2984,7 @@ function buildInternalLinksBlock(excludeSlug = "") {
   return `\nARTIGOS EXISTENTES (links internos SO desta lista — proibido inventar slug):\n${lines.join("\n")}\n`;
 }
 
-function validateSourceCoverage(body, sources = []) {
+function validateSourceCoverage(body, sources = [], productRatings = []) {
   const warnings = [];
   if (!body || typeof body !== "string") return warnings;
 
@@ -3035,7 +3035,18 @@ function validateSourceCoverage(body, sources = []) {
     ...(regioesNaoClaim.match(/\bMetacritic\s*[:\-]?\s*\d{1,3}\b/gi) || []),
     ...(regioesNaoClaim.match(/\bnota\s*[:\-]?\s*\d{1,2}(?:[.,]\d+)?\b/gi) || []),
   ])];
-  const missingScores = scores.filter((s) => !sourceTextLower.includes(s.toLowerCase()));
+  const missingScores = scores.filter((s) => {
+    if (sourceTextLower.includes(s.toLowerCase())) return false;
+    // "Nota 4,9" (ou 4.9) e a nota do consumidor do produto (escala 0-5, vinda
+    // da fonte do produto na tabela) — nao precisa constar nas fontes de
+    // pesquisa, que cobrem texto/reviews, nao a nota agregada do marketplace.
+    const notaNum = s.match(/^nota\s*[:\-]?\s*(\d{1,2}(?:[.,]\d+)?)$/i);
+    if (notaNum && productRatings.length > 0) {
+      const n = parseFloat(notaNum[1].replace(",", "."));
+      if (productRatings.some((r) => Math.abs(n - Number(r)) < 0.06)) return false;
+    }
+    return true;
+  });
   if (missingScores.length > 0) {
     warnings.push(`Notas/reviews mencionadas sem suporte nas fontes: ${missingScores.join(", ")}`);
   }
@@ -3964,7 +3975,7 @@ Checklist antes de responder:
     const { hard, soft } = validate(parsed.frontmatter, parsed.body, { ...validationCtx, lastAttempt });
 
     // Validação adicional: cobertura de fontes para dados concretos
-    const sourceWarnings = validateSourceCoverage(parsed.body, researchSources);
+    const sourceWarnings = validateSourceCoverage(parsed.body, researchSources, mlProducts.filter((p) => Number(p.rating) > 0).map((p) => p.rating));
     soft.push(...sourceWarnings);
 
     if (hard.length === 0 && soft.length === 0) {
@@ -4359,7 +4370,7 @@ Checklist antes de responder:
     softMixedDomain: true,
     lastAttempt: true,
   });
-  const finalWarnings = validateSourceCoverage(body, researchSources);
+  const finalWarnings = validateSourceCoverage(body, researchSources, mlProducts.filter((p) => Number(p.rating) > 0).map((p) => p.rating));
   const revFinal = revisarFinal({
     hard: finalValidate.hard,
     soft: finalValidate.soft,
@@ -4469,7 +4480,7 @@ Checklist antes de responder:
           softMixedDomain: true,
           lastAttempt: true,
         });
-        const sw = validateSourceCoverage(b, researchSources);
+        const sw = validateSourceCoverage(b, researchSources, mlProducts.filter((p) => Number(p.rating) > 0).map((p) => p.rating));
         const wc = b.split(/\s+/).filter(Boolean).length;
         const internalLinks = [...b.matchAll(/\/blog\/[^)\s"'#]+/g)].length;
         const fsx = b.match(/^##\s+Fontes\s*$/im);
@@ -4874,6 +4885,8 @@ function buildListHeading(mlProducts, primaryKeyword, topic) {
 }
 
 // Separa o corpo principal em intro / heading da lista / resto.
+const LIST_HEADING_FINAL_RE = /^(veredito|qual\s|faq|perguntas\s+frequentes|fontes|quer\s+mais|continue\s+explorando|comparativo|conclus|como\s+escolhemos|metodologia)/i;
+const H2_LINHA_RE = /^##\s+([^\n]+)$/m;
 function splitMainBody(mainBody) {
   if (typeof mainBody !== "string" || !mainBody.trim()) return null;
 
@@ -4884,10 +4897,24 @@ function splitMainBody(mainBody) {
     const intro = mainBody.slice(0, marker.index).trim();
     // H2 antes do marcador = estrutura invalida (intro deve ser SEM heading).
     if (/^##\s/m.test(intro)) return null;
+    let rest = mainBody.slice(marker.index + marker[0].length).trim();
+    if (!rest) return null;
+    // LLM as vezes escreve o heading da lista junto ("## Os 3 Melhores...")
+    // logo apos o [LISTA] e deixa a secao vazia (o conteudo vem injetado em
+    // codigo depois dessa linhas). Remove so o heading vazio no INICIO do rest.
+    const primeiraLinha = rest.split("\n").find((l) => l.trim() !== "");
+    if (primeiraLinha && /^##\s/.test(primeiraLinha) && !LIST_HEADING_FINAL_RE.test(primeiraLinha.replace(/^##\s+/, "").trim())) {
+      rest = rest.slice(rest.indexOf(primeiraLinha) + primeiraLinha.length).replace(/^\n+/, "").trim();
+      return {
+        intro,
+        listHeading: null,
+        rest,
+      };
+    }
     return {
       intro,
       listHeading: null,
-      rest: mainBody.slice(marker.index + marker[0].length).trim(),
+      rest,
     };
   }
 
@@ -4895,7 +4922,7 @@ function splitMainBody(mainBody) {
   const m = mainBody.match(/^##\s+([^\n]+)\n([\s\S]*)$/m);
   if (!m) return null;
   const listHeading = normalizarAnos(m[1].trim());
-  if (/^(veredito|qual\s|faq|perguntas\s+frequentes|fontes|quer\s+mais|continue\s+explorando|comparativo|conclus)/i.test(listHeading)) {
+  if (LIST_HEADING_FINAL_RE.test(listHeading)) {
     return null;
   }
   return {
@@ -4905,17 +4932,36 @@ function splitMainBody(mainBody) {
   };
 }
 
-// Recuperacao deterministica: a LLM (ex.: Groq gpt-oss-120b) as vezes entrega
-// um corpo valido SEM a linha [LISTA]. Em vez de descartar tudo e cair no
-// fallback minimo (que o gate de revisao derruba), encaixa o marcador logo
-// antes da primeira secao final (Veredito/FAQ/Fontes/...): a introducao fica
-// preservada e os itens + tabela sao injetados ali mesmo.
+// Recuperacao deterministica: a LLM (ex.: Groq gpt-oss-120b / OpenAI) as vezes
+// entrega um corpo valido SEM a linha [LISTA]. Duas situacoes:
+//  1) a LLM ja escreveu o heading da lista ("## Os 3 Melhores ...") com conteudo
+//     proprio — aproveita esse heading como listHeading e injeta os cards ali,
+//     PRESERVANDO o texto que ela escreveu (ganho real de palavras);
+//  2) sem heading de lista, encaixa o marcador antes da primeira secao final
+//     (Veredito/FAQ/Fontes/...), preservando a introducao.
 const SECOES_FINAIS_RE = /^##\s+(veredito|qual\s|faq|perguntas\s+frequentes|fontes|quer\s+mais|continue\s+explorando|comparativo|conclus)/im;
 function splitMainBodyRecover(restante) {
   if (typeof restante !== "string" || !restante.trim()) return null;
-  const h = restante.match(SECOES_FINAIS_RE);
-  if (!h) return null;
-  let intro = restante.slice(0, h.index).trim();
+
+  // Caso 1: heading de lista propria da LLM. Usa a PRIMEIRA linha ## que nao e
+  // uma secao final/metodologia — tipicamente "## Os N Melhores ... em 2026".
+  const h = restante.match(H2_LINHA_RE);
+  if (h && !LIST_HEADING_FINAL_RE.test(h[1].trim())) {
+    const intro = restante.slice(0, h.index).trim();
+    const rest = restante.slice(h.index + h[0].length).trim();
+    if (!intro || intro.split(/\s+/).filter(Boolean).length < 80) return null;
+    if (!rest) return null;
+    return {
+      intro,
+      listHeading: normalizarAnos(h[1].trim()),
+      rest,
+    };
+  }
+
+  // Caso 2: sem heading de lista — encaixa antes da 1a secao final.
+  const f = restante.match(SECOES_FINAIS_RE);
+  if (!f) return null;
+  let intro = restante.slice(0, f.index).trim();
   // Descarta headings soltos no fim da intro (ex.: "## Os 3 Melhores...") que
   // nao tem conteudo — o listHeading gerado em codigo nao consegue encontra-los
   // e a secao ficaria vazia no artigo publicado (P1 do gate de revisao).
@@ -4924,7 +4970,7 @@ function splitMainBodyRecover(restante) {
   return {
     intro,
     listHeading: null,
-    rest: restante.slice(h.index).trim(),
+    rest: restante.slice(f.index).trim(),
   };
 }
 
