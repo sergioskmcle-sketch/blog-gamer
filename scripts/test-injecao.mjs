@@ -567,7 +567,7 @@ const corpoSemMarcador = ["Dois paragrafos de abertura bem desenvolvidos, com ga
 const rec1 = splitMainBodyRecover(corpoSemMarcador);
 ok(!!rec1, "recover: corpo sem [LISTA] e aproveitado");
 ok(rec1.intro.includes("Dois paragrafos"), "recover: intro preservada");
-ok(rec1.intro.split(/\s+/).filter(Boolean).length >= 120, "recover: intro com minimo de palavras");
+ok(rec1.intro.split(/\s+/).filter(Boolean).length >= 80, "recover: intro com minimo de palavras");
 ok(rec1.rest.startsWith("## Veredito"), "recover: resto comeca na 1a secao final");
 igual(splitMainBodyRecover("## Veredito\n\nx"), null, "recover: sem intro substancial retorna null");
 igual(splitMainBodyRecover("so texto"), null, "recover: sem secao final retorna null");

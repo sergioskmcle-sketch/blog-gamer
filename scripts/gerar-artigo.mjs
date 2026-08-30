@@ -2422,10 +2422,26 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
       }
       const data = await res.json();
       const choice = data.choices?.[0];
-      if (!choice?.message?.content)
-        throw new Error(`Groq: resposta vazia: ${JSON.stringify(data).slice(0, 200)}`);
-      if (choice.finish_reason === "length")
-        throw new Error(`Groq: resposta truncada (max_tokens=${body.max_tokens})`);
+      if (!choice?.message?.content) {
+        // Resposta vazia NAO melhora com retry no mesmo modelo — falha rapido
+        // para o proximo provider (OpenAI) em vez de queimar 1min de backoff.
+        const fatal = new Error(`Groq: resposta vazia: ${JSON.stringify(data).slice(0, 200)}`);
+        fatal.fatal = true;
+        throw fatal;
+      }
+      if (choice.finish_reason === "length") {
+        if (!opts._bumpMaxTokens && body.max_tokens < 8192) {
+          log("WARN", `Groq truncou em max_tokens=${body.max_tokens} — dobrando o teto e tentando de novo`);
+          return fetchGroq(systemPrompt, userPrompt, maxAttempts, {
+            ...opts,
+            maxTokens: Math.min(opts.maxTokens ? opts.maxTokens * 2 : 8192, 8192),
+            _bumpMaxTokens: true,
+          });
+        }
+        const fatal = new Error(`Groq: resposta truncada (max_tokens=${body.max_tokens})`);
+        fatal.fatal = true;
+        throw fatal;
+      }
       return choice.message.content;
     } catch (err) {
       if (err.fatal || attempt === maxAttempts) throw err;
@@ -2581,6 +2597,11 @@ async function fetchGemini(systemPrompt, userPrompt, maxAttempts = 5, opts = {})
 }
 
 async function fetchLLM(systemPrompt, userPrompt, maxAttempts = 3, opts = {}) {
+  // Rotear direto pra um provider especifico (usado na regeracao para nao
+  // bater de novo no mesmo modelo que acabou de falhar).
+  if (opts.provider === "openai") return fetchOpenAI(systemPrompt, userPrompt, opts);
+  if (opts.provider === "groq") return fetchGroq(systemPrompt, userPrompt, maxAttempts, opts);
+  if (opts.provider === "gemini") return fetchGemini(systemPrompt, userPrompt, maxAttempts, opts);
   try {
     return await fetchGemini(systemPrompt, userPrompt, maxAttempts, opts);
   } catch (geminiErr) {
@@ -4722,7 +4743,7 @@ ${categoriaUnicaPrompt(articleCat)}
 // 1 chamada: intro SEM H2, a linha [LISTA], e as secoes finais. Nao escreve
 // os itens (o sistema monta) nem a tabela comparativa (o sistema monta) nem o
 // heading da lista (o sistema gera em codigo a partir do marcador [LISTA]).
-async function generateMainBody({ mlProducts, topic, domain, categoria, researchContext, internalLinksBlock, primaryKeyword, mainMinWords, articleCat, feedback = "" }) {
+async function generateMainBody({ mlProducts, topic, domain, categoria, researchContext, internalLinksBlock, primaryKeyword, mainMinWords, articleCat, feedback = "", provider }) {
   const estilo = segStyle(categoria, domain);
   const productLines = mlProducts
     .map((p, i) => `${i + 1}. ${p.title}${p.price ? ` (${formatPriceBRL(p.price)})` : ""}`)
@@ -4797,7 +4818,9 @@ Somente o markdown das secoes acima, na ordem. Sem frontmatter, sem comentario.`
     log("WARN", `Pesquisa do corpo segmentado reduzida para caber no limite de ${TOKEN_BUDGET} TPM (saida ~${mctxMax} tokens)`);
   }
   const maxTokens = Math.max(3000, mctxMax);
-  return fetchLLM(sys, user, 3, { maxTokens: Math.min(maxTokens, MAX_OUTPUT), temperature: 0.7 });
+  const opts = { maxTokens: Math.min(maxTokens, MAX_OUTPUT), temperature: 0.7 };
+  if (provider) opts.provider = provider;
+  return fetchLLM(sys, user, 3, opts);
 }
 
 // Marcador do heading da lista no fluxo segmentado: a LLM escreve "[LISTA]"
@@ -4868,7 +4891,7 @@ function splitMainBodyRecover(restante) {
   const h = restante.match(SECOES_FINAIS_RE);
   if (!h) return null;
   const intro = restante.slice(0, h.index).trim();
-  if (!intro || intro.split(/\s+/).filter(Boolean).length < 120) return null;
+  if (!intro || intro.split(/\s+/).filter(Boolean).length < 80) return null;
   return {
     intro,
     listHeading: null,
@@ -4965,7 +4988,7 @@ async function generateSegmentedArticle({ mlProducts, topic, domain, categoria, 
   let feedback = "";
   for (let attempt = 1; attempt <= 2 && !parts; attempt++) {
     try {
-      const raw = await generateMainBody({ mlProducts, topic, domain, categoria, researchContext, internalLinksBlock, primaryKeyword, mainMinWords, articleCat, feedback });
+      const raw = await generateMainBody({ mlProducts, topic, domain, categoria, researchContext, internalLinksBlock, primaryKeyword, mainMinWords, articleCat, feedback, provider: attempt === 2 ? "openai" : undefined });
       if (temFocoMisto(raw)) {
         if (attempt === 1) {
           feedback = `\n\nREGRA DE DOMINIO VIOLADA: voce misturou games e hardware no mesmo texto. Este artigo e APENAS sobre ${domainLabel(domain)}. Escolha APENAS UM dos lados, remova TODO o conteudo do outro dominio (no maximo uma mencao de passagem como exemplo de uso) e reescreva o texto inteiro, mantendo o minimo de ${mainMinWords} palavras.`;
