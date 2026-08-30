@@ -10,7 +10,7 @@ import {
   stripLeftoverMarkers, validate, checkTitle, capitalizeTitle, similarity, nameSimilarity,
   computeMaxTokens, buildProductButtonHtml, productButtonLabel, buildProductImageTag, injectHeadingAnchors, validateSourceCoverage,
   formatProductPriceForPrompt, findPricesInBody, stripPricesFromBody, keywordTokensMatch, parseFrontmatter,
-  sanitizeProducts, splitMainBody, buildListHeading, LISTA_MARKER, temFocoMisto, dominiosNoTexto, parseBlurb, buildComparativoTable, buildItemSection, injectSegmentedItems,
+  sanitizeProducts, splitMainBody, splitMainBodyRecover, buildListHeading, LISTA_MARKER, temFocoMisto, dominiosNoTexto, parseBlurb, buildComparativoTable, buildItemSection, injectSegmentedItems,
   buildMetodologiaSection,
   extendDescription,
   buildOfferButtonsHtml,
@@ -552,6 +552,26 @@ ok(comMarcador.intro.startsWith("Fala!") && !/[LISTA]/.test(comMarcador.intro), 
 ok(comMarcador.rest.startsWith("## Veredito"), "marcador: resto comeca apos a linha [LISTA]");
 igual(splitMainBody("[LISTA]\n\n## Veredito").intro, "", "marcador: intro vazia e aceita");
 igual(splitMainBody("## Veredito antes do marcador\n\n[LISTA]"), null, "marcador: H2 antes de [LISTA] e estrutura invalida");
+
+// --- Fase 2: splitMainBodyRecover (corpo sem [LISTA] aproveitado) ---
+const corpoSemMarcador = ["Dois paragrafos de abertura bem desenvolvidos, com gancho direto, para que o leitor entenda logo o que vai encontrar adiante e por que esse recorte importa hoje, sem encher linguiça e sem prometer o que o texto nao entrega, mantendo a linguagem direta que o publico gamer espera em um artigo como este, sempre olhando para o que realmente decide a compra em vez de repetir especificacao de marketing.",
+  "Aqui vem mais contexto sobre o que define um bom item dessa categoria: volume de avaliacoes de consumidores, reputacao da marca, entregar por real no dia a dia e nao desapontar depois de meses de uso, sempre com os criterios claros para sustentar qualquer afirmacao, lembrando que a pesquisa alimenta os dados e o resto e opiniao honesta.",
+  "",
+  "## Veredito",
+  "",
+  "Vale a pena.",
+  "",
+  "## FAQ",
+  "",
+  "P1"].join("\n");
+const rec1 = splitMainBodyRecover(corpoSemMarcador);
+ok(!!rec1, "recover: corpo sem [LISTA] e aproveitado");
+ok(rec1.intro.includes("Dois paragrafos"), "recover: intro preservada");
+ok(rec1.intro.split(/\s+/).filter(Boolean).length >= 120, "recover: intro com minimo de palavras");
+ok(rec1.rest.startsWith("## Veredito"), "recover: resto comeca na 1a secao final");
+igual(splitMainBodyRecover("## Veredito\n\nx"), null, "recover: sem intro substancial retorna null");
+igual(splitMainBodyRecover("so texto"), null, "recover: sem secao final retorna null");
+igual(splitMainBodyRecover(null), null, "recover: null retorna null");
 
 // --- Fase 2: buildListHeading (heading deterministico em codigo) ---
 igual(buildListHeading([{ title: "A" }, { title: "B" }], "headset gamer som espacial"), "Os 2 Melhores Headset Gamer Som Espacial em 2026", "heading: keyword vira titulo da secao");

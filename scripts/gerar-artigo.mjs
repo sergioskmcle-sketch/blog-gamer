@@ -4857,6 +4857,25 @@ function splitMainBody(mainBody) {
   };
 }
 
+// Recuperacao deterministica: a LLM (ex.: Groq gpt-oss-120b) as vezes entrega
+// um corpo valido SEM a linha [LISTA]. Em vez de descartar tudo e cair no
+// fallback minimo (que o gate de revisao derruba), encaixa o marcador logo
+// antes da primeira secao final (Veredito/FAQ/Fontes/...): a introducao fica
+// preservada e os itens + tabela sao injetados ali mesmo.
+const SECOES_FINAIS_RE = /^##\s+(veredito|qual\s|faq|perguntas\s+frequentes|fontes|quer\s+mais|continue\s+explorando|comparativo|conclus)/im;
+function splitMainBodyRecover(restante) {
+  if (typeof restante !== "string" || !restante.trim()) return null;
+  const h = restante.match(SECOES_FINAIS_RE);
+  if (!h) return null;
+  const intro = restante.slice(0, h.index).trim();
+  if (!intro || intro.split(/\s+/).filter(Boolean).length < 120) return null;
+  return {
+    intro,
+    listHeading: null,
+    rest: restante.slice(h.index).trim(),
+  };
+}
+
 // TAREFA 6.3.3: secao de metodologia gerada por template (deterministica),
 // injetada entre a introducao e o heading da lista. Da credibilidade ao "Top 5".
 function buildMetodologiaSection() {
@@ -4957,6 +4976,10 @@ async function generateSegmentedArticle({ mlProducts, topic, domain, categoria, 
       }
       parts = splitMainBody(raw);
       if (!parts) {
+        // Recupera corpos sem marcador [LISTA] em vez de cair no fallback minimo.
+        parts = splitMainBodyRecover(raw);
+      }
+      if (!parts) {
         if (attempt === 1) {
           feedback = "\n\nESTRUTURA INVALIDA: seu texto nao tinha a linha [LISTA] sozinha (exigida na ESTRUTURA EXATA, logo apos a introducao). Reescreva com [LISTA] em uma linha sozinha, com o minimo de " + mainMinWords + " palavras.";
           log("WARN", `Corpo principal sem marcador [LISTA] (tentativa ${attempt}/2) — regenerando`);
@@ -5030,6 +5053,7 @@ export {
   imageExtension,
   sanitizeProducts,
   splitMainBody,
+  splitMainBodyRecover,
   buildListHeading,
   LISTA_MARKER,
   temFocoMisto,
