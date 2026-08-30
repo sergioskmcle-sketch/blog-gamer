@@ -40,6 +40,7 @@ import { parsePriceBRL } from "./google_shopping.mjs";
 import { normalizarProdutoRemoto } from "./monitor_api.mjs";
 import { extractMLProductData } from "./ml_affiliate.mjs";
 import { cleanProductTitle, detectCategory, detectBrand, detectModel, productMatchesCategory, detectArticleCategory } from "./product_naming.mjs";
+import { dedupeProducts, isSameProduct } from "./product_dedupe.mjs";
 import { medianPrice, valueForMoneyScore, countEditorialMentions, scoreProduct, rankProducts, applyMinCriteria, eligibilityCheck, RANKING_WEIGHTS, MIN_CRITERIA } from "./product_ranking.mjs";
 import { upgradeImageUrl, imageDimensions, isImageUsable, MIN_IMAGE_SIZE } from "./product_images.mjs";
 
@@ -1345,6 +1346,29 @@ igual(shouldAbortProductSourcing({ count: 0, articleCat: "monitor" }), true, "li
   const corpoDentro = "Intro.\n\n## Forza Horizon 6 — Corrida\n\nTexto.\n\n## 007 First Light — Espiao\n\nTexto.\n\n## Comparativo\n\n| a |";
   const vDentro = validate(fmLista, corpoDentro, { category: "lista", productCount: 0, gamesCandidates: candidatos });
   ok(!vDentro.soft.some((s) => s.includes("fora dos titulos apontados pelo Google")), "itens dentro dos candidatos passam (P3)");
+
+  // --- dedupe final por titulo limpo (regressao pipeline 33287717954) ---
+  // O funil de sourcing compara identidade pelo titulo BRUTO com sinais de
+  // URL/imagem/categoria; mas o portao validar-artigo.mjs rededupeia os
+  // headings FINAIS (titulos ja limpos/encurtados) via isSameProduct({title}).
+  // Sob condicoes do funil (URLs e imagens distintas, spec declarada de um
+  // lado so), dois itens podem passar e convergir no nome limpo — no run real:
+  // "Console Nintendo OLED Bundle" e "Console Nintendo 64gb OLED Bundle"
+  // chegaram juntos ao markdown e o portao reprovou. A geracao refaz o dedupe
+  // com a identidade do portao (raw_title = title) e a lista final NAO pode
+  // conter nenhum par equivalente na visao do validador.
+  const titulosQueConvergem = [
+    { raw_title: "Console Nintendo Switch Oled Nintendo Bundle Super Mario Bros Wonder (Lacrado, Envio Imediato)", title: "Console Nintendo OLED Bundle", permalink: "http://a/MLB101", thumbnail: "http://a/1-a.jpg", price: 1999 },
+    { raw_title: "Console Nintendo 64gb Oled Bundle Super Mario Bros Wonder - Novo, 64GB, Cores Variadas", title: "Console Nintendo 64gb OLED Bundle", permalink: "http://b/MLB202", thumbnail: "http://b/2-b.jpg", price: 1999 },
+    { raw_title: "Console Sony PlayStation 5 Slim 1TB Standard Cor Preto Nacional", title: "Console Sony PlayStation 5 Slim Disk 1TB", permalink: "http://c/MLB303", thumbnail: "http://c/3-c.jpg", price: 4499 },
+  ];
+  const finalList = dedupeProducts(titulosQueConvergem.map((p) => ({ ...p, raw_title: p.title }))).items;
+  ok(finalList.length === 2, "dedupe final funde os dois OLED (titulos limpos equivalentes) e mantem o PS5");
+  for (let i = 0; i < finalList.length; i++) {
+    for (let j = i + 1; j < finalList.length; j++) {
+      ok(!isSameProduct({ title: finalList[i].title }, { title: finalList[j].title }), "lista final sem par equivalente na visao do validar-artigo");
+    }
+  }
 
   console.log(`${passou} asserts OK`);
 })().catch((e) => {

@@ -3714,6 +3714,28 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
     throw new Error(`sourcing abortou para "${articleCat}" — faltaram produtos (${mlProducts.length}/${MIN_PRODUCTS})`);
   }
 
+  // Dedup FINAL pós-normalização. O funil compara identidade pelo título
+  // BRUTO (raw_title), com URL/imagem/categoria como sinais; mas o portao de
+  // qualidade (validar-artigo.mjs) rededupeia os headings FINAIS do markdown —
+  // titulos ja limpos/encurtados — via isSameProduct({ title }). Um par que
+  // divergia no bruto ("... Oled Bundle Super Mario Bros Wonder" vs "... 64gb
+  // Oled ...") pode convergir no nome limpo ("Console Nintendo OLED Bundle" vs
+  // "Console Nintendo 64gb OLED Bundle") e reprovar o artigo. Refaz o dedupe
+  // com a identidade do portao e registra o que fundiu.
+  {
+    const antesDedupFinal = mlProducts.length;
+    const { items: itemsDedupFinal, removidos: removidosDedupFinal } = dedupeProducts(
+      mlProducts.map((p) => ({ ...p, raw_title: p.title }))
+    );
+    for (const r of removidosDedupFinal) {
+      log("INFO", `Duplicado (dedupe final por titulo limpo): "${r.descartado}" == "${r.mantido}" (${r.motivo})`);
+    }
+    if (itemsDedupFinal.length < antesDedupFinal) {
+      log("INFO", `${antesDedupFinal - itemsDedupFinal} produto(s) duplicado(s) removido(s) no dedupe final — lista de ${antesDedupFinal} para ${itemsDedupFinal}`);
+    }
+    mlProducts = itemsDedupFinal;
+  }
+
   const revSourcing = montarRevSourcing({ abortado: false, gateAtingido: true });
 
   const productBlock = mlProducts.length > 0
