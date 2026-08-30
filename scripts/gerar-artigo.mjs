@@ -4881,7 +4881,10 @@ function buildListHeading(mlProducts, primaryKeyword, topic) {
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
   const base = kw ? ` ${kw}` : "";
-  return normalizarAnos(`Os ${n} Melhores${base} em ${ANO_ATUAL}`);
+  // Direto: "Melhores" no plural so existe com 2+ itens. Com 1 produto (ex.:
+  // review de um unico jogo), o heading fica no singular — "Os 1 Melhores"
+  // alem de feio, dispara o gate de lista plural e trava a publicacao.
+  return normalizarAnos(n === 1 ? `O Melhor${base} em ${ANO_ATUAL}` : `Os ${n} Melhores${base} em ${ANO_ATUAL}`);
 }
 
 // Separa o corpo principal em intro / heading da lista / resto.

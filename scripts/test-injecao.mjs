@@ -618,7 +618,8 @@ igual(validateSourceCoverage(corpoNotaProduto, fontesNota, [4.6]).filter((w) => 
 
 // --- Fase 2: buildListHeading (heading deterministico em codigo) ---
 igual(buildListHeading([{ title: "A" }, { title: "B" }], "headset gamer som espacial"), "Os 2 Melhores Headset Gamer Som Espacial em 2026", "heading: keyword vira titulo da secao");
-igual(buildListHeading([{ title: "A" }], "", {}), "Os 1 Melhores Itens em 2026", "heading: sem keyword usa 'Itens'");
+igual(buildListHeading([{ title: "A" }], "", {}), "O Melhor Itens em 2026", "heading: 1 item usa singular (nao 'Os 1 Melhores')");
+igual(buildListHeading([{ title: "A" }], "headset gamer", {}), "O Melhor Headset Gamer em 2026", "heading: 1 item vira 'O Melhor' no singular");
 ok(buildListHeading([{ title: "A" }, { title: "B" }], "melhores teclados gamer em 2024").endsWith("2026"), "heading: ano normalizado para o ano corrente");
 
 // --- Fase 2: foco misto (falso positivo nao conta como misto) ---
