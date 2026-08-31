@@ -126,6 +126,84 @@ async function loadCover(src) {
   throw new Error(`capa nao encontrada: ${candidatos[0]}`);
 }
 
+// Gera um titulo curto para a arte via LLM (Gemini -> Groq -> OpenAI).
+// Tolerante: qualquer falha devolve null (usa o titulo original como fallback).
+async function gerarTituloCurto(title, description) {
+  const sys =
+    "Voce escreve titulos curtos e impactantes para a arte de um post de Instagram de um blog gamer. Recebe o titulo original de uma materia e devolve uma versao enxuta, com NO MAXIMO 50 caracteres, mantendo o assunto principal. Sem emojis, sem hashtags, sem aspas e sem ponto final. Responda APENAS com o titulo curto.";
+  const user = `Titulo original: ${title}\nDescricao: ${description || ""}`;
+
+  const tryGemini = async () => {
+    const key = process.env.GEMINI_API_KEY;
+    if (!key) throw new Error("sem GEMINI_API_KEY");
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${key}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: sys }] },
+        contents: [{ role: "user", parts: [{ text: user }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 120 },
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!res.ok) throw new Error(`Gemini ${res.status}`);
+    const data = await res.json();
+    return (data.candidates?.[0]?.content?.parts?.[0]?.text || "").trim();
+  };
+
+  const tryGroq = async () => {
+    const key = process.env.GROQ_API_KEY;
+    if (!key) throw new Error("sem GROQ_API_KEY");
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model: "openai/gpt-oss-120b",
+        messages: [{ role: "system", content: sys }, { role: "user", content: user }],
+        temperature: 0.7,
+        max_tokens: 120,
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!res.ok) throw new Error(`Groq ${res.status}`);
+    const data = await res.json();
+    return (data.choices?.[0]?.message?.content || "").trim();
+  };
+
+  const tryOpenAI = async () => {
+    const key = process.env.OPENAI_API_KEY;
+    if (!key) throw new Error("sem OPENAI_API_KEY");
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [{ role: "system", content: sys }, { role: "user", content: user }],
+        temperature: 0.7,
+        max_tokens: 120,
+      }),
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!res.ok) throw new Error(`OpenAI ${res.status}`);
+    const data = await res.json();
+    return (data.choices?.[0]?.message?.content || "").trim();
+  };
+
+  for (const fn of [tryGemini, tryGroq, tryOpenAI]) {
+    try {
+      const texto = await fn();
+      if (texto.length >= 8 && texto.length <= 80) {
+        return texto;
+      }
+      log("WARN", `Titulo curto via ${fn.name} fora do esperado (${texto.length} chars) — tentando proximo`);
+    } catch (e) {
+      log("WARN", `Titulo curto via ${fn.name} falhou: ${e.message}`);
+    }
+  }
+  return null;
+}
+
 async function generateArt(slug) {
   const artigoPath = path.resolve("src/content/artigos", `${slug}.md`);
   if (!fs.existsSync(artigoPath)) {
@@ -151,6 +229,11 @@ async function generateArt(slug) {
   log("INFO", `Descricao: ${description}`);
   log("INFO", `Capa: ${cover}`);
 
+  // Titulo enxuto para a arte (texto menor, nao fonte menor). Fallback para o
+  // titulo original quando a IA falha.
+  const shortTitle = (await gerarTituloCurto(title, description)) || title;
+  if (shortTitle !== title) log("INFO", `Titulo curto (IA): ${shortTitle}`);
+
   const coverBuf = await loadCover(cover);
   const outDir = path.resolve("public/images/instagram");
   fs.mkdirSync(outDir, { recursive: true });
@@ -174,9 +257,9 @@ async function generateArt(slug) {
     // tamanho da fonte conforme o titulo (Bungee ~0.66em/letra)
     const maxW = Math.round(c.outW * 0.78);
 
-    const titleFsRaw = kind === "feed" ? 54 : 54;
-    const titleFs = title.length > 60 ? Math.round(titleFsRaw * 0.85) : title.length > 40 ? Math.round(titleFsRaw * 0.9) : titleFsRaw;
-    const titleLines = limitLines(wrapText(title, Math.floor(maxW / (0.66 * titleFs))), kind === "feed" ? 3 : 4);
+    const titleFsRaw = kind === "feed" ? 66 : 66;
+    const titleFs = shortTitle.length > 60 ? Math.round(titleFsRaw * 0.85) : shortTitle.length > 40 ? Math.round(titleFsRaw * 0.9) : titleFsRaw;
+    const titleLines = limitLines(wrapText(shortTitle, Math.floor(maxW / (0.66 * titleFs))), kind === "feed" ? 3 : 4);
 
     // subtitulo (description) em branco, mesma fonte Bungee, tamanho menor
     const subFs = kind === "feed" ? 27 : 27;
