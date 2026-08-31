@@ -15,7 +15,7 @@ const OURO = "#FFCE00";
 const BRANCO = "#FFFFFF";
 const MOCKUP_FEED = "mockup/feed-4x5.png";
 const MOCKUP_STORY = "mockup/story-9x16.png";
-const FONT = "Bungee";
+const FONT = "Kalam";
 
 // Posicoes no tamanho nativo dos mockups (px) — medidas via analise de alpha.
 const NATIVE = {
@@ -73,7 +73,7 @@ async function coverLayer(coverBuf, hole, outW, outH, scale) {
 }
 
 // Texto centralizado (titulo dourado + subtitulo branco) no espaço vazio.
-// Formato do modelo: destaque em Bungee dourado grande + apoio em Geist
+// Formato do modelo: destaque em Kalam dourado grande + apoio em Kalam
 // branco menor logo abaixo.
 function textOverlay({ W, H, titleLines, titleFs, subLines, subFs, bandTop, bandBottom }) {
   const titleH = Math.round(titleLines.length * titleFs * 1.14);
@@ -126,13 +126,9 @@ async function loadCover(src) {
   throw new Error(`capa nao encontrada: ${candidatos[0]}`);
 }
 
-// Gera um titulo curto para a arte via LLM (Gemini -> Groq -> OpenAI).
-// Tolerante: qualquer falha devolve null (usa o titulo original como fallback).
-async function gerarTituloCurto(title, description) {
-  const sys =
-    "Voce escreve titulos curtos e impactantes para a arte de um post de Instagram de um blog gamer. Recebe o titulo original de uma materia e devolve uma versao enxuta, com NO MAXIMO 50 caracteres, mantendo o assunto principal. Sem emojis, sem hashtags, sem aspas e sem ponto final. Responda APENAS com o titulo curto.";
-  const user = `Titulo original: ${title}\nDescricao: ${description || ""}`;
-
+// Chamada unica a LLM com fallback em cadeia (Gemini -> Groq -> OpenAI).
+// Valida o tamanho do resultado e retorna null se todas falharem.
+async function chamarLLM(sys, user, { minLen = 8, maxLen = 80, maxTokens = 120, rotulo = "texto" } = {}) {
   const tryGemini = async () => {
     const key = process.env.GEMINI_API_KEY;
     if (!key) throw new Error("sem GEMINI_API_KEY");
@@ -143,7 +139,7 @@ async function gerarTituloCurto(title, description) {
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: sys }] },
         contents: [{ role: "user", parts: [{ text: user }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 120 },
+        generationConfig: { temperature: 0.7, maxOutputTokens: maxTokens },
       }),
       signal: AbortSignal.timeout(30000),
     });
@@ -162,7 +158,7 @@ async function gerarTituloCurto(title, description) {
         model: "openai/gpt-oss-120b",
         messages: [{ role: "system", content: sys }, { role: "user", content: user }],
         temperature: 0.7,
-        max_tokens: 120,
+        max_tokens: maxTokens,
       }),
       signal: AbortSignal.timeout(30000),
     });
@@ -181,7 +177,7 @@ async function gerarTituloCurto(title, description) {
         model: "gpt-4o-mini",
         messages: [{ role: "system", content: sys }, { role: "user", content: user }],
         temperature: 0.7,
-        max_tokens: 120,
+        max_tokens: maxTokens,
       }),
       signal: AbortSignal.timeout(30000),
     });
@@ -193,15 +189,31 @@ async function gerarTituloCurto(title, description) {
   for (const fn of [tryGemini, tryGroq, tryOpenAI]) {
     try {
       const texto = await fn();
-      if (texto.length >= 8 && texto.length <= 80) {
+      if (texto.length >= minLen && texto.length <= maxLen) {
         return texto;
       }
-      log("WARN", `Titulo curto via ${fn.name} fora do esperado (${texto.length} chars) — tentando proximo`);
+      log("WARN", `${rotulo} via ${fn.name} fora do esperado (${texto.length} chars) — tentando proximo`);
     } catch (e) {
-      log("WARN", `Titulo curto via ${fn.name} falhou: ${e.message}`);
+      log("WARN", `${rotulo} via ${fn.name} falhou: ${e.message}`);
     }
   }
   return null;
+}
+
+// Titulo enxuto para a arte. Fallback para o titulo original quando a IA falha.
+function gerarTituloCurto(title, description) {
+  const sys =
+    "Voce escreve titulos curtos e impactantes para a arte de um post de Instagram de um blog gamer. Recebe o titulo original de uma materia e devolve uma versao enxuta, com NO MAXIMO 50 caracteres, mantendo o assunto principal. Sem emojis, sem hashtags, sem aspas e sem ponto final. Responda APENAS com o titulo curto.";
+  const user = `Titulo original: ${title}\nDescricao: ${description || ""}`;
+  return chamarLLM(sys, user, { maxLen: 60, rotulo: "Titulo curto" });
+}
+
+// Subtitulo (linha de apoio) enxuto para a arte, a partir da description.
+function gerarSubtituloCurto(description) {
+  const sys =
+    "Voce resume a descricao de uma materia de um blog gamer para a linha de apoio da arte de um post de Instagram. Devolva UMA frase enxuta, com NO MAXIMO 90 caracteres, destacando o ponto principal. Sem emojis, sem hashtags, sem aspas. Responda APENAS com a frase.";
+  const user = `Descricao original: ${description}`;
+  return chamarLLM(sys, user, { minLen: 10, maxLen: 100, maxTokens: 160, rotulo: "Subtitulo curto" });
 }
 
 async function generateArt(slug) {
@@ -234,6 +246,11 @@ async function generateArt(slug) {
   const shortTitle = (await gerarTituloCurto(title, description)) || title;
   if (shortTitle !== title) log("INFO", `Titulo curto (IA): ${shortTitle}`);
 
+  // Subtitulo (linha de apoio) enxuto a partir da description. Fallback para a
+  // description original quando a IA falha.
+  const shortSub = description ? (await gerarSubtituloCurto(description)) || description : "";
+  if (shortSub && shortSub !== description) log("INFO", `Subtitulo curto (IA): ${shortSub}`);
+
   const coverBuf = await loadCover(cover);
   const outDir = path.resolve("public/images/instagram");
   fs.mkdirSync(outDir, { recursive: true });
@@ -254,18 +271,18 @@ async function generateArt(slug) {
     const holeBottom = Math.round((c.hole.y + c.hole.h) * sc);
     const chipTop = Math.round(c.chipTop * sc);
 
-    // tamanho da fonte conforme o titulo (Bungee ~0.66em/letra)
+    // tamanho da fonte conforme o titulo (Kalam ~0.66em/letra)
     const maxW = Math.round(c.outW * 0.78);
 
     const titleFsRaw = kind === "feed" ? 66 : 66;
     const titleFs = shortTitle.length > 60 ? Math.round(titleFsRaw * 0.85) : shortTitle.length > 40 ? Math.round(titleFsRaw * 0.9) : titleFsRaw;
     const titleLines = limitLines(wrapText(shortTitle, Math.floor(maxW / (0.66 * titleFs))), kind === "feed" ? 3 : 4);
 
-    // subtitulo (description) em branco, mesma fonte Bungee, tamanho menor
+    // subtitulo (linha de apoio) em branco, mesma fonte Kalam, tamanho menor
     const subFs = kind === "feed" ? 27 : 27;
     const subMaxW = Math.round(c.outW * 0.84);
-    const subLines = description
-      ? limitLines(wrapText(description, Math.floor(subMaxW / (0.66 * subFs))), 3)
+    const subLines = shortSub
+      ? limitLines(wrapText(shortSub, Math.floor(subMaxW / (0.66 * subFs))), 3)
       : [];
 
     const textOverlayBuf = await textOverlay({
