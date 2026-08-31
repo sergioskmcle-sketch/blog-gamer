@@ -173,19 +173,24 @@ async function main() {
       continue;
     }
 
-    await generateArticle({
-      topic,
-      state,
-      trendingSource: "regeneracao",
-      opts: {
-        overwriteSlug: targetSlug,
-        keepPubDate: true,
-        reuseImageMap,
-        extraMlQueries,
-        enrichNames: true,
-        updateState: false,
-      },
-    });
+    try {
+      await generateArticle({
+        topic,
+        state,
+        trendingSource: "regeneracao",
+        opts: {
+          overwriteSlug: targetSlug,
+          keepPubDate: true,
+          reuseImageMap,
+          extraMlQueries,
+          enrichNames: true,
+          updateState: false,
+        },
+      });
+    } catch (err) {
+      console.error(`  [FALHA] Geracao reprovou ${targetSlug}.md (${err?.message || String(err)}) — pulando para o proximo alvo.`);
+      continue;
+    }
 
     // Portao de qualidade real (V10): o validate() interno do gerador nao
     // cobre tudo que o validar-artigo.mjs exige (marca/modelo, anos, duplicados,

@@ -12,6 +12,7 @@ import sharp from "sharp";
 // Saida: public/images/instagram/<slug>.png (feed 1080x1350) e <slug>-story.png (1080x1920)
 
 const OURO = "#FFCE00";
+const BRANCO = "#FFFFFF";
 const MOCKUP_FEED = "mockup/feed-4x5.png";
 const MOCKUP_STORY = "mockup/story-9x16.png";
 const FONT = "Bungee";
@@ -71,18 +72,41 @@ async function coverLayer(coverBuf, hole, outW, outH, scale) {
   return base.composite([{ input: resizedPng, left: hx, top: hy }]).png().toBuffer();
 }
 
-// Linha do titulo no espaco vazio entre o buraco e o chip, em dourado.
-function titleOverlay({ W, H, lines, fSize, bandTop, bandBottom }) {
-  const titleH = Math.round(lines.length * fSize * 1.14);
-  let y0 = bandTop + Math.max(0, Math.floor((bandBottom - bandTop - titleH) / 2));
+// Texto centralizado (titulo dourado + subtitulo branco) no espaço vazio.
+// Formato do modelo: destaque em Bungee dourado grande + apoio em Geist
+// branco menor logo abaixo.
+function textOverlay({ W, H, titleLines, titleFs, subLines, subFs, bandTop, bandBottom }) {
+  const titleH = Math.round(titleLines.length * titleFs * 1.14);
+  const subH = subLines.length > 0 ? Math.round(subLines.length * subFs * 1.16) : 0;
+  const gap = subLines.length > 0 ? Math.round(subFs * 0.75) : 0;
+  const totalH = titleH + gap + subH;
+
+  // centro vertical do bloco dentro da banda disponivel
+  let y0 = bandTop + Math.max(0, Math.floor((bandBottom - bandTop - totalH) / 2));
   if (y0 < bandTop) y0 = bandTop;
-  const tspan = lines
-    .map((line, i) => `<tspan x="${W / 2}" dy="${i === 0 ? 0 : fSize * 1.14}">${xmlEscape(line)}</tspan>`)
+
+  const titleTspan = titleLines
+    .map((line, i) => `<tspan x="${W / 2}" dy="${i === 0 ? 0 : titleFs * 1.14}">${xmlEscape(line)}</tspan>`)
     .join("");
+  const titleBase = y0 + titleFs;
+
+  const subTspan = subLines
+    .map((line, i) => `<tspan x="${W / 2}" dy="${i === 0 ? 0 : subFs * 1.16}">${xmlEscape(line)}</tspan>`)
+    .join("");
+  // baseline da 1a linha do subtitulo: logo apos o bloco do titulo + gap
+  const subBase = y0 + titleH + gap + subFs;
+
   const svg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
-  <text x="${W / 2}" y="${y0 + fSize}" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="${fSize}" fill="${OURO}" letter-spacing="-0.01em">
-    ${tspan}
+  <text x="${W / 2}" y="${titleBase}" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="${titleFs}" fill="${OURO}" letter-spacing="-0.01em">
+    ${titleTspan}
   </text>
+  ${
+    subLines.length > 0
+      ? `<text x="${W / 2}" y="${subBase}" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="${subFs}" fill="${BRANCO}" letter-spacing="-0.01em">
+    ${subTspan}
+  </text>`
+      : ""
+  }
 </svg>`;
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
@@ -116,6 +140,7 @@ async function generateArt(slug) {
   }
   const fm = fmMatch[1];
   const title = (fm.match(/^title:\s*"?(.+?)"?\s*$/m)?.[1] || "").replace(/\\"/g, '"').trim();
+  const description = (fm.match(/^description:\s*"?(.+?)"?\s*$/m)?.[1] || "").replace(/\\"/g, '"').trim();
   const cover = (fm.match(/^image:\s*(.+)$/m)?.[1] || "").replace(/^["']|["']$/g, "").trim();
   if (!title || !cover) {
     log("ERROR", `Faltando titulo ou imagem de capa (title="${title}" cover="${cover}")`);
@@ -123,6 +148,7 @@ async function generateArt(slug) {
   }
   log("INFO", `Artigo: ${slug}`);
   log("INFO", `Titulo: ${title}`);
+  log("INFO", `Descricao: ${description}`);
   log("INFO", `Capa: ${cover}`);
 
   const coverBuf = await loadCover(cover);
@@ -147,14 +173,25 @@ async function generateArt(slug) {
 
     // tamanho da fonte conforme o titulo (Bungee ~0.66em/letra)
     const maxW = Math.round(c.outW * 0.78);
-    const fSizeRaw = kind === "feed" ? 66 : 66;
-    const fSize = title.length > 60 ? Math.round(fSizeRaw * 0.85) : title.length > 40 ? Math.round(fSizeRaw * 0.9) : fSizeRaw;
-    const lines = limitLines(wrapText(title, Math.floor(maxW / (0.66 * fSize))), kind === "feed" ? 3 : 4);
-    const titleOverlayBuf = await titleOverlay({
+
+    const titleFsRaw = kind === "feed" ? 54 : 54;
+    const titleFs = title.length > 60 ? Math.round(titleFsRaw * 0.85) : title.length > 40 ? Math.round(titleFsRaw * 0.9) : titleFsRaw;
+    const titleLines = limitLines(wrapText(title, Math.floor(maxW / (0.66 * titleFs))), kind === "feed" ? 3 : 4);
+
+    // subtitulo (description) em branco, mesma fonte Bungee, tamanho menor
+    const subFs = kind === "feed" ? 27 : 27;
+    const subMaxW = Math.round(c.outW * 0.84);
+    const subLines = description
+      ? limitLines(wrapText(description, Math.floor(subMaxW / (0.66 * subFs))), 3)
+      : [];
+
+    const textOverlayBuf = await textOverlay({
       W: c.outW,
       H: c.outH,
-      lines,
-      fSize,
+      titleLines,
+      titleFs,
+      subLines,
+      subFs,
       bandTop: Math.round(holeBottom + (chipTop - holeBottom) * 0.06),
       bandBottom: chipTop - Math.round((chipTop - holeBottom) * 0.08),
     });
@@ -163,7 +200,7 @@ async function generateArt(slug) {
     await sharp(coverLayerBuf)
       .composite([
         { input: bg },
-        { input: titleOverlayBuf },
+        { input: textOverlayBuf },
       ])
       .png({ quality: 95, compressionLevel: 9 })
       .toFile(outPath);

@@ -55,7 +55,7 @@ function loadState() {
       return JSON.parse(fs.readFileSync(STATE_FILE, "utf-8"));
     }
   } catch {}
-  return { last_success: null, last_error: null, last_error_date: null, consecutive_failures: 0, total_articles: 0, last_category: null, rotation_pos: 0 };
+  return { last_success: null, last_scheduled_success: null, last_error: null, last_error_date: null, consecutive_failures: 0, total_articles: 0, last_category: null, rotation_pos: 0 };
 }
 
 function saveState(state) {
@@ -3275,11 +3275,14 @@ async function main() {
   const totalArticles = countArticlesInDir();
   log("INFO", `Total artigos: ${totalArticles}`);
 
-  if (state.last_success && !process.env.FORCE_GENERATE) {
-    const lastDate = new Date(state.last_success + "T00:00:00Z");
+  // Cooldown de 20h usa last_scheduled_success (so a geracao agendada do cron),
+  // nao last_success — assim um artigo forcado (workflow_dispatch) nao bloqueia
+  // a janela normal do cron seguinte.
+  if (state.last_scheduled_success && !process.env.FORCE_GENERATE) {
+    const lastDate = new Date(state.last_scheduled_success + "T00:00:00Z");
     const hoursSinceLast = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60);
     if (hoursSinceLast < 20) {
-      log("INFO", `Artigo gerado ha ${hoursSinceLast.toFixed(1)}h, cooldown de 20h nao atingido — pulando`);
+      log("INFO", `Artigo agendado ha ${hoursSinceLast.toFixed(1)}h, cooldown de 20h nao atingido — pulando`);
       process.exit(0);
     }
   }
@@ -3450,7 +3453,7 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
     state.last_error_date = today;
     state.consecutive_failures = (state.consecutive_failures || 0) + 1;
     persistState();
-    process.exit(1);
+    throw new Error(`Tema misto (games + hardware): ${topic.hint}`);
   }
   const effectiveDomain = topicDomain === "hardware" ? "hardware" : "games";
   log("INFO", `Dominio do artigo: ${effectiveDomain}`);
@@ -3962,7 +3965,7 @@ Checklist antes de responder:
       state.last_error_date = today;
       state.consecutive_failures = (state.consecutive_failures || 0) + 1;
       persistState();
-      process.exit(1);
+      throw new Error(`Falha na geracao segmentada: ${err?.message || String(err)}`);
     }
   } else {
   for (let attempt = 1; attempt <= MAX_GEN_ATTEMPTS; attempt++) {
@@ -3980,7 +3983,7 @@ Checklist antes de responder:
       state.last_error_date = today;
       state.consecutive_failures = (state.consecutive_failures || 0) + 1;
       persistState();
-      process.exit(1);
+      throw err;
     }
 
     let parsed;
@@ -3989,7 +3992,7 @@ Checklist antes de responder:
     } catch (err) {
       log("WARN", `Erro frontmatter: ${err.message}`);
       log("DEBUG", typeof article === "string" ? article.slice(0, 600) : `article nao e string: ${typeof article} — ${String(article).slice(0, 200)}`);
-      if (lastAttempt) { log("ERROR", "Frontmatter invalido apos todas as tentativas"); process.exit(1); }
+      if (lastAttempt) { log("ERROR", "Frontmatter invalido apos todas as tentativas"); throw new Error("Frontmatter invalido apos todas as tentativas"); }
       feedback = "\n\nA resposta anterior nao tinha frontmatter YAML valido. Comece a resposta com --- e feche com --- antes do markdown.";
       continue;
     }
@@ -4428,6 +4431,11 @@ Checklist antes de responder:
 
   if (opts.updateState !== false) {
     state.last_success = today;
+    // So a geracao agendada do cron avanca o cooldown de 20h. Artigo forcado
+    // (FORCE_GENERATE) ou regeneracao nao devem consumir a janela do cron.
+    if (!process.env.FORCE_GENERATE) {
+      state.last_scheduled_success = today;
+    }
     state.last_slug = slug;
     state.last_error = null;
     state.last_error_date = null;
@@ -4579,7 +4587,10 @@ Checklist antes de responder:
       state.last_slug = null;
       state.total_articles = countArticlesInDir();
       persistState();
-      process.exit(1);
+      // Lanca em vez de encerrar: o main() monta um pool de candidatos e,
+      // ao capturar a excecao, tenta o proximo tema. So desiste (exit 1)
+      // quando todos os candidatos falham.
+      throw new Error(`Gate de revisao reprovou: ${gateReprovados.map((r) => r.etapa).join(", ")}`);
     } else {
       log("WARN", "Gate ignorado (IGNORE_REVIEW_GATE/forcePublicar) — publicando mesmo assim.");
     }
