@@ -3,13 +3,16 @@
   "last_error": null,
   "last_error_date": null,
   "consecutive_failures": 0,
-  "total_articles": 46,
-  "last_slug": "gamescom-latam-2026-4-lancamentos-que-vao-bombar-no-ano",
-  "last_topic": "lancamento de game, evento de games, anuncio de console",
-  "trending_source": "estatico",
-  "recent_keywords": [],
+  "total_articles": 47,
+  "last_slug": "ace-combat-8-multiplayer-5-modos-que-vao-dominar-2026",
+  "last_topic": "Detalhes do modo multiplayer online de Ace Combat 8",
+  "trending_source": "trending",
+  "recent_keywords": [
+    "Ace Combat 8 multiplayer",
+    "gta",
+    "gta 6"
+  ],
   "recent_topics": [
-    "lancamento de game, evento de games, anuncio de console",
     "Melhores suportes para controle DualSense para gamers em 202",
     "lancamentos, novidades e guia sobre gta — topicos em alta: p",
     "lancamento de game, evento de games, anuncio de console",
@@ -18,10 +21,11 @@
     "The Witcher 4: tudo o que sabemos sobre o novo RPG da CD Pro",
     "lancamentos, novidades e guia sobre gta — topicos em alta: T",
     "review de jogo popular de 2026, performance nos consoles, o ",
-    "lancamento de game, evento de games, anuncio de console"
+    "lancamento de game, evento de games, anuncio de console",
+    "Detalhes do modo multiplayer online de Ace Combat 8"
   ],
   "last_pilar": "2026-07-22",
   "last_category": "noticia",
-  "rotation_pos": 2,
+  "rotation_pos": 3,
   "last_scheduled_success": "2026-09-01"
 }
