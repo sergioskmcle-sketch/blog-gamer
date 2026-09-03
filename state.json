@@ -1,31 +1,27 @@
 {
-  "last_success": "2026-09-02",
+  "last_success": "2026-09-03",
   "last_error": null,
   "last_error_date": null,
   "consecutive_failures": 0,
-  "total_articles": 49,
-  "last_slug": "ea-sports-fc-27-hall-do-fut-chega-com-hulk-e-pato-em-2026",
-  "last_topic": "EA Sports FC 27 revela novidades no Ultimate Team com lendas brasileiras como Hulk e Pato.",
-  "trending_source": "trending",
-  "recent_keywords": [
-    "EA Sports FC 27 Hall do FUT",
-    "gta",
-    "gta 6"
-  ],
+  "total_articles": 50,
+  "last_slug": "review-de-jogo-popular-de-2026-performance-e-expectativas",
+  "last_topic": "review de jogo popular de 2026, performance nos consoles, o que esperar do jogo",
+  "trending_source": "estatico",
+  "recent_keywords": [],
   "recent_topics": [
-    "review de jogo popular de 2026, performance nos consoles, o ",
-    "lancamento de game, evento de games, anuncio de console",
-    "Detalhes do modo multiplayer online de Ace Combat 8",
     "Descontos imperdíveis do Resident Evil Village Gold Edition ",
     "lancamentos, novidades e guia sobre gta — topicos em alta: R",
     "lancamentos, novidades e guia sobre gta 6 — topicos em alta:",
     "lancamento de game, evento de games, anuncio de console",
     "melhores headsets gamers, teclado mecanico, mouse gamer, mon",
     "melhores jogos para PC, jogos gratis, jogos multiplayer, jog",
-    "EA Sports FC 27 revela novidades no Ultimate Team com lendas"
+    "EA Sports FC 27 revela novidades no Ultimate Team com lendas",
+    "Gundam Rogue Orbit chega ao PS5: data, gameplay e novidades",
+    "trailer: anuncios, novidades e expectativas — topicos em alt",
+    "review de jogo popular de 2026, performance nos consoles, o "
   ],
   "last_pilar": "2026-07-22",
-  "last_category": "noticia",
-  "rotation_pos": 4,
-  "last_scheduled_success": "2026-09-02"
+  "last_category": "review",
+  "rotation_pos": 1,
+  "last_scheduled_success": "2026-09-03"
 }
