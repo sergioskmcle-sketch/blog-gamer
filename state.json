@@ -1,8 +1,8 @@
 {
   "last_success": "2026-09-06",
-  "last_error": null,
-  "last_error_date": null,
-  "consecutive_failures": 0,
+  "last_error": "OpenAI: todas as 3 tentativas falharam",
+  "last_error_date": "2026-09-08",
+  "consecutive_failures": 6,
   "total_articles": 52,
   "last_slug": "melhores-headsets-gamer-de-2026-para-imersao-total-no-jogo",
   "last_topic": "Os melhores headsets gamer de 2024 para imersão total.",
