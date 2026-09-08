@@ -12,6 +12,10 @@ import { rankProducts, filterEligible, medianPrice, MIN_CRITERIA } from "./produ
 import { upgradeImageUrl, imageDimensions, isImageUsable, searchSerperImage } from "./product_images.mjs";
 import { SESSION_HEADERS, extractMLProductData } from "./ml_affiliate.mjs";
 import { dedupeProducts } from "./product_dedupe.mjs";
+// V12: mesmo validador que o workflow roda depois. Antes o gerador tinha a
+// propria revisao, mais frouxa, e o artigo era reprovado so no CI — jogando
+// fora o ciclo inteiro sem chance de correcao.
+import { validarArtigoEmMemoria } from "./validar-artigo.mjs";
 import { buildEditorialShortlist } from "./editorial_shortlist.mjs";
 import { buildGamesCandidateList } from "./games_candidates.mjs";
 import { ANO_ATUAL, normalizarAnos, normalizarAnosPreposicional } from "./tempo.mjs";
@@ -1529,6 +1533,23 @@ function sanitizeProducts(products, topic, ctx = {}) {
     };
   }
   if (!Array.isArray(products) || products.length === 0) return [];
+  // V12: trava de nomenclatura na ENTRADA do funil. O validador oficial exige
+  // marca OU modelo reconhecivel no nome do produto; itens que nao passam
+  // nessa regra eram descobertos so no CI, depois do ciclo inteiro gasto.
+  // Descartar aqui e mais barato e evita reprovacao no fim.
+  const semIdentidade = [];
+  products = products.filter((p) => {
+    const t = String((p && p.title) || "");
+    if (!t) return false;
+    const limpo = cleanProductTitle(t);
+    if (detectBrand(limpo) || detectModel(limpo)) return true;
+    semIdentidade.push(limpo);
+    return false;
+  });
+  if (semIdentidade.length > 0) {
+    log("INFO", `${semIdentidade.length} produto(s) sem marca/modelo reconheciveis descartados: ${semIdentidade.slice(0, 3).join(" | ")}`);
+  }
+  if (products.length === 0) return [];
   const seen = new Set();
   const candidates = [];
   for (const p of products) {
@@ -3433,6 +3454,76 @@ function montarQueryPesquisa(topic, ano) {
 //   keepPubDate    - (default true) preserva a pubDate original do arquivo.
 //   reuseImageMap  - Map<titulo antigo do produto, caminho local> de imagens
 //                    a reutilizar quando o produto novo casar com um antigo.
+
+// V12 — Portao final unificado: roda o MESMO validar-artigo.mjs que o workflow
+// usa. Se reprovar, tenta uma correcao deterministica (descartar os itens de
+// produto problematicos) e revalida. So desiste se ainda assim reprovar — e ai
+// lanca erro (em vez de matar o processo) para o proximo tema ser tentado.
+function portaoFinalValidador({ fp, slug, backupOriginal }) {
+  let falhas = validarArtigoEmMemoria(`${slug}.md`);
+  if (falhas.length === 0) return { ok: true, corrigido: false };
+
+  log("WARN", `Validador oficial reprovou ${slug}.md:`);
+  for (const f of falhas) log("WARN", `  - ${f}`);
+
+  // Extrai os nomes de produto citados nas falhas corrigiveis por remocao.
+  const CORRIGIVEIS = [
+    "sem marca/modelo reconheciveis",
+    "fora da categoria",
+    "produto comeca com ano",
+    "nome de produto > 60 chars",
+  ];
+  const alvos = new Set();
+  for (const f of falhas) {
+    if (!CORRIGIVEIS.some((c) => f.includes(c))) continue;
+    const m = f.match(/"([^"]+)"\s*$/);
+    if (m) alvos.add(m[1]);
+  }
+  if (alvos.size === 0) {
+    log("WARN", "Nenhuma falha corrigivel por remocao de item — sem tentativa de conserto.");
+    return { ok: false, falhas };
+  }
+
+  const original = fs.readFileSync(fp, "utf-8");
+  const linhas = original.split(/\r?\n/);
+  const manter = [];
+  let removendo = false;
+  let removidos = 0;
+  for (const linha of linhas) {
+    const h3 = linha.match(/^###\s+(.+?)\s*$/);
+    if (h3) {
+      const titulo = h3[1].replace(/\*\*/g, "").trim();
+      removendo = [...alvos].some((a) => titulo === a || titulo.includes(a));
+      if (removendo) removidos++;
+    } else if (removendo && /^#{1,3}\s/.test(linha)) {
+      removendo = false;
+    }
+    if (!removendo) manter.push(linha);
+  }
+
+  if (removidos === 0) {
+    log("WARN", "Itens reprovados nao localizados como heading ### — sem conserto.");
+    return { ok: false, falhas };
+  }
+
+  fs.writeFileSync(fp, manter.join(CRLF_ARTIGO(original)), "utf-8");
+  const falhas2 = validarArtigoEmMemoria(`${slug}.md`);
+  if (falhas2.length === 0) {
+    log("INFO", `Validador: ${removidos} item(ns) problematico(s) removido(s) — artigo aprovado apos correcao.`);
+    return { ok: true, corrigido: true };
+  }
+
+  log("WARN", `Correcao nao resolveu (${falhas2.length} falha(s) restante(s)) — revertendo.`);
+  for (const f of falhas2) log("WARN", `  - ${f}`);
+  fs.writeFileSync(fp, original, "utf-8");
+  return { ok: false, falhas: falhas2 };
+}
+
+// Preserva o fim de linha do arquivo original ao remontar o markdown.
+function CRLF_ARTIGO(texto) {
+  return texto.includes("\r\n") ? "\r\n" : "\n";
+}
+
 async function generateArticle({ topic, state, trendingSource = "estatico", opts = {} }) {
   const now = new Date();
   const today = now.toISOString().split("T")[0];
@@ -4037,7 +4128,8 @@ Checklist antes de responder:
         }
         log("ERROR", `Validacao falhou apos ${MAX_GEN_ATTEMPTS} tentativas:\n${hard.join("\n")}`);
         log("DEBUG", JSON.stringify(parsed.frontmatter, null, 2));
-        process.exit(1);
+        // V12: throw em vez de process.exit — process.exit mata o processo inteiro e impede o laco de temas candidatos de tentar o proximo tema.
+        throw new Error(`Validacao falhou apos ${MAX_GEN_ATTEMPTS} tentativas: ${hard.join("; ")}`);
       }
       log("WARN", "Publicando com ressalvas de qualidade (ultima tentativa)");
       fm = parsed.frontmatter;
@@ -4087,6 +4179,35 @@ Checklist antes de responder:
   // passavam por normalizarAnos. URLs de links internos sao protegidas.
   body = normalizarAnosBody(body);
   fm.tags = (fm.tags || []).map((t) => normalizarAnos(String(t)));
+
+  // V12: guarda ANTECIPADA de lista plural.
+  // shouldAbortProductSourcing so protege quando ha categoria de produto
+  // detectada; artigo de categoria "noticia" que acabava virando lista
+  // "Os N Melhores" com 1 produto passava batido e era reprovado no fim do
+  // ciclo. Aqui o custo de desistir e baixo: nada de imagens nem pareceres.
+  {
+    const tituloLower = String(fm.title || "").toLowerCase();
+    const prometePlural = /\bmelhores\b/.test(tituloLower) || /\bos\s+\d+\s+melhores\b/.test(tituloLower);
+    if (prometePlural && mlProducts.length < 2) {
+      log("ERROR", `Titulo promete lista plural ("${fm.title}") mas so ha ${mlProducts.length} produto(s) — abortando o tema cedo.`);
+      throw new Error(`lista plural com ${mlProducts.length} produto(s) — minimo 2`);
+    }
+  }
+  // V12: checagem ANTECIPADA de titulo repetido.
+  // A checagem original acontecia so no fim do fluxo, depois de gastar imagens,
+  // RAWG/Tavily e todos os pareceres de revisao — o ciclo inteiro era jogado
+  // fora por um titulo que ja dava pra descartar aqui. A checagem final segue
+  // no lugar como rede de seguranca (o titulo ainda pode mudar adiante).
+  if (!opts.overwriteSlug) {
+    const slugPrevio = slugify(fm.title);
+    const publicadosPrevio = fs.existsSync(ARTIGOS_DIR)
+      ? fs.readdirSync(ARTIGOS_DIR).filter((f) => f.endsWith(".md")).map((f) => f.replace(/\.md$/, ""))
+      : [];
+    if (publicadosPrevio.includes(slugPrevio)) {
+      log("ERROR", `Slug duplicado (deteccao antecipada): ${slugPrevio}`);
+      throw new Error(`Slug duplicado: ${slugPrevio}`);
+    }
+  }
 
   // Lista de games sem produtos: heading-pai "## Os N Melhores..." + itens "###"
   // (TOC aninhado) — roda antes do reposicionamento de imagens e das ancoras.
@@ -4221,7 +4342,8 @@ Checklist antes de responder:
     });
     if (segHard.length > 0) {
       log("ERROR", `Corpo segmentado reprovado:\n- ${segHard.join("\n- ")}`);
-      process.exit(1);
+      // V12: throw em vez de process.exit — process.exit mata o processo inteiro e impede o laco de temas candidatos de tentar o proximo tema.
+      throw new Error(`Corpo segmentado reprovado: ${segHard.join("; ")}`);
     }
     if (segSoft.length > 0) log("WARN", `Ressalvas de qualidade:\n  - ${segSoft.join("\n  - ")}`);
   } else {
@@ -4372,7 +4494,8 @@ Checklist antes de responder:
     state.last_error_date = today;
     state.consecutive_failures = (state.consecutive_failures || 0) + 1;
     persistState();
-    process.exit(1);
+    // V12: throw em vez de process.exit — process.exit mata o processo inteiro e impede o laco de temas candidatos de tentar o proximo tema.
+    throw new Error(`Slug duplicado: ${slug}`);
   }
 
   // Regeneracao: preserva a pubDate original para o artigo nao "virar novo"
@@ -4563,6 +4686,27 @@ Checklist antes de responder:
           } catch (err) {
             log("WARN", `Falha ao persistir relatorios corrigidos: ${err.message}`);
           }
+
+          // V12 — Portao final: mesma regua do workflow, rodada ANTES de considerar
+          // o artigo publicado. Reprovou e nao deu pra corrigir? Rollback + throw,
+          // para o laco de temas tentar o proximo candidato.
+          const vFinal = portaoFinalValidador({ fp, slug, backupOriginal });
+          if (!vFinal.ok) {
+            if (backupOriginal != null) {
+              fs.writeFileSync(fp, backupOriginal, "utf-8");
+              log("ERROR", "Artigo anterior restaurado (reprovado pelo validador oficial).");
+            } else {
+              fs.rmSync(fp, { force: true });
+              log("ERROR", "Artigo removido (reprovado pelo validador oficial).");
+            }
+            state.last_error = `Validador oficial reprovou: ${vFinal.falhas.slice(0, 3).join("; ")}`.slice(0, 200);
+            state.last_error_date = today;
+            state.consecutive_failures = (state.consecutive_failures || 0) + 1;
+            state.last_success = null;
+            persistState();
+            throw new Error(state.last_error);
+          }
+
           log("INFO", "=== CONCLUIDO ===");
           return;
         }
@@ -4594,6 +4738,27 @@ Checklist antes de responder:
     } else {
       log("WARN", "Gate ignorado (IGNORE_REVIEW_GATE/forcePublicar) — publicando mesmo assim.");
     }
+  }
+
+
+  // V12 — Portao final: mesma regua do workflow, rodada ANTES de considerar
+  // o artigo publicado. Reprovou e nao deu pra corrigir? Rollback + throw,
+  // para o laco de temas tentar o proximo candidato.
+  const vFinal = portaoFinalValidador({ fp, slug, backupOriginal });
+  if (!vFinal.ok) {
+    if (backupOriginal != null) {
+      fs.writeFileSync(fp, backupOriginal, "utf-8");
+      log("ERROR", "Artigo anterior restaurado (reprovado pelo validador oficial).");
+    } else {
+      fs.rmSync(fp, { force: true });
+      log("ERROR", "Artigo removido (reprovado pelo validador oficial).");
+    }
+    state.last_error = `Validador oficial reprovou: ${vFinal.falhas.slice(0, 3).join("; ")}`.slice(0, 200);
+    state.last_error_date = today;
+    state.consecutive_failures = (state.consecutive_failures || 0) + 1;
+    state.last_success = null;
+    persistState();
+    throw new Error(state.last_error);
   }
 
   log("INFO", "=== CONCLUIDO ===");

@@ -28,10 +28,18 @@ const YEAR_AT_START_RE = /^(20(1[5-9]|2[0-9]|3[0-5]))\b/i;
 const FIXED_SECTIONS = /^(comparativo|tabela|veredito|conclus[aã]o|faq|perguntas\s+frequentes?|fontes|quer\s+mais\s+ofertas\??|continue\s+explorando|como\s+escolhemos|qual\b.*\bescolher\??|pr[oó]s\s+e\s+contras|produtos\s+recomendados)/i;
 
 let failures = 0;
+// V12: as mensagens tambem sao acumuladas para que gerar-artigo.mjs possa
+// consumir este mesmo validador em memoria e tentar corrigir antes de desistir.
+// Antes existiam DOIS portoes de qualidade com regras diferentes: a revisao
+// interna do gerador aprovava, este validador reprovava depois, e o ciclo
+// inteiro era descartado sem chance de conserto.
+let failMessages = [];
+let quiet = false;
 
 function fail(file, msg) {
   failures++;
-  console.error(`  [FALHA] ${file}: ${msg}`);
+  failMessages.push(msg);
+  if (!quiet) console.error(`  [FALHA] ${file}: ${msg}`);
 }
 
 function parseFrontmatter(text) {
@@ -237,4 +245,27 @@ function main() {
   process.exit(failures > 0 ? 1 : 0);
 }
 
-main();
+// V12: API programatica — devolve a lista de falhas em vez de derrubar o processo.
+// Usada por gerar-artigo.mjs para rodar ESTE MESMO validador antes de dar o
+// artigo por concluido, garantindo uma unica regua de qualidade.
+export function validarArtigoEmMemoria(file, { silencioso = true } = {}) {
+  const prevFailures = failures;
+  const prevMessages = failMessages;
+  const prevQuiet = quiet;
+  failures = 0;
+  failMessages = [];
+  quiet = silencioso;
+  try {
+    validateArticle(file.endsWith(".md") ? file : `${file}.md`);
+    return failMessages.slice();
+  } finally {
+    failures = prevFailures;
+    failMessages = prevMessages;
+    quiet = prevQuiet;
+  }
+}
+
+// So roda como CLI quando invocado diretamente (node scripts/validar-artigo.mjs).
+const executadoDireto = process.argv[1]
+  && fs.realpathSync(process.argv[1]) === fs.realpathSync(fileURLToPath(import.meta.url));
+if (executadoDireto) main();

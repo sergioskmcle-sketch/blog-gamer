@@ -156,17 +156,56 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-      - name: Notificar falha (V11 — issue unica aberta)
+      # V12 — Persistir o estado mesmo quando o ciclo falha.
+      # Antes, state.json so era commitado no sucesso: o contador de falhas
+      # nunca chegava ao repositorio e o painel mostrava "saudavel" com 6
+      # execucoes seguidas quebradas.
+      - name: Registrar estado de falha
         if: failure()
         run: |
+          if git status --porcelain -- state.json | grep -q .; then
+            git config user.name "blog-bot"
+            git config user.email "bot@blog-gamer.com"
+            git add state.json
+            git commit -m "chore: registra falha do ciclo automatico" || true
+            git pull --rebase origin "${GITHUB_REF_NAME}" || true
+            git push origin "${GITHUB_REF_NAME}" || true
+          else
+            echo "state.json sem alteracoes — nada a registrar."
+          fi
+
+      - name: Notificar falha (V12 — issue unica + canal externo)
+        if: failure()
+        run: |
+          set -euo pipefail
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           OPEN=$(gh issue list --state open --label "pipeline" --json number --jq 'length')
           if [ "$OPEN" = "0" ]; then
+            # Sem "|| true": se a notificacao falhar, o log tem que gritar.
+            # Foi exatamente isso que escondeu 6 falhas seguidas em set/2026.
             gh issue create \
               --title "⚠️ Pipeline diário falhou" \
-              --body "O job de geração falhou em: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. Corrija e feche esta issue para o próximo ciclo voltar a notificar." \
-              --label "pipeline" || true
+              --body "O job de geração falhou em: ${RUN_URL}. Corrija e feche esta issue para o próximo ciclo voltar a notificar." \
+              --label "pipeline"
           else
             echo "Issue de pipeline já aberta — pulando nova notificação."
           fi
         env:
           GH_TOKEN: ${{ github.token }}
+
+      # Canal externo: nao depende de o Marcio abrir o GitHub.
+      # Se o secret DISCORD_WEBHOOK nao existir, o passo apenas avisa e segue.
+      - name: Avisar no Discord
+        if: failure()
+        run: |
+          if [ -z "${DISCORD_WEBHOOK:-}" ]; then
+            echo "DISCORD_WEBHOOK nao configurado — canal externo desativado."
+            exit 0
+          fi
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          curl -sS -X POST "$DISCORD_WEBHOOK" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n --arg u "$RUN_URL" \
+              '{content: ("⚠️ **Blog Gamer** — o ciclo automático de conteúdo falhou.\nNenhum artigo foi publicado neste ciclo.\n" + $u)}')"
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}

@@ -82,6 +82,14 @@ export const NOISE_PATTERNS = [
 // Marcas reconhecidas (PLANO §1.1): alias (minusculo) -> forma de exibicao.
 // A ordem importa: para aliases de uma palavra vale a ordem de definicao.
 export const KNOWN_BRANDS = {
+  // V12: abreviacoes de console. As marcas por extenso (sony, playstation,
+  // xbox, nintendo) ja existiam, mas nomes reais de anuncio usam a sigla
+  // ("Console PS5 Slim") e caiam como "sem marca/modelo reconheciveis" —
+  // reprovando artigos de console legitimos no portao de qualidade.
+  ps5: "PlayStation 5",
+  ps4: "PlayStation 4",
+  "series x": "Xbox Series X",
+  "series s": "Xbox Series S",
   redragon: "Redragon",
   logitech: "Logitech",
   "logitech g": "Logitech G",
