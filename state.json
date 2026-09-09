@@ -1,8 +1,8 @@
 {
   "last_success": "2026-09-06",
-  "last_error": "OpenAI: todas as 3 tentativas falharam",
+  "last_error": "Falha na geracao segmentada: OpenAI sem credito ou chave invalida: {\n    \"error\": {\n        \"message\": \"You have no credits remaining. Add credits to continue using the API at https://platform.openai.",
   "last_error_date": "2026-09-09",
-  "consecutive_failures": 11,
+  "consecutive_failures": 13,
   "total_articles": 52,
   "last_slug": "melhores-headsets-gamer-de-2026-para-imersao-total-no-jogo",
   "last_topic": "Os melhores headsets gamer de 2024 para imersão total.",
