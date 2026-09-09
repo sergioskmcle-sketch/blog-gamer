@@ -4676,6 +4676,13 @@ Checklist antes de responder:
       const capaPaga = await gerarCapaPagaAdiada();
       if (capaPaga) {
         coverImage = capaPaga;
+        // REGRESSAO CORRIGIDA (09/09/2026): `fm.image` e atribuido bem antes
+        // deste ponto. Ao adiar a geracao da capa, o artigo ficou publicando o
+        // fallback gratuito (recorte 600x400 do RAWG) enquanto a capa da IA,
+        // ja paga e gravada em disco, era ignorada. Reatribuir aqui e o que
+        // liga as duas pontas.
+        fm.image = capaPaga;
+        log("INFO", `Imagem de capa atualizada para a capa IA: ${capaPaga}`);
       } else if (coverImage) {
         log("INFO", `Capa IA indisponivel — mantendo fallback gratuito: ${coverImage.slice(0, 60)}`);
       }
