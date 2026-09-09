@@ -1916,37 +1916,11 @@ function buildProductButtonHtml(p) {
   return `<a href="${link}" class="product-btn${pendingClass}" target="_blank" rel="nofollow">${label}</a>`;
 }
 
-// Ultimo recurso de imagem do item: gera uma foto de catalogo via OpenAI.
-async function gerarImagemItemIA(title, slug) {
-  if (!OPENAI_API_KEY || process.env.SKIP_COVER || !title) return null;
-  try {
-    const res = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${OPENAI_API_KEY}` },
-      body: JSON.stringify({
-        model: "gpt-image-1",
-        prompt: `Foto de catalogo profissional de produto gamer: ${title}. Produto grande e nítido sobre mesa de madeira com luz ambiente de setup RGB, fundo levemente desfocado com bokeh. Fotorrealista, alta qualidade, sem texto, sem marca d'agua.`,
-        n: 1,
-        size: "1024x1024",
-      }),
-    });
-    if (!res.ok) {
-      log("WARN", `IA imagem item ${res.status} para "${title.slice(0, 40)}"`);
-      return null;
-    }
-    const data = await res.json();
-    const url = data?.data?.[0]?.url;
-    if (!url) return null;
-    const buf = await downloadImage(url);
-    if (buf) {
-      log("INFO", `IA imagem item gerada para "${title.slice(0, 40)}" (${(buf.length / 1024).toFixed(1)} KB)`);
-      return buf;
-    }
-  } catch (e) {
-    log("WARN", `IA imagem item erro: ${e.message}`);
-  }
-  return null;
-}
+// V12: gerarImagemItemIA() removida. Gerava uma "foto de catalogo" do produto
+// via gpt-image-1 tendo APENAS o nome do produto como referencia — nenhuma
+// imagem real. O resultado era uma foto verossimil de um produto que nao
+// existe, exibida ao lado do link de compra do produto real. Regra atual:
+// sem referencia real, nao se cria imagem. Cai no placeholder neutro.
 
 // Baixa e salva a foto de cada item em public/images/produtos/.
 // TAREFA 4 — cadeia de fallback robusta; para no primeiro sucesso que passe
@@ -1962,7 +1936,7 @@ async function ensureProductImages(mlProducts) {
   if (!mlProducts || mlProducts.length === 0) return;
   if (!fs.existsSync(PROD_IMAGES_DIR)) fs.mkdirSync(PROD_IMAGES_DIR, { recursive: true });
 
-  const stats = { cache: 0, url_upgrade: 0, url_original: 0, url_images: 0, serper: 0, tavily: 0, ia: 0, placeholder: 0 };
+  const stats = { cache: 0, url_upgrade: 0, url_original: 0, url_images: 0, serper: 0, tavily: 0, placeholder: 0 };
 
   for (const p of mlProducts) {
     const slug = slugify(p.title || p.raw_title || `produto-${mlProducts.indexOf(p) + 1}`);
@@ -2006,10 +1980,11 @@ async function ensureProductImages(mlProducts) {
       buf = await searchTavilyImage(p.raw_title || p.title);
       if (buf) stats.tavily++;
     }
-    if (!buf) {
-      buf = await gerarImagemItemIA(p.title, slug);
-      if (buf) stats.ia++;
-    }
+    // V12: a geracao de foto por IA foi REMOVIDA daqui de proposito.
+    // Ela desenhava o produto a partir do nome, sem nenhuma referencia real,
+    // e a imagem inventada aparecia ao lado do botao de compra do produto
+    // verdadeiro. Sem foto real (6 tentativas acima), o certo e o placeholder
+    // neutro logo abaixo — honesto em vez de bonito e falso.
 
     if (buf) {
       const ext = imageExtension(buf);
