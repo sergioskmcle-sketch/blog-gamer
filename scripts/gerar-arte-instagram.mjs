@@ -13,14 +13,14 @@ import sharp from "sharp";
 
 const OURO = "#FFCE00";
 const BRANCO = "#FFFFFF";
-const MOCKUP_FEED = "mockup/feed-4x5.png";
-const MOCKUP_STORY = "mockup/story-9x16.png";
+const MOCKUP_FEED = "mockup/feed-4x5-2.0.png";
+const MOCKUP_STORY = "mockup/story-9x16-2.0.png";
 const FONT = "Kalam";
 
 // Posicoes no tamanho nativo dos mockups (px) — medidas via analise de alpha.
 const NATIVE = {
-  feed: { mockup: MOCKUP_FEED, outW: 1080, outH: 1350, hole: { x: 55, y: 78, w: 1012, h: 733 }, chipTop: 1272 },
-  story: { mockup: MOCKUP_STORY, outW: 1080, outH: 1920, hole: { x: 59, y: 59, w: 824, h: 824 }, chipTop: 1516 },
+  feed: { mockup: MOCKUP_FEED, outW: 1080, outH: 1350, hole: { x: 43, y: 39, w: 1038, h: 801 }, chipTop: 1242 },
+  story: { mockup: MOCKUP_STORY, outW: 1080, outH: 1920, hole: { x: 46, y: 57, w: 850, h: 1025 }, chipTop: 1554 },
 };
 
 function now() {
