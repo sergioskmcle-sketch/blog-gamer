@@ -2475,6 +2475,34 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
   throw new Error(`Groq: todas as ${maxAttempts} tentativas falharam`);
 }
 
+// V12 — Disjuntor de provedor de IA.
+// A OpenAI devolve HTTP 429 tanto para rate-limit (transitorio, vale
+// esperar) quanto para credito esgotado (permanente, esperar nao resolve).
+// Sem essa distincao o robo gastou 38 minutos repetindo 7 temas contra uma
+// conta sem creditos, em 08/09/2026. Estes padroes marcam o caso permanente.
+const PROVEDOR_FALHA_PERMANENTE = [
+  "no credits remaining",
+  "insufficient_quota",
+  "insufficient quota",
+  "exceeded your current quota",
+  "check your plan and billing details",
+  "invalid_api_key",
+  "api key invalida",
+  "incorrect api key",
+];
+
+function falhaPermanenteDeProvedor(texto) {
+  const t = String(texto || "").toLowerCase();
+  return PROVEDOR_FALHA_PERMANENTE.some((padrao) => t.includes(padrao));
+}
+
+// Marca o erro para o laco de temas reconhecer e abortar de imediato.
+function erroFatalDeProvedor(mensagem) {
+  const err = new Error(mensagem);
+  err.fatalProvedor = true;
+  return err;
+}
+
 async function fetchOpenAI(systemPrompt, userPrompt, opts = {}) {
   if (!OPENAI_API_KEY) throw new Error("OpenAI: OPENAI_API_KEY nao configurada");
   const url = "https://api.openai.com/v1/chat/completions";
@@ -2504,6 +2532,12 @@ async function fetchOpenAI(systemPrompt, userPrompt, opts = {}) {
           throw new Error(`OpenAI: timeout total apos ${attempt} tentativas`);
         }
         const errBody = await res.text().catch(() => "(sem body)");
+        // V12: 429 por credito esgotado nao e transitorio — nao adianta
+        // esperar 15s, 30s, 60s. Falha na hora e marca como fatal.
+        if (falhaPermanenteDeProvedor(errBody)) {
+          log("ERROR", `OpenAI: falha PERMANENTE (credito/chave), nao adianta retentar: ${errBody.slice(0, 160)}`);
+          throw erroFatalDeProvedor(`OpenAI sem credito ou chave invalida: ${errBody.slice(0, 160)}`);
+        }
         const wait = Math.min(15 * Math.pow(2, attempt - 1), 60);
         const rl = {
           remaining: res.headers.get("x-ratelimit-remaining"),
@@ -2532,6 +2566,9 @@ async function fetchOpenAI(systemPrompt, userPrompt, opts = {}) {
         throw new Error(`OpenAI: resposta truncada (max_tokens=${body.max_tokens})`);
       return choice.message.content;
     } catch (err) {
+      // V12: erro fatal (sem credito / chave invalida) sobe direto.
+      if (err && err.fatalProvedor) throw err;
+      if (falhaPermanenteDeProvedor(err && err.message)) throw erroFatalDeProvedor(err.message);
       if (attempt === 3) throw err;
       const wait = Math.min(10 * Math.pow(2, attempt - 1), 60);
       const errMsg = err?.message || String(err);
@@ -3422,6 +3459,13 @@ async function main() {
       break;
     } catch (e) {
       log("ERROR", `Tema falhou: ${e.message}`);
+      // V12 — Disjuntor: sem credito na IA, nenhum outro tema vai funcionar.
+      // Tentar os demais so queima minutos do Actions e atrasa o alerta.
+      if ((e && e.fatalProvedor) || falhaPermanenteDeProvedor(e && e.message)) {
+        log("ERROR", "Provedor de IA indisponivel por credito/chave — abortando o ciclo sem tentar os demais temas.");
+        log("ERROR", "Acao necessaria: revisar creditos/chave em OPENAI_API_KEY (e cotas de Gemini/Groq).");
+        throw e;
+      }
     }
   }
 
