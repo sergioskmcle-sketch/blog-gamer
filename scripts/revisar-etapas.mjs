@@ -16,6 +16,11 @@ export const ETAPAS = [
   { id: "seo", agente: "otimizador-seo", nome: "SEO On-Page", rotulo: "Felipe Otimizador" },
   { id: "design", agente: "designer", nome: "Design e Layout", rotulo: "Lucas Designer" },
   { id: "revisao", agente: "revisora", nome: "Qualidade e Precisao", rotulo: "Juliana Revisora" },
+  // V13: a unica etapa que LE o texto. Todas as outras sao mecanicas — contam
+  // caracteres, medem tamanho, procuram marcadores. Nenhuma percebia que um
+  // artigo intitulado "Crash Bandicoot 30 anos" falava de acessorios, nem que
+  // um jogo de 2017 estava sendo anunciado como lancamento de junho.
+  { id: "conteudo", agente: "editor-chefe", nome: "Coerencia e Precisao Editorial", rotulo: "Editor-Chefe" },
   { id: "publicacao", agente: "publicadora", nome: "Pipeline e Publicacao", rotulo: "Rafaela Publicadora" },
 ];
 
@@ -487,4 +492,107 @@ function consolidadoMarkdown(slug, revisoes) {
     linhas.push("- Nenhuma etapa reprovada — artigo dentro dos padroes do squad.");
   }
   return linhas.join("\n") + "\n";
+}
+
+// ---------------------------------------------------------------------------
+// V13 — Revisao editorial por LLM.
+//
+// Motivo: em 09/09/2026 o artigo "Crash Bandicoot 30 anos: Acessorios que vao
+// fazer a diferenca" foi APROVADO por todas as etapas. Ele tinha 1155
+// palavras, description de 138 chars, 5 tags e capa — formalmente perfeito.
+// E afirmava que a N. Sane Trilogy (de 2017) "vai cair nas lojas no dia 30 de
+// junho", com um titulo que prometia aniversario e um corpo que vendia
+// headset. Nenhum dos 40 criterios mecanicos existentes podia perceber isso,
+// porque nenhum deles le o texto.
+//
+// Esta etapa faz tres perguntas que so um leitor consegue responder:
+//   1. o titulo entrega o que o corpo cumpre?
+//   2. as datas e fatos batem com as fontes pesquisadas?
+//   3. o texto se contradiz?
+//
+// Limites assumidos: custa uma chamada de LLM e nao e infalivel. Por isso so
+// marca P0/P1 no que e verificavel e objetivo — divergencia entre titulo e
+// corpo, data conflitante com a fonte, contradicao interna. Julgamento de
+// gosto fica de fora.
+export async function revisarConteudo({ fm, body, research = "", categoria = "", fetchLLM }) {
+  const rel = novoRelatorio("conteudo");
+  if (typeof fetchLLM !== "function") {
+    item(rel, "Revisao editorial executada", true, "P2", "", "");
+    return concluir(rel);
+  }
+
+  const corpo = String(body || "").slice(0, 12000);
+  const fontes = String(research || "").slice(0, 6000);
+
+  const sistema = [
+    "Voce e editor-chefe de um blog gamer brasileiro e esta fazendo a ultima leitura antes de publicar.",
+    "Seja rigoroso e concreto. Aponte SOMENTE problemas verificaveis no material que recebeu.",
+    "Nao opine sobre gosto, estilo ou preferencia pessoal.",
+    "Responda EXCLUSIVAMENTE com JSON valido, sem cercas de codigo e sem comentarios.",
+  ].join(" ");
+
+  const usuario = [
+    `CATEGORIA: ${categoria}`,
+    `TITULO: ${fm?.title || ""}`,
+    `DESCRIPTION: ${fm?.description || ""}`,
+    "",
+    "FONTES PESQUISADAS (unica base de fatos aceitavel):",
+    fontes || "(nenhuma fonte disponivel)",
+    "",
+    "ARTIGO:",
+    corpo,
+    "",
+    "Avalie exatamente tres coisas:",
+    "1. COERENCIA: o corpo entrega o que o titulo promete? Se o titulo anuncia um assunto e o corpo trata de outro, e problema.",
+    "2. PRECISAO: alguma data, ano, preco ou fato do artigo contradiz as fontes, ou apresenta algo antigo como novidade? Cite o trecho.",
+    "3. CONTRADICAO: o artigo se contradiz em algum ponto? Cite os dois trechos.",
+    "",
+    "Formato da resposta:",
+    '{"coerencia_titulo":{"ok":true|false,"motivo":"","trecho":""},',
+    '"precisao_fatos":{"ok":true|false,"motivo":"","trecho":""},',
+    '"contradicoes":{"ok":true|false,"motivo":"","trecho":""}}',
+  ].join("\n");
+
+  let bruto;
+  try {
+    bruto = await fetchLLM(sistema, usuario, 2, { maxTokens: 900, temperature: 0.1 });
+  } catch (e) {
+    // Falha de infraestrutura nao pode bloquear a publicacao: vira ressalva.
+    item(rel, "Revisao editorial executada", false, "P2", `Revisao editorial indisponivel: ${e.message}`, "");
+    return concluir(rel);
+  }
+
+  let veredito;
+  try {
+    const limpo = String(bruto || "").replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "").trim();
+    const inicio = limpo.indexOf("{");
+    const fim = limpo.lastIndexOf("}");
+    veredito = JSON.parse(limpo.slice(inicio, fim + 1));
+  } catch {
+    item(rel, "Revisao editorial executada", false, "P2", "Resposta da revisao editorial nao era JSON valido", String(bruto || "").slice(0, 120));
+    return concluir(rel);
+  }
+
+  // REVISAO_EDITORIAL controla o rigor sem exigir mudanca de codigo:
+  //   "bloqueio" (padrao) — problema encontrado impede a publicacao;
+  //   "ressalva"          — apenas registra, o artigo publica mesmo assim.
+  // O padrao e bloquear: publicar data errada num blog de afiliado custa mais
+  // caro que deixar de publicar. Mas se a revisao se mostrar rigorosa demais e
+  // travar a esteira, da para afrouxar sem mexer no codigo.
+  const modo = (process.env.REVISAO_EDITORIAL || "bloqueio").toLowerCase();
+  const sev = (padrao) => (modo === "ressalva" ? "P2" : padrao);
+
+  const criterios = [
+    { chave: "coerencia_titulo", criterio: "Titulo coerente com o corpo", severidade: sev("P0") },
+    { chave: "precisao_fatos", criterio: "Fatos e datas conferem com as fontes", severidade: sev("P0") },
+    { chave: "contradicoes", criterio: "Artigo sem contradicao interna", severidade: sev("P1") },
+  ];
+
+  for (const c of criterios) {
+    const r = veredito?.[c.chave] || {};
+    const ok = r.ok !== false;
+    item(rel, c.criterio, ok, c.severidade, String(r.motivo || "").slice(0, 200), String(r.trecho || "").slice(0, 200));
+  }
+
+  return concluir(rel);
 }

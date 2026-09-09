@@ -27,6 +27,7 @@ import { ANO_ATUAL, normalizarAnos, normalizarAnosPreposicional } from "./tempo.
 import { pesquisarFundo } from "./pesquisar-fundo.mjs";
 import {
   revisarPesquisa, revisarSourcing, revisarRedacao, revisarSeo, revisarDesign, revisarFinal, revisarPublicacao,
+  revisarConteudo,
   emitirParecer, statusGeraLLM, salvarRevisoes, salvarOcorrencias,
 } from "./revisar-etapas.mjs";
 
@@ -3814,7 +3815,16 @@ async function generateArticle({ topic, state, trendingSource = "estatico", opts
     }
   }
 
-  for (let extraRound = 0; extraRound <= 3; extraRound++) {
+  // V13 — Esteira separada por formato.
+  // Noticia nao vende: pula o sourcing inteiro e vira texto puro. Review e
+  // lista seguem com produtos no centro, como antes.
+  const NOTICIA_SEM_PRODUTOS = process.env.NOTICIA_COM_PRODUTOS !== "true";
+  const pularSourcing = isNoticia && NOTICIA_SEM_PRODUTOS;
+  if (pularSourcing) {
+    log("INFO", "Esteira de NOTICIA: sourcing de produtos desativado — o artigo foca no fato, sem tabela nem botao de compra.");
+  }
+
+  for (let extraRound = 0; !pularSourcing && extraRound <= 3; extraRound++) {
     const retryQ = retryQueries.filter((q) => !triedQueries.has(q));
 
     // Frente 4 primeiro: produtos que ja vem com link de afiliado.
@@ -4412,7 +4422,12 @@ Checklist antes de responder:
   // SKIP_COVER=1 pula a geracao por IA (OpenAI/Stability) e usa so os fallbacks
   // gratuitos (thumbnail de produto / RAWG) — util para testes sem gasto.
   const capaSlug = slugify(fm.title);
-  const coverContext = topic.hint || fm.title || "";
+  // V13: a capa passa a ser guiada pelo TITULO PUBLICADO, nao pelo tema bruto
+  // do trending. O leitor ve o titulo; a capa precisa combinar com ele. No
+  // artigo do Crash (09/09/2026) a capa saiu sobre um headset porque o tema
+  // bruto falava em "novidades e ofertas" e havia um produto no pool — nada a
+  // ver com o que o titulo prometia. O tema bruto vira complemento.
+  const coverContext = [fm.title, topic.hint].filter(Boolean).join(". ").slice(0, 220);
   const gameRefs = Object.values(gameImages);
   const hasProducts = mlProducts.length > 0;
   // Artigo de hardware sem produtos (ex.: noticia sobre volantes): a capa deve
@@ -4820,6 +4835,31 @@ Checklist antes de responder:
   }
   revPublicacao.parecer = revPublicacaoParecer;
 
+  // V13 — Revisao editorial: a unica etapa que LE o artigo.
+  // Roda por ultimo, sobre o corpo final, com as fontes da pesquisa como
+  // unica base de fatos aceitavel. Falha de infraestrutura vira ressalva, e
+  // nao bloqueio — indisponibilidade da LLM nao pode travar a publicacao.
+  let revConteudo;
+  try {
+    revConteudo = await revisarConteudo({
+      fm,
+      body,
+      research: researchContext,
+      categoria,
+      fetchLLM,
+    });
+    const reprov = revConteudo.problemas.filter((x) => x.severidade === "P0" || x.severidade === "P1");
+    if (reprov.length > 0) {
+      log("WARN", `Revisao editorial apontou ${reprov.length} problema(s):`);
+      for (const x of reprov) log("WARN", `  [${x.severidade}] ${x.mensagem}${x.evidencia ? ` — "${x.evidencia}"` : ""}`);
+    } else {
+      log("INFO", `Revisao editorial: aprovado (${revConteudo.score}/10)`);
+    }
+  } catch (e) {
+    log("WARN", `Revisao editorial falhou: ${e.message} — seguindo sem ela`);
+    revConteudo = null;
+  }
+
   const relatoriosPiloto = [
     revPesquisa,
     revSourcing,
@@ -4829,6 +4869,7 @@ Checklist antes de responder:
     revFinal,
     revPublicacao,
   ];
+  if (revConteudo) relatoriosPiloto.push(revConteudo);
   try {
     salvarRevisoes(slug, relatoriosPiloto);
     salvarOcorrencias(slug, relatoriosPiloto);
