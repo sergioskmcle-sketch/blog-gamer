@@ -7,6 +7,10 @@ import { searchGoogleShopping } from "./google_shopping.mjs";
 import { buscarProdutosLoteRemoto } from "./monitor_api.mjs";
 import { gerarCapaStability } from "./stability-cover.mjs";
 import { gerarCapaOpenAI, downloadImage, searchTavilyImage } from "./openai-cover.mjs";
+// V12: reserva de capa. Ate 09/09/2026 a capa dependia so da OpenAI — o
+// fallback Stability nunca funcionou porque a STABILITY_API_KEY nao existia
+// nos secrets. Sem creditos na OpenAI, o blog parava inteiro.
+import { gerarCapaGemini } from "./gemini-cover.mjs";
 import { cleanProductTitle, detectArticleCategory, detectBrand, detectModel, productMatchesCategory, PRODUCT_CATEGORIES, CATEGORY_BRANDS, KNOWN_BRANDS } from "./product_naming.mjs";
 import { rankProducts, filterEligible, medianPrice, MIN_CRITERIA } from "./product_ranking.mjs";
 import { upgradeImageUrl, imageDimensions, isImageUsable, searchSerperImage } from "./product_images.mjs";
@@ -4307,9 +4311,16 @@ Checklist antes de responder:
     } else {
       img = await gerarCapaOpenAI({ mlProducts: [], category: categoria, slug: capaSlug, contentType: "game", context: coverContext, gameRefs }) || "";
     }
+    // Reserva 1: Gemini. A chave ja existe no projeto e o modelo aceita
+    // multiplas imagens de referencia, que e o requisito desta capa.
+    if (!img) {
+      img = await gerarCapaGemini({ mlProducts: coverProducts, category: categoria, slug: capaSlug, contentType: coverProducts.length > 0 ? undefined : "game", context: coverContext, gameRefs }) || "";
+    }
+    // Reserva 2: Stability.
     if (!img) {
       img = await gerarCapaStability({ mlProducts: coverProducts, category: categoria, slug: capaSlug, context: coverContext, gameRefs }) || "";
     }
+    if (img) log("INFO", `Capa gerada: ${img}`);
     return img;
   };
 

@@ -22,7 +22,7 @@ const COVER_PROMPTS = {
   promocao: `Professional promotional product photograph of gaming products on a bright clean display surface. Energetic warm lighting, soft shadows on a light wood background. Background has a soft blurred gaming room ambiance. Products are large, sharp and highly detailed. Photorealistic, professional promotional photography. No text, no watermarks.`,
 };
 
-function buildPromptFromProducts(products, category, backgroundTone, contentType, context) {
+export function buildPromptFromProducts(products, category, backgroundTone, contentType, context) {
   if (contentType === "game") {
     const gameNames = products.slice(0, 6).map(p => p.name || p.title || "game").join(", ");
     const tone = backgroundTone === "light" ? GAME_TONE.LIGHT_BG : backgroundTone === "dark" ? GAME_TONE.DARK_BG : "";
@@ -83,7 +83,7 @@ function buildPromptFromProducts(products, category, backgroundTone, contentType
   return `Professional close-up product photograph of ${sceneDescription}${tone} Products shown: ${productNames}.${contextLine} The products must look naturally integrated into the scene with realistic lighting, shadows and perspective — as if photographed in place, never pasted on top. Photorealistic, high detail, professional gaming catalog photography style. Natural lighting, realistic shadows. No text, no watermarks.`;
 }
 
-function buildEditPrompt(products, category, backgroundTone, contentType, context) {
+export function buildEditPrompt(products, category, backgroundTone, contentType, context) {
   if (!products || products.length === 0) {
     if (contentType === "game") {
       const subject = context ? ` The scene must evoke: ${context}.` : "";
@@ -295,7 +295,7 @@ async function generateWithGenerations(apiKey, prompt, size = "1536x1024") {
   }
 }
 
-function saveImage(b64, slug) {
+export function saveImage(b64, slug) {
   const buf = Buffer.from(b64, "base64");
   if (!fs.existsSync(COVER_DIR)) {
     fs.mkdirSync(COVER_DIR, { recursive: true });
@@ -307,7 +307,7 @@ function saveImage(b64, slug) {
   return `/images/capas/${slug}.png`;
 }
 
-async function analyzeProductBrightness(imageBuffers) {
+export async function analyzeProductBrightness(imageBuffers) {
   if (!imageBuffers || imageBuffers.length === 0) return null;
   const LUM_THRESHOLD = 200;
   let totalLuminance = 0;
