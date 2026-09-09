@@ -22,12 +22,17 @@ const COVER_PROMPTS = {
   promocao: `Professional promotional product photograph of gaming products on a bright clean display surface. Energetic warm lighting, soft shadows on a light wood background. Background has a soft blurred gaming room ambiance. Products are large, sharp and highly detailed. Photorealistic, professional promotional photography. No text, no watermarks.`,
 };
 
+// V12: os prompts de JOGO nao pedem mais "iconic video game characters".
+// Testado contra a API em 09/09/2026: pedir personagens dispara o filtro de
+// seguranca (HTTP 400, image_generation_user_error) mesmo sem citar franquia
+// nenhuma; citar a franquia sem pedir personagem passa normalmente. Por isso
+// as referencias de jogo continuam no prompt e o pedido virou ambiente/cenario.
 export function buildPromptFromProducts(products, category, backgroundTone, contentType, context) {
   if (contentType === "game") {
     const gameNames = products.slice(0, 6).map(p => p.name || p.title || "game").join(", ");
     const tone = backgroundTone === "light" ? GAME_TONE.LIGHT_BG : backgroundTone === "dark" ? GAME_TONE.DARK_BG : "";
     const subject = context ? `\nThe scene must evoke: ${context}.` : "";
-    return `Epic cinematic game banner featuring iconic video game characters and elements in a dynamic game world scene. Dramatic lighting, vibrant colors, high-energy composition with particle effects. Professional game key art style. Photorealistic, high detail. Game references: ${gameNames}.${subject}${tone} No text, no watermarks.`;
+    return `Epic cinematic game banner: dynamic game world environment with dramatic lighting, vibrant colors, high-energy composition and particle effects. Professional game key art style. Photorealistic, high detail. Game references: ${gameNames}.${subject}${tone} No characters, no people, no logos. No text, no watermarks.`;
   }
 
   if (!products || products.length === 0) {
@@ -87,7 +92,7 @@ export function buildEditPrompt(products, category, backgroundTone, contentType,
   if (!products || products.length === 0) {
     if (contentType === "game") {
       const subject = context ? ` The scene must evoke: ${context}.` : "";
-      return `Create an epic cinematic game banner featuring iconic video game characters and elements in a dynamic game world scene. Dramatic lighting, vibrant colors, high-energy composition. Professional game key art style.${subject} No text, no watermarks.`;
+      return `Create an epic cinematic game banner: dynamic game world environment with dramatic lighting, vibrant colors and high-energy composition. Professional game key art style.${subject} No characters, no people, no logos. No text, no watermarks.`;
     }
     return `Create a professional banner with gaming products on a gaming room background. Photorealistic, high detail. No text, no watermarks.`;
   }

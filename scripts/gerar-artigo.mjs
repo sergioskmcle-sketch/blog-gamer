@@ -4393,18 +4393,6 @@ Checklist antes de responder:
     log("INFO", `${mlProducts.length} produtos injetados no corpo do artigo`);
   }
 
-  // V12: AQUI a capa paga e gerada — depois de o corpo passar em todos os
-  // portoes que lancam erro e abortam o tema. Um tema que vai ser descartado
-  // nao chega mais a gastar imagem. A capa da IA tem prioridade sobre o
-  // fallback gratuito escolhido antes.
-  {
-    const capaPaga = await gerarCapaPagaAdiada();
-    if (capaPaga) {
-      coverImage = capaPaga;
-    } else if (coverImage) {
-      log("INFO", `Capa IA indisponivel — mantendo fallback gratuito: ${coverImage.slice(0, 60)}`);
-    }
-  }
 
   body = stripLeftoverMarkers(body);
 
@@ -4516,6 +4504,30 @@ Checklist antes de responder:
     });
   }
   revSeo.parecer = revSeoParecer;
+
+  // V12 — Ponto de geracao da capa PAGA.
+  // Fica aqui por dois motivos:
+  //  1. E o mais tarde possivel: revisarDesign() logo abaixo e a unica etapa
+  //     do gate que examina a capa.
+  //  2. Redacao e SEO ja foram avaliadas. Se qualquer uma reprovou, o artigo
+  //     nao vai publicar — e nao faz sentido pagar por uma imagem que sera
+  //     descartada. Foi o que aconteceu no ciclo 34361225379: dois temas
+  //     reprovados por redacao/seo tentaram gerar capa antes de cair.
+  // Se a capa for pulada, coverImage mantem o fallback gratuito ja escolhido,
+  // entao revisarDesign() continua encontrando uma capa presente.
+  {
+    const textoReprovado = [revRedacao, revSeo].filter((r) => r && r.status === "reprovado");
+    if (textoReprovado.length > 0) {
+      log("WARN", `Capa paga pulada — ${textoReprovado.map((r) => r.etapa).join(", ")} ja reprovou(ram) o artigo.`);
+    } else {
+      const capaPaga = await gerarCapaPagaAdiada();
+      if (capaPaga) {
+        coverImage = capaPaga;
+      } else if (coverImage) {
+        log("INFO", `Capa IA indisponivel — mantendo fallback gratuito: ${coverImage.slice(0, 60)}`);
+      }
+    }
+  }
 
   const produtoImagensRevisao = mlProducts
     .filter((p) => p.local_thumbnail)
