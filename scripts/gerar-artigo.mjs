@@ -2249,8 +2249,21 @@ async function fetchTavily(query) {
 // Search + Tavily), nao por produto. Devolve um texto unico onde as mencões de
 // marca/modelo dos produtos candidatos serao contadas. Nunca lanca — sem chaves
 // ou com falha, retorna "" e o sinal editorial vale 0.
+// V13 — Rastreabilidade do consenso editorial.
+// O criterio "citado em N reviews" que aparece nos artigos NAO e inventado:
+// conta ocorrencias da marca nas paginas de review buscadas via Tavily. Mas
+// as URLs dessas paginas eram descartadas — o leitor lia a afirmacao sem
+// nenhuma forma de conferir, e a secao ## Fontes listava outras coisas.
+// Guardar as URLs permite cita-las e transforma a afirmacao em algo
+// verificavel.
 let rankingContextCache = "";
 let rankingContextLoaded = false;
+let rankingContextFontes = [];
+
+// URLs das paginas de review que sustentam o consenso editorial.
+export function getRankingFontes() {
+  return rankingContextFontes.slice();
+}
 
 async function fetchRankingContext(articleCat, topicHint) {
   if (rankingContextLoaded) return rankingContextCache;
@@ -2298,6 +2311,9 @@ async function fetchRankingContext(articleCat, topicHint) {
         for (const r of data.results || []) {
           if (r.title) parts.push(String(r.title));
           if (r.content) parts.push(String(r.content));
+          if (r.url && String(r.url).startsWith("http")) {
+            rankingContextFontes.push({ url: String(r.url), titulo: String(r.title || "") });
+          }
         }
         log("INFO", `Consenso editorial (Tavily): ${(data.results || []).length} paginas de review`);
       } else {
@@ -4638,6 +4654,36 @@ Checklist antes de responder:
       log("INFO", `Secao ## Fontes injetada deterministicamente (${fontesParaInjecao.length} fontes da pesquisa)`);
     } else {
       log("WARN", "Sem fontes com URL da pesquisa para injetar ## Fontes");
+    }
+  }
+
+  // V13 — Torna verificavel a afirmacao "citado em N reviews".
+  // Esse criterio vem de contagem real nas paginas de review buscadas via
+  // Tavily, mas as URLs nunca chegavam ao artigo: o leitor via a afirmacao
+  // sem como conferir, e a secao ## Fontes listava outras coisas. A revisao
+  // editorial chegou a marcar isso como dado inventado (09/09/2026) — nao
+  // era invencao, era falta de rastreabilidade.
+  {
+    const afirmaConsenso = /citado em \d+ reviews?/i.test(body);
+    const fontesRanking = getRankingFontes();
+    if (afirmaConsenso && fontesRanking.length > 0) {
+      const novas = fontesRanking
+        .filter((f) => f.url && !body.includes(f.url))
+        .slice(0, 3)
+        .map((f) => {
+          const url = f.url.trim().replace(/[)\s>]+$/, "");
+          const titulo = String(f.titulo || "").trim().slice(0, 90);
+          return titulo ? `- [${titulo}](${url})` : `- ${url}`;
+        });
+      if (novas.length > 0) {
+        const bloco = novas.join("\n");
+        if (/^##\s+Fontes\s*$/im.test(body)) {
+          body = body.replace(/^(##\s+Fontes\s*)$/im, `$1\n\n${bloco}`);
+        } else {
+          body += `\n\n## Fontes\n\n${bloco}\n`;
+        }
+        log("INFO", `${novas.length} fonte(s) de review citadas para sustentar "citado em N reviews"`);
+      }
     }
   }
 
