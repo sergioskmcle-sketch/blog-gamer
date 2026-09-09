@@ -2359,6 +2359,47 @@ function computeMaxTokens(systemPrompt, userPrompt) {
   return Math.min(MAX_OUTPUT, available);
 }
 
+
+// V12 — Ritmo das chamadas aos provedores gratuitos.
+// No ciclo 34361225379 o Groq levou 41 bloqueios (429) e NAO respondeu uma
+// vez sequer; o Gemini falhou 22 vezes. Toda a carga caiu na OpenAI, que e
+// paga. Os dois nao estavam sem cota — testados isoladamente, respondem
+// normalmente. O problema e a rajada: o gerador dispara as chamadas em
+// sequencia e estoura o limite POR MINUTO do plano gratuito.
+//
+// Duas correcoes aqui:
+//  1. espacar as chamadas de cada provedor (evita bater no limite);
+//  2. quando bater mesmo assim, dobrar o espacamento pelo resto da rodada,
+//     em vez de insistir no mesmo ritmo que acabou de falhar.
+const RITMO_PROVEDOR = {
+  gemini: { ultima: 0, intervaloMs: 3000, bloqueios: 0 },
+  groq: { ultima: 0, intervaloMs: 3000, bloqueios: 0 },
+};
+const RITMO_MAX_MS = 60000;
+
+async function aguardarVez(provedor) {
+  const r = RITMO_PROVEDOR[provedor];
+  if (!r) return;
+  const faltam = r.intervaloMs - (Date.now() - r.ultima);
+  if (faltam > 0) await sleep(faltam);
+  r.ultima = Date.now();
+}
+
+// Chamado quando o provedor devolve 429. `retryAfterSeg` vem do cabecalho
+// retry-after quando o provedor informa — melhor que qualquer chute nosso.
+function penalizarRitmo(provedor, retryAfterSeg = null) {
+  const r = RITMO_PROVEDOR[provedor];
+  // null (e nao 0) mantem a convencao: quem chama trata null como "sem
+  // sugestao do provedor" e usa a estimativa. Devolver 0 faria a espera
+  // virar 1 segundo.
+  if (!r) return null;
+  r.bloqueios++;
+  const anterior = r.intervaloMs;
+  r.intervaloMs = Math.min(r.intervaloMs * 2, RITMO_MAX_MS);
+  log("INFO", `Ritmo ${provedor}: ${anterior}ms -> ${r.intervaloMs}ms entre chamadas (${r.bloqueios} bloqueio(s) na rodada)`);
+  const sugerido = Number(retryAfterSeg);
+  return Number.isFinite(sugerido) && sugerido > 0 ? sugerido : null;
+}
 async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
   const url = "https://api.groq.com/openai/v1/chat/completions";
   const body = {
@@ -2380,6 +2421,7 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       log("INFO", `Groq: tentativa ${attempt}/${maxAttempts}...`);
+      await aguardarVez("groq");
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${GROQ_API_KEY}` },
@@ -2391,8 +2433,12 @@ async function fetchGroq(systemPrompt, userPrompt, maxAttempts = 5, opts = {}) {
           log("ERROR", `Groq: timeout total de ${MAX_TOTAL_WAIT / 1000}s atingido, desistindo`);
           throw new Error(`Groq: timeout total apos ${attempt} tentativas`);
         }
-        const wait = Math.min(15 * Math.pow(2, attempt - 1), 120);
-        log("WARN", `Groq: ${res.status}, aguardando ${wait}s (tentativa ${attempt}/${maxAttempts})...`);
+        // O Groq informa em retry-after quanto falta para a janela liberar.
+        // Antes esse cabecalho era ignorado e a espera era chutada.
+        const sugerido = penalizarRitmo("groq", res.headers.get("retry-after"));
+        const chute = Math.min(15 * Math.pow(2, attempt - 1), 120);
+        const wait = sugerido != null ? Math.min(Math.ceil(sugerido) + 1, 120) : chute;
+        log("WARN", `Groq: ${res.status}, aguardando ${wait}s ${sugerido != null ? "(informado pelo provedor)" : "(estimado)"} — tentativa ${attempt}/${maxAttempts}`);
         await sleep(wait * 1000);
         continue;
       }
@@ -2582,13 +2628,15 @@ async function fetchGemini(systemPrompt, userPrompt, maxAttempts = 5, opts = {})
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       log("INFO", `Gemini: tentativa ${attempt}/${maxAttempts}...`);
+      await aguardarVez("gemini");
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       if (res.status === 429) {
-        log("WARN", "Gemini: 429 (quota) — falhando rapido para o fallback");
+        penalizarRitmo("gemini", res.headers.get("retry-after"));
+        log("WARN", "Gemini: 429 (limite por minuto) — falhando rapido para o fallback");
         const fatal = new Error("Gemini 429: quota esgotada");
         fatal.fatal = true;
         throw fatal;
