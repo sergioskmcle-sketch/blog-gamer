@@ -11,6 +11,7 @@ import { gerarCapaOpenAI, downloadImage, searchTavilyImage } from "./openai-cove
 // fallback Stability nunca funcionou porque a STABILITY_API_KEY nao existia
 // nos secrets. Sem creditos na OpenAI, o blog parava inteiro.
 import { gerarCapaGemini } from "./gemini-cover.mjs";
+import { gerarCapaPollinations } from "./pollinations-cover.mjs";
 import { cleanProductTitle, detectArticleCategory, detectBrand, detectModel, productMatchesCategory, PRODUCT_CATEGORIES, CATEGORY_BRANDS, KNOWN_BRANDS } from "./product_naming.mjs";
 import { rankProducts, filterEligible, medianPrice, MIN_CRITERIA } from "./product_ranking.mjs";
 import { upgradeImageUrl, imageDimensions, isImageUsable, searchSerperImage } from "./product_images.mjs";
@@ -4397,9 +4398,15 @@ Checklist antes de responder:
     if (!img) {
       img = await gerarCapaGemini({ mlProducts: coverProducts, category: categoria, slug: capaSlug, contentType: coverProducts.length > 0 ? undefined : "game", context: coverContext, gameRefs }) || "";
     }
-    // Reserva 2: Stability.
+    // Reserva 2: Stability (fundo por IA + fotos reais coladas por cima).
     if (!img) {
       img = await gerarCapaStability({ mlProducts: coverProducts, category: categoria, slug: capaSlug, context: coverContext, gameRefs }) || "";
+    }
+    // Reserva 3: Pollinations — gratuita e sem cadastro. Mesmo pipeline da
+    // Stability, so trocando quem gera o fundo. Qualidade inferior, mas e a
+    // diferenca entre capa fraca e blog parado.
+    if (!img) {
+      img = await gerarCapaPollinations({ mlProducts: coverProducts, category: categoria, slug: capaSlug, context: coverContext, gameRefs }) || "";
     }
     if (img) log("INFO", `Capa gerada: ${img}`);
     return img;

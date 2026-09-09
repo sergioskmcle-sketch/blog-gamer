@@ -327,9 +327,15 @@ async function refineComposite(compositeBuffer, category, context) {
   return refined;
 }
 
-export async function gerarCapaStability({ mlProducts, category, slug, context, gameRefs }) {
+// V12: `gerarFundo` torna a origem do FUNDO plugavel.
+// Este modulo nao gera o produto por IA — ele pede so o cenario e cola por
+// cima as fotos REAIS dos produtos (recorte + composicao locais, com sharp).
+// Como a IA aqui so precisa de texto->imagem simples, qualquer provedor
+// serve. Passando `gerarFundo`, o mesmo pipeline roda com outra fonte de
+// imagem sem duplicar nada. Sem ele, segue usando a Stability como antes.
+export async function gerarCapaStability({ mlProducts, category, slug, context, gameRefs, gerarFundo = null, rotulo = "Stability AI" }) {
   const apiKey = process.env.STABILITY_API_KEY;
-  if (!apiKey) {
+  if (!gerarFundo && !apiKey) {
     log("INFO", "STABILITY_API_KEY nao configurada — pulando capa AI");
     return null;
   }
@@ -338,11 +344,19 @@ export async function gerarCapaStability({ mlProducts, category, slug, context, 
   const contextLine = context ? ` The scene should evoke: ${context}.` : "";
   const fullPrompt = `${prompt}${contextLine} Use bright, light-toned background colors.`.trim();
 
-  log("INFO", `Gerando fundo Stability AI (category: ${category})...`);
+  log("INFO", `Gerando fundo por ${rotulo} (category: ${category})...`);
 
   const t0 = Date.now();
   let bgBuffer;
   try {
+    if (gerarFundo) {
+      bgBuffer = await gerarFundo(fullPrompt);
+      if (!bgBuffer) {
+        log("WARN", `${rotulo}: nao retornou fundo`);
+        return null;
+      }
+      log("INFO", `Fundo gerado por ${rotulo} (${(bgBuffer.length / 1024).toFixed(1)} KB)`);
+    } else {
     const fd = new FormData();
     fd.append("prompt", fullPrompt);
     fd.append("aspect_ratio", "16:9");
@@ -369,8 +383,9 @@ export async function gerarCapaStability({ mlProducts, category, slug, context, 
 
     bgBuffer = Buffer.from(await res.arrayBuffer());
     log("INFO", `Fundo gerado (${(bgBuffer.length / 1024).toFixed(1)} KB)`);
+    }
   } catch (err) {
-    log("WARN", `Stability AI requisicao falhou: ${err.message}`);
+    log("WARN", `${rotulo}: requisicao do fundo falhou — ${err.message}`);
     return null;
   }
 
