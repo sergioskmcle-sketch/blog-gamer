@@ -103,13 +103,68 @@ function nextCategory(state) {
 }
 
 // Funcao (nao const) para o ano vir sempre de ANO_ATUAL, nunca hardcoded.
-function topicSeeds() {
-  return [
-    { category: "noticia", hint: "lancamento de game, evento de games, anuncio de console", ml_query: `lancamento jogo ps5 xbox ${ANO_ATUAL}` },
-    { category: "review", hint: `review de jogo popular de ${ANO_ATUAL}, performance nos consoles, o que esperar do jogo`, ml_query: `jogo popular ps5 xbox switch ${ANO_ATUAL}` },
-    { category: "guia", hint: "melhores headsets gamers, teclado mecanico, mouse gamer, monitor, cadeira", ml_query: "headset gamer teclado mecanico mouse gamer monitor" },
-    { category: "lista", hint: "melhores jogos para PC, jogos gratis, jogos multiplayer, jogos estilo", ml_query: `jogo pc mais vendido ${ANO_ATUAL}` },
-  ];
+// V13 — Sementes com UM assunto por artigo.
+//
+// Antes cada semente era um PACOTE de palavras-chave, nao um tema:
+//   hint: "melhores headsets gamers, teclado mecanico, mouse gamer, monitor, cadeira"
+// Cinco categorias de produto em uma string so. O gerador pegava a primeira
+// para o titulo e buscava produtos do pacote inteiro — foi assim que nasceu
+// "Os 4 Melhores Headsets Gamer de 2026" com o corpo tratando exclusivamente
+// de teclados mecanicos (ciclo 34413443282, reprovado pela revisao editorial).
+//
+// Agora cada semente declara suas opcoes e UMA e escolhida por rodada,
+// preferindo a que nao foi usada recentemente.
+const SEMENTES = [
+  {
+    category: "noticia",
+    opcoes: [
+      { hint: "lancamento de game", ml_query: `lancamento jogo ps5 xbox ${ANO_ATUAL}` },
+      { hint: "evento de games", ml_query: `evento de games ${ANO_ATUAL}` },
+      { hint: "anuncio de console", ml_query: `anuncio console ${ANO_ATUAL}` },
+    ],
+  },
+  {
+    category: "review",
+    opcoes: [
+      { hint: `review de jogo popular de ${ANO_ATUAL}`, ml_query: `jogo popular ps5 xbox switch ${ANO_ATUAL}` },
+      { hint: `performance de jogos nos consoles em ${ANO_ATUAL}`, ml_query: `jogo ps5 xbox performance ${ANO_ATUAL}` },
+    ],
+  },
+  {
+    category: "guia",
+    opcoes: [
+      { hint: "melhores headsets gamer", ml_query: "headset gamer" },
+      { hint: "melhores teclados mecanicos gamer", ml_query: "teclado mecanico gamer" },
+      { hint: "melhores mouses gamer", ml_query: "mouse gamer" },
+      { hint: "melhores monitores gamer", ml_query: "monitor gamer" },
+      { hint: "melhores cadeiras gamer", ml_query: "cadeira gamer" },
+    ],
+  },
+  {
+    category: "lista",
+    opcoes: [
+      { hint: "melhores jogos para PC", ml_query: `jogo pc mais vendido ${ANO_ATUAL}` },
+      { hint: "melhores jogos gratis", ml_query: `jogo gratis pc ${ANO_ATUAL}` },
+      { hint: "melhores jogos multiplayer", ml_query: `jogo multiplayer ${ANO_ATUAL}` },
+    ],
+  },
+];
+
+// Escolhe uma opcao da semente evitando o que ja saiu nos ultimos artigos.
+// `recentes` vem de state.recent_topics.
+function escolherOpcao(semente, recentes = []) {
+  const normal = (t) => String(t || "").toLowerCase().slice(0, 40);
+  const usados = new Set((recentes || []).map(normal));
+  const livres = semente.opcoes.filter((o) => !usados.has(normal(o.hint)));
+  const pool = livres.length > 0 ? livres : semente.opcoes;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function topicSeeds(recentes = []) {
+  return SEMENTES.map((s) => {
+    const o = escolherOpcao(s, recentes);
+    return { category: s.category, hint: o.hint, ml_query: o.ml_query };
+  });
 }
 
 // Temas proibidos: apostas, cassino, caça-níqueis e afins. Nunca podem virar artigo.
@@ -3468,7 +3523,8 @@ async function main() {
         log("WARN", `Alternativa de tema "${kw}" falhou: ${e.message}`);
       }
     }
-    const seeds = topicSeeds();
+    // Passa os temas recentes para nao repetir o mesmo assunto da semente.
+    const seeds = topicSeeds(state.recent_topics || []);
     const seedDia = seeds.find((s) => s.category === diaCategoria);
     const seedNoticia = seeds.find((s) => s.category === "noticia");
     const seedOutros = seeds.filter((s) => s.category !== diaCategoria && s.category !== "noticia");
