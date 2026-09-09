@@ -3547,6 +3547,87 @@ function CRLF_ARTIGO(texto) {
   return texto.includes("\r\n") ? "\r\n" : "\n";
 }
 
+
+// V12 — Passe de expansao.
+// Levantamento de 30 ciclos (30/08 a 09/09/2026): 69 das 100 reprovacoes
+// P0/P1 do gate foram word count. E por pouco — a mediana do deficit era 65
+// palavras, e um artigo foi descartado faltando NOVE (891 de 900).
+//
+// O caminho antigo era caro e ineficaz: o retry mandava "reescreva o artigo
+// inteiro", o que refazia tudo (inclusive o que estava bom) e mesmo assim
+// aterrissava de novo na faixa 800-890.
+//
+// Aqui a abordagem e outra: manter o texto e pedir para APROFUNDAR secoes
+// especificas ate passar do minimo. Roda no corpo final, antes das revisoes.
+async function expandirArtigoCurto({ body, fm, minWords, categoria, topicHint, maxTentativas = 2 }) {
+  const contar = (t) => String(t || "").split(/\s+/).filter(Boolean).length;
+  let corpo = body;
+  let palavras = contar(corpo);
+  if (palavras >= minWords) return { body: corpo, expandido: false, palavras };
+
+  // Margem de 5%: entregar exatamente o minimo deixa o artigo reprovando de
+  // novo a cada ajuste posterior de texto.
+  const alvo = Math.ceil(minWords * 1.05);
+  // Teto da regra editorial do projeto (mesmo 1200 do prompt de geracao).
+  // Sem ele a expansao exagera: no teste de 09/09 um artigo de 845 palavras
+  // voltou com 1328 — passou do minimo, mas muito alem do necessario.
+  const teto = Math.max(1200, alvo + 100);
+
+  for (let tentativa = 1; tentativa <= maxTentativas; tentativa++) {
+    const faltam = alvo - palavras;
+    log("INFO", `Artigo curto (${palavras}/${minWords}) — expandindo, faltam ~${faltam} palavras (tentativa ${tentativa}/${maxTentativas})`);
+
+    const sistema = "Voce e um editor de blog gamer brasileiro. Sua tarefa e APROFUNDAR um artigo que ficou curto, sem reescrever o que ja esta bom.";
+    const usuario = [
+      `O artigo abaixo tem ${palavras} palavras e precisa ficar entre ${alvo} e ${teto} palavras.`,
+      `Assunto: ${topicHint || fm.title}. Categoria: ${categoria}.`,
+      "",
+      "REGRAS:",
+      "1. MANTENHA todo o texto existente. Nao resuma, nao reescreva, nao reordene.",
+      "2. MANTENHA todos os headings (##, ###), tabelas, links, imagens e marcadores exatamente como estao.",
+      "3. Aprofunde os paragrafos que ja existem e, se precisar, acrescente paragrafos dentro das secoes existentes.",
+      "4. NAO crie secoes novas. NAO invente dados, precos, datas ou fontes.",
+      "5. Nada de enrolacao: cada frase acrescentada precisa dizer algo util ao leitor.",
+      `6. NAO ultrapasse ${teto} palavras no total.`,
+      "7. Responda APENAS com o markdown final do corpo, sem comentarios seus.",
+      "",
+      "ARTIGO:",
+      corpo,
+    ].join("\n");
+
+    let saida;
+    try {
+      saida = await fetchLLM(sistema, usuario, 2, { maxTokens: 4000 });
+    } catch (e) {
+      log("WARN", `Expansao falhou na chamada: ${e.message}`);
+      break;
+    }
+
+    const limpo = String(saida || "").replace(/^```(?:markdown|md)?\s*/i, "").replace(/```\s*$/, "").trim();
+    const novas = contar(limpo);
+
+    // Guardas: a LLM nao pode ENCURTAR nem destruir a estrutura. Se fizer
+    // qualquer uma das duas, descarta a resposta e fica com o texto original.
+    const headingsAntes = (corpo.match(/^#{2,3}\s+/gm) || []).length;
+    const headingsDepois = (limpo.match(/^#{2,3}\s+/gm) || []).length;
+    if (novas <= palavras) {
+      log("WARN", `Expansao devolveu texto igual ou menor (${novas} <= ${palavras}) — descartando`);
+      break;
+    }
+    if (headingsDepois < headingsAntes) {
+      log("WARN", `Expansao perdeu secoes (${headingsAntes} -> ${headingsDepois} headings) — descartando`);
+      break;
+    }
+
+    corpo = limpo;
+    palavras = novas;
+    log("INFO", `Expansao aplicada: ${palavras} palavras (${headingsDepois} headings preservados)`);
+    if (palavras >= minWords) return { body: corpo, expandido: true, palavras };
+  }
+
+  return { body: corpo, expandido: corpo !== body, palavras };
+}
+
 async function generateArticle({ topic, state, trendingSource = "estatico", opts = {} }) {
   const now = new Date();
   const today = now.toISOString().split("T")[0];
@@ -4431,6 +4512,23 @@ Checklist antes de responder:
       log("INFO", `Secao ## Fontes injetada deterministicamente (${fontesParaInjecao.length} fontes da pesquisa)`);
     } else {
       log("WARN", "Sem fontes com URL da pesquisa para injetar ## Fontes");
+    }
+  }
+
+  // V12: ultima chance antes das revisoes — se o corpo final ficou abaixo do
+  // minimo da categoria, aprofunda em vez de deixar o gate descartar o ciclo
+  // inteiro por algumas dezenas de palavras.
+  {
+    const exp = await expandirArtigoCurto({
+      body,
+      fm,
+      minWords,
+      categoria,
+      topicHint: topic.hint,
+    });
+    if (exp.expandido) {
+      body = exp.body;
+      log("INFO", `Corpo expandido para ${exp.palavras} palavras (minimo ${minWords})`);
     }
   }
 
