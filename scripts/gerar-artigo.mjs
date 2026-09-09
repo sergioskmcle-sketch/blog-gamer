@@ -4289,21 +4289,33 @@ Checklist antes de responder:
     : [];
   const coverProducts = hasProducts ? mlProducts : hardwareItemNames.map((name) => ({ name }));
 
-  if (process.env.SKIP_COVER) {
-    log("INFO", "SKIP_COVER: capa IA pulada — usando fallbacks gratuitos");
-  } else {
+  // V12: a capa por IA e PAGA (gpt-image-*, ~2 centavos cada) e antes era
+  // gerada AQUI, antes das validacoes do corpo. Como cada tema tentado gera
+  // a sua, os ciclos que falhavam queimavam varias capas e nao publicavam
+  // nenhuma: 6 capas em 05/09/2026 e 5 em 07/09, todas descartadas.
+  // Agora a geracao fica adiada e so roda depois que o artigo passa nos
+  // portoes que podem abortar o tema.
+  const gerarCapaPagaAdiada = async () => {
+    if (process.env.SKIP_COVER) {
+      log("INFO", "SKIP_COVER: capa IA pulada — usando fallbacks gratuitos");
+      return "";
+    }
     log("INFO", `Gerando capa IA contextual (categoria: ${categoria}, ${coverProducts.length > 0 ? coverProducts.length + " itens de referencia" : "sem referencia de itens"}, ${gameRefs.length} imagens de jogo)...`);
+    let img = "";
     if (coverProducts.length > 0) {
-      coverImage = await gerarCapaOpenAI({ mlProducts: coverProducts, category: categoria, slug: capaSlug, context: coverContext }) || "";
+      img = await gerarCapaOpenAI({ mlProducts: coverProducts, category: categoria, slug: capaSlug, context: coverContext }) || "";
     } else {
-      coverImage = await gerarCapaOpenAI({ mlProducts: [], category: categoria, slug: capaSlug, contentType: "game", context: coverContext, gameRefs }) || "";
+      img = await gerarCapaOpenAI({ mlProducts: [], category: categoria, slug: capaSlug, contentType: "game", context: coverContext, gameRefs }) || "";
     }
-    if (!coverImage) {
-      coverImage = await gerarCapaStability({ mlProducts: coverProducts, category: categoria, slug: capaSlug, context: coverContext, gameRefs }) || "";
+    if (!img) {
+      img = await gerarCapaStability({ mlProducts: coverProducts, category: categoria, slug: capaSlug, context: coverContext, gameRefs }) || "";
     }
-  }
+    return img;
+  };
 
-  // Fallbacks sem IA (mantidos como rede de seguranca)
+  // Fallbacks sem IA (mantidos como rede de seguranca). Continuam rodando
+  // aqui porque sao gratuitos e porque injectGameImages() usa a capa para
+  // nao repetir a mesma imagem dentro do corpo.
   if (!coverImage) {
     coverImage = await getBestCoverImage(mlProducts, body, trendingKeywordForCover, markerNames) || "";
   }
@@ -4368,6 +4380,19 @@ Checklist antes de responder:
   } else {
     body = injectProductCards(body, mlProducts);
     log("INFO", `${mlProducts.length} produtos injetados no corpo do artigo`);
+  }
+
+  // V12: AQUI a capa paga e gerada — depois de o corpo passar em todos os
+  // portoes que lancam erro e abortam o tema. Um tema que vai ser descartado
+  // nao chega mais a gastar imagem. A capa da IA tem prioridade sobre o
+  // fallback gratuito escolhido antes.
+  {
+    const capaPaga = await gerarCapaPagaAdiada();
+    if (capaPaga) {
+      coverImage = capaPaga;
+    } else if (coverImage) {
+      log("INFO", `Capa IA indisponivel — mantendo fallback gratuito: ${coverImage.slice(0, 60)}`);
+    }
   }
 
   body = stripLeftoverMarkers(body);
