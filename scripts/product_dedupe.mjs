@@ -213,7 +213,15 @@ export function compareProducts(a, b) {
     return { same: true, motivo: "mesmo id de catalogo/anuncio" };
   }
   if (fa.url && fa.url === fb.url) {
-    return { same: true, motivo: "mesma URL canonica" };
+    // URL igual + identidade igual (ou indeterminada) = mesmo produto.
+    // URL igual + marca/modelo DIFERENTES = permalink generico de loja; os
+    // produtos sao distintos e a comparacao precisa continuar.
+    const marcaCompativel = !fa.brand || !fb.brand || fa.brand === fb.brand;
+    const modeloCompativel = !fa.model || !fb.model || fa.model === fb.model;
+    if (marcaCompativel && modeloCompativel) {
+      return { same: true, motivo: "mesma URL canonica" };
+    }
+    // segue para os demais sinais — nao colapsa produtos de marcas distintas
   }
 
   // Categoria diferente (mouse vs teclado) nunca e o mesmo produto, mesmo que
