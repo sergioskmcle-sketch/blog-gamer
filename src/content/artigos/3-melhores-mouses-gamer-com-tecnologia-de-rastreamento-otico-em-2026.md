@@ -97,5 +97,3 @@ Entre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e rec
 
 ## Continue Explorando
 - [Periféricos Gamer Sustentáveis: Os Melhores de 2026](/blog/perifericos-gamer-sustentaveis-os-melhores-de-2026/)
-- [Top 5 mouse gamer ergonômico de 2024 para conforto duradouro](/blog/top-5-mouse-gamer-ergonomico-de-2024-para-conforto-duradouro/)
-- [Top 5 mouse gamer wireless de 2024 para desempenho imbatível](/blog/top-5-mouse-gamer-wireless-de-2024-para-desempenho-imbativel/)

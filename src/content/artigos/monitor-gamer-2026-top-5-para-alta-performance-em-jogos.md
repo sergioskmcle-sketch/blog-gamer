@@ -116,5 +116,4 @@ Entre para o nosso [grupo VIP no Telegram](https://t.me/+TRWZ67WHuk85Y2Nh) e rec
 
 ## Continue Explorando
 - [Monitores Gamer: Guia Completo de Modelos 100Hz a 165Hz em 2026](/blog/monitores-gamer-guia-completo-de-modelos-100hz-a-165hz-em-2026/)
-- [Top 5 mouse gamer wireless de 2024 para desempenho imbatível](/blog/top-5-mouse-gamer-wireless-de-2024-para-desempenho-imbativel/)
 - [Periféricos Gamer: Os 5 Melhores Teclados Mecânicos de 2026](/blog/perifericos-gamer-os-5-melhores-teclados-mecanicos-de-2026/)
