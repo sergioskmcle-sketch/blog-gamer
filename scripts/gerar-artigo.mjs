@@ -1122,6 +1122,21 @@ async function rawgSearchOnce(clean, originalName) {
       if (score > bestScore) { bestScore = score; best = c; }
     }
 
+    // V13: entre candidatos com similaridade praticamente igual, prevalece o
+    // MAIS POPULAR. O RAWG tem um clone amador "Ocarina of Time" (top-down,
+    // zero screenshots) com similaridade 1.00 igual ao Zelda 1998 — o artigo
+    // do Ocarina publicou a imagem do clone. Milhares de avaliacoes separam
+    // o original do clone.
+    const perto = candidates.filter((c) => {
+      const sc = nameSimilarity(clean, c.name || "");
+      return sc >= bestScore - 0.05;
+    }).sort((a, b) => (b.ratings_count || 0) - (a.ratings_count || 0));
+    if (perto.length > 0 && (perto[0].ratings_count || 0) > (best?.ratings_count || 0) * 5) {
+      best = perto[0];
+      bestScore = nameSimilarity(clean, best.name || "");
+      log("INFO", `RAWG: desempate por popularidade -> "${best.name}" (${best.ratings_count} avaliacoes)`);
+    }
+
     // V13: similaridade sozinha casa "Plataforma Ocarina of Time" com
     // "Atonement: Scourge of Time" (0.80!) porque "of Time" e generico.
     // Exigir que o candidato contenha um token distintivo (>= 5 letras) da
@@ -1147,6 +1162,10 @@ async function rawgSearchOnce(clean, originalName) {
       id: best.id,
       hqUrl: best.background_image.replace("/media/", "/media/crop/600/400/") + "?auto=format&fit=crop&w=800&h=450",
       score: bestScore,
+      alternativos: candidates
+        .filter((c) => c.id !== best.id && c.background_image && nameSimilarity(clean, c.name || "") >= RAWG_MATCH_THRESHOLD)
+        .sort((a, b) => (b.ratings_count || 0) - (a.ratings_count || 0))
+        .slice(0, 3),
     };
   } catch (e) {
     log("WARN", `RAWG erro "${originalName.slice(0, 40)}": ${e.message}`);
@@ -1172,11 +1191,20 @@ async function fetchRAWGImage(gameName) {
       const anterior = GAME_IMAGE_CACHE[gameName];
       GAME_IMAGE_CACHE[gameName] = found.hqUrl;
       if (anterior) {
-        // Segunda+ ocorrencia do mesmo jogo: tentar screenshot diferente.
+        // Segunda+ ocorrencia do mesmo jogo: screenshot diferente, e na falta
+        // de screenshots (o Zelda 1998 tem ZERO no RAWG), o background de
+        // outro registro do mesmo jogo (id diferente, arte diferente).
         const extra = await fetchRawgScreenshotExtra(gameName);
         if (extra) {
           log("INFO", `RAWG screenshot extra para "${gameName.slice(0, 40)}" (evita repetir imagem)`);
           return extra;
+        }
+        const alt = found.alternativos?.find((c) => c.id && c.id !== GAME_IMAGE_ID.get(gameName) && c.background_image);
+        if (alt) {
+          GAME_IMAGE_ID.set(gameName, alt.id);
+          const urlAlt = alt.background_image.replace("/media/", "/media/crop/600/400/") + "?auto=format&fit=crop&w=800&h=450";
+          log("INFO", `RAWG registro alternativo para "${gameName.slice(0, 40)}" -> id ${alt.id} (evita repetir imagem)`);
+          return urlAlt;
         }
       }
       log("INFO", `RAWG imagem "${gameName.slice(0, 40)}" -> "${found.name}" (query "${clean.slice(0, 40)}", score ${found.score.toFixed(2)})`);
