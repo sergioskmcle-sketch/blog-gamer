@@ -1,0 +1,67 @@
+{
+  "assunto": "Remake de Ocarina of Time",
+  "formato": "noticia",
+  "titulo": "Ocarina of Time remake chega em 2026 para Nintendo Switch 2",
+  "palavraChave": "Ocarina of Time remake",
+  "palavrasSecundarias": [
+    "Nintendo Switch 2",
+    "lançamento 2026",
+    "Zelda remake"
+  ],
+  "intencaoBusca": "informacional",
+  "perguntas": [
+    "Qual a data de lançamento do remake de Ocarina of Time?",
+    "Em qual plataforma o remake será disponibilizado?",
+    "Existe página oficial da Nintendo confirmando o remake?",
+    "Quais são as fontes que confirmam o lançamento em 2026?",
+    "O preço do remake já foi anunciado?"
+  ],
+  "secoes": [
+    {
+      "h2": "Data de lançamento",
+      "oQueCobrir": "Informar que o remake de Ocarina of Time está programado para ser lançado em 2026, conforme anúncios oficiais."
+    },
+    {
+      "h2": "Plataforma de lançamento",
+      "oQueCobrir": "Especificar que o jogo será exclusivo para o Nintendo Switch 2, de acordo com a página oficial da Nintendo."
+    },
+    {
+      "h2": "Confirmação oficial",
+      "oQueCobrir": "Apresentar as fontes oficiais (Nintendo Store, Instagram e Facebook da Nintendo Brazil) que confirmam o remake."
+    }
+  ],
+  "fatosObrigatorios": [
+    {
+      "fato": "O remake de The Legend of Zelda: Ocarina of Time será lançado em 2026.",
+      "fonte": "https://www.nintendo.com/pt-br/store/products/the-legend-of-zelda-ocarina-of-time-switch-2/",
+      "status": "confirmado"
+    },
+    {
+      "fato": "O remake será exclusivo para o Nintendo Switch 2.",
+      "fonte": "https://www.nintendo.com/pt-br/store/products/the-legend-of-zelda-ocarina-of-time-switch-2/",
+      "status": "confirmado"
+    },
+    {
+      "fato": "A Nintendo Brazil divulgou o anúncio do remake nas redes sociais (Instagram e Facebook) em 2026.",
+      "fonte": "https://www.instagram.com/reel/DZXpI_ij0ZV/",
+      "status": "reportado"
+    },
+    {
+      "fato": "A IGN publicou uma notícia sobre o lançamento de Ocarina of Time em 2026.",
+      "fonte": "https://br.ign.com/the-legend-of-zelda-ocarina-of-time-2026",
+      "status": "reportado"
+    },
+    {
+      "fato": "[NOVIDADE DE ULTIMA HORA] O remake de Ocarina of Time foi oficialmente revelado durante o Nintendo Direct de junho de 2026.",
+      "fonte": "Polygon.com",
+      "status": "reportado"
+    }
+  ],
+  "naoEscrever": [
+    "Preço do jogo, pois não há informação oficial.",
+    "Detalhes sobre melhorias gráficas ou mudanças de gameplay.",
+    "Data exata (dia e mês) de lançamento, já que só o ano foi confirmado.",
+    "Disponibilidade em outras plataformas além do Nintendo Switch 2.",
+    "Requisitos de hardware ou especificações técnicas do remake."
+  ]
+}

@@ -1,0 +1,139 @@
+{
+  "dia": "2026-09-10",
+  "rodadas": [
+    {
+      "hora": "2026-09-10T02:19:50.487Z",
+      "escolhido": "Remake de Ocarina of Time",
+      "pautas": [
+        {
+          "assunto": "Remake de Ocarina of Time",
+          "formato": "noticia",
+          "oQueAconteceu": "Remake de Ocarina of Time mantém telas de carregamento por 'nostalgia', mas justificativa não convence os jogadores.",
+          "porQueAgora": "A polêmica sobre a decisão de design está gerando debates entre os fãs.",
+          "palavraChave": "Ocarina of Time remake",
+          "criterios": {
+            "interesse": 9,
+            "buscaPotencial": 8,
+            "novidade": 8,
+            "seo": 9,
+            "relevancia": 9,
+            "comercial": 5
+          },
+          "nota": 84
+        },
+        {
+          "assunto": "Stellar Blade e Bayonetta Crossover",
+          "formato": "noticia",
+          "oQueAconteceu": "Stellar Blade receberá quatro trajes de Bayonetta em novembro.",
+          "porQueAgora": "O anúncio gera expectativa para os fãs de ambos os jogos.",
+          "palavraChave": "Stellar Blade Bayonetta trajes",
+          "criterios": {
+            "interesse": 8,
+            "buscaPotencial": 7,
+            "novidade": 9,
+            "seo": 8,
+            "relevancia": 8,
+            "comercial": 6
+          },
+          "nota": 78
+        },
+        {
+          "assunto": "Atualização de 10 anos de No Man’s Sky",
+          "formato": "noticia",
+          "oQueAconteceu": "No Man’s Sky recebe update Cosmos para celebrar aniversário de 10 anos.",
+          "porQueAgora": "A atualização promete renovar a experiência do jogo, atraindo tanto novos quanto antigos jogadores.",
+          "palavraChave": "No Man's Sky atualização 10 anos",
+          "criterios": {
+            "interesse": 7,
+            "buscaPotencial": 6,
+            "novidade": 8,
+            "seo": 7,
+            "relevancia": 7,
+            "comercial": 4
+          },
+          "nota": 68
+        },
+        {
+          "assunto": "Anúncio de Diários de uma Apotecária para PS5",
+          "formato": "noticia",
+          "oQueAconteceu": "Popular anime e light novel, Diários de uma Apotecária terá jogo para PS5.",
+          "porQueAgora": "A adaptação de uma obra popular para o mundo dos games gera grande expectativa.",
+          "palavraChave": "Diários de uma Apotecária jogo PS5",
+          "criterios": {
+            "interesse": 6,
+            "buscaPotencial": 7,
+            "novidade": 8,
+            "seo": 6,
+            "relevancia": 6,
+            "comercial": 5
+          },
+          "nota": 65
+        },
+        {
+          "assunto": "Promoção da Tokyo Game Show na PS Store",
+          "formato": "lista",
+          "oQueAconteceu": "Sony lança promoção da Tokyo Game Show na PS Store.",
+          "porQueAgora": "As promoções atraem a atenção dos gamers que buscam boas ofertas.",
+          "palavraChave": "promoção Tokyo Game Show PS Store",
+          "criterios": {
+            "interesse": 7,
+            "buscaPotencial": 6,
+            "novidade": 5,
+            "seo": 7,
+            "relevancia": 6,
+            "comercial": 8
+          },
+          "nota": 64
+        },
+        {
+          "assunto": "Anúncio de Yu-Gi-Oh! TAG FORCE GX",
+          "formato": "noticia",
+          "oQueAconteceu": "Yu-Gi-Oh! TAG FORCE GX é anunciado e chega em 2027 para PC e Switch.",
+          "porQueAgora": "O anúncio de um novo jogo da franquia Yu-Gi-Oh! gera interesse entre os fãs.",
+          "palavraChave": "Yu-Gi-Oh! TAG FORCE GX",
+          "criterios": {
+            "interesse": 6,
+            "buscaPotencial": 5,
+            "novidade": 8,
+            "seo": 6,
+            "relevancia": 5,
+            "comercial": 4
+          },
+          "nota": 59
+        },
+        {
+          "assunto": "Dying Light: The Beast em promoção",
+          "formato": "noticia",
+          "oQueAconteceu": "Dying Light: The Beast tem menor preço histórico na PS Store.",
+          "porQueAgora": "A promoção pode atrair novos jogadores para um título popular.",
+          "palavraChave": "Dying Light The Beast promoção",
+          "criterios": {
+            "interesse": 5,
+            "buscaPotencial": 5,
+            "novidade": 6,
+            "seo": 5,
+            "relevancia": 5,
+            "comercial": 7
+          },
+          "nota": 53
+        },
+        {
+          "assunto": "Crash Bandicoot 30 anos",
+          "formato": "lista",
+          "oQueAconteceu": "Clássico do PlayStation, Crash Bandicoot completa 30 anos.",
+          "porQueAgora": "A celebração do aniversário do jogo pode trazer nostalgia e interesse em novos conteúdos.",
+          "palavraChave": "Crash Bandicoot 30 anos",
+          "criterios": {
+            "interesse": 5,
+            "buscaPotencial": 4,
+            "novidade": 5,
+            "seo": 5,
+            "relevancia": 5,
+            "comercial": 3
+          },
+          "nota": 47
+        }
+      ]
+    }
+  ]
+}
