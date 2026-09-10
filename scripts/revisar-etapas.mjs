@@ -536,7 +536,17 @@ export async function revisarConteudo({ fm, body, research = "", categoria = "",
     "Responda EXCLUSIVAMENTE com JSON valido, sem cercas de codigo e sem comentarios.",
   ].join(" ");
 
+  // V13: a data de HOJE precisa ser dita. Sem isso a LLM assume a data do
+  // proprio treinamento e reprova conteudo correto por "desatualizado" — no
+  // ciclo 34417039359 ela barrou dois artigos alegando "considerando que
+  // estamos em 2023", com o blog rodando em setembro de 2026.
+  const hoje = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  const anoAtual = new Date().getFullYear();
+
   const usuario = [
+    `DATA DE HOJE: ${hoje}. O ano corrente e ${anoAtual}.`,
+    `Conteudo referente a ${anoAtual} ou ${anoAtual + 1} e ATUAL, nao desatualizado. Nao use a sua data de treinamento como referencia.`,
+    "",
     `CATEGORIA: ${categoria}`,
     `TITULO: ${fm?.title || ""}`,
     `DESCRIPTION: ${fm?.description || ""}`,
