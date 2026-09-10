@@ -243,6 +243,92 @@ async function sintetizarFatos({ query, fontes, fetchLLM }) {
   }
 }
 
+
+// V13 — Cruzamento: detecta fatos concorrentes e resolve pela hierarquia.
+// Conflito e quando DUAS OU MAIS fontes afirmam valores diferentes para o
+// mesmo dado (data, preco, plataforma...). A resolucao segue a hierarquia:
+// oficial vence imprensa, imprensa vence o resto. Empate fica marcado como
+// DISPUTADO para o texto nao afirmar nenhum dos dois sem atribuicao.
+export async function cruzarFatos({ fatos = [], fetchLLM }) {
+  const saida = { conflitos: [], notas: [] };
+  if (!fetchLLM || fatos.length < 2) return saida;
+
+  const corpo = fatos
+    .map((f, i) => `[F${i + 1}] "${f.fato}" — fonte: ${f.fonte} (${f.url}) [confianca: ${f.confianca}]`)
+    .join("\n");
+
+  const sys = [
+    "Voce e o verificador de fatos do blog gamer Promo Gamer.",
+    "Receba uma lista de fatos extraidos de fontes distintas sobre o MESMO tema.",
+    "Identifique PARES de fatos que afirmam valores DIFERENTES para o mesmo dado",
+    "Referencie cada lado pelo INDICE entre colchetes ([F1], [F2]...) que precede o fato",
+    "(data de lancamento, preco, plataforma, tamanho, numero de vendas...).",
+    "Nao marque como conflito fatos que apenas se complementam.",
+    "Responda APENAS com JSON:",
+    '{"conflitos":[{"fatoA":"Fn do primeiro fato","fatoB":"Fn do segundo","dado":"data|preco|plataforma|outro"}}',
+    "Se nao houver conflito, devolva {\"conflitos\":[]}.",
+  ].join(" ");
+
+  let bruto;
+  try {
+    bruto = await fetchLLM(sys, `Tema pesquisado: ${fatos[0]?.fato?.slice(0, 80) || ""}\n\n${corpo}`, 2, { maxTokens: 1200, temperature: 0.1 });
+  } catch (e) {
+    log("WARN", `Cruzamento de fontes falhou: ${e.message}`);
+    return saida;
+  }
+
+  const j = extrairJson(bruto);
+  if (!j || !Array.isArray(j.conflitos)) return saida;
+
+  const indiceDe = (ref) => {
+    const texto = String(ref || "");
+    // Formato 1: referencia por indice ([F2] ou "F2").
+    const m = texto.match(/F(\d+)/i);
+    const porIndice = m ? parseInt(m[1], 10) - 1 : -1;
+    if (porIndice >= 0 && porIndice < fatos.length) return porIndice;
+    // Formato 2: a LLM devolveu o proprio texto do fato — casa pelo trecho.
+    // Jaccard sobre tokens COM NUMEROS: em "chega em 5 de novembro" x
+    // "chega em 6 de novembro" o discriminador e justamente o algarismo.
+    // Filtrar palavra curta descartava o 5 e o 6 e empatava os dois fatos.
+    const norm = (t) => new Set(String(t || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((w) => w.length >= 2 || /\d/.test(w)));
+    const palavras = norm(texto);
+    if (palavras.size === 0) return -1;
+    let melhor = -1;
+    let melhorScore = 0;
+    for (let i = 0; i < fatos.length; i++) {
+      const alvo = norm(fatos[i].fato);
+      let inter = 0;
+      for (const w of palavras) if (alvo.has(w)) inter++;
+      const uniao = palavras.size + alvo.size - inter;
+      const score = uniao > 0 ? inter / uniao : 0;
+      if (score > melhorScore) { melhorScore = score; melhor = i; }
+    }
+    return melhorScore >= 0.5 ? melhor : -1;
+  };
+
+  for (const c of j.conflitos.slice(0, 5)) {
+    if (!c || !c.fatoA || !c.fatoB) continue;
+    const iA = indiceDe(c.fatoA);
+    const iB = indiceDe(c.fatoB);
+    if (iA === -1 || iB === -1) continue;
+    const fa = fatos[iA];
+    const fb = fatos[iB];
+    const nivelA = nivelDaFonte(fa.url);
+    const nivelB = nivelDaFonte(fb.url);
+    let resolucao;
+    if (nivelA < nivelB) resolucao = `prevalece: "${fa.fato}" (${fa.fonte} — fonte oficial/mais confiavel)`;
+    else if (nivelB < nivelA) resolucao = `prevalece: "${fb.fato}" (${fb.fonte} — fonte oficial/mais confiavel)`;
+    else resolucao = `DISPUTADO: "${fa.fato}" (${fa.fonte}) x "${fb.fato}" (${fb.fonte}) — atribua a cada fonte, nao afirme nenhum como definitivo`;
+    saida.conflitos.push({
+      dado: String(c.dado || "outro").slice(0, 40),
+      fatoA: fa.fato.slice(0, 300),
+      fatoB: fb.fato.slice(0, 300),
+      resolucao,
+    });
+    log("WARN", `CONFLITO de ${c.dado || "dados"} [F${iA + 1}] x [F${iB + 1}] -> ${resolucao}`);
+  }
+  return saida;
+}
 function montarContexto(fontes, charsPorFonte) {
   return fontes
     .map((f, i) => `[Fonte ${i + 1}] ${f.title}\nURL: ${f.url}\n${f.content.slice(0, charsPorFonte)}`)
@@ -302,7 +388,12 @@ async function pesquisarMedio({ query, tavilyKey, fetchLLM }) {
   const imprensa = fontes.filter((f) => nivelDaFonte(f?.url) === 1).length;
   log("INFO", `Fontes por nivel: ${oficiais} oficial(is), ${imprensa} de imprensa, ${fontes.length - oficiais - imprensa} outra(s)`);
   return {
-    researchContext: montarContexto(fontes, 1200),
+    researchContext: (() => {
+      const base = montarContexto(fontes, 1200);
+      if (!cruzamento.conflitos.length) return base;
+      const avisos = cruzamento.conflitos.map((c) => `- ${c.dado}: "${c.fatoA}" x "${c.fatoB}" -> ${c.resolucao}`).join('\n');
+      return base + '\n\nATENCAO — DADOS EM CONFLITO ENTRE FONTES (siga a resolucao; se DISPUTADO, atribua o valor a cada fonte e nao afirme nenhum como definitivo):\n' + avisos;
+    })(),
     researchSources: fontes,
     verifiedFacts: [],
     cobertura: computarCobertura(fontes, []),
@@ -330,10 +421,20 @@ async function pesquisarProfundo({ query, tavilyKey, fetchLLM }) {
   const fontes = mergearFontes(listas, 6);
   const fontesFull = mergearFontes([listaRaw], 3).length > 0 ? mergearFontes([listaRaw], 3) : fontes;
   const verifiedFacts = await sintetizarFatos({ query, fontes: fontesFull, fetchLLM });
+
+  // V13: cruzamento — so faz sentido com fatos suficientes para comparar.
+  let cruzamento = { conflitos: [], notas: [] };
+  try {
+    cruzamento = await cruzarFatos({ fatos: verifiedFacts, fetchLLM });
+  } catch (e) {
+    log("WARN", `Cruzamento falhou: ${e.message}`);
+  }
+
   return {
     researchContext: montarContexto(fontes, 1200),
     researchSources: fontes,
     verifiedFacts,
+    conflitos: cruzamento.conflitos,
     cobertura: computarCobertura(fontes, verifiedFacts),
     nivel: "profundo",
     subQueries,

@@ -39,6 +39,39 @@ function extrairJson(texto) {
   }
 }
 
+
+// V13 — Atualidade: ultima olhada no noticiario antes de fechar o roteiro.
+// Falha de rede ou de API NUNCA bloqueia: sem resposta, o briefing segue.
+export async function verificarAtualidade({ assunto, fatosExistentes = [] }) {
+  const chave = process.env.TAVILY_API_KEY;
+  if (!chave || !assunto) return null;
+
+  let resultados = [];
+  try {
+    const res = await fetch("https://api.tavily.com/search", {
+      method: "POST",
+      signal: AbortSignal.timeout(15000),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        api_key: chave,
+        query: `${assunto} noticias hoje`,
+        search_depth: "basic",
+        max_results: 5,
+        days: 1,
+      }),
+    });
+    if (res.ok) {
+      const d = await res.json();
+      resultados = (d.results || []).map((r) => ({ title: r.title || "", content: String(r.content || "").slice(0, 500), url: r.url || "" }));
+    }
+  } catch (e) {
+    log("WARN", `Busca de atualidade falhou: ${e.message}`);
+    return null;
+  }
+
+  if (resultados.length === 0) return null;
+  return { resultados };
+}
 export async function montarBriefing({ assunto, formato = "noticia", palavraChave = "", fontes = [], fatos = [], fetchLLM }) {
   if (typeof fetchLLM !== "function") return null;
 
@@ -129,6 +162,41 @@ export async function montarBriefing({ assunto, formato = "noticia", palavraChav
   };
 
   const confirmados = briefing.fatosObrigatorios.filter((f) => f.status === "confirmado").length;
+
+  // V13: ultima verificacao de atualidade. Compara as manchetes das ultimas
+  // 24h com os fatos do roteiro; novidade factual relevante entra marcada,
+  // para o redator incluir com atribuicao. Qualquer falha aqui e silenciosa.
+  try {
+    const fresco = await verificarAtualidade({ assunto: briefing.assunto || briefing.titulo });
+    if (fresco && fresco.resultados.length > 0) {
+      const jaTem = briefing.fatosObrigatorios.map((f) => String(f.fato || "").toLowerCase());
+      const sistemaNovo = "Voce e o verificador de atualidade do blog gamer. Compare as MANCHETES RECENTES com os FATOS JA NO ARTIGO. Identifique SOMENTE fato novo, concreto e relevante (data revelada, preco divulgado, confirmacao oficial, desmentido) que NAO esteja nos fatos ja coletados. Rumor vagou ou repeticao de noticia nao conta. Responda APENAS com JSON: {\"novidade\":bool,\"fato\":\"...\",\"fonte\":\"...\"} — se nao houver novidade, {\"novidade\":false}.";
+// ( fim do sistemaNovo )
+      const usuarioNovo = [
+        `ASSUNTO: ${briefing.assunto || briefing.titulo}`,
+        "FATOS JA COLETADOS:",
+        ...(jaTem.length ? jaTem : ["(nenhum)"]).map((f) => `- ${f}`),
+        "",
+        "MANCHETES DAS ULTIMAS 24H:",
+        ...fresco.resultados.map((r) => `- ${r.title}: ${r.content.slice(0, 200)}`),
+      ].join("\n");
+      const brutoNovo = await fetchLLM(sistemaNovo, usuarioNovo, 2, { maxTokens: 400, temperature: 0.1 });
+      const jNovo = extrairJson(brutoNovo);
+      if (jNovo && jNovo.novidade && jNovo.fato) {
+        briefing.fatosObrigatorios.push({
+          fato: `[NOVIDADE DE ULTIMA HORA] ${String(jNovo.fato).slice(0, 300)}`,
+          fonte: String(jNovo.fonte || "imprensa").slice(0, 120),
+          status: "reportado",
+        });
+        log("INFO", `Atualidade: novidade detectada e incluida no roteiro — ${String(jNovo.fato).slice(0, 100)}`);
+      } else {
+        log("INFO", "Atualidade: nada de relevante mudou desde a pesquisa");
+      }
+    }
+  } catch (e) {
+    log("WARN", `Verificacao de atualidade falhou (nao bloqueia): ${e.message}`);
+  }
+
   log("INFO", `Briefing: "${briefing.titulo}"`);
   log("INFO", `  intencao: ${briefing.intencaoBusca} | ${briefing.secoes.length} secoes | ${briefing.fatosObrigatorios.length} fatos (${confirmados} confirmado(s)) | ${briefing.naoEscrever.length} veto(s)`);
   return briefing;
