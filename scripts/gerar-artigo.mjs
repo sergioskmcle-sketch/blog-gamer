@@ -5070,6 +5070,24 @@ Checklist antes de responder:
     revConteudo = null;
   }
 
+  // V13 — Nota minima da revisao editorial (item 24 do plano editorial).
+  // Calibrada com os dados observados: artigo bom 9/10, problematicos 2-5/10
+  // (Crash 2, headsets/teclados ~2, cadeiras/mouses reprovados). Corte em 7:
+  // abaixo disso o artigo tem problemas demais para valer publicacao, mesmo
+  // sem P0/P1 formal. REVISAO_NOTA_MINIMA ajusta; 0 desliga.
+  if (revConteudo) {
+    const notaMinima = Number(process.env.REVISAO_NOTA_MINIMA ?? 7);
+    if (notaMinima > 0 && revConteudo.status !== "reprovado" && revConteudo.score < notaMinima) {
+      revConteudo.status = "reprovado";
+      revConteudo.problemas.push({
+        severidade: "P1",
+        mensagem: `Nota ${revConteudo.score}/10 abaixo do minimo de publicacao (${notaMinima}/10)`,
+        evidencia: "score gate",
+      });
+      log("WARN", `Revisao editorial: nota ${revConteudo.score} < minimo ${notaMinima} — reprovando pelo score`);
+    }
+  }
+
   const relatoriosPiloto = [
     revPesquisa,
     revSourcing,
