@@ -1997,7 +1997,7 @@ async function ensureProductImages(mlProducts) {
   if (!mlProducts || mlProducts.length === 0) return;
   if (!fs.existsSync(PROD_IMAGES_DIR)) fs.mkdirSync(PROD_IMAGES_DIR, { recursive: true });
 
-  const stats = { cache: 0, url_upgrade: 0, url_original: 0, url_images: 0, serper: 0, tavily: 0, placeholder: 0 };
+  const stats = { cache: 0, url_upgrade: 0, url_original: 0, url_images: 0, serper: 0, sem_marca: 0, placeholder: 0 };
 
   for (const p of mlProducts) {
     const slug = slugify(p.title || p.raw_title || `produto-${mlProducts.indexOf(p) + 1}`);
@@ -2034,13 +2034,22 @@ async function ensureProductImages(mlProducts) {
     }
 
     if (!buf) {
-      buf = await searchSerperImage(p.raw_title || p.title);
-      if (buf) stats.serper++;
+      // V13: a busca na web so entra com a marca do produto para conferir.
+      // Sem marca detectavel nao ha como validar o resultado, e o certo e
+      // cair no placeholder.
+      const marcaProduto = detectBrand(cleanProductTitle(p.raw_title || p.title || ""));
+      if (marcaProduto) {
+        buf = await searchSerperImage(p.raw_title || p.title, { marcaEsperada: marcaProduto });
+        if (buf) stats.serper++;
+      } else {
+        stats.sem_marca++;
+        log("INFO", `Sem marca detectada em "${(p.title || "").slice(0, 40)}" — busca de imagem na web pulada`);
+      }
     }
-    if (!buf) {
-      buf = await searchTavilyImage(p.raw_title || p.title);
-      if (buf) stats.tavily++;
-    }
+    // V13: a busca de imagens do Tavily devolve so URLs, sem titulo nem
+    // pagina de origem — nao da para conferir se a foto e do produto certo.
+    // Foi por um caminho assim que um headset FALLEN virou "Redragon Zeus
+    // Pro" (06/09/2026). Sem verificacao possivel, nao se usa para produto.
     // V12: a geracao de foto por IA foi REMOVIDA daqui de proposito.
     // Ela desenhava o produto a partir do nome, sem nenhuma referencia real,
     // e a imagem inventada aparecia ao lado do botao de compra do produto

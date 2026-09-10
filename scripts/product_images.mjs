@@ -109,9 +109,15 @@ export function isImageUsable(buf) {
 // Busca de imagem no Google Images via Serper. Testa cada resultado ate achar
 // um que passe na validacao. Usa raw_title quando possivel: o titulo completo
 // acha o produto certo mesmo com thumbnail ausente.
-export async function searchSerperImage(query) {
+// V13: `marcaEsperada` e obrigatoria na pratica — sem ela nao ha como
+// verificar se a imagem devolvida e mesmo do produto, e o certo e desistir.
+// Foi a ausencia dessa conferencia que colocou um headset FALLEN no item
+// "Headset Redragon Sem Fio Zeus Pro" (06/09/2026).
+export async function searchSerperImage(query, { marcaEsperada = "" } = {}) {
   const apiKey = process.env.SERPER_API_KEY;
   if (!apiKey || !query) return null;
+  const marca = String(marcaEsperada || "").trim().toLowerCase();
+  if (!marca) return null;
   try {
     const res = await fetch("https://google.serper.dev/images", {
       method: "POST",
@@ -121,10 +127,15 @@ export async function searchSerperImage(query) {
     });
     if (!res.ok) return null;
     const data = await res.json();
-    const urls = (data.images || []).map((it) => it.imageUrl).filter(Boolean);
-    for (const url of urls) {
+    // So aceita o resultado se a marca do produto aparecer no titulo, na
+    // fonte ou na URL da pagina de origem. Resultado que nao prova a marca
+    // e descartado — melhor um placeholder honesto que a foto de outra marca.
+    for (const it of data.images || []) {
+      if (!it || !it.imageUrl) continue;
+      const contexto = `${it.title || ""} ${it.source || ""} ${it.domain || ""} ${it.link || ""}`.toLowerCase();
+      if (!contexto.includes(marca)) continue;
       try {
-        const buf = await downloadImage(url);
+        const buf = await downloadImage(it.imageUrl);
         if (buf && isImageUsable(buf)) return buf;
       } catch {}
     }
