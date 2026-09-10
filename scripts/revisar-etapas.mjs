@@ -316,7 +316,12 @@ export function revisarPublicacao({ slug = "", fm, body, arquivoExiste = true, l
   const imgMarkers = [...bodyText.matchAll(/\[IMG:[^\]]+\]/g)];
   item(rel, "Sem marcadores de imagem no markdown publicado", imgMarkers.length === 0, "P0", `${imgMarkers.length} marcador(es) [IMG:] publicados`, imgMarkers.slice(0, 3).map((m) => m[0]).join("; "));
 
-  item(rel, "Secao 'Quer mais ofertas?' com link Telegram", /^##\s+Quer mais ofertas\??\s*$/im.test(bodyText) && /t\.me\//.test(bodyText), "P2", "Secao 'Quer mais ofertas?' ausente ou sem link Telegram", "");
+  // V13: noticia nao tem secao de ofertas — o formato jornalistico nao vende.
+  // Cobrar a secao aqui criaria uma ressalva permanente em toda noticia.
+  const ehNoticia = String(fm?.category || "").toLowerCase() === "noticia";
+  if (!ehNoticia) {
+    item(rel, "Secao 'Quer mais ofertas?' com link Telegram", /^##\s+Quer mais ofertas\??\s*$/im.test(bodyText) && /t\.me\//.test(bodyText), "P2", "Secao 'Quer mais ofertas?' ausente ou sem link Telegram", "");
+  }
 
   const continueExplorando = bodyText.match(/^##\s+Continue Explorando\s*$/im);
   if (continueExplorando) {

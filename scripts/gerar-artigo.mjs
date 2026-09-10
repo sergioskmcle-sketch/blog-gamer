@@ -4163,6 +4163,23 @@ Voce nao renderiza imagens nem cards de produto — voce decide ONDE eles entram
 7. Frases curtas alternadas com uma ou duas mais longas. Paragrafos com frases todas do mesmo tamanho denunciam texto de IA.
 ${estiloOpinativo ? "8. Giria e humor sao tempero, nao estrutura: no maximo 1 giria marcante a cada 2-3 paragrafos, nunca empilhadas." : "8. Tom tecnico com humor seco dosado: no maximo 1 toque ironico a cada 3 paragrafos, sem giria de boteco."}
 
+${categoria === "noticia" ? `
+## ESTRUTURA — NOTICIA (formato jornalistico)
+Este e um artigo de NOTICIA. NAO e lista de produtos, NAO e review, NAO e guia de compra.
+Escreva como IGN, Flow Games ou EiNerd escrevem: o fato primeiro, o contexto depois.
+- LEAD SEM H2: 1-2 paragrafos respondendo o essencial logo de cara — o que aconteceu, quem anunciou, quando, e por que o leitor deveria se importar. Nada de rodeio nem de "neste artigo vamos".
+- CORPO em 3 a 5 secoes ## que avancam a historia, cada uma com um subtitulo que diz algo concreto (nao "Detalhes" nem "Analise"). Exemplos de progressao: o anuncio -> o que muda na pratica -> o historico/contexto -> reacao da comunidade -> o que esperar daqui pra frente.
+- Cada afirmacao factual (data, numero, declaracao, plataforma) precisa estar na pesquisa. Se a fonte nao sustenta, nao escreva.
+- Cite quem disse: "segundo a PlayStation", "em entrevista ao IGN". Noticia sem atribuicao perde credibilidade.
+- Se houver historia por tras do tema (origem da franquia, marcos, curiosidades), use-a para dar profundidade — e o que prende o leitor.
+- FECHAMENTO: um paragrafo com o que ainda nao se sabe ou o proximo passo. Sem "veredito", sem recomendacao de compra.
+- "## Fontes" com os links da pesquisa.
+- LINKS INTERNOS: 2 a 3, SOMENTE na ultima secao "## Continue Explorando".
+- Headings ## em toda secao principal (### para subsecoes).
+- Jogos citados pela PRIMEIRA vez em **negrito**.
+
+PROIBIDO NESTE FORMATO: tabela comparativa de produtos, secao "## Veredito", secao "## FAQ", secao "## Quer mais ofertas?", bloco "Como Escolhemos", preco, botao de compra, marcador [PRODUTO:N] e qualquer linguagem de recomendacao de compra ("vale a pena levar", "melhor custo-beneficio").
+` : `
 ## ESTRUTURA (ordem obrigatoria — adapte so o conteudo de cada bloco)
 - INTRODUCAO SEM H2: 1-2 paragrafos diretos com gancho concreto. Nos primeiros 2-3 paragrafos, resuma os criterios/requisitos que definem os itens da lista (o que diferencia um bom item, em 2 frases no maximo) — NAO crie secao ## separada para esse contexto.
 - PRIMEIRA SECAO ## (a principal): a lista de Itens. ${mlProducts.length > 0 ? `Titulo tipo: "## Os ${mlProducts.length} Melhores {Itens} em ${ANO_ATUAL}". Um bloco por item, nesta ordem: "## Nome do Produto — Subtitulo" (SEM [IMG:] — a foto e injetada automaticamente), 2-3 paragrafos com os principais detalhes do item, e [PRODUTO:N] numa linha sozinha logo apos o texto.` : `Titulo tipo: "## Os Melhores {Jogos/Itens} em ${ANO_ATUAL}". Um bloco por item: "## Nome — Subtitulo" com [IMG:Nome] na linha logo apos o titulo (imagem abaixo do titulo, acima do texto), 2-3 paragrafos de detalhes, sem botao de compra.`}
@@ -4177,6 +4194,7 @@ ${estiloOpinativo ? "8. Giria e humor sao tempero, nao estrutura: no maximo 1 gi
 - Jogos citados pela PRIMEIRA vez em **negrito**: "**EA Sports FC 26** chegou..."
 - Bullets ou passos numerados nas secoes onde ajudam a leitura (nao em todas a forca).
 
+`}
 ## PROIBIDO
 - Inventar URL de imagem (wikipedia, google, unsplash) ou link de compra.
 - Temas de cassino, slots, caça-níqueis, roleta, apostas, poker, bingo ou qualquer jogo de dinheiro real. O blog não cobre isso.
@@ -5583,7 +5601,17 @@ function buildComparativoTable(mlProducts) {
       return `| ${p.title} | ${formatPriceBRL(p.price)} | ${p.destaque || "—"} | ${nota} | ${avaliacoes} | ${motivo} |`;
     })
     .join("\n");
-  return `## Comparativo\n\n| Produto | Preco | Destaque | Nota | Avaliacoes | Por que entrou |\n|---|---|---|---|---|---|\n${rows}\n`;
+  // V13 — Origem e data do preco.
+  // A tabela exibia "R$ 299" sem dizer de qual loja veio nem quando foi
+  // consultado. Num blog de afiliado isso envelhece mal: seis meses depois o
+  // artigo segue mostrando o preco de hoje ao lado de um botao de compra.
+  // Preco desatualizado e pior que preco nenhum. Padrao usado por Estadao e
+  // RTINGS: dizer a origem, a data e mandar conferir no link.
+  const lojas = [...new Set(mlProducts.map((x) => x && x.source).filter(Boolean))];
+  const origem = lojas.length > 0 ? lojas.join(" e ") : "lojas parceiras";
+  const hoje = new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+  const notaPreco = `\n_Precos consultados em ${origem} em ${hoje} e sujeitos a alteracao. Confira o valor atual no link de cada produto._\n`;
+  return `## Comparativo\n\n| Produto | Preco | Destaque | Nota | Avaliacoes | Por que entrou |\n|---|---|---|---|---|---|\n${rows}\n${notaPreco}`;
 }
 
 function buildItemSection(p) {
