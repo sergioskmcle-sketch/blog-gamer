@@ -149,9 +149,61 @@ function mergearFontes(listas, limite = 8) {
   return out;
 }
 
+// V13 — Hierarquia de fontes.
+// Ate aqui todas as fontes valiam igual e eram ordenadas por criterio
+// generico. A estrategia que funciona (e a mesma que um humano usa) e:
+// fonte OFICIAL primeiro, imprensa especializada depois, resto por ultimo.
+// Um preco ou uma data vindos da Nintendo valem mais que os mesmos dados
+// citados de segunda mao.
+const DOMINIOS_OFICIAIS = [
+  "nintendo.com", "nintendo.com.br", "playstation.com", "xbox.com",
+  "steampowered.com", "store.steampowered.com", "ea.com", "ubisoft.com",
+  "rockstargames.com", "capcom.com", "square-enix.com", "bandainamco",
+  "sega.com", "activision.com", "blizzard.com", "epicgames.com",
+  "riotgames.com", "bethesda.net", "cdprojektred.com", "sonyinteractive",
+  "razer.com", "logitechg.com", "corsair.com", "hyperx.com", "redragon",
+  "steelseries.com", "asus.com", "msi.com", "nvidia.com", "amd.com",
+];
+
+const DOMINIOS_IMPRENSA = [
+  "ign.com", "gamespot.com", "polygon.com", "eurogamer", "pcgamer.com",
+  "gamesradar.com", "theverge.com", "kotaku.com", "gematsu.com",
+  "pushsquare.com", "purexbox.com", "nintendolife.com", "vgc.com",
+  "gameinformer.com", "destructoid.com", "rockpapershotgun.com",
+  "adrenaline.com.br", "tecmundo.com.br", "theenemy.com.br",
+  "gameblast.com.br", "flowgames.gg", "einerd.com.br", "voxel.com.br",
+];
+
+// 0 = oficial, 1 = imprensa especializada, 2 = demais.
+export function nivelDaFonte(url) {
+  const u = String(url || "").toLowerCase();
+  if (!u) return 2;
+  if (DOMINIOS_OFICIAIS.some((d) => u.includes(d))) return 0;
+  if (DOMINIOS_IMPRENSA.some((d) => u.includes(d))) return 1;
+  return 2;
+}
+
+// Reordena mantendo a ordem relativa dentro de cada nivel.
+export function ordenarPorHierarquia(fontes) {
+  return [...(fontes || [])].sort((a, b) => nivelDaFonte(a?.url) - nivelDaFonte(b?.url));
+}
+
 async function planejarSubQueries({ query, fetchLLM }) {
   if (!fetchLLM) return [query];
-  const sys = "Voce e o analista de pesquisa do blog gamer Promo Gamer. Dado um tema, gere de 3 a 5 queries de busca especificas, em portugues do Brasil, que juntas cubram os angulos relevantes (noticias recentes, precos, reviews/opinioes, datas de lancamento). Responda APENAS com um array JSON de strings, sem explicacao.";
+  // V13: as sub-queries passam a mirar o que o leitor realmente pesquisa no
+  // Google, nao angulos genericos. Um artigo sobre um jogo precisa cobrir
+  // data, preco, plataforma, tamanho e o que mudou — sao essas buscas que
+  // trazem trafego e sao esses os fatos que dao densidade ao texto.
+  // A primeira query e sempre a fonte OFICIAL: fabricante ou publisher.
+  const sys = [
+    "Voce e o analista de pesquisa do blog gamer Promo Gamer.",
+    "Dado um tema, gere de 4 a 6 queries de busca em portugues do Brasil que juntas sustentem um artigo completo.",
+    "REGRAS:",
+    "1. A PRIMEIRA query deve buscar a FONTE OFICIAL (site do fabricante, publisher ou desenvolvedora). Ex.: 'Nintendo site oficial Ocarina of Time remake'.",
+    "2. As demais devem cobrir o que o leitor pesquisa no Google sobre o tema. Para jogo: data de lancamento, preco, plataformas, tamanho/requisitos, o que mudou, novidades de gameplay. Para hardware: preco, especificacoes, comparacao, vale a pena.",
+    "3. Queries especificas e curtas. Nada de pergunta longa.",
+    "Responda APENAS com um array JSON de strings, sem explicacao.",
+  ].join(" ");
   const user = `Tema: ${query}`;
   try {
     const out = await fetchLLM(sys, user, 2, { maxTokens: 500, temperature: 0.3 });
@@ -243,7 +295,12 @@ async function pesquisarMedio({ query, tavilyKey, fetchLLM }) {
       log("WARN", `Sub-query "${sq.slice(0, 45)}" falhou: ${e.message}`);
     }
   }
-  const fontes = mergearFontes(listas, 6);
+  // V13: oficial primeiro. O que a fabricante publica tem precedencia sobre
+  // o que a imprensa repercute, e ambos sobre o resto.
+  const fontes = ordenarPorHierarquia(mergearFontes(listas, 6));
+  const oficiais = fontes.filter((f) => nivelDaFonte(f?.url) === 0).length;
+  const imprensa = fontes.filter((f) => nivelDaFonte(f?.url) === 1).length;
+  log("INFO", `Fontes por nivel: ${oficiais} oficial(is), ${imprensa} de imprensa, ${fontes.length - oficiais - imprensa} outra(s)`);
   return {
     researchContext: montarContexto(fontes, 1200),
     researchSources: fontes,

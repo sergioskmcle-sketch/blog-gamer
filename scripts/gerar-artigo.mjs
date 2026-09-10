@@ -659,6 +659,14 @@ REGRAS:
 - PROIBIDO escolher temas de apostas, cassino, slots, caça-níqueis, roleta, jogos de azar ou qualquer conteúdo de jogo de dinheiro real. O blog não cobre esse tipo de assunto.
 - EQUILIBRIO ENTRE DOMINIOS: se um dos dois dominios tem muito mais artigos no blog que o outro, prefira um tema do dominio MENOS coberto.
 - Se TODOS os trending são sobre assuntos já cobertos, sugira um assunto diferente que esteja em alta mas não está nos trending principais
+
+COMO ESCOLHER ENTRE OS CANDIDATOS (nesta ordem):
+1. ASSUNTO ESPECÍFICO vence assunto genérico. "Ocarina of Time Remake chega ao Switch 2" é um artigo; "novidades de games" não é. Se o trending trouxer um jogo, um anúncio ou um evento com nome próprio, prefira-o sempre a uma categoria vaga.
+2. FATO NOVO E DATÁVEL vence assunto perene. Anúncio, lançamento, vazamento, data revelada, número divulgado — algo que aconteceu e pode ser atribuído a uma fonte.
+3. POTENCIAL DE BUSCA: prefira o assunto sobre o qual as pessoas vão pesquisar nos próximos dias (data de lançamento, preço, plataformas, o que mudou). Um assunto que gera essas perguntas rende mais que um que só rende uma leitura.
+4. Entre dois igualmente fortes, prefira o que ainda não foi coberto pelo blog.
+
+- O campo "hint" deve nomear o assunto de forma específica e única, como uma manchete curta. NUNCA use lista de categorias separadas por vírgula ("lançamento de game, evento de games") — isso produz artigo sem foco, com título falando de uma coisa e corpo de outra.
 - Responda APENAS com JSON válido, sem markdown, sem explicação extra
 
 CATEGORIAS VÁLIDAS: noticia, review, guia, lista (qualquer outra é rejeitada)
@@ -669,7 +677,7 @@ Formato da resposta JSON:
   "category": "categoria do artigo",
   "hint": "descrição curta do artigo (max 100 chars) em português",
   "ml_query": "query para buscar produtos no Mercado Livre (3-5 palavras, MESMO dominio do topic)",
-  "reasoning": "por que este assunto é novo e relevante (1 frase)"
+  "reasoning": "por que este assunto foi escolhido: o que aconteceu, por que interessa agora e o que as pessoas vão pesquisar sobre ele (1-2 frases)"
 }`;
 
   const userPrompt = `HEADLINES DOS FEEDS (RSS + Reddit):
