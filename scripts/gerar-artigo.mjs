@@ -923,6 +923,7 @@ const MIN_PRODUCTS = Number(process.env.MIN_PRODUCTS) || 3;
 const AFFILIATE_MODE = process.env.AFFILIATE_MODE || "remote";
 
 const GAME_IMAGE_CACHE = {};
+const GAME_IMAGE_ID = new Map();
 
 function log(level, msg) {
   const ts = new Date().toISOString().replace(/T/, " ").replace(/\..+/, "");
@@ -1121,6 +1122,21 @@ async function rawgSearchOnce(clean, originalName) {
       if (score > bestScore) { bestScore = score; best = c; }
     }
 
+    // V13: similaridade sozinha casa "Plataforma Ocarina of Time" com
+    // "Atonement: Scourge of Time" (0.80!) porque "of Time" e generico.
+    // Exigir que o candidato contenha um token distintivo (>= 5 letras) da
+    // query: "ocarina" aparece no Zelda e nao aparece no Atonement.
+    const tokensDistintivos = clean.toLowerCase().split(/\s+/).filter((w) => /^[a-z]{5,}$/.test(w));
+    if (best) {
+      const nomeCandidato = String(best.name || "").toLowerCase();
+      const temToken = tokensDistintivos.some((t) => nomeCandidato.includes(t));
+      if (!temToken) {
+        log("WARN", `RAWG descartado "${clean.slice(0, 40)}": candidato "${best.name}" nao contem nenhum token distintivo da busca (${tokensDistintivos.join(", ")})`);
+        best = null;
+        bestScore = 0;
+      }
+    }
+
     if (!best || bestScore < RAWG_MATCH_THRESHOLD) {
       log("WARN", `RAWG descartado "${clean.slice(0, 40)}": melhor match "${best?.name || "-"}" (score ${bestScore.toFixed(2)} < ${RAWG_MATCH_THRESHOLD})`);
       return null;
@@ -1128,6 +1144,7 @@ async function rawgSearchOnce(clean, originalName) {
 
     return {
       name: best.name,
+      id: best.id,
       hqUrl: best.background_image.replace("/media/", "/media/crop/600/400/") + "?auto=format&fit=crop&w=800&h=450",
       score: bestScore,
     };
@@ -1151,7 +1168,17 @@ async function fetchRAWGImage(gameName) {
 
     const found = await rawgSearchOnce(clean, gameName);
     if (found) {
+      GAME_IMAGE_ID.set(gameName, found.id);
+      const anterior = GAME_IMAGE_CACHE[gameName];
       GAME_IMAGE_CACHE[gameName] = found.hqUrl;
+      if (anterior) {
+        // Segunda+ ocorrencia do mesmo jogo: tentar screenshot diferente.
+        const extra = await fetchRawgScreenshotExtra(gameName);
+        if (extra) {
+          log("INFO", `RAWG screenshot extra para "${gameName.slice(0, 40)}" (evita repetir imagem)`);
+          return extra;
+        }
+      }
       log("INFO", `RAWG imagem "${gameName.slice(0, 40)}" -> "${found.name}" (query "${clean.slice(0, 40)}", score ${found.score.toFixed(2)})`);
       return found.hqUrl;
     }
@@ -1159,6 +1186,29 @@ async function fetchRAWGImage(gameName) {
 
   GAME_IMAGE_CACHE[gameName] = null;
   return null;
+}
+
+// V13: ocorrencias do MESMO jogo em secoes diferentes nao podem repetir a
+// mesma imagem (artigo do Ocarina publicou duas fotos identicas). Guarda as
+// screenshots adicionais do jogo e distribui uma por ocorrencia.
+const GAME_IMAGE_EXTRA = new Map();
+export async function fetchRawgScreenshotExtra(gameName) {
+  if (!RAWG_API_KEY) return null;
+  const id = GAME_IMAGE_ID.get(gameName);
+  if (!id) return null;
+  try {
+    if (!GAME_IMAGE_EXTRA.has(gameName)) {
+      const r = await fetch(`https://api.rawg.io/api/games/${id}/screenshots?key=${RAWG_API_KEY}&page_size=5`, { signal: AbortSignal.timeout(10000) });
+      if (!r.ok) return null;
+      const d = await r.json();
+      const urls = (d.results || []).map((x) => x.image).filter(Boolean);
+      GAME_IMAGE_EXTRA.set(gameName, urls);
+    }
+    const lista = GAME_IMAGE_EXTRA.get(gameName) || [];
+    return lista.length > 0 ? lista.shift() : null;
+  } catch {
+    return null;
+  }
 }
 
 function extractGameNames(body) {
@@ -4305,6 +4355,7 @@ Checklist antes de responder:
 3. Minimo ${minWords} palavras de conteudo real (alvo ${alvoWords}).
 4. ${mlProducts.length > 0 ? `Marcadores [PRODUTO:1]..[PRODUTO:${mlProducts.length}] TODOS dentro da secao de Itens (a primeira secao ## apos a introducao), um por item, cada um em linha sozinha logo apos o texto do item.` : "Sem produtos nesta rodada — os itens sao jogos e usam [IMG:]."}
 5. 2 a 4 marcadores [IMG:Nome], um logo apos o titulo de cada secao ## que NAO seja item de produto (itens com produto NAO usam [IMG:] — a foto e injetada automaticamente).
+   IMPORTANTE: Nome e o nome do JOGO ou assunto real retratado naquela secao (ex.: [IMG:The Legend of Zelda: Ocarina of Time]), NUNCA o titulo da secao. Escrever [IMG:Plataforma de Lancamento] busca a imagem errada.
 6. Cada dado concreto rastreavel ate a pesquisa acima.
 7. 5 tags relevantes.
 8. ${estiloOpinativo ? "Voz Mano Gamer: opiniao com lado tomado, giria dosada, sem enrolacao." : "Voz tecnica hibrida: precisao, comparacao de specs, humor seco dosado (max 1 a cada 3 paragrafos)."}

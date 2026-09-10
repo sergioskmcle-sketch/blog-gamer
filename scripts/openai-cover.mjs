@@ -32,7 +32,7 @@ export function buildPromptFromProducts(products, category, backgroundTone, cont
     const gameNames = products.slice(0, 6).map(p => p.name || p.title || "game").join(", ");
     const tone = backgroundTone === "light" ? GAME_TONE.LIGHT_BG : backgroundTone === "dark" ? GAME_TONE.DARK_BG : "";
     const subject = context ? `\nThe scene must evoke: ${context}.` : "";
-    return `Epic cinematic game banner: dynamic game world environment with dramatic lighting, vibrant colors, high-energy composition and particle effects. Professional game key art style. Photorealistic, high detail. Game references: ${gameNames}.${subject}${tone} No characters, no people, no logos. No text, no watermarks.`;
+    return `Epic cinematic game banner: the main hero of the game, seen from behind, facing a dynamic game world environment with dramatic lighting, vibrant colors, high-energy composition and particle effects. Professional game key art style. Photorealistic, high detail. Game references: ${gameNames}.${subject}${tone} No logos. No text, no watermarks.`;
   }
 
   if (!products || products.length === 0) {
@@ -92,7 +92,7 @@ export function buildEditPrompt(products, category, backgroundTone, contentType,
   if (!products || products.length === 0) {
     if (contentType === "game") {
       const subject = context ? ` The scene must evoke: ${context}.` : "";
-      return `Create an epic cinematic game banner: dynamic game world environment with dramatic lighting, vibrant colors and high-energy composition. Professional game key art style.${subject} No characters, no people, no logos. No text, no watermarks.`;
+      return `Create an epic cinematic game banner: the main hero of the game, seen from behind, facing a dynamic game world environment with dramatic lighting, vibrant colors and high-energy composition. Professional game key art style.${subject} No logos. No text, no watermarks.`;
     }
     return `Create a professional banner with gaming products on a gaming room background. Photorealistic, high detail. No text, no watermarks.`;
   }
