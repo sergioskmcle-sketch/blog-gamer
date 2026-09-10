@@ -1173,8 +1173,40 @@ async function rawgSearchOnce(clean, originalName) {
   }
 }
 
+// V13 — Limpa termos genericos de secao do nome vindo do marcador [IMG:].
+// "Plataforma de Lançamento" virava busca por plataforma e casava com um
+// clone obscuro; "Gameplay de Ocarina of Time" precisa virar "Ocarina of
+// Time". Se nada sobrar, devolve "" — sem nome proprio, sem busca.
+// Termos normalizados SEM acento, no singular, comparados palavra a palavra.
+const TERMOS_DE_SECAO = new Set([
+  "plataforma", "plataformas", "gameplay", "data", "lancamento",
+  "confirmacao", "oficial", "preco", "precos", "novidade", "novidades",
+  "mudanca", "mudancas", "analise", "conclusao", "introducao", "onde",
+  "jogar", "esperar", "vale", "pena", "tamanho", "exclusividade",
+  "veredito", "review", "guia", "lista", "dica", "dicas", "trailer",
+  "trailers", "revelado", "anunciado", "conectores abaixo",
+  "de", "do", "da", "dos", "das", "e", "o", "a", "os", "as", "para", "em",
+]);
+function sanitizarNomeDeJogo(nome) {
+  const originais = String(nome || "").toLowerCase()
+    .replace(/[^a-z0-9 àáâãéêíóôõúçü]/gi, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+  // Comparacao SEM acento ("Lançamento" -> "lancamento" casa com o set),
+  // mas o que sobra preserva a grafia original.
+  const semAcento = (w) => w.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const restantes = originais.filter((w) => !TERMOS_DE_SECAO.has(semAcento(w)));
+  return restantes.join(" ").trim();
+}
 async function fetchRAWGImage(gameName) {
   if (!RAWG_API_KEY) return null;
+  // V13: sanitiza ANTES do cache — a mesma sujeira nao pode casar duas vezes.
+  const nomeLimpo = sanitizarNomeDeJogo(gameName);
+  if (!nomeLimpo || nomeLimpo.length < 3) {
+    GAME_IMAGE_CACHE[gameName] = null;
+    log("INFO", `RAWG: "${String(gameName).slice(0, 40)}" nao tem nome de jogo — sem imagem (melhor sem foto que com foto alheia)`);
+    return null;
+  }
   if (GAME_IMAGE_CACHE[gameName] !== undefined) return GAME_IMAGE_CACHE[gameName];
 
   const queries = progressiveGameQueries(gameName);
