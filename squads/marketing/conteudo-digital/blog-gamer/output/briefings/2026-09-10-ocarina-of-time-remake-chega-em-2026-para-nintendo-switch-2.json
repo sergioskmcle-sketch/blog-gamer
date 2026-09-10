@@ -3,78 +3,27 @@
   "formato": "noticia",
   "titulo": "Ocarina of Time remake chega em 2026 para Nintendo Switch 2",
   "palavraChave": "Ocarina of Time",
-  "palavrasSecundarias": [
-    "Nintendo Switch 2",
-    "remake",
-    "2026",
-    "40 anos"
-  ],
+  "palavrasSecundarias": [],
   "intencaoBusca": "informacional",
   "perguntas": [
-    "Qual a data oficial de lançamento do remake de Ocarina of Time?",
-    "Em quais plataformas o jogo será disponibilizado?",
-    "Existe alguma edição especial comemorando os 40 anos de The Legend of Zelda?",
-    "Quando foi divulgado o trailer e o gameplay do remake?",
-    "Onde posso comprar o Ocarina of Time remake para o Nintendo Switch 2?"
+    "Qual a data de lançamento do remake de Ocarina of Time?",
+    "Em qual console o remake será disponibilizado?",
+    "Existe trailer ou gameplay oficial do remake?",
+    "Quais são as principais mudanças visuais anunciadas?",
+    "Qual será o preço de lançamento?"
   ],
-  "secoes": [
-    {
-      "h2": "Anúncio oficial do remake",
-      "oQueCobrir": "Detalhar o vídeo de anúncio publicado pela Nintendo Brasil, confirmando o relançamento em 2026 para o Nintendo Switch 2."
-    },
-    {
-      "h2": "Data de lançamento",
-      "oQueCobrir": "Informar a data prevista para outubro de 2026, conforme divulgado pela IGN Brasil."
-    },
-    {
-      "h2": "Edição comemorativa de 40 anos",
-      "oQueCobrir": "Descrever a edição especial do Nintendo Switch 2 que celebra os 40 anos da franquia The Legend of Zelda, anunciada nos mesmos comunicados."
-    },
-    {
-      "h2": "Trailer e gameplay",
-      "oQueCobrir": "Apresentar o trailer e trechos de gameplay divulgados nas redes sociais (Facebook SBT Games), ressaltando as principais novidades visuais."
-    },
-    {
-      "h2": "Disponibilidade e compra",
-      "oQueCobrir": "Indicar onde o jogo estará disponível para compra, incluindo a página oficial da Nintendo Store para o Switch 2."
-    }
-  ],
+  "secoes": [],
   "fatosObrigatorios": [
     {
-      "fato": "The Legend of Zelda: Ocarina of Time será relançado em 2026 no Nintendo Switch 2.",
-      "fonte": "https://www.facebook.com/NintendoBrazil/videos/the-legend-of-zelda-ocarina-of-time-ir%C3%A1-renascer-em-2026-no-nintendo-switch-2/1347779327287881/",
-      "status": "confirmado"
-    },
-    {
-      "fato": "A edição do Nintendo Switch 2 de 40 anos de The Legend of Zelda foi anunciada e chegará em outubro de 2026.",
-      "fonte": "https://br.ign.com/the-legend-of-zelda-ocarina-of-time-2026/155968/edicao-do-nintendo-switch-2-de-40-anos-de-the-legend-of-zelda-e-anunciada-e-chega-em-outubro",
-      "status": "reportado"
-    },
-    {
-      "fato": "O produto está listado na Nintendo Store oficial para o Switch 2.",
-      "fonte": "https://www.nintendo.com/pt-br/store/products/the-legend-of-zelda-ocarina-of-time-switch-2/?srsltid=AfmBOooDc1-nH8m3SXrpX5SsPuYnyzWUJOnXg8nUkljK58z-Xdmsqx5w",
-      "status": "confirmado"
-    },
-    {
-      "fato": "Foi divulgado um trailer e gameplay do remake nas redes sociais do SBT Games.",
-      "fonte": "https://www.facebook.com/SBTGamesOficial/videos/finalmente-temos-trailer-data-e-gameplayo-remake-de-the-legend-of-zelda-ocarina-/1771641777213741/",
-      "status": "reportado"
-    },
-    {
-      "fato": "Um Reel no Instagram confirma que Ocarina of Time renascerá em 2026 no Nintendo Switch 2.",
-      "fonte": "https://www.instagram.com/reel/DZXpI_ij0ZV/",
-      "status": "reportado"
-    },
-    {
-      "fato": "[NOVIDADE DE ULTIMA HORA] O remake de Ocarina of Time será lançado em 5 de novembro de 2026.",
-      "fonte": "Ocarina of Time irá renascer em 2026 no Nintendo Switch 2.",
+      "fato": "[NOVIDADE DE ULTIMA HORA] O jogo será lançado em 5 de novembro de 2026.",
+      "fonte": "Zelda: Ocarina Of Time Launches On Switch 2 On 5th November 2026",
       "status": "reportado"
     }
   ],
   "naoEscrever": [
-    "Preço do jogo, pois não há informação nas fontes fornecidas.",
-    "Detalhes técnicos específicos sobre melhorias gráficas ou de jogabilidade que não foram mencionados nos anúncios.",
-    "Comparações com outras versões ou remakes que não foram citadas nas fontes.",
-    "Especulações sobre conteúdo adicional não confirmado pelos materiais oficiais."
+    "Não afirmar data de lançamento sem confirmação oficial.",
+    "Não divulgar preço que ainda não foi anunciado.",
+    "Não criar rumores sobre novas mecânicas ou conteúdo que não constam nas fontes.",
+    "Não usar informações de fontes não listadas como confiáveis."
   ]
 }
