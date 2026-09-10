@@ -54,3 +54,8 @@ A chegada desse remake também sinaliza que a Nintendo está investindo pesado e
 - [Lançamento do Novo Game: O Que Esperar em 2026](/blog/lancamento-do-novo-game-o-que-esperar-em-2026/)
 - [Crash Bandicoot 30 anos: Acessórios que vão fazer a dif](/blog/crash-bandicoot-30-anos-acessorios-que-vao-fazer-a-diferenca/)
 - [Seafarer PS5 chega em junho: o simulador naval que surpreende](/blog/seafarer-ps5-chega-em-junho-o-simulador-naval-que-surpreende/)
+
+## Créditos de imagem
+
+- Capa: ilustração gerada por inteligência artificial, com base na arte oficial do jogo.
+- Imagens do jogo: arte oficial de The Legend of Zelda: Ocarina of Time, via RAWG.io.

@@ -5004,6 +5004,7 @@ Checklist antes de responder:
   //     reprovados por redacao/seo tentaram gerar capa antes de cair.
   // Se a capa for pulada, coverImage mantem o fallback gratuito ja escolhido,
   // entao revisarDesign() continua encontrando uma capa presente.
+  let capaViaIA = false;
   {
     const textoReprovado = [revRedacao, revSeo].filter((r) => r && r.status === "reprovado");
     if (textoReprovado.length > 0) {
@@ -5018,6 +5019,7 @@ Checklist antes de responder:
         // ja paga e gravada em disco, era ignorada. Reatribuir aqui e o que
         // liga as duas pontas.
         fm.image = capaPaga;
+        capaViaIA = true;
         log("INFO", `Imagem de capa atualizada para a capa IA: ${capaPaga}`);
       } else if (coverImage) {
         log("INFO", `Capa IA indisponivel — mantendo fallback gratuito: ${coverImage.slice(0, 60)}`);
@@ -5104,6 +5106,31 @@ Checklist antes de responder:
     });
   }
   revFinal.parecer = revFinalParecer;
+
+  // V13 — Creditos de imagem (padrao dos portais: dizer de onde veio cada
+  // foto). Tres fontes possiveis neste projeto: arte oficial via RAWG,
+  // foto de produto do Mercado Livre e capa gerada por IA — que os portais
+  // hoje identificam como tal.
+  {
+    const creditos = [];
+    if (capaViaIA) {
+      creditos.push("Capa: ilustração gerada por inteligência artificial, com base na arte oficial do jogo.");
+    }
+    const jogosComImagem = Object.keys(gameImages || {}).filter((k) => gameImages[k]);
+    if (jogosComImagem.length > 0) {
+      const lista = jogosComImagem.slice(0, 3).join(", ");
+      creditos.push(`Imagens do jogo: arte oficial de ${lista}, via RAWG.io.`);
+    }
+    const fotosProdutos = (mlProducts || []).filter((x) => x.local_thumbnail);
+    if (fotosProdutos.length > 0) {
+      const lojas = [...new Set(fotosProdutos.map((x) => x.source).filter(Boolean))];
+      creditos.push(`Imagens de produtos: ${lojas.length > 0 ? lojas.join(" e ") : "lojas parceiras"} (imagens dos próprios anúncios).`);
+    }
+    if (creditos.length > 0 && !/créditos de imagem/i.test(body)) {
+      body = `${body}\n\n## Créditos de imagem\n\n${creditos.map((c) => `- ${c}`).join("\n")}\n`;
+      log("INFO", `Créditos de imagem adicionados (${creditos.length} linha(s))`);
+    }
+  }
 
   const markdown = montarMarkdown({ fm, body, pubDate, cover, mlProducts });
 
