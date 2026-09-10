@@ -1,15 +1,14 @@
 {
   "last_success": null,
-  "last_error": "Gate de revisao reprovou: conteudo",
+  "last_error": "Gate de revisao reprovou: pesquisa, conteudo",
   "last_error_date": "2026-09-10",
   "consecutive_failures": 1,
   "total_articles": 49,
   "last_slug": null,
-  "last_topic": "anuncio de console",
+  "last_topic": "melhores headsets gamer",
   "trending_source": "estatico",
   "recent_keywords": [],
   "recent_topics": [
-    "lancamento de game, evento de games, anuncio de console",
     "Crash Bandicoot celebra 30 anos com novidades e ofertas",
     "novidades, jogos e acessorios para switch 2 — topicos em alt",
     "novidades, jogos e acessorios para ps5 — topicos em alta: Cr",
@@ -18,10 +17,11 @@
     "melhores headsets gamers, teclado mecanico, mouse gamer, mon",
     "Remake de Ocarina of Time",
     "Marvel’s Wolverine ganha novo trailer",
-    "anuncio de console"
+    "anuncio de console",
+    "melhores headsets gamer"
   ],
   "last_pilar": "2026-07-22",
-  "last_category": "noticia",
-  "rotation_pos": 3,
+  "last_category": "guia",
+  "rotation_pos": 4,
   "last_scheduled_success": "2026-09-10"
 }
