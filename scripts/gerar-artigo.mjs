@@ -25,6 +25,10 @@ import { buildEditorialShortlist } from "./editorial_shortlist.mjs";
 import { buildGamesCandidateList } from "./games_candidates.mjs";
 import { ANO_ATUAL, normalizarAnos, normalizarAnosPreposicional } from "./tempo.mjs";
 import { pesquisarFundo } from "./pesquisar-fundo.mjs";
+// V13: pauta e briefing — a decisao editorial deixa de acontecer dentro de
+// uma unica chamada opaca e passa a ser um artefato que o operador le.
+import { montarPauta, salvarPauta } from "./pauta.mjs";
+import { montarBriefing, briefingParaPrompt, salvarBriefing } from "./briefing.mjs";
 import {
   revisarPesquisa, revisarSourcing, revisarRedacao, revisarSeo, revisarDesign, revisarFinal, revisarPublicacao,
   revisarConteudo,
@@ -826,6 +830,48 @@ async function discoverTrendingTopic(existingTopics = [], recentKeywords = [], f
   // por IA em ambientes so-GEMINI.
   if (GROQ_API_KEY || GEMINI_API_KEY) {
     try {
+      // V13 — PAUTA DO DIA.
+      // Antes de escolher, monta a lista ranqueada de assuntos: agrupa
+      // manchetes do mesmo fato, pontua por criterios editoriais explicitos
+      // e descarta o que ja foi coberto ou nao tem novidade. Fica gravada em
+      // output/pautas/ — a decisao editorial passa a ser legivel, e os
+      // assuntos nao usados hoje continuam disponiveis amanha.
+      try {
+        const pautas = await montarPauta({
+          manchetes: filteredHeadlines,
+          trending,
+          jaCobertos: [...new Set([...recentKeywords, ...existingTopics])],
+          fetchLLM,
+        });
+        const escolhida = pautas.find((pt) => {
+          // Respeita a mesma trava de familia ja coberta usada abaixo.
+          for (const fam of familyOf(pt.assunto)) {
+            const d = familyDates[fam];
+            if (d && (Date.now() - d.getTime()) / 86400000 < REFRESH_WINDOW_DAYS) return false;
+          }
+          return true;
+        });
+        if (escolhida) {
+          salvarPauta(pautas, escolhida);
+          log("INFO", `Pauta escolhida (${escolhida.nota}/100): [${escolhida.formato}] ${escolhida.assunto}`);
+          log("INFO", `  motivo: ${escolhida.porQueAgora || escolhida.oQueAconteceu || "sem justificativa"}`);
+          return {
+            category: escolhida.formato,
+            hint: escolhida.assunto,
+            ml_query: `${escolhida.palavraChave} ${ANO_ATUAL}`,
+            trending_score: escolhida.nota,
+            trending_keywords: [escolhida.palavraChave],
+            pauta: escolhida,
+          };
+        }
+        if (pautas.length > 0) {
+          salvarPauta(pautas, null);
+          log("WARN", "Todos os assuntos da pauta caem em familia coberta recentemente — usando a escolha antiga");
+        }
+      } catch (e) {
+        log("WARN", `Pauta do dia falhou: ${e.message} — usando a escolha antiga`);
+      }
+
       const aiResult = await analyzeTrendsWithAI(filteredHeadlines, trending, existingTopics, recentKeywords, familyDates, coverage);
       if (aiResult) {
         log("INFO", `IA escolheu topico novo: [${aiResult.category}] ${aiResult.hint}`);
@@ -4284,7 +4330,34 @@ Checklist antes de responder:
   // Encolhe a pesquisa ate sobrar espaco de saida suficiente dentro do TPM.
   // So para o fluxo de chamada unica (sem produtos): no segmentado a pesquisa
   // vai inteira para a chamada do corpo principal.
+  // V13 — BRIEFING.
+  // Ate aqui o redator recebia o tema e um bloco de regras, e tinha que
+  // decidir titulo, angulo, secoes e quais fatos usar no mesmo passo em que
+  // escrevia. O briefing separa as duas coisas: define ANTES o titulo, a
+  // intencao de busca, as perguntas do leitor, a sequencia de secoes e quais
+  // fatos entram — cada um com fonte e grau de confianca (confirmado /
+  // reportado / rumor). Fica gravado em output/briefings/ para auditoria.
+  let briefing = null;
+  try {
+    briefing = await montarBriefing({
+      assunto: topic.pauta?.assunto || topic.hint,
+      formato: categoria,
+      palavraChave: topic.pauta?.palavraChave || primaryKeyword || "",
+      fontes: researchSources || [],
+      fatos: verifiedFacts || [],
+      fetchLLM,
+    });
+    if (briefing) salvarBriefing(briefing);
+  } catch (e) {
+    log("WARN", `Briefing falhou: ${e.message} — seguindo sem roteiro`);
+  }
+
   let userPrompt = buildUserPrompt(researchContext, gamesCandidates);
+  if (briefing) {
+    // O roteiro entra no topo do prompt: e a instrucao mais especifica que o
+    // redator recebe, e precisa ter precedencia sobre as regras genericas.
+    userPrompt = `${briefingParaPrompt(briefing)}\n\n${userPrompt}`;
+  }
   while (mlProducts.length === 0 && computeMaxTokens(systemPrompt, userPrompt) < MIN_OUTPUT && researchContext.length > 800) {
     researchContext = researchContext.slice(0, Math.floor(researchContext.length * 0.75));
     userPrompt = buildUserPrompt(researchContext, gamesCandidates);

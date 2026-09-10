@@ -61,10 +61,10 @@ Thumbs.db
 *.tmp
 squads/*/state.json
 squads/*/state.json.tmp
-squads/*/output/
+squads/*/output/*
 squads/**/state.json
 squads/**/state.json.tmp
-squads/**/output/
+squads/**/output/*
 .expxagents/
 .server-port
 .server-port.tmp
@@ -73,3 +73,11 @@ squads/**/output/
 preview.err.log
 preview.log
 
+# V13: pauta e briefing sao o registro da decisao editorial de cada artigo —
+# por que aquele assunto, com quais fontes, quais fatos e qual roteiro.
+# Precisam sobreviver ao runner do CI para o operador auditar depois, entao
+# ficam de fora do ignore de output/ (que segue valendo para o resto).
+!squads/**/output/pautas/
+!squads/**/output/pautas/**
+!squads/**/output/briefings/
+!squads/**/output/briefings/**
