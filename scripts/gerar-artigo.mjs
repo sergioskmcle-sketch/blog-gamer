@@ -4448,6 +4448,15 @@ Checklist antes de responder:
   // intencao de busca, as perguntas do leitor, a sequencia de secoes e quais
   // fatos entram — cada um com fonte e grau de confianca (confirmado /
   // reportado / rumor). Fica gravado em output/briefings/ para auditoria.
+  // V13 — PORTAO DE FATOS.
+  // Ciclo 34484421279: pauta = boato de PS6 (Reddit), pesquisa = "0 fatos
+  // verificados", e o redator inventou o anuncio inteiro. Noticia sem um
+  // unico fato verificado nao tem do que existir — aborta antes da escrita.
+  if (categoria === "noticia" && (verifiedFacts || []).length === 0) {
+    log("ERROR", `Portao de fatos: a pesquisa NAO verificou nenhum fato para "${topic.hint}" — noticia sem base confirmada nao se escreve.`);
+    throw new Error("portao de fatos: 0 fatos verificados na pesquisa");
+  }
+
   let briefing = null;
   try {
     briefing = await montarBriefing({

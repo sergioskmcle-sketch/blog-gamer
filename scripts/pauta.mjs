@@ -115,12 +115,16 @@ export async function montarPauta({ manchetes = [], trending = [], jaCobertos = 
     "   - fora do nicho gamer",
     "   - apostas, cassino, caca-niqueis, jogos de azar (proibido sempre)",
     "   - baseado apenas em rumor sem veiculo confiavel",
+    "   - IMPORTANTE: assunto sustentado SOMENTE por Reddit, YouTube, TikTok ou Twitter e RUMOR.",
+    "     Rumor nunca pode virar noticia — use formato guia/lista se o tema for forte, ou descarte.",
+    "   - Todo assunto precisa de veiculo declarado. Sem veiculo, nao inclua.",
     "",
     "5. DEFINIR o formato mais adequado a cada assunto:",
     "   noticia (fato novo) | guia (como fazer) | lista (ranking) | review (analise)",
     "",
     `Devolva no maximo ${maxPautas} assuntos, do mais forte ao mais fraco:`,
     '[{"assunto":"nome proprio e especifico","formato":"noticia|guia|lista|review",',
+    '"veiculo":"nome do veiculo que sustenta o assunto (IGN, PC Gamer, Nintendo, Steam...)",',
     '"oQueAconteceu":"1 frase factual","porQueAgora":"1 frase",',
     '"palavraChave":"termo principal que as pessoas buscam",',
     '"criterios":{"interesse":0-10,"buscaPotencial":0-10,"novidade":0-10,"seo":0-10,"relevancia":0-10,"comercial":0-10}}]',
@@ -148,6 +152,7 @@ export async function montarPauta({ manchetes = [], trending = [], jaCobertos = 
         ? String(p.formato).toLowerCase()
         : "noticia",
       oQueAconteceu: String(p.oQueAconteceu || "").slice(0, 300),
+      veiculo: String(p.veiculo || "").slice(0, 120),
       porQueAgora: String(p.porQueAgora || "").slice(0, 300),
       palavraChave: String(p.palavraChave || p.assunto).trim().slice(0, 80),
       criterios: p.criterios || {},
@@ -156,6 +161,16 @@ export async function montarPauta({ manchetes = [], trending = [], jaCobertos = 
     // Rede de seguranca contra o defeito que gerou "titulo de headset com corpo
     // de teclado": assunto em forma de lista de categorias nao e assunto.
     .filter((p) => (p.assunto.match(/,/g) || []).length < 2)
+    .map((p) => {
+      // V13: rede social nao sustenta noticia. Rebaixa para guia.
+      const veiculo = String(p.veiculo || "").toLowerCase();
+      const ehRedeSocial = /reddit|youtube|tiktok|twitter|\bx\b|forum/.test(veiculo);
+      if (p.formato === "noticia" && (!veiculo || ehRedeSocial)) {
+        log("WARN", `Pauta "${p.assunto.slice(0, 50)}": veiculo "${p.veiculo || "nenhum"}" nao sustenta noticia — rebaixada para guia`);
+        return { ...p, formato: "guia" };
+      }
+      return p;
+    })
     .sort((a, b) => b.nota - a.nota);
 
   log("INFO", `Pauta do dia: ${pautas.length} assunto(s)`);
