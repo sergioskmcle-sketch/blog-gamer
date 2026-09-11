@@ -446,11 +446,21 @@ async function pesquisarProfundo({ query, tavilyKey, fetchLLM }) {
 // V13 — Baixa o texto COMPLETO das materias das fontes mais confiaveis.
 // Prioriza fonte oficial (nivel 0) e imprensa especializada (nivel 1).
 // Devolve [{ url, titulo, veiculo, texto }], texto ja limitado por materia.
-export async function extrairMateriasCompletas({ fontes = [], tavilyKey, maxMaterias = 3, charsPorMateria = 6000 }) {
+// Quantidade ajustavel sem codigo:
+//   MATERIAS_COMPLETAS_MAX   — quantas materias ler por inteiro (padrao 5)
+//   MATERIAS_COMPLETAS_CHARS — limite de texto por materia (padrao 6000)
+// Custo: ~8-10k tokens de contexto a mais no redator. O Gemini (1a da fila)
+// absorve sem problema; se o Groq (2a) rejeitar por tamanho, o retry dele
+// encolhe o prompt e, persistindo, cai na OpenAI. Trade-off consciente:
+// material completo na escrita vale mais que 1-2 chamadas de texto pagas.
+const MATERIAS_MAX = Number(process.env.MATERIAS_COMPLETAS_MAX) || 5;
+const MATERIAS_CHARS = Number(process.env.MATERIAS_COMPLETAS_CHARS) || 6000;
+
+export async function extrairMateriasCompletas({ fontes = [], tavilyKey, maxMaterias = MATERIAS_MAX, charsPorMateria = MATERIAS_CHARS }) {
   if (!tavilyKey || fontes.length === 0) return [];
   const ordenadas = ordenarPorHierarquia(fontes)
     .filter((f) => f?.url && /^http/.test(f.url))
-    .slice(0, 6);
+    .slice(0, 10);
   if (ordenadas.length === 0) return [];
 
   try {
