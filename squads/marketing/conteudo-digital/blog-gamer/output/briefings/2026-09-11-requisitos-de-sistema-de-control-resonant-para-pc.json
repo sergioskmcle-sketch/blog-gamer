@@ -1,0 +1,94 @@
+{
+  "assunto": "Requisitos de sistema de Control Resonant para PC",
+  "formato": "guia",
+  "titulo": "control resonant requisitos pc: requisitos mínimos e recomendados",
+  "palavraChave": "control resonant requisitos pc",
+  "palavrasSecundarias": [
+    "requisitos mínimos",
+    "requisitos recomendados",
+    "CPU",
+    "RAM",
+    "data de lançamento",
+    "plataformas"
+  ],
+  "intencaoBusca": "informacional",
+  "perguntas": [
+    "Qual a data de lançamento de Control Resonant?",
+    "Em quais plataformas o jogo será lançado?",
+    "Quem desenvolve e distribui Control Resonant?",
+    "Qual o protagonista da história?",
+    "Quais são os requisitos mínimos de CPU e memória RAM para rodar o jogo no PC?",
+    "A Remedy divulgou requisitos recomendados para o PC?"
+  ],
+  "secoes": [
+    {
+      "h2": "Data de lançamento e plataformas",
+      "oQueCobrir": "Informar que o jogo será lançado em 24/09/2026 e que estará disponível para PC e Xbox Series X|S, com suporte ao Xbox Play Anywhere."
+    },
+    {
+      "h2": "Desenvolvedor e distribuidores oficiais",
+      "oQueCobrir": "Apresentar a Remedy Entertainment como desenvolvedora e citar Green Man Loaded e Remedy Entertainment como distribuidores oficiais."
+    },
+    {
+      "h2": "Protagonista da história",
+      "oQueCobrir": "Identificar Dylan Faden como o protagonista de Control Resonant."
+    },
+    {
+      "h2": "Requisitos mínimos de sistema para PC",
+      "oQueCobrir": "Detalhar o CPU mínimo (Intel Core i5‑8500 ou AMD Ryzen 5 3500) e a memória RAM mínima (16 GB) exigidos para rodar o jogo."
+    },
+    {
+      "h2": "Requisitos recomendados (informação oficial)",
+      "oQueCobrir": "Mencionar que a Remedy divulgou requisitos recomendados para PC, sem entrar em detalhes que não foram fornecidos nas fontes."
+    }
+  ],
+  "fatosObrigatorios": [
+    {
+      "fato": "Control Resonant será lançado em 24/09/2026.",
+      "fonte": "https://www.nuuvem.com/br-pt/item/control-resonant",
+      "status": "confirmado"
+    },
+    {
+      "fato": "O desenvolvedor do jogo é a Remedy Entertainment.",
+      "fonte": "https://www.nuuvem.com/br-pt/item/control-resonant",
+      "status": "confirmado"
+    },
+    {
+      "fato": "Os distribuidores oficiais são Green Man Loaded e Remedy Entertainment.",
+      "fonte": "https://www.nuuvem.com/br-pt/item/control-resonant",
+      "status": "confirmado"
+    },
+    {
+      "fato": "Control Resonant estará disponível para PC e Xbox Series X|S, com suporte ao Xbox Play Anywhere.",
+      "fonte": "https://www.xbox.com/pt-BR/games/store/control-resonant/9nj07vwb9bvk",
+      "status": "confirmado"
+    },
+    {
+      "fato": "O protagonista do jogo é Dylan Faden.",
+      "fonte": "https://controlgame.com/",
+      "status": "confirmado"
+    },
+    {
+      "fato": "Requisito mínimo de CPU: Intel Core i5‑8500 ou AMD Ryzen 5 3500.",
+      "fonte": "https://flowgames.gg/control-resonant-ganha-requisitos-completos-rodar-pc/",
+      "status": "reportado"
+    },
+    {
+      "fato": "Requisito mínimo de memória RAM: 16 GB.",
+      "fonte": "https://flowgames.gg/control-resonant-ganha-requisitos-completos-rodar-pc/",
+      "status": "reportado"
+    },
+    {
+      "fato": "A Remedy divulgou tanto os requisitos mínimos quanto os recomendados para rodar Control Resonant no PC.",
+      "fonte": "https://newsletter.jornaldosjogos.com.br/p/control-resonant-veja-preco-data",
+      "status": "reportado"
+    }
+  ],
+  "naoEscrever": [
+    "Preço ou valores de pré‑venda do jogo.",
+    "Detalhes específicos dos requisitos recomendados que não foram divulgados nas fontes.",
+    "Comparações de desempenho com outros títulos.",
+    "Informações sobre gráficos, resolução ou taxa de quadros que não constam nas fontes.",
+    "Rumores sobre possíveis DLCs ou conteúdo adicional."
+  ]
+}

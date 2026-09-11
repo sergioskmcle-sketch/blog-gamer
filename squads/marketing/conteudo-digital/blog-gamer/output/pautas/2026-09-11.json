@@ -1,0 +1,147 @@
+{
+  "dia": "2026-09-11",
+  "rodadas": [
+    {
+      "hora": "2026-09-11T13:43:01.517Z",
+      "escolhido": "Requisitos de sistema de Control Resonant para PC",
+      "pautas": [
+        {
+          "assunto": "Repercussão das notas e reviews de Marvel's Wolverine no PS5",
+          "formato": "noticia",
+          "oQueAconteceu": "Marvel's Wolverine teve seu embargo de reviews encerrado, registrando uma das menores notas da história recente da Insomniac Games no PS5.",
+          "veiculo": "IGN",
+          "porQueAgora": "O jogo acaba de ter suas avaliações publicadas pela imprensa global e está gerando forte debate entre os jogadores.",
+          "palavraChave": "marvels wolverine review notas ps5",
+          "criterios": {
+            "interesse": 10,
+            "buscaPotencial": 10,
+            "novidade": 9,
+            "seo": 9,
+            "relevancia": 10,
+            "comercial": 9
+          },
+          "nota": 97
+        },
+        {
+          "assunto": "Requisitos de sistema de Control Resonant para PC",
+          "formato": "guia",
+          "oQueAconteceu": "A Remedy divulgou as especificações oficiais para rodar Control Resonant no PC, detalhando perfis para 2K, 4K e Path Tracing.",
+          "veiculo": "PC Gamer",
+          "porQueAgora": "Os requisitos acabaram de ser divulgados e os jogadores precisam saber se seu hardware é compatível antes da pré-venda.",
+          "palavraChave": "control resonant requisitos pc",
+          "criterios": {
+            "interesse": 8,
+            "buscaPotencial": 9,
+            "novidade": 9,
+            "seo": 10,
+            "relevancia": 9,
+            "comercial": 8
+          },
+          "nota": 88
+        },
+        {
+          "assunto": "Fim da exigência do Ubisoft Connect em jogos no Steam",
+          "formato": "noticia",
+          "oQueAconteceu": "A Ubisoft iniciou a liberação de seu catálogo no Steam sem a obrigatoriedade do inicializador secundário Ubisoft Connect.",
+          "veiculo": "Steam",
+          "porQueAgora": "A alteração na plataforma da Valve começou a valer hoje e atende a uma reivindicação histórica da comunidade de PC.",
+          "palavraChave": "ubisoft steam sem launcher connect",
+          "criterios": {
+            "interesse": 9,
+            "buscaPotencial": 8,
+            "novidade": 10,
+            "seo": 8,
+            "relevancia": 9,
+            "comercial": 7
+          },
+          "nota": 87
+        },
+        {
+          "assunto": "Trilha sonora de EA Sports FC 27 com participação de KYAN",
+          "formato": "noticia",
+          "oQueAconteceu": "A EA Sports revelou a trilha sonora oficial de EA Sports FC 27, confirmando a presença do rapper brasileiro KYAN entre os destaques.",
+          "veiculo": "EA Sports",
+          "porQueAgora": "A playlist oficial foi disponibilizada globalmente nas plataformas de streaming hoje pela produtora.",
+          "palavraChave": "trilha sonora ea sports fc 27 kyan",
+          "criterios": {
+            "interesse": 8,
+            "buscaPotencial": 8,
+            "novidade": 9,
+            "seo": 8,
+            "relevancia": 10,
+            "comercial": 7
+          },
+          "nota": 83
+        },
+        {
+          "assunto": "Anúncio do Remake de Professor Layton and the Curious Village para PS5",
+          "formato": "noticia",
+          "oQueAconteceu": "A Level-5 anunciou oficialmente um remake completo de Professor Layton and the Curious Village com lançamento confirmado no PS5.",
+          "veiculo": "PlayStation Blog",
+          "porQueAgora": "A revelação oficial pegou o mercado de surpresa por ser o primeiro título principal da franquia a chegar a um console PlayStation.",
+          "palavraChave": "professor layton curious village remake ps5",
+          "criterios": {
+            "interesse": 8,
+            "buscaPotencial": 7,
+            "novidade": 10,
+            "seo": 8,
+            "relevancia": 8,
+            "comercial": 7
+          },
+          "nota": 80
+        },
+        {
+          "assunto": "Atualização Cosmos de No Man's Sky",
+          "formato": "guia",
+          "oQueAconteceu": "A Hello Games anunciou e detalhou o conteúdo da atualização gratuita Cosmos para No Man's Sky.",
+          "veiculo": "Hello Games",
+          "porQueAgora": "As notas do patch e os novos recursos foram apresentados hoje para todas as plataformas suportadas.",
+          "palavraChave": "no mans sky atualizacao cosmos novidades",
+          "criterios": {
+            "interesse": 7,
+            "buscaPotencial": 8,
+            "novidade": 9,
+            "seo": 8,
+            "relevancia": 8,
+            "comercial": 6
+          },
+          "nota": 78
+        },
+        {
+          "assunto": "Novo trailer e detalhes de Monster Hunter Wilds: Ascendance",
+          "formato": "noticia",
+          "oQueAconteceu": "A Capcom divulgou um novo trailer focado nas mecânicas de gameplay da expansão Monster Hunter Wilds: Ascendance.",
+          "veiculo": "Capcom",
+          "porQueAgora": "O vídeo promocional inédito foi lançado nos canais oficiais da publisher nesta manhã.",
+          "palavraChave": "monster hunter wilds ascendance trailer",
+          "criterios": {
+            "interesse": 7,
+            "buscaPotencial": 7,
+            "novidade": 8,
+            "seo": 7,
+            "relevancia": 8,
+            "comercial": 7
+          },
+          "nota": 73
+        },
+        {
+          "assunto": "Adaptação live-action de Ace Combat 8",
+          "formato": "noticia",
+          "oQueAconteceu": "A Bandai Namco confirmou a produção de uma série live-action baseada no universo de Ace Combat 8 com elenco internacional.",
+          "veiculo": "Bandai Namco",
+          "porQueAgora": "O anúncio de produção e a escalação do elenco foram revelados formalmente pela distribuidora.",
+          "palavraChave": "ace combat 8 serie live action",
+          "criterios": {
+            "interesse": 7,
+            "buscaPotencial": 7,
+            "novidade": 9,
+            "seo": 7,
+            "relevancia": 7,
+            "comercial": 5
+          },
+          "nota": 72
+        }
+      ]
+    }
+  ]
+}
