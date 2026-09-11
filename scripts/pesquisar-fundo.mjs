@@ -387,16 +387,16 @@ async function pesquisarMedio({ query, tavilyKey, fetchLLM }) {
   const oficiais = fontes.filter((f) => nivelDaFonte(f?.url) === 0).length;
   const imprensa = fontes.filter((f) => nivelDaFonte(f?.url) === 1).length;
   log("INFO", `Fontes por nivel: ${oficiais} oficial(is), ${imprensa} de imprensa, ${fontes.length - oficiais - imprensa} outra(s)`);
+  // V13: no MEDIO o cruzamento nao roda (so no profundo) — contexto sem a
+  // IIFE de conflitos. A versao com conflitos vive no pesquisarProfundo.
+  // V13: o medio TAMBEM extrai fatos verificados — o portao de fatos exige
+  // pelo menos um para noticia.
+  const verifiedFacts = await sintetizarFatos({ query, fontes, fetchLLM });
   return {
-    researchContext: (() => {
-      const base = montarContexto(fontes, 1200);
-      if (!cruzamento.conflitos.length) return base;
-      const avisos = cruzamento.conflitos.map((c) => `- ${c.dado}: "${c.fatoA}" x "${c.fatoB}" -> ${c.resolucao}`).join('\n');
-      return base + '\n\nATENCAO — DADOS EM CONFLITO ENTRE FONTES (siga a resolucao; se DISPUTADO, atribua o valor a cada fonte e nao afirme nenhum como definitivo):\n' + avisos;
-    })(),
+    researchContext: montarContexto(fontes, 1200),
     researchSources: fontes,
-    verifiedFacts: [],
-    cobertura: computarCobertura(fontes, []),
+    verifiedFacts,
+    cobertura: computarCobertura(fontes, verifiedFacts),
     nivel: "medio",
     subQueries,
   };
@@ -442,6 +442,48 @@ async function pesquisarProfundo({ query, tavilyKey, fetchLLM }) {
 }
 
 // API principal. Nunca lanca: com falha, rebaixa ao nivel basico (ou vazio).
+
+// V13 — Baixa o texto COMPLETO das materias das fontes mais confiaveis.
+// Prioriza fonte oficial (nivel 0) e imprensa especializada (nivel 1).
+// Devolve [{ url, titulo, veiculo, texto }], texto ja limitado por materia.
+export async function extrairMateriasCompletas({ fontes = [], tavilyKey, maxMaterias = 3, charsPorMateria = 6000 }) {
+  if (!tavilyKey || fontes.length === 0) return [];
+  const ordenadas = ordenarPorHierarquia(fontes)
+    .filter((f) => f?.url && /^http/.test(f.url))
+    .slice(0, 6);
+  if (ordenadas.length === 0) return [];
+
+  try {
+    const res = await fetch("https://api.tavily.com/extract", {
+      method: "POST",
+      signal: AbortSignal.timeout(30000),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ api_key: tavilyKey, urls: ordenadas.map((f) => f.url) }),
+    });
+    if (!res.ok) {
+      log("WARN", `Extracao de materias falhou: HTTP ${res.status}`);
+      return [];
+    }
+    const d = await res.json();
+    const materias = (d.results || [])
+      .map((r) => {
+        const fonte = ordenadas.find((f) => f.url === r.url);
+        return {
+          url: r.url,
+          titulo: fonte?.title || "(sem titulo)",
+          veiculo: fonte?.url ? new URL(fonte.url).hostname.replace(/^www\./, "") : "",
+          texto: String(r.raw_content || "").replace(/\s+\n/g, "\n").slice(0, charsPorMateria),
+        };
+      })
+      .filter((m) => m.texto.length > 800)
+      .slice(0, maxMaterias);
+    log("INFO", `Materias completas extraidas: ${materias.length} (${materias.map((m) => m.veiculo).join(", ")})`);
+    return materias;
+  } catch (e) {
+    log("WARN", `Extracao de materias falhou: ${e.message}`);
+    return [];
+  }
+}
 export async function pesquisarFundo({ topic, query, categoria, tavilyKey, fetchLLM }) {
   const q = normalizarQuery(query || topic?.hint || "");
   const nivel = nivelParaCategoria(categoria);
@@ -459,7 +501,7 @@ export async function pesquisarFundo({ topic, query, categoria, tavilyKey, fetch
   try {
     if (nivel === "profundo") {
       try {
-        return await pesquisarProfundo({ query: q, tavilyKey, fetchLLM });
+        return await anexarMaterias(await pesquisarProfundo({ query: q, tavilyKey, fetchLLM }), { tavilyKey });
       } catch (e) {
         log("WARN", `Pesquisa profunda falhou (${e.message}) — tentando medio`);
       }
@@ -467,18 +509,35 @@ export async function pesquisarFundo({ topic, query, categoria, tavilyKey, fetch
     if (nivel === "medio" || nivel === "profundo") {
       try {
         const res = await pesquisarMedio({ query: q, tavilyKey, fetchLLM });
-        if (res.researchSources.length > 0) return res;
+        if (res.researchSources.length > 0) return await anexarMaterias(res, { tavilyKey });
       } catch (e) {
         log("WARN", `Pesquisa media falhou (${e.message}) — rebaixando para basico`);
       }
     }
     const res = await pesquisarBasico({ query: q, tavilyKey });
     if (res.researchSources.length === 0) return nulo;
-    return res;
+    return await anexarMaterias(res, { tavilyKey });
   } catch (e) {
     log("WARN", `Pesquisa falhou (${e.message}) — artigo seguira sem fontes`);
     return nulo;
   }
+}
+
+// Anexa as materias completas ao contexto — em qualquer nivel de pesquisa.
+async function anexarMaterias(res, { tavilyKey }) {
+  try {
+    const materias = await extrairMateriasCompletas({ fontes: res.researchSources || [], tavilyKey });
+    if (materias.length > 0) {
+      res.materiasCompletas = materias;
+      const bloco = materias.map((m, i) =>
+        `[MATERIA ${i + 1}] ${m.titulo} — ${m.veiculo}\n${m.texto}`
+      ).join("\n\n---\n\n");
+      res.researchContext = `${res.researchContext}\n\n## MATERIAS COMPLETAS DAS FONTES (sua base principal de escrita — leia e escreva a partir delas; sao o material APURADO, nao retalhos de busca):\n\n${bloco}`;
+    }
+  } catch (e) {
+    log("WARN", `Anexar materias falhou (nao bloqueia): ${e.message}`);
+  }
+  return res;
 }
 
 // Leitor usado pelo medidor de cobertura e pela auto-melhoria.
