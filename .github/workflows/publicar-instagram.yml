@@ -1,0 +1,53 @@
+name: Publicar Instagram
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: "Slug do artigo a publicar (feed + story)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publicar no Instagram (feed + story)
+        run: node scripts/publicar-instagram.mjs "${{ inputs.slug }}"
+        env:
+          IG_TOKEN: ${{ secrets.IG_TOKEN }}
+          IG_LONG_TOKEN: ${{ secrets.IG_LONG_TOKEN }}
+          IG_IG_ID: ${{ secrets.IG_IG_ID }}
+          IG_PAGE_ID: ${{ secrets.IG_PAGE_ID }}
+          FB_APP_ID: ${{ secrets.FB_APP_ID }}
+          FB_APP_SECRET: ${{ secrets.FB_APP_SECRET }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      - name: Registrar publicacao (dedup)
+        if: success()
+        run: |
+          if git status --porcelain -- scripts/.ig-posted.json | grep -q .; then
+            git config user.name "blog-bot"
+            git config user.email "bot@blog-gamer.com"
+            git add scripts/.ig-posted.json
+            git commit -m "feat: registra artigo publicado no Instagram"
+            git pull --rebase origin "${GITHUB_REF_NAME}" || true
+            git push origin "${GITHUB_REF_NAME}" || true
+          fi
