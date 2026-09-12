@@ -1,5 +1,5 @@
 ---
-title: "Mega Man Fortnite skins trazem X e Zero para o jogo em 2026"
+title: "Fortnite: Epic Games traz skins do Mega Man X e Zero para o jogo em 2026"
 description: "Mega Man X e Zero chegam ao battle royale da Epic Games. Confira os cosméticos confirmados, a chegada do Mega Buster e os detalhes do crossover no Fortnite."
 pubDate: 2026-09-12
 tags: ["Fortnite", "Mega Man", "Capcom", "Epic Games", "Skins Fortnite"]
@@ -13,7 +13,7 @@ Fala, gamer! Se você passou madrugadas na infância decorando o padrão de ataq
 A novidade não ficou presa a boatos de fórum ou artes conceituais sem fundamento. Logo após colocar a clássica arma Mega Buster para cantar dentro da jogabilidade do battle royale, a desenvolvedora bateu o martelo e oficializou a presença de trajes icônicos inspirados em **Mega Man X** e no espadachim **Zero**. Se você já estava limpando o lobby usando disparos carregados de plasma, agora vai poder fazer isso com a armadura completa dos lendários Maverick Hunters.
 
 ## <a id="a-id-anuncio-oficial-das-skins-de-mega-man-x-e-zero-a-anunci"></a><a id="anuncio-oficial-das-skins-de-mega-man-x-e-zero"></a>Anúncio oficial das skins de Mega Man X e Zero
-<img src="https://assets.nintendo.com/image/upload/ar_16:9,b_auto:border,c_lpad/b_white/f_auto/q_auto/dpr_1.5/c_scale,w_500/store/software/switch/70010000003967/02ce81081e7d6672ed836ec39bc2b7d18586ca08d77f4a02c1d0e6b54af740f3" alt="Mega Man X" class="article-game-img" loading="lazy" decoding="async">
+<img src="/images/artigos/fortnite-override-mega-man.jpg" alt="Arte oficial da temporada Fortnite OVERRIDE com Mega Man, Mega Man X, Rush, Sonic e outros icones" class="article-game-img" loading="lazy" decoding="async">
 
 A confirmação caiu como uma bomba na comunidade de jogadores. De acordo com informações apuradas pelo portal Omelete, a Epic Games bateu o martelo sobre a inclusão de Mega Man X e Zero no catálogo de trajes do game. O anúncio oficial aconteceu logo na sequência da estreia do clássico Mega Buster como item utilizável no mapa, elemento que já tinha deixado a base de fãs em alerta máximo para o crossover iminente.
 
@@ -22,7 +22,7 @@ O traje clássico do herói azul já havia sido antecipado nos bastidores, mas a
 Para completar o pacote de tributos à obra da Capcom, o fiel cão-robô Rush também foi confirmado na colaboração, aparecendo no formato de mascote e acompanhado por um emote dedicado à prancha voadora Rush Jet.
 
 ## <a id="a-id-conteudo-cosmetico-incluido-no-crossover-a-conteudo-cos"></a><a id="conteudo-cosmetico-incluido-no-crossover"></a>Conteúdo cosmético incluído no crossover
-<img src="https://assets.nintendo.com/image/upload/ar_16:9,b_auto:border,c_lpad/b_white/f_auto/q_auto/dpr_1.5/c_scale,w_500/store/software/switch/70010000016862/d9e87681fb4046af84530ee56b8718a59bec454a3a82e64a126ebb192fdce463" alt="Mega Man Zero" class="article-game-img" loading="lazy" decoding="async">
+<img src="/images/artigos/mega-man-x-e-zero.jpg" alt="Mega Man X e Zero, personagens que ganham skins e itens cosmeticos no Fortnite" class="article-game-img" loading="lazy" decoding="async">
 
 Quem pensa que essa parceria se resume a um par de roupinhas básicas se enganou feio. A investida da desenvolvedora envolve um conjunto parrudo de itens visuais projetados para personalizar o perfil dos jogadores da cabeça aos pés. Conforme o material divulgado nas redes sociais, segundo https://www.instagram.com/reel/DdEUvF9KYis/, a colaboração lista um pacote com 3 skins, 2 acessórios para as costas (backblings), 3 picaretas, além de emote e spray temáticos.
 
@@ -31,7 +31,6 @@ Essa distribuição de equipamentos cosméticos garante que o jogador monte um c
 Os acessórios para as costas devem explorar elementos consagrados da lore da franquia, funcionando tanto nos confrontos intensos da tempestade quanto nos modos casuais de construção. O emote temático focado na locomoção com o Rush fecha o pacote com uma homenagem direta às transições clássicas de fases das eras 8-bits e 16-bits.
 
 ## <a id="a-id-como-adquirir-as-skins-no-fortnite-a-como-adquirir-as-s"></a><a id="como-adquirir-as-skins-no-fortnite"></a>Como adquirir as skins no Fortnite
-<img src="https://i5.walmartimages.com/seo/My-Arcade-Pocket-Player-Pro-Mega-Man-DGUNL-4191_f708511d-68b1-48df-a092-2b689875480c.79b44a97a3fd9b1ab2d6de1a72ada99c.jpeg?odnHeight=768&odnWidth=768&odnBg=FFFFFF" alt="Mega Man Loja de Itens" class="article-game-img" loading="lazy" decoding="async">
 
 Para colocar as mãos nesses trajes cibernéticos, o caminho dos jogadores será o mesmo de outras grandes parcerias da indústria: a tradicional Loja de Itens virtual do battle royale. Todo o conteúdo foi desenvolvido estritamente como itens cosméticos, o que significa que o uso das armaduras não concede nenhuma vantagem competitiva de vida, velocidade ou dano contra os adversários durante o tiroteio.
 
