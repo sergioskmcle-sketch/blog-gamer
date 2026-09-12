@@ -1,0 +1,72 @@
+{
+  "assunto": "Skins de Mega Man em Fortnite",
+  "formato": "noticia",
+  "titulo": "Mega Man Fortnite skins: Mega Man X e Zero chegam ao jogo",
+  "palavraChave": "Mega Man Fortnite skins",
+  "palavrasSecundarias": [
+    "Mega Man X",
+    "Zero",
+    "Fortnite crossover",
+    "crossover videogames",
+    "Mega Buster"
+  ],
+  "intencaoBusca": "informacional",
+  "perguntas": [
+    "Quando as skins de Mega Man X e Zero estarão disponíveis no Fortnite?",
+    "Quais itens cosméticos compõem o crossover Mega Man?",
+    "Como adquirir as skins e os acessórios na loja do Fortnite?",
+    "Quais outros personagens farão parte da mesma temporada temática?",
+    "O que é o Mega Buster e como ele se relaciona ao lançamento das skins?"
+  ],
+  "secoes": [
+    {
+      "h2": "Anúncio oficial das skins de Mega Man X e Zero",
+      "oQueCobrir": "Detalhar a confirmação da Epic Games sobre a chegada das skins de Mega Man X e Zero, citando a fonte oficial."
+    },
+    {
+      "h2": "Conteúdo cosmético incluído no crossover",
+      "oQueCobrir": "Listar as 3 skins, 2 backblings, 3 picaretas, emote e spray anunciados, conforme o material divulgado nas redes sociais."
+    },
+    {
+      "h2": "Como adquirir as skins no Fortnite",
+      "oQueCobrir": "Explicar o processo de compra através da Item Shop do Fortnite, indicando que o conteúdo será vendido como itens cosméticos."
+    },
+    {
+      "h2": "Temporada temática com outros ícones dos videogames",
+      "oQueCobrir": "Descrever a integração da colaboração de Mega Man em uma temporada que também traz personagens como Sonic e Crash, segundo o relatório do Estadão/TecMundo."
+    },
+    {
+      "h2": "Divulgação oficial e reação da comunidade",
+      "oQueCobrir": "Mencionar a campanha de divulgação da página oficial do Fortnite Brasil no Facebook e a expectativa gerada entre os jogadores."
+    }
+  ],
+  "fatosObrigatorios": [
+    {
+      "fato": "A Epic Games confirmou oficialmente que Mega Man X e Zero ganharão skins no Fortnite após o lançamento do Mega Buster como arma no jogo.",
+      "fonte": "https://www.omelete.com.br/games/fortnite-skins-mega-man-x-zero",
+      "status": "confirmado"
+    },
+    {
+      "fato": "A colaboração envolve conteúdo cosmético adicional listado com 3 skins, 2 acessórios para as costas (backblings), 3 picaretas, emote e spray.",
+      "fonte": "https://www.instagram.com/reel/DdEUvF9KYis/",
+      "status": "reportado"
+    },
+    {
+      "fato": "A página oficial de Fortnite Brasil promoveu a chegada do personagem e aliados com o aviso 'Carreguem os Mega Busters. Mega Man e seus amigos estão prestes a entrar no Fortnite'.",
+      "fonte": "https://www.facebook.com/FortniteBrasil/videos/carreguem-os-mega-busters-mega-man-e-seus-amigos-est%C3%A3o-prestes-a-entrar-no-fortn/1740806034348602/",
+      "status": "confirmado"
+    },
+    {
+      "fato": "O crossover com Mega Man integra uma temporada temáticada em lendas dos videogames ao lado de ícones como Sonic e Crash.",
+      "fonte": "https://www.estadao.com.br/tecmundo/voxel/505137-nova-temporada-de-fortnite-tera-crossover-com-mega-man-sonic-e-mais-veja-lista-de-personagens/?srsltid=AfmBOorMiR2IZUGovvojudUwgoUEi4-XBzMLPBVCm2slqXCMOFrFVVXb",
+      "status": "reportado"
+    }
+  ],
+  "naoEscrever": [
+    "Preço exato das skins ou dos itens cosméticos, pois não há informação oficial.",
+    "Data de lançamento específica, caso não tenha sido divulgada nas fontes citadas.",
+    "Disponibilidade das skins em outras plataformas ou jogos além do Fortnite.",
+    "Garantia de que as skins serão permanentes ou de tempo limitado sem confirmação oficial.",
+    "Detalhes sobre gameplay ou habilidades das skins que não foram mencionados nas fontes."
+  ]
+}

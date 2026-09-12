@@ -1,0 +1,147 @@
+{
+  "dia": "2026-09-12",
+  "rodadas": [
+    {
+      "hora": "2026-09-12T12:59:36.664Z",
+      "escolhido": "Skins de Mega Man em Fortnite",
+      "pautas": [
+        {
+          "assunto": "Skins de Mega Man em Fortnite",
+          "formato": "noticia",
+          "oQueAconteceu": "Fortnite lançou novas skins inspiradas em Mega Man, X e Zero.",
+          "veiculo": "IGN",
+          "porQueAgora": "A popularidade de Fortnite e a nostalgia por Mega Man geram grande interesse.",
+          "palavraChave": "Mega Man Fortnite skins",
+          "criterios": {
+            "interesse": 8,
+            "buscaPotencial": 7,
+            "novidade": 8,
+            "seo": 7,
+            "relevancia": 8,
+            "comercial": 6
+          },
+          "nota": 75
+        },
+        {
+          "assunto": "Cheats em Final Fantasy VII Revelation",
+          "formato": "noticia",
+          "oQueAconteceu": "Final Fantasy VII Revelation não terá cheats na estreia.",
+          "veiculo": "GameSpot",
+          "porQueAgora": "A ausência de cheats gera debate sobre a dificuldade e a experiência do jogador.",
+          "palavraChave": "Final Fantasy VII Revelation cheats",
+          "criterios": {
+            "interesse": 6,
+            "buscaPotencial": 7,
+            "novidade": 8,
+            "seo": 7,
+            "relevancia": 8,
+            "comercial": 5
+          },
+          "nota": 69
+        },
+        {
+          "assunto": "Adiado Decapolice",
+          "formato": "noticia",
+          "oQueAconteceu": "O jogo de detetive Decapolice foi adiado para 2027.",
+          "veiculo": "PC Gamer",
+          "porQueAgora": "O adiamento gera discussões sobre expectativas e desenvolvimento de jogos.",
+          "palavraChave": "Decapolice adiamento",
+          "criterios": {
+            "interesse": 7,
+            "buscaPotencial": 6,
+            "novidade": 9,
+            "seo": 6,
+            "relevancia": 7,
+            "comercial": 5
+          },
+          "nota": 68
+        },
+        {
+          "assunto": "Cambistas e DualSense de GTA VI",
+          "formato": "noticia",
+          "oQueAconteceu": "Cambistas estão revendendo o DualSense de GTA VI a preços exorbitantes.",
+          "veiculo": "Kotaku",
+          "porQueAgora": "A especulação em torno de GTA VI e seus produtos gera grande atenção.",
+          "palavraChave": "DualSense GTA VI cambistas",
+          "criterios": {
+            "interesse": 7,
+            "buscaPotencial": 6,
+            "novidade": 7,
+            "seo": 6,
+            "relevancia": 7,
+            "comercial": 6
+          },
+          "nota": 66
+        },
+        {
+          "assunto": "Hacker e drones em GTA VI",
+          "formato": "noticia",
+          "oQueAconteceu": "Hackers usaram drones para tentar espiar GTA VI.",
+          "veiculo": "Polygon",
+          "porQueAgora": "O uso de tecnologia para espionagem em jogos gera polêmica e curiosidade.",
+          "palavraChave": "hackers drones GTA VI",
+          "criterios": {
+            "interesse": 8,
+            "buscaPotencial": 5,
+            "novidade": 8,
+            "seo": 5,
+            "relevancia": 8,
+            "comercial": 4
+          },
+          "nota": 66
+        },
+        {
+          "assunto": "Promoções na PS Store",
+          "formato": "lista",
+          "oQueAconteceu": "Jogos de Resident Evil e outros estão em promoção na PS Store.",
+          "veiculo": "Eurogamer",
+          "porQueAgora": "As promoções atraem jogadores em busca de boas ofertas.",
+          "palavraChave": "promoções PS Store",
+          "criterios": {
+            "interesse": 6,
+            "buscaPotencial": 7,
+            "novidade": 5,
+            "seo": 8,
+            "relevancia": 7,
+            "comercial": 8
+          },
+          "nota": 66
+        },
+        {
+          "assunto": "Marvel's Wolverine e QTEs",
+          "formato": "noticia",
+          "oQueAconteceu": "Jogadores descobriram que QTEs em Marvel's Wolverine não exigem precisão.",
+          "veiculo": "IGN",
+          "porQueAgora": "A revelação gerou discussões sobre mecânicas de jogo e design.",
+          "palavraChave": "Marvel's Wolverine QTEs",
+          "criterios": {
+            "interesse": 5,
+            "buscaPotencial": 6,
+            "novidade": 7,
+            "seo": 6,
+            "relevancia": 6,
+            "comercial": 5
+          },
+          "nota": 58
+        },
+        {
+          "assunto": "Trailer de FAIRGAME$",
+          "formato": "noticia",
+          "oQueAconteceu": "Um suposto trailer de FAIRGAME$ foi divulgado, mostrando gameplay.",
+          "veiculo": "GameSpot",
+          "porQueAgora": "A expectativa em torno do jogo gera curiosidade e especulação.",
+          "palavraChave": "FAIRGAME$ trailer",
+          "criterios": {
+            "interesse": 6,
+            "buscaPotencial": 5,
+            "novidade": 7,
+            "seo": 6,
+            "relevancia": 5,
+            "comercial": 4
+          },
+          "nota": 57
+        }
+      ]
+    }
+  ]
+}
