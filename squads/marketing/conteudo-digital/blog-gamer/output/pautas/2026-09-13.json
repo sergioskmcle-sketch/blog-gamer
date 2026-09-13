@@ -1,0 +1,147 @@
+{
+  "dia": "2026-09-13",
+  "rodadas": [
+    {
+      "hora": "2026-09-13T13:52:13.371Z",
+      "escolhido": "Diablo V Anunciado",
+      "pautas": [
+        {
+          "assunto": "Diablo V Anunciado",
+          "formato": "noticia",
+          "oQueAconteceu": "Diablo V foi oficialmente anunciado durante a BlizzCon 2026, com um teaser trailer revelado.",
+          "veiculo": "Blizzard",
+          "porQueAgora": "O anúncio gerou grande expectativa entre os fãs da franquia, especialmente com a proximidade da data de lançamento.",
+          "palavraChave": "Diablo V",
+          "criterios": {
+            "interesse": 10,
+            "buscaPotencial": 9,
+            "novidade": 10,
+            "seo": 8,
+            "relevancia": 10,
+            "comercial": 9
+          },
+          "nota": 94
+        },
+        {
+          "assunto": "Novo jogo de Starcraft",
+          "formato": "noticia",
+          "oQueAconteceu": "Um novo shooter de mundo aberto de Starcraft foi anunciado na BlizzCon 2026.",
+          "veiculo": "Blizzard",
+          "porQueAgora": "A revelação atraiu a atenção dos fãs de longa data e novos jogadores, especialmente com a proposta inovadora.",
+          "palavraChave": "Starcraft shooter",
+          "criterios": {
+            "interesse": 9,
+            "buscaPotencial": 8,
+            "novidade": 9,
+            "seo": 7,
+            "relevancia": 9,
+            "comercial": 8
+          },
+          "nota": 84
+        },
+        {
+          "assunto": "Kingdom Hearts 4 em desenvolvimento",
+          "formato": "noticia",
+          "oQueAconteceu": "Desenvolvedores de Final Fantasy estão trabalhando em Kingdom Hearts 4.",
+          "veiculo": "Square Enix",
+          "porQueAgora": "A conexão entre duas franquias populares gera grande curiosidade e especulação sobre o futuro do jogo.",
+          "palavraChave": "Kingdom Hearts 4",
+          "criterios": {
+            "interesse": 8,
+            "buscaPotencial": 8,
+            "novidade": 8,
+            "seo": 7,
+            "relevancia": 8,
+            "comercial": 7
+          },
+          "nota": 78
+        },
+        {
+          "assunto": "Genshin Impact 7.1",
+          "formato": "noticia",
+          "oQueAconteceu": "A versão 7.1 de Genshin Impact será lançada no final deste mês, trazendo um novo personagem de 5 estrelas grátis.",
+          "veiculo": "miHoYo",
+          "porQueAgora": "A atualização está gerando expectativa entre os jogadores, especialmente com a inclusão de um novo personagem.",
+          "palavraChave": "Genshin Impact 7.1",
+          "criterios": {
+            "interesse": 7,
+            "buscaPotencial": 8,
+            "novidade": 7,
+            "seo": 8,
+            "relevancia": 7,
+            "comercial": 6
+          },
+          "nota": 74
+        },
+        {
+          "assunto": "Wardogs confirmado para PS5",
+          "formato": "noticia",
+          "oQueAconteceu": "Wardogs foi confirmado para PS5 após um sucesso considerável no Early Access.",
+          "veiculo": "Steam",
+          "porQueAgora": "O sucesso no Early Access e a confirmação para console aumentam o interesse pelo jogo.",
+          "palavraChave": "Wardogs PS5",
+          "criterios": {
+            "interesse": 6,
+            "buscaPotencial": 7,
+            "novidade": 6,
+            "seo": 6,
+            "relevancia": 6,
+            "comercial": 5
+          },
+          "nota": 62
+        },
+        {
+          "assunto": "Persona 4 Revival",
+          "formato": "noticia",
+          "oQueAconteceu": "O revival de Persona 4 apresenta um novo trailer focado em Teddie.",
+          "veiculo": "Atlus",
+          "porQueAgora": "A expectativa em torno do revival e o novo trailer geram interesse entre os fãs da série.",
+          "palavraChave": "Persona 4 Revival",
+          "criterios": {
+            "interesse": 5,
+            "buscaPotencial": 6,
+            "novidade": 5,
+            "seo": 5,
+            "relevancia": 5,
+            "comercial": 4
+          },
+          "nota": 52
+        },
+        {
+          "assunto": "Kim Kaphwan em Fatal Fury",
+          "formato": "noticia",
+          "oQueAconteceu": "Kim Kaphwan foi confirmado como um personagem jogável em Fatal Fury: City of the Wolves.",
+          "veiculo": "SNK",
+          "porQueAgora": "A inclusão de um personagem icônico gera interesse entre os fãs de jogos de luta.",
+          "palavraChave": "Kim Kaphwan Fatal Fury",
+          "criterios": {
+            "interesse": 5,
+            "buscaPotencial": 5,
+            "novidade": 5,
+            "seo": 4,
+            "relevancia": 5,
+            "comercial": 4
+          },
+          "nota": 48
+        },
+        {
+          "assunto": "Expansão de The Witcher 3",
+          "formato": "noticia",
+          "oQueAconteceu": "A expansão Songs of the Past de The Witcher 3 dependeu da remasterização do jogo.",
+          "veiculo": "CD Projekt Red",
+          "porQueAgora": "A dependência da remasterização para a expansão gera curiosidade sobre o futuro do jogo.",
+          "palavraChave": "The Witcher 3 expansão",
+          "criterios": {
+            "interesse": 4,
+            "buscaPotencial": 5,
+            "novidade": 4,
+            "seo": 4,
+            "relevancia": 4,
+            "comercial": 3
+          },
+          "nota": 42
+        }
+      ]
+    }
+  ]
+}

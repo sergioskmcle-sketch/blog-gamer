@@ -1,0 +1,83 @@
+{
+  "assunto": "Diablo V Anunciado",
+  "formato": "noticia",
+  "titulo": "Diablo V: Blizzard anuncia lançamento em 2029 e série Netflix",
+  "palavraChave": "Diablo V",
+  "palavrasSecundarias": [
+    "lançamento 2029",
+    "BlizzCon 2026",
+    "série animada Netflix",
+    "Temporada do Legado Infernal",
+    "Microsoft aquisição"
+  ],
+  "intencaoBusca": "informacional",
+  "perguntas": [
+    "Quando Diablo V será lançado?",
+    "Qual a janela de lançamento prevista para Diablo V?",
+    "Quem anunciou oficialmente Diablo V?",
+    "Que conteúdo adicional será lançado junto com Diablo V?",
+    "Haverá alguma mídia relacionada, como série animada?"
+  ],
+  "secoes": [
+    {
+      "h2": "Anúncio oficial na BlizzCon 2026",
+      "oQueCobrir": "Detalhar que Diablo V foi anunciado durante a cerimônia de abertura da BlizzCon 2026, citando a fonte oficial da Blizzard."
+    },
+    {
+      "h2": "Data de lançamento prevista para 2029",
+      "oQueCobrir": "Apresentar a programação oficial de lançamento no segundo trimestre de 2029 e mencionar o comentário do Reel do Instagram que indica outono de 2029 como janela adicional."
+    },
+    {
+      "h2": "Conteúdo comemorativo: Temporada do Legado Infernal",
+      "oQueCobrir": "Explicar que, para celebrar os 30 anos da franquia, será lançada a Temporada do Legado Infernal simultaneamente ao jogo."
+    },
+    {
+      "h2": "Série animada em parceria com a Netflix",
+      "oQueCobrir": "Informar sobre a série animada de Diablo em desenvolvimento com a Netflix, anunciada na BlizzCon."
+    },
+    {
+      "h2": "Blizzard Entertainment agora faz parte da Microsoft",
+      "oQueCobrir": "Mencionar a aquisição da Blizzard pela Microsoft e seu possível impacto na franquia."
+    }
+  ],
+  "fatosObrigatorios": [
+    {
+      "fato": "Diablo V está programado para ser lançado no segundo trimestre de 2029.",
+      "fonte": "Diablo IV - Blizzard Entertainment (https://diablo4.blizzard.com/pt-br)",
+      "status": "confirmado"
+    },
+    {
+      "fato": "Diablo V foi oficialmente anunciado durante a BlizzCon 2026.",
+      "fonte": "Diablo IV - Blizzard Entertainment (https://diablo4.blizzard.com/pt-br)",
+      "status": "confirmado"
+    },
+    {
+      "fato": "A Blizzard revelou que haverá uma série animada de Diablo em desenvolvimento em parceria com a Netflix.",
+      "fonte": "A próxima era de Diablo foi revelada na BlizzCon 2026 (https://news.blizzard.com/pt-br/article/24301509/a-proxima-era-de-diablo-foi-revelada-na-blizzcon-2026-recapitulacao-das-cerimonias-de-abertura)",
+      "status": "reportado"
+    },
+    {
+      "fato": "Para comemorar os 30 anos da franquia, será lançada a \"Temporada do Legado Infernal\" junto com Diablo V.",
+      "fonte": "Diablo IV - Blizzard Entertainment (https://diablo4.blizzard.com/pt-br)",
+      "status": "reportado"
+    },
+    {
+      "fato": "A Blizzard Entertainment, responsável por Diablo, agora faz parte da Microsoft.",
+      "fonte": "Starcraft, Diablo V e mais! Confira resumo de anúncios da BlizzCon 2026 (https://www.estadao.com.br/amp/tecmundo/voxel/starcraft-diablo-v-e-mais-confira-resumo-de-anuncios-da-blizzcon-2026/?srsltid=AfmBOopj5YwXwwidZv1GMiGffbJw2ZToEl9eXg5kUC2eIt0mtDPN3l6Y)",
+      "status": "reportado"
+    },
+    {
+      "fato": "Um Reel no Instagram da Blizzard menciona que a janela de lançamento de Diablo V está prevista para o outono de 2029.",
+      "fonte": "Instagram Reel Blizzard BlizzCon 2026 (https://www.instagram.com/reel/DdMwm2uDD5f/)",
+      "status": "rumor"
+    }
+  ],
+  "naoEscrever": [
+    "Preço do jogo",
+    "Plataformas específicas (PC, console, etc.)",
+    "Detalhes de gameplay ou mecânicas novas",
+    "Data exata de lançamento (dia e mês)",
+    "Informações sobre personagens ou história que não foram anunciadas oficialmente",
+    "Qualquer afirmação sobre qualidade ou expectativa de recepção"
+  ]
+}

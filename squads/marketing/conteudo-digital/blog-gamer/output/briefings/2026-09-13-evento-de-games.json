@@ -1,0 +1,72 @@
+{
+  "assunto": "evento de games",
+  "formato": "noticia",
+  "titulo": "Brasil Game Show 2026: datas, local e ingressos com desconto",
+  "palavraChave": "Brasil Game Show 2026",
+  "palavrasSecundarias": [
+    "ingressos",
+    "programação",
+    "campeonatos",
+    "estúdios",
+    "demos jogáveis"
+  ],
+  "intencaoBusca": "informacional",
+  "perguntas": [
+    "Quais são as datas da Brasil Game Show 2026?",
+    "Em que local e pavilhões a BGS 2026 será realizada?",
+    "Como funciona o desconto para compra antecipada de ingressos?",
+    "Que tipo de programação a BGS 2026 oferece?",
+    "Quais estúdios e lançamentos terão demos jogáveis na BGS 2026?"
+  ],
+  "secoes": [
+    {
+      "h2": "Datas e Local da BGS 2026",
+      "oQueCobrir": "Informar que o evento acontecerá de 09 a 12 de outubro de 2026, no Distrito Anhembi (pavilhões EXPO 1 ao 5), endereço completo em São Paulo."
+    },
+    {
+      "h2": "Ingressos e Descontos Antecipados",
+      "oQueCobrir": "Detalhar a disponibilidade de ingressos com descontos para compra antecipada, conforme a página oficial de ingressos."
+    },
+    {
+      "h2": "Programação: Campeonatos, Influenciadores e Convidados Internacionais",
+      "oQueCobrir": "Descrever a programação que inclui campeonatos, participação de criadores de conteúdo, convidados internacionais e presença das maiores empresas globais de games."
+    },
+    {
+      "h2": "Demos Jogáveis e Presença de Estúdios",
+      "oQueCobrir": "Explicar que a BGS 2026 contará com demos jogáveis de títulos e lançamentos, além da presença de estúdios da indústria gamer."
+    }
+  ],
+  "fatosObrigatorios": [
+    {
+      "fato": "A Brasil Game Show (BGS) 2026 está programada para acontecer entre os dias 09 e 12 de outubro de 2026.",
+      "fonte": "https://distritoanhembi.com.br/events/brasil-game-show-bgs/",
+      "status": "confirmado"
+    },
+    {
+      "fato": "O evento será realizado no Distrito Anhembi (pavilhões EXPO 1 ao 5), localizado na Olavo Fontoura, 1209 – Santana, em São Paulo – SP.",
+      "fonte": "https://distritoanhembi.com.br/events/brasil-game-show-bgs/",
+      "status": "confirmado"
+    },
+    {
+      "fato": "Os ingressos para a BGS 2026 contam com descontos disponibilizados para compra antecipada.",
+      "fonte": "https://www.brasilgameshow.com.br/ingressos/",
+      "status": "confirmado"
+    },
+    {
+      "fato": "A BGS 2026 contará com demos jogáveis de títulos, lançamentos e presença de estúdios da indústria gamer.",
+      "fonte": "https://www.brasilgameshow.com.br/",
+      "status": "confirmado"
+    },
+    {
+      "fato": "A programação do evento inclui campeonatos, criadores de conteúdo/influenciadores, convidados internacionais e participação das maiores empresas globais de games.",
+      "fonte": "https://www.brasilgameshow.com.br/",
+      "status": "confirmado"
+    }
+  ],
+  "naoEscrever": [
+    "Preços específicos dos ingressos, que não foram divulgados nas fontes.",
+    "Nomes de jogos ou estúdios que ainda não foram confirmados oficialmente.",
+    "Detalhes sobre transmissões online ou formatos híbridos que não constam nas fontes.",
+    "Qualquer informação sobre novidades tecnológicas ou recursos que não foram mencionados nas fontes."
+  ]
+}
