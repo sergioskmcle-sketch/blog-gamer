@@ -101,7 +101,7 @@ export function buildEditPrompt(products, category, backgroundTone, contentType,
     const gameNames = products.slice(0, 6).map(p => p.name || p.title || "game").join(", ");
     const tone = backgroundTone === "light" ? GAME_TONE.LIGHT_BG : backgroundTone === "dark" ? GAME_TONE.DARK_BG : "";
     const subject = context ? ` The scene must evoke: ${context}.` : "";
-    return `Create an epic cinematic banner featuring the characters, logos, and iconic elements extracted from the following game reference images: ${gameNames}. Extract the main subjects from each image and compose them into a single unified scene set in an immersive game world inspired by the games shown. The background should look like a game environment — a fantasy landscape, sci-fi city, or dramatic battle arena depending on the references. Dynamic dramatic lighting, vibrant colors, energy effects. The subjects should interact naturally within the scene as if they exist in the same world.${subject} Photorealistic, high detail, professional game key art quality.${tone} No text, no watermarks.`;
+    return `Create an epic cinematic banner featuring THE CHARACTERS FROM THE REFERENCE IMAGES prominently in the foreground, facing the viewer: ${gameNames}. Compose the main subjects from each reference image into a single unified scene set in an immersive game world inspired by the games shown — a fantasy landscape, sci-fi city, or dramatic battle arena depending on the references. Dynamic dramatic lighting, vibrant colors, energy effects. The characters should interact naturally within the scene as if they exist in the same world.${subject} Photorealistic, high detail, professional game key art quality.${tone} No logos. No text, no watermarks.`;
   }
 
   const typeCounts = {};
