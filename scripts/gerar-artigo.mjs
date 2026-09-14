@@ -1766,9 +1766,14 @@ function sanitizeProducts(products, topic, ctx = {}) {
   products = products.filter((p) => {
     const t = String((p && p.title) || "");
     if (!t) return false;
-    const limpo = cleanProductTitle(t);
-    if (detectBrand(limpo) || detectModel(limpo)) return true;
-    semIdentidade.push(limpo);
+    // V13.1 — deteccao no titulo BRUTO. O cleanProductTitle REMOVE a marca
+    // do texto (serve para rotulo de botao); procurar marca no texto limpo
+    // sempre falhava e descartava produto real (13 produtos num ciclo so,
+    // 14/09/2026, incluindo "Console Steam Deck" e "Console Nintendo
+    // Switch 2").
+    const temIdentidade = Boolean(detectBrand(t) || detectModel(t));
+    if (temIdentidade) return true;
+    semIdentidade.push(t);
     return false;
   });
   if (semIdentidade.length > 0) {

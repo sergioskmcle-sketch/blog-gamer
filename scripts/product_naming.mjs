@@ -86,6 +86,25 @@ export const KNOWN_BRANDS = {
   // xbox, nintendo) ja existiam, mas nomes reais de anuncio usam a sigla
   // ("Console PS5 Slim") e caiam como "sem marca/modelo reconheciveis" —
   // reprovando artigos de console legitimos no portao de qualidade.
+  // V13.1 — Marcas que faltavam: produtos reais do monitor estavam sendo
+  // descartados como "sem marca" (ex.: "Console Steam Deck" — 13 descartes
+  // num ciclo so, 14/09/2026).
+  valve: "Valve",
+  steam: "Steam",
+  "steam deck": "Steam Deck",
+  "attack shark": "Attack Shark",
+  "8bitdo": "8BitDo",
+  gamesir: "GameSir",
+  turtle: "Turtle Beach",
+  audeze: "Audeze",
+  oculus: "Oculus",
+  anbernic: "Anbernic",
+  hori: "Hori",
+  pdp: "PDP",
+  nacon: "Nacon",
+  krom: "Krom",
+  mars: "Mars Gaming",
+  "mars gaming": "Mars Gaming",
   ps5: "PlayStation 5",
   ps4: "PlayStation 4",
   "series x": "Xbox Series X",
