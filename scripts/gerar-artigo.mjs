@@ -5003,38 +5003,7 @@ Checklist antes de responder:
   }
   revSeo.parecer = revSeoParecer;
 
-  // V12 — Ponto de geracao da capa PAGA.
-  // Fica aqui por dois motivos:
-  //  1. E o mais tarde possivel: revisarDesign() logo abaixo e a unica etapa
-  //     do gate que examina a capa.
-  //  2. Redacao e SEO ja foram avaliadas. Se qualquer uma reprovou, o artigo
-  //     nao vai publicar — e nao faz sentido pagar por uma imagem que sera
-  //     descartada. Foi o que aconteceu no ciclo 34361225379: dois temas
-  //     reprovados por redacao/seo tentaram gerar capa antes de cair.
-  // Se a capa for pulada, coverImage mantem o fallback gratuito ja escolhido,
-  // entao revisarDesign() continua encontrando uma capa presente.
   let capaViaIA = false;
-  {
-    const textoReprovado = [revRedacao, revSeo].filter((r) => r && r.status === "reprovado");
-    if (textoReprovado.length > 0) {
-      log("WARN", `Capa paga pulada — ${textoReprovado.map((r) => r.etapa).join(", ")} ja reprovou(ram) o artigo.`);
-    } else {
-      const capaPaga = await gerarCapaPagaAdiada();
-      if (capaPaga) {
-        coverImage = capaPaga;
-        // REGRESSAO CORRIGIDA (09/09/2026): `fm.image` e atribuido bem antes
-        // deste ponto. Ao adiar a geracao da capa, o artigo ficou publicando o
-        // fallback gratuito (recorte 600x400 do RAWG) enquanto a capa da IA,
-        // ja paga e gravada em disco, era ignorada. Reatribuir aqui e o que
-        // liga as duas pontas.
-        fm.image = capaPaga;
-        capaViaIA = true;
-        log("INFO", `Imagem de capa atualizada para a capa IA: ${capaPaga}`);
-      } else if (coverImage) {
-        log("INFO", `Capa IA indisponivel — mantendo fallback gratuito: ${coverImage.slice(0, 60)}`);
-      }
-    }
-  }
 
   const produtoImagensRevisao = mlProducts
     .filter((p) => p.local_thumbnail)
@@ -5085,7 +5054,7 @@ Checklist antes de responder:
     }
   }
 
-  const cover = fm.image || mlProducts[0]?.thumbnail || "";
+  let cover = fm.image || mlProducts[0]?.thumbnail || "";
   const finalValidate = validate(fm, body, {
     ...validationCtx,
     segmented: mlProducts.length > 0 && Boolean(parts),
@@ -5115,31 +5084,6 @@ Checklist antes de responder:
     });
   }
   revFinal.parecer = revFinalParecer;
-
-  // V13 — Creditos de imagem (padrao dos portais: dizer de onde veio cada
-  // foto). Tres fontes possiveis neste projeto: arte oficial via RAWG,
-  // foto de produto do Mercado Livre e capa gerada por IA — que os portais
-  // hoje identificam como tal.
-  {
-    const creditos = [];
-    if (capaViaIA) {
-      creditos.push("Capa: ilustração gerada por inteligência artificial, com base na arte oficial do jogo.");
-    }
-    const jogosComImagem = Object.keys(gameImages || {}).filter((k) => gameImages[k]);
-    if (jogosComImagem.length > 0) {
-      const lista = jogosComImagem.slice(0, 3).join(", ");
-      creditos.push(`Imagens do jogo: arte oficial de ${lista}, via RAWG.io.`);
-    }
-    const fotosProdutos = (mlProducts || []).filter((x) => x.local_thumbnail);
-    if (fotosProdutos.length > 0) {
-      const lojas = [...new Set(fotosProdutos.map((x) => x.source).filter(Boolean))];
-      creditos.push(`Imagens de produtos: ${lojas.length > 0 ? lojas.join(" e ") : "lojas parceiras"} (imagens dos próprios anúncios).`);
-    }
-    if (creditos.length > 0 && !/créditos de imagem/i.test(body)) {
-      body = `${body}\n\n## Créditos de imagem\n\n${creditos.map((c) => `- ${c}`).join("\n")}\n`;
-      log("INFO", `Créditos de imagem adicionados (${creditos.length} linha(s))`);
-    }
-  }
 
   const markdown = montarMarkdown({ fm, body, pubDate, cover, mlProducts });
 
@@ -5350,6 +5294,38 @@ Checklist antes de responder:
             throw new Error(state.last_error);
           }
 
+          // V13.1 — CAPA PAGA E CREDITOS (caminho da correcao): o artigo corrigido
+          // ja passou pelo portao — a capa paga entra aqui tambem, como no caminho A.
+          {
+            const capaPaga = await gerarCapaPagaAdiada();
+            if (capaPaga) {
+              cover = capaPaga;
+              fmOk.image = capaPaga;
+              capaViaIA = true;
+              log(`INFO`, `Capa IA gerada e aplicada ao artigo corrigido: ${capaPaga}`);
+            }
+            const creditos = [];
+            if (capaViaIA) {
+              creditos.push("Capa: ilustração gerada por inteligência artificial, com base na arte oficial do jogo.");
+            }
+            const jogosComImagem = Object.keys(gameImages || {}).filter((k) => gameImages[k]);
+            if (jogosComImagem.length > 0) {
+              const lista = jogosComImagem.slice(0, 3).join(", ");
+              creditos.push(`Imagens do jogo: arte oficial de ${lista}, via RAWG.io.`);
+            }
+            const fotosProdutos = (mlProducts || []).filter((x) => x.local_thumbnail);
+            if (fotosProdutos.length > 0) {
+              const lojas = [...new Set(fotosProdutos.map((x) => x.source).filter(Boolean))];
+              creditos.push(`Imagens de produtos: ${lojas.length > 0 ? lojas.join(" e ") : "lojas parceiras"} (imagens dos próprios anúncios).`);
+            }
+            if (creditos.length > 0 && !/créditos de imagem/i.test(corpoOk)) {
+              corpoOk = `${corpoOk}\n\n## Créditos de imagem\n\n${creditos.map((c) => `- ${c}`).join("\n")}\n`;
+            }
+            const markdownFinal = montarMarkdown({ fm: fmOk, body: corpoOk, pubDate, cover, mlProducts });
+            fs.writeFileSync(fp, markdownFinal, "utf-8");
+            log("INFO", "Markdown final gravado com capa e creditos (correcao).");
+          }
+
           log("INFO", "=== CONCLUIDO ===");
           return;
         }
@@ -5402,6 +5378,45 @@ Checklist antes de responder:
     state.last_success = null;
     persistState();
     throw new Error(state.last_error);
+  }
+
+  // V13.1 — CAPA PAGA E CREDITOS: a ULTIMA etapa do fluxo bem-sucedido.
+  // So roda quando o artigo ja passou por TODAS as revisoes e pelo gate.
+  // Nenhum tema reprovado paga mais capa (antes: capa orfa de 2,4 MB no
+  // disco por tema morto nas revisoes finais — Diablo V, 13/09/2026).
+  {
+    const capaPaga = await gerarCapaPagaAdiada();
+    if (capaPaga) {
+      coverImage = capaPaga;
+      cover = capaPaga;
+      fm.image = capaPaga;
+      capaViaIA = true;
+      log("INFO", `Capa IA gerada e aplicada ao artigo: ${capaPaga}`);
+    } else if (coverImage) {
+      log("INFO", `Capa IA indisponivel — mantendo fallback gratuito: ${coverImage.slice(0, 60)}`);
+    }
+
+    const creditos = [];
+    if (capaViaIA) {
+      creditos.push("Capa: ilustração gerada por inteligência artificial, com base na arte oficial do jogo.");
+    }
+    const jogosComImagem = Object.keys(gameImages || {}).filter((k) => gameImages[k]);
+    if (jogosComImagem.length > 0) {
+      const lista = jogosComImagem.slice(0, 3).join(", ");
+      creditos.push(`Imagens do jogo: arte oficial de ${lista}, via RAWG.io.`);
+    }
+    const fotosProdutos = (mlProducts || []).filter((x) => x.local_thumbnail);
+    if (fotosProdutos.length > 0) {
+      const lojas = [...new Set(fotosProdutos.map((x) => x.source).filter(Boolean))];
+      creditos.push(`Imagens de produtos: ${lojas.length > 0 ? lojas.join(" e ") : "lojas parceiras"} (imagens dos próprios anúncios).`);
+    }
+    if (creditos.length > 0 && !/créditos de imagem/i.test(body)) {
+      body = `${body}\n\n## Créditos de imagem\n\n${creditos.map((c) => `- ${c}`).join("\n")}\n`;
+    }
+
+    const markdownFinal = montarMarkdown({ fm, body, pubDate, cover, mlProducts });
+    fs.writeFileSync(fp, markdownFinal, "utf-8");
+    log("INFO", "Markdown final gravado com capa e creditos.");
   }
 
   log("INFO", "=== CONCLUIDO ===");
