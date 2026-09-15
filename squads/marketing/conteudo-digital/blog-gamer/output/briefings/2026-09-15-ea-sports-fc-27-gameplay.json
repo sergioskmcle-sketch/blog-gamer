@@ -1,0 +1,102 @@
+{
+  "assunto": "EA Sports FC 27 Gameplay",
+  "formato": "noticia",
+  "titulo": "EA Sports FC 27: Lançamento em 25/09 com acesso antecipado e ligas",
+  "palavraChave": "EA Sports FC 27 gameplay",
+  "palavrasSecundarias": [
+    "lançamento EA Sports FC 27",
+    "acesso antecipado",
+    "plataformas",
+    "classificação indicativa 18+",
+    "pré‑venda Early Bird",
+    "trilha sonora brasileira"
+  ],
+  "intencaoBusca": "informacional",
+  "perguntas": [
+    "Quando será o lançamento mundial de EA Sports FC 27?",
+    "Em quais plataformas o jogo estará disponível?",
+    "Qual a classificação etária de EA Sports FC 27 no Brasil?",
+    "Como funciona o acesso antecipado para membros EA Play?",
+    "Quais são as novas ligas femininas incluídas no jogo?",
+    "Quais benefícios a pré‑compra oferece?"
+  ],
+  "secoes": [
+    {
+      "h2": "Data de lançamento e acesso antecipado",
+      "oQueCobrir": "Informar a data de lançamento mundial (25/09/2026) e o período de acesso antecipado da Ultimate Edition e Ultimate Plus Edition (a partir de 18/09/2026)."
+    },
+    {
+      "h2": "Plataformas disponíveis",
+      "oQueCobrir": "Listar todas as plataformas suportadas: PlayStation®5, PlayStation®4, Xbox Series X|S, Xbox One, PC, Nintendo Switch e Nintendo Switch 2."
+    },
+    {
+      "h2": "Classificação etária no Brasil",
+      "oQueCobrir": "Apresentar a classificação indicativa oficial de 18+ no Brasil."
+    },
+    {
+      "h2": "Pré‑venda Early Bird e descontos",
+      "oQueCobrir": "Detalhar o período da pré‑venda (23/07 a 31/08/2026), os bônus oferecidos e o desconto de 10 % em compras digitais da EA para quem pré‑comprar."
+    },
+    {
+      "h2": "Benefícios para membros EA Play",
+      "oQueCobrir": "Explicar que membros EA Play podem testar 10 horas de gameplay a partir de 18/09/2026 e que membros EA Play Pro têm acesso total ao conteúdo da Ultimate Edition a partir do dia 1."
+    },
+    {
+      "h2": "Novas ligas femininas no jogo",
+      "oQueCobrir": "Enumerar as ligas femininas adicionadas: Google Pixel Frauen‑Bundesliga, Liga F Moeve, Barclays Women’s Super League, Ligue 1 McDonald’s, Arkema Première Ligue e National Women’s Soccer League."
+    },
+    {
+      "h2": "Trilha sonora com artistas brasileiros",
+      "oQueCobrir": "Descrever a trilha sonora oficial com 120 faixas de 36 países, destacando a participação de artistas brasileiros como Kyan e MU540."
+    }
+  ],
+  "fatosObrigatorios": [
+    {
+      "fato": "EA SPORTS FC™ 27 será lançado mundialmente em 25 de setembro de 2026, com acesso antecipado da Ultimate Edition e Ultimate Plus Edition a partir de 18 de setembro de 2026.",
+      "fonte": "Electronic Arts - Press Release",
+      "status": "confirmado"
+    },
+    {
+      "fato": "O jogo estará disponível nas plataformas PlayStation®5, PlayStation®4, Xbox Series X|S, Xbox One, PC, Nintendo Switch e Nintendo Switch 2.",
+      "fonte": "Electronic Arts - Press Release",
+      "status": "confirmado"
+    },
+    {
+      "fato": "A classificação etária oficial no Brasil para EA Sports FC 27 é 18+, conforme a classificação da Classificação Indicativa.",
+      "fonte": "Adrenaline",
+      "status": "confirmado"
+    },
+    {
+      "fato": "O período de pré‑venda \"Early Bird\" vai de 23 de julho a 31 de agosto de 2026; quem comprar nesse intervalo recebe o conjunto completo de bônus. Após 31 de agosto, a Ultimate Plus Edition deixa de estar disponível.",
+      "fonte": "IGN Nordic",
+      "status": "reportado"
+    },
+    {
+      "fato": "Membros EA Play podem testar 10 horas de gameplay a partir de 18 de setembro de 2026; membros EA Play Pro têm acesso total ao conteúdo da Ultimate Edition no dia 1.",
+      "fonte": "Electronic Arts - Press Release",
+      "status": "confirmado"
+    },
+    {
+      "fato": "A trilha sonora oficial de EA SPORTS FC 27 conta com 120 faixas de 36 países, incluindo artistas brasileiros como Kyan e MU540.",
+      "fonte": "Insider Gaming Brasil",
+      "status": "confirmado"
+    },
+    {
+      "fato": "O jogo traz novas ligas femininas: Google Pixel Frauen‑Bundesliga, Liga F Moeve, Barclays Women’s Super League, Ligue 1 McDonald’s, Arkema Première Ligue e National Women’s Soccer League.",
+      "fonte": "Electronic Arts - Press Release",
+      "status": "confirmado"
+    },
+    {
+      "fato": "Compradores que fizerem a pré‑compra recebem 10 % de desconto em compras digitais de EA, incluindo downloads do jogo, FC Points e DLCs.",
+      "fonte": "Electronic Arts - Press Release",
+      "status": "confirmado"
+    }
+  ],
+  "naoEscrever": [
+    "Preço exato do jogo ou das edições.",
+    "Detalhes sobre melhorias gráficas ou de performance não citados nas fontes.",
+    "Especificações técnicas de hardware necessárias.",
+    "Informações sobre conteúdo de DLCs que ainda não foram anunciados.",
+    "Comparações com versões anteriores que não estejam suportadas pelos fatos fornecidos."
+  ]
+}
