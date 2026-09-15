@@ -1,27 +1,27 @@
 {
   "last_success": null,
   "last_error": "Gate de revisao reprovou: redacao, conteudo",
-  "last_error_date": "2026-09-14",
+  "last_error_date": "2026-09-15",
   "consecutive_failures": 1,
   "total_articles": 53,
   "last_slug": null,
-  "last_topic": "melhores jogos gratis",
+  "last_topic": "melhores jogos para PC",
   "trending_source": "estatico",
   "recent_keywords": [],
   "recent_topics": [
-    "melhores monitores gamer",
-    "Skins de Mega Man em Fortnite",
-    "Diablo V Anunciado",
     "lancamento de game",
     "melhores teclados mecanicos gamer",
     "Diablo V Anunciado",
     "evento de games",
     "Diablo V Anunciado",
     "anuncio de console",
-    "melhores jogos gratis"
+    "melhores jogos gratis",
+    "Injustice 3 em desenvolvimento",
+    "lancamento de game",
+    "melhores jogos para PC"
   ],
   "last_pilar": "2026-07-22",
   "last_category": "lista",
-  "rotation_pos": 3,
-  "last_scheduled_success": "2026-09-14"
+  "rotation_pos": 0,
+  "last_scheduled_success": "2026-09-15"
 }
