@@ -1,0 +1,130 @@
+{
+  "dia": "2026-09-16",
+  "rodadas": [
+    {
+      "hora": "2026-09-16T14:17:50.152Z",
+      "escolhido": "Wo Long 2: Wings of Ember demo",
+      "pautas": [
+        {
+          "assunto": "Wo Long 2: Wings of Ember demo",
+          "formato": "noticia",
+          "oQueAconteceu": "A demo gratuita de Wo Long 2: Wings of Ember foi lançada na PlayStation Store com recompensas exclusivas.",
+          "veiculo": "PlayStation Store",
+          "porQueAgora": "É o primeiro acesso público ao jogo antes do lançamento oficial em março de 2027.",
+          "palavraChave": "Wo Long 2 demo",
+          "criterios": {
+            "interesse": 9,
+            "buscaPotencial": 9,
+            "novidade": 9,
+            "seo": 9,
+            "relevancia": 9,
+            "comercial": 8
+          },
+          "nota": 90
+        },
+        {
+          "assunto": "Zelda: Ocarina of Time Remake pré‑venda",
+          "formato": "noticia",
+          "oQueAconteceu": "Começou a pré‑venda do remake de The Legend of Zelda: Ocarina of Time com desconto nas lojas oficiais.",
+          "veiculo": "Nintendo Direct",
+          "porQueAgora": "A Nintendo acabou de anunciar o lançamento oficial do remake, gerando grande expectativa.",
+          "palavraChave": "Ocarina of Time Remake pré‑venda",
+          "criterios": {
+            "interesse": 9,
+            "buscaPotencial": 9,
+            "novidade": 8,
+            "seo": 9,
+            "relevancia": 9,
+            "comercial": 9
+          },
+          "nota": 89
+        },
+        {
+          "assunto": "Rockstar revela trilha sonora de GTA 6",
+          "formato": "noticia",
+          "oQueAconteceu": "Rockstar Games divulgou a lista oficial de músicas que farão parte da trilha sonora de GTA 6, incluindo artistas como Travis Scott e Future.",
+          "veiculo": "Rockstar Games",
+          "porQueAgora": "A divulgação faz parte da campanha de marketing que antecede o lançamento do jogo.",
+          "palavraChave": "GTA 6 soundtrack",
+          "criterios": {
+            "interesse": 9,
+            "buscaPotencial": 8,
+            "novidade": 8,
+            "seo": 8,
+            "relevancia": 8,
+            "comercial": 7
+          },
+          "nota": 83
+        },
+        {
+          "assunto": "Marvel’s Wolverine lançamento e avaliações",
+          "formato": "noticia",
+          "oQueAconteceu": "Marvel’s Wolverine chegou ao PS5, acumulando 4,85/5 em mais de 17 mil avaliações e gerando discussões sobre problemas na versão PC.",
+          "veiculo": "PlayStation Store",
+          "porQueAgora": "É a primeira semana de vendas, período de maior atenção da comunidade.",
+          "palavraChave": "Marvel Wolverine review",
+          "criterios": {
+            "interesse": 8,
+            "buscaPotencial": 8,
+            "novidade": 7,
+            "seo": 8,
+            "relevancia": 8,
+            "comercial": 8
+          },
+          "nota": 79
+        },
+        {
+          "assunto": "Xbox Game Pass segunda leva de setembro 2026",
+          "formato": "lista",
+          "oQueAconteceu": "Xbox divulgou a lista completa dos jogos que entrarão na segunda leva do Game Pass em setembro de 2026.",
+          "veiculo": "Xbox News",
+          "porQueAgora": "A lista foi anunciada para que os assinantes planejem seus jogos do próximo mês.",
+          "palavraChave": "Game Pass setembro 2026 jogos",
+          "criterios": {
+            "interesse": 8,
+            "buscaPotencial": 8,
+            "novidade": 7,
+            "seo": 8,
+            "relevancia": 8,
+            "comercial": 7
+          },
+          "nota": 78
+        },
+        {
+          "assunto": "Sony lança headsets Pulse para PS5",
+          "formato": "noticia",
+          "oQueAconteceu": "Sony anunciou os novos headsets Pulse e Pulse Edge para PS5, com drivers maiores, IA e áudio sem perdas.",
+          "veiculo": "Sony Press Release",
+          "porQueAgora": "Os dispositivos chegam ao mercado junto ao suporte ao novo recurso de áudio 3D da console.",
+          "palavraChave": "Sony Pulse headset",
+          "criterios": {
+            "interesse": 7,
+            "buscaPotencial": 7,
+            "novidade": 8,
+            "seo": 7,
+            "relevancia": 7,
+            "comercial": 8
+          },
+          "nota": 72
+        },
+        {
+          "assunto": "Final Fantasy VII Revelation demo na BGS 2026",
+          "formato": "noticia",
+          "oQueAconteceu": "Foi disponibilizada uma demo jogável de Final Fantasy VII Revelation durante a Brasil Game Show 2026.",
+          "veiculo": "Brasil Game Show",
+          "porQueAgora": "A demo serve como pré‑visualização oficial antes do lançamento global do título.",
+          "palavraChave": "Final Fantasy 7 Revelation demo",
+          "criterios": {
+            "interesse": 7,
+            "buscaPotencial": 7,
+            "novidade": 7,
+            "seo": 7,
+            "relevancia": 7,
+            "comercial": 6
+          },
+          "nota": 70
+        }
+      ]
+    }
+  ]
+}

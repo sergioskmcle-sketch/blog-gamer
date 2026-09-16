@@ -1,0 +1,86 @@
+{
+  "assunto": "Wo Long 2: Wings of Ember demo",
+  "formato": "noticia",
+  "titulo": "Wo Long 2: Demo de Wings of Ember disponível até setembro de 2026.",
+  "palavraChave": "Wo Long 2 demo",
+  "palavrasSecundarias": [],
+  "intencaoBusca": "informacional",
+  "perguntas": [
+    "Quando será lançado Wo Long 2: Wings of Ember?",
+    "Em quais plataformas posso jogar a demo?",
+    "Qual é a duração da demo disponível?",
+    "Que recompensas posso obter ao completar a demo?",
+    "Qual é o conteúdo da demo?",
+    "O demo suporta multiplayer?"
+  ],
+  "secoes": [
+    {
+      "h2": "Data de lançamento de Wo Long 2: Wings of Ember",
+      "oQueCobrir": "Informar sobre a data de lançamento do jogo completo."
+    },
+    {
+      "h2": "Disponibilidade da demo",
+      "oQueCobrir": "Detalhar as plataformas onde a demo está disponível e a data limite para jogá-la."
+    },
+    {
+      "h2": "Recompensas ao completar a demo",
+      "oQueCobrir": "Explicar a recompensa exclusiva que os jogadores podem desbloquear."
+    },
+    {
+      "h2": "Conteúdo da demo",
+      "oQueCobrir": "Descrever o nível e os inimigos que os jogadores enfrentarão na demo."
+    },
+    {
+      "h2": "Multiplayer na demo",
+      "oQueCobrir": "Informar sobre a funcionalidade de multiplayer disponível na demo."
+    }
+  ],
+  "fatosObrigatorios": [
+    {
+      "fato": "Wo Long 2: Wings of Ember será lançado mundialmente em 4 de março de 2027.",
+      "fonte": "Eurogamer.net",
+      "status": "confirmado"
+    },
+    {
+      "fato": "Um demo alfa gratuito está disponível para download nas plataformas Xbox Series X|S, PlayStation 5, PC (Steam) e Xbox on PC, mas não para o Nintendo Switch 2.",
+      "fonte": "Windows Central",
+      "status": "confirmado"
+    },
+    {
+      "fato": "O demo está disponível apenas até 30 de setembro de 2026.",
+      "fonte": "Gaming Trend",
+      "status": "confirmado"
+    },
+    {
+      "fato": "Ao concluir o demo, o jogador desbloqueia o capacete exclusivo 'Fledgling Phoenix Helmet' para usar no jogo completo.",
+      "fonte": "Eurogamer.net",
+      "status": "confirmado"
+    },
+    {
+      "fato": "O demo inclui o nível 'campo aberto de Changban', onde o jogador pode unir-se ao exército de Liu Bei contra as forças de Cao Cao e enfrentar demônios inspirados em clássicos chineses.",
+      "fonte": "Eurogamer.net",
+      "status": "confirmado"
+    },
+    {
+      "fato": "O demo permite multiplayer online para até três jogadores simultâneos.",
+      "fonte": "Eurogamer.net",
+      "status": "confirmado"
+    },
+    {
+      "fato": "A demonstração foi anunciada durante a preparação para a Tokyo Game Show, como parte de um grande teste alfa da Koei Tecmo e Team Ninja.",
+      "fonte": "Eurogamer.net",
+      "status": "confirmado"
+    },
+    {
+      "fato": "A pré-venda do jogo já está aberta nas mesmas plataformas que receberão o demo.",
+      "fonte": "Windows Central",
+      "status": "confirmado"
+    },
+    {
+      "fato": "[NOVIDADE DE ULTIMA HORA] O demo alfa de Wo Long 2: Wings of Ember foi lançado oficialmente em 7 de junho de 2026, conforme anunciado no trailer de revelação publicado pelo canal oficial da Koei Tecmo Europe.",
+      "fonte": "Koei Tecmo Europe Ltd. – YouTube (vídeo de revelação publicado em 2026-06-07)",
+      "status": "reportado"
+    }
+  ],
+  "naoEscrever": []
+}
