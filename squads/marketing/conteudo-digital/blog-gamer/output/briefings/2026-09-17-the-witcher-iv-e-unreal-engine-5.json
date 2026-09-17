@@ -1,0 +1,102 @@
+{
+  "assunto": "The Witcher IV e Unreal Engine 5",
+  "formato": "noticia",
+  "titulo": "The Witcher IV: lançamento em 2028 e uso do Unreal Engine 5",
+  "palavraChave": "The Witcher IV Unreal Engine 5",
+  "palavrasSecundarias": [
+    "lançamento 2028",
+    "CD Projekt RED",
+    "Unreal Engine 5",
+    "Gamescom 2026",
+    "demo PS5"
+  ],
+  "intencaoBusca": "informacional",
+  "perguntas": [
+    "Qual a janela de lançamento prevista para The Witcher IV?",
+    "Em qual engine The Witcher IV será desenvolvido?",
+    "Por que a CD Projekt RED decidiu migrar para o Unreal Engine 5?",
+    "The Witcher IV será apresentado na Gamescom 2026?",
+    "A CD Projekt RED já mostrou algum demo da tecnologia usada?",
+    "Quais benefícios a empresa espera ao usar o Unreal Engine 5?"
+  ],
+  "secoes": [
+    {
+      "h2": "Janela de lançamento para 2028",
+      "oQueCobrir": "Apresentar a data‑window anunciada para 2028 e a fonte da informação."
+    },
+    {
+      "h2": "The Witcher IV não será exibido na Gamescom 2026",
+      "oQueCobrir": "Confirmar a ausência de apresentação do título no evento de 2026."
+    },
+    {
+      "h2": "Migração do REDengine para Unreal Engine 5",
+      "oQueCobrir": "Descrever a decisão de mudar a engine e citar a fonte que relata a mudança."
+    },
+    {
+      "h2": "Motivações da mudança: foco criativo e menos problemas técnicos",
+      "oQueCobrir": "Explicar que a mudança visa liberar a equipe para criar, reduzindo tempo gasto com questões técnicas da engine."
+    },
+    {
+      "h2": "Parceria direta com a Epic Games para tecnologias de mundos abertos",
+      "oQueCobrir": "Detalhar a colaboração com a Epic em soluções específicas, não apenas o uso padrão do UE5."
+    },
+    {
+      "h2": "Demo tecnológico de 2025 rodando em PS5 demonstra recursos do UE5",
+      "oQueCobrir": "Mencionar o demo apresentado em 2025, sua plataforma e os recursos mostrados."
+    },
+    {
+      "h2": "Declarações do co‑CEO sobre os benefícios da adoção do UE5",
+      "oQueCobrir": "Citar a fala de Michał Nowakowski sobre lançar mais jogos e contar mais histórias graças ao UE5."
+    }
+  ],
+  "fatosObrigatorios": [
+    {
+      "fato": "The Witcher 4 tem janela de lançamento prevista para 2028.",
+      "fonte": "IGN Brasil (https://br.ign.com/the-witcher-3-wild-hunt-songs-of-the-past/155581/the-witcher-4-ganha-janela-de-lancamento-para-2028-detalhes-da-expansao-de-the-witcher-3-wild-hunt-s)",
+      "status": "reportado"
+    },
+    {
+      "fato": "The Witcher 4 não será apresentado na Gamescom 2026.",
+      "fonte": "IGN Brasil (mesma URL acima)",
+      "status": "reportado"
+    },
+    {
+      "fato": "CD Projekt RED migrou o desenvolvimento de The Witcher 4 do REDengine para o Unreal Engine 5.",
+      "fonte": "GamingBolt (https://gamingbolt.com/the-witcher-4-studio-switch-to-unreal-engine-5-to-spend-less-time-on-technical-issues-says-co-ceo)",
+      "status": "reportado"
+    },
+    {
+      "fato": "A mudança para Unreal Engine 5 foi motivada pelo desejo de focar na criação de jogos, em vez de resolver problemas técnicos da engine.",
+      "fonte": "IXBT Games (https://ixbt.games/en/news/2026/09/17/436490-rukovoditel-cdpr-obieiasnil-pocemu-avtory-the-witcher-4-ispolzuiut-unreal-engine-5-vmesto-dvizka-redengine.html)",
+      "status": "reportado"
+    },
+    {
+      "fato": "CD Projekt RED está trabalhando diretamente com a Epic Games em tecnologias específicas para mundos abertos, não apenas usando o Unreal Engine 5 “de caixa”.",
+      "fonte": "VideoCardz (https://videocardz.com/newz/cdpr-says-the-witcher-4-will-not-look-like-another-unreal-engine-5-game)",
+      "status": "reportado"
+    },
+    {
+      "fato": "Em 2025 a CD Projekt RED apresentou um demo tecnológico de The Witcher 4 rodando em um PS5 base, demonstrando recursos do Unreal Engine 5.",
+      "fonte": "DLCompare (https://www.dlcompare.com/gaming-news/the-witcher-4-has-a-release-window)",
+      "status": "reportado"
+    },
+    {
+      "fato": "O co‑CEO Michał Nowakowski afirmou que a adoção do Unreal Engine 5 permitirá à CD Projekt RED lançar mais jogos e contar mais histórias, pois a empresa não precisará criar a tecnologia do zero.",
+      "fonte": "IXBT Games (mesma URL acima)",
+      "status": "reportado"
+    },
+    {
+      "fato": "[NOVIDADE DE ULTIMA HORA] The Witcher 4 Unreal Engine 5 tech demo was presented publicly at the Unreal Fest Orlando State of Unreal keynote on 3 June 2025.",
+      "fonte": "Mp1st – cobertura do Unreal Fest Orlando (State of Unreal 2025)",
+      "status": "reportado"
+    }
+  ],
+  "naoEscrever": [
+    "Preço do jogo ou pacotes de edição.",
+    "Data exata de lançamento (dia e mês).",
+    "Detalhes de gameplay, personagens ou enredo ainda não confirmados.",
+    "Afirmar que o jogo será exclusivo de alguma plataforma além do demo apresentado.",
+    "Que o Unreal Engine 5 será usado sem nenhuma customização ou colaboração com a Epic.",
+    "Que o título será lançado antes de 2028."
+  ]
+}

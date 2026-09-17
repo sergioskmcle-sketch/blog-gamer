@@ -1,0 +1,147 @@
+{
+  "dia": "2026-09-17",
+  "rodadas": [
+    {
+      "hora": "2026-09-17T23:38:33.914Z",
+      "escolhido": "The Witcher IV e Unreal Engine 5",
+      "pautas": [
+        {
+          "assunto": "GTA VI Online e suporte contínuo",
+          "formato": "noticia",
+          "oQueAconteceu": "Chefe da Twitch confirmou que GTA VI Online deve chegar em 2027 e que GTA Online continuará recebendo suporte.",
+          "veiculo": "Rockstar",
+          "porQueAgora": "As informações sobre o suporte contínuo de GTA Online são relevantes para a comunidade de jogadores.",
+          "palavraChave": "GTA VI Online suporte",
+          "criterios": {
+            "interesse": 10,
+            "buscaPotencial": 9,
+            "novidade": 8,
+            "seo": 9,
+            "relevancia": 10,
+            "comercial": 8
+          },
+          "nota": 92
+        },
+        {
+          "assunto": "The Witcher IV e Unreal Engine 5",
+          "formato": "noticia",
+          "oQueAconteceu": "The Witcher IV usará Unreal Engine 5 para criar uma experiência mais convincente e imersiva.",
+          "veiculo": "IGN",
+          "porQueAgora": "A revelação da tecnologia utilizada gera grande expectativa entre os fãs da franquia.",
+          "palavraChave": "The Witcher IV Unreal Engine 5",
+          "criterios": {
+            "interesse": 9,
+            "buscaPotencial": 8,
+            "novidade": 9,
+            "seo": 8,
+            "relevancia": 9,
+            "comercial": 7
+          },
+          "nota": 85
+        },
+        {
+          "assunto": "Pré-venda de GTA VI com desconto",
+          "formato": "noticia",
+          "oQueAconteceu": "A pré-venda de GTA VI está disponível com desconto em plataformas como Amazon e KaBuM.",
+          "veiculo": "Amazon, KaBuM",
+          "porQueAgora": "Os descontos em pré-venda atraem a atenção de gamers que desejam garantir seu jogo com economia.",
+          "palavraChave": "GTA VI pré-venda desconto",
+          "criterios": {
+            "interesse": 8,
+            "buscaPotencial": 9,
+            "novidade": 7,
+            "seo": 8,
+            "relevancia": 9,
+            "comercial": 10
+          },
+          "nota": 83
+        },
+        {
+          "assunto": "Call of Duty: Modern Warfare 4 trailer",
+          "formato": "noticia",
+          "oQueAconteceu": "O trailer de Call of Duty: Modern Warfare 4 revela Mads Mikkelsen como vilão.",
+          "veiculo": "Activision",
+          "porQueAgora": "A revelação de um ator famoso como vilão gera interesse e discussão entre os fãs da franquia.",
+          "palavraChave": "Call of Duty Modern Warfare 4 trailer",
+          "criterios": {
+            "interesse": 8,
+            "buscaPotencial": 7,
+            "novidade": 7,
+            "seo": 7,
+            "relevancia": 8,
+            "comercial": 6
+          },
+          "nota": 74
+        },
+        {
+          "assunto": "Novo RPG Edge of Memories",
+          "formato": "noticia",
+          "oQueAconteceu": "O novo RPG de ação da Nacon, Edge of Memories, está programado para ser lançado em novembro.",
+          "veiculo": "Nacon",
+          "porQueAgora": "A proximidade do lançamento gera expectativa e curiosidade entre os fãs de RPGs.",
+          "palavraChave": "Edge of Memories lançamento",
+          "criterios": {
+            "interesse": 7,
+            "buscaPotencial": 7,
+            "novidade": 8,
+            "seo": 7,
+            "relevancia": 8,
+            "comercial": 6
+          },
+          "nota": 72
+        },
+        {
+          "assunto": "Trailer de Dragon’s Dogma II",
+          "formato": "noticia",
+          "oQueAconteceu": "O trailer de Dragon’s Dogma II: Dark Arisen destaca a nova região de Norgan.",
+          "veiculo": "Capcom",
+          "porQueAgora": "O lançamento de trailers gera grande expectativa e discussão entre os fãs da série.",
+          "palavraChave": "Dragon’s Dogma II trailer",
+          "criterios": {
+            "interesse": 8,
+            "buscaPotencial": 6,
+            "novidade": 7,
+            "seo": 7,
+            "relevancia": 7,
+            "comercial": 5
+          },
+          "nota": 70
+        },
+        {
+          "assunto": "Resident Evil filme bem avaliado",
+          "formato": "noticia",
+          "oQueAconteceu": "O filme Resident Evil estreou com 96% no Rotten Tomatoes, tornando-se o filme de game mais bem avaliado da história.",
+          "veiculo": "Rotten Tomatoes",
+          "porQueAgora": "A alta avaliação do filme gera interesse tanto em gamers quanto em fãs de cinema.",
+          "palavraChave": "Resident Evil filme avaliação",
+          "criterios": {
+            "interesse": 7,
+            "buscaPotencial": 6,
+            "novidade": 8,
+            "seo": 6,
+            "relevancia": 7,
+            "comercial": 5
+          },
+          "nota": 67
+        },
+        {
+          "assunto": "Lollipop Chainsaw 2 anunciado",
+          "formato": "noticia",
+          "oQueAconteceu": "Lollipop Chainsaw 2 Back2Back foi anunciado durante a Tokyo Game Show 2026.",
+          "veiculo": "TGS 2026",
+          "porQueAgora": "O anúncio em um evento importante gera buzz e interesse entre os fãs de jogos de ação.",
+          "palavraChave": "Lollipop Chainsaw 2 anúncio",
+          "criterios": {
+            "interesse": 7,
+            "buscaPotencial": 6,
+            "novidade": 8,
+            "seo": 6,
+            "relevancia": 6,
+            "comercial": 5
+          },
+          "nota": 66
+        }
+      ]
+    }
+  ]
+}

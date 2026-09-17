@@ -1,0 +1,90 @@
+{
+  "assunto": "evento de games",
+  "formato": "noticia",
+  "titulo": "Brasil Game Show 2026: Nova área Indie com 5 estúdios e ingressos à venda",
+  "palavraChave": "Brasil Game Show 2026",
+  "palavrasSecundarias": [
+    "Indie",
+    "Ingressos",
+    "Tokyo Game Show",
+    "Brazil Games"
+  ],
+  "intencaoBusca": "informacional",
+  "perguntas": [
+    "Quando e onde acontecerá a BGS 2026?",
+    "Quais novos estúdios participarão da Área Indie da BGS 2026?",
+    "Em que lote estão os ingressos e como adquirir desconto?",
+    "Qual é a programação do primeiro dia da BGS 2026?",
+    "Como a Brazil Games estará representada no Tokyo Game Show 2026?"
+  ],
+  "secoes": [
+    {
+      "h2": "Data, local e duração da BGS 2026",
+      "oQueCobrir": "Informar que a 17ª edição da Brasil Game Show ocorrerá de 9 a 12 de outubro de 2026 no Distrito Anhembi, São Paulo."
+    },
+    {
+      "h2": "Novos participantes da Área Indie",
+      "oQueCobrir": "Listar os cinco estúdios confirmados para a área indie: Gene World, Ola GG, Antelus Games, Peculiar Path e 2Wedges."
+    },
+    {
+      "h2": "Ingressos: lotes e cupom de desconto",
+      "oQueCobrir": "Detalhar que os ingressos já estão à venda, encontrando‑se no sexto lote, e que o cupom \"SEMANADOGAMER\" garante 10 % de desconto adicional sobre o 5º lote até 29 de agosto de 2026."
+    },
+    {
+      "h2": "Primeiro dia exclusivo para imprensa e categorias premium",
+      "oQueCobrir": "Explicar que o dia 09/10 será reservado para imprensa, negócios e portadores de ingressos Passaporte Premium, Passaporte Business e categorias de Camarote."
+    },
+    {
+      "h2": "Brazil Games no Tokyo Game Show 2026",
+      "oQueCobrir": "Descrever a delegação: 30 empresas brasileiras (21 estúdios), 55 pessoas presenciais e 9 online; 12 títulos disponíveis para teste; estande Booth 09‑C59 no Makuhari Messe, Hall 1‑11, Chiba, Japão."
+    }
+  ],
+  "fatosObrigatorios": [
+    {
+      "fato": "A 17ª edição da Brasil Game Show acontecerá de 9 a 12 de outubro de 2026 no Distrito Anhembi, São Paulo.",
+      "fonte": "Terra (Woo! Magazine)",
+      "status": "confirmado"
+    },
+    {
+      "fato": "Cinco novos participantes foram confirmados para a Área BGS Indie de 2026: Gene World, Ola GG, Antelus Games, Peculiar Path e 2Wedges.",
+      "fonte": "Terra (Woo! Magazine)",
+      "status": "confirmado"
+    },
+    {
+      "fato": "Os ingressos para a BGS 2026 já estão à venda e, na data da publicação, encontravam‑se no sexto lote.",
+      "fonte": "Terra (Woo! Magazine)",
+      "status": "confirmado"
+    },
+    {
+      "fato": "O primeiro dia da BGS 2026 (09/10) será exclusivo para imprensa, negócios e portadores de ingressos Passaporte Premium, Passaporte Business e categorias de Camarote.",
+      "fonte": "Rockverse Play",
+      "status": "confirmado"
+    },
+    {
+      "fato": "A Brazil Games levará 30 empresas brasileiras ao Tokyo Game Show 2026, sendo 21 estúdios e 55 pessoas presentes fisicamente, além de 9 participantes online.",
+      "fonte": "EIN Presswire",
+      "status": "confirmado"
+    },
+    {
+      "fato": "Do total da delegação Brazil Games no TGS 2026, 12 títulos brasileiros estarão disponíveis para teste presencial, abrangendo gêneros como horror, RPG, ação, estratégia e puzzle.",
+      "fonte": "EIN Presswire",
+      "status": "confirmado"
+    },
+    {
+      "fato": "O estande da Brazil Games no Tokyo Game Show 2026 será o Booth 09‑C59, localizado no Makuhari Messe, Hall de Exposições 1‑11, Chiba, Japão.",
+      "fonte": "EIN Presswire",
+      "status": "confirmado"
+    },
+    {
+      "fato": "Um cupom promocional chamado \"SEMANADOGAMER\" oferece 10 % de desconto adicional sobre o 5º lote de ingressos da BGS 2026, válido até 29 de agosto de 2026.",
+      "fonte": "Rockverse Play",
+      "status": "confirmado"
+    }
+  ],
+  "naoEscrever": [
+    "Preços exatos dos ingressos ou valores de cada lote.",
+    "Número total de ingressos disponíveis ou capacidade do evento.",
+    "Especulações sobre futuras edições da BGS ou mudanças de local.",
+    "Detalhes de jogos ou atrações que ainda não foram anunciados oficialmente."
+  ]
+}
