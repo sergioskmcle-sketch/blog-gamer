@@ -1,17 +1,14 @@
 {
-  "last_success": "2026-09-16",
-  "last_error": null,
-  "last_error_date": null,
-  "consecutive_failures": 0,
+  "last_success": null,
+  "last_error": "Gate de revisao reprovou: revisao, conteudo",
+  "last_error_date": "2026-09-16",
+  "consecutive_failures": 1,
   "total_articles": 55,
-  "last_slug": "wo-long-2-demo-traz-combate-brutal-e-estreia-marcada-para-2027",
-  "last_topic": "Wo Long 2: Wings of Ember demo",
-  "trending_source": "trending",
-  "recent_keywords": [
-    "Wo Long 2 demo"
-  ],
+  "last_slug": null,
+  "last_topic": "lancamento de game",
+  "trending_source": "estatico",
+  "recent_keywords": [],
   "recent_topics": [
-    "Diablo V Anunciado",
     "evento de games",
     "Diablo V Anunciado",
     "anuncio de console",
@@ -20,10 +17,11 @@
     "lancamento de game",
     "melhores jogos para PC",
     "EA Sports FC 27 Gameplay",
-    "Wo Long 2: Wings of Ember demo"
+    "Wo Long 2: Wings of Ember demo",
+    "lancamento de game"
   ],
   "last_pilar": "2026-07-22",
   "last_category": "noticia",
-  "rotation_pos": 2,
+  "rotation_pos": 3,
   "last_scheduled_success": "2026-09-16"
 }
