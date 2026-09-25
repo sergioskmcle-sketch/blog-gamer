@@ -1,16 +1,14 @@
 {
   "last_success": null,
-  "last_error": "Gate de revisao reprovou: pesquisa, revisao, conteudo",
-  "last_error_date": "2026-09-24",
+  "last_error": "Gate de revisao reprovou: pesquisa, revisao",
+  "last_error_date": "2026-09-25",
   "consecutive_failures": 1,
   "total_articles": 56,
   "last_slug": null,
-  "last_topic": "performance de jogos nos consoles em 2026",
+  "last_topic": "melhores teclados mecanicos gamer",
   "trending_source": "estatico",
   "recent_keywords": [],
   "recent_topics": [
-    "Valor Mortis e seu preço competitivo",
-    "anuncio de console",
     "melhores jogos gratis",
     "melhores mouses gamer",
     "performance de jogos nos consoles em 2026",
@@ -18,10 +16,12 @@
     "performance de jogos nos consoles em 2026",
     "review de jogo popular de 2026",
     "melhores monitores gamer",
-    "performance de jogos nos consoles em 2026"
+    "performance de jogos nos consoles em 2026",
+    "review de jogo popular de 2026",
+    "melhores teclados mecanicos gamer"
   ],
   "last_pilar": "2026-07-22",
-  "last_category": "review",
-  "rotation_pos": 1,
-  "last_scheduled_success": "2026-09-24"
+  "last_category": "guia",
+  "rotation_pos": 3,
+  "last_scheduled_success": "2026-09-25"
 }
