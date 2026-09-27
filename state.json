@@ -1,15 +1,14 @@
 {
   "last_success": null,
-  "last_error": "Gate de revisao reprovou: pesquisa, redacao, revisao, conteudo",
-  "last_error_date": "2026-09-26",
+  "last_error": "Gate de revisao reprovou: pesquisa, revisao",
+  "last_error_date": "2026-09-27",
   "consecutive_failures": 1,
   "total_articles": 56,
   "last_slug": null,
-  "last_topic": "performance de jogos nos consoles em 2026",
+  "last_topic": "melhores mouses gamer",
   "trending_source": "estatico",
   "recent_keywords": [],
   "recent_topics": [
-    "performance de jogos nos consoles em 2026",
     "melhores headsets gamer",
     "performance de jogos nos consoles em 2026",
     "review de jogo popular de 2026",
@@ -18,10 +17,11 @@
     "review de jogo popular de 2026",
     "melhores teclados mecanicos gamer",
     "performance de jogos nos consoles em 2026",
-    "performance de jogos nos consoles em 2026"
+    "performance de jogos nos consoles em 2026",
+    "melhores mouses gamer"
   ],
   "last_pilar": "2026-07-22",
-  "last_category": "review",
-  "rotation_pos": 5,
-  "last_scheduled_success": "2026-09-26"
+  "last_category": "guia",
+  "rotation_pos": 0,
+  "last_scheduled_success": "2026-09-27"
 }
