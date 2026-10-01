@@ -1,17 +1,14 @@
 {
   "last_success": null,
-  "last_error": "Gate de revisao reprovou: pesquisa, revisao, conteudo",
-  "last_error_date": "2026-09-30",
+  "last_error": "Gate de revisao reprovou: pesquisa, redacao, revisao, conteudo",
+  "last_error_date": "2026-10-01",
   "consecutive_failures": 1,
   "total_articles": 56,
   "last_slug": null,
-  "last_topic": "GTA 6 e suas atividades secundárias",
-  "trending_source": "trending",
-  "recent_keywords": [
-    "GTA 6 atividades secundárias"
-  ],
+  "last_topic": "review de jogo popular de 2026",
+  "trending_source": "estatico",
+  "recent_keywords": [],
   "recent_topics": [
-    "review de jogo popular de 2026",
     "melhores monitores gamer",
     "performance de jogos nos consoles em 2026",
     "review de jogo popular de 2026",
@@ -20,10 +17,11 @@
     "performance de jogos nos consoles em 2026",
     "melhores mouses gamer",
     "performance de jogos nos consoles em 2026",
-    "GTA 6 e suas atividades secundárias"
+    "GTA 6 e suas atividades secundárias",
+    "review de jogo popular de 2026"
   ],
   "last_pilar": "2026-07-22",
-  "last_category": "lista",
-  "rotation_pos": 2,
-  "last_scheduled_success": "2026-09-30"
+  "last_category": "review",
+  "rotation_pos": 3,
+  "last_scheduled_success": "2026-10-01"
 }
